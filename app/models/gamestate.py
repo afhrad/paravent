@@ -498,6 +498,9 @@ class CreatureDesign(Record):
     # A hash of the statblock as last published: a design differs from its
     # published self exactly when its statblock does.
     published_hash: str | None = None
+    # The MCP key that drafted it (MCP.md): Claude's draft, left out of a publish until
+    # the gamemaster accepts it; None for the gamemaster's own designs.
+    drafted_by: str | None = None
 
 
 class EncounterMonster(GameStateModel):

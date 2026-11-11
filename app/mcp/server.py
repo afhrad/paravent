@@ -19,6 +19,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
 from app.mcp.common import party_levels, rating_answer, resolve_monsters, tool_errors
+from app.mcp.creatures import register_creatures
 from app.mcp.drafts import register_drafts
 from app.mcp.history import register_history
 from app.mcp.models import (
@@ -804,6 +805,7 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
 
     register_history(server, stores)
     register_drafts(server, stores)
+    register_creatures(server, stores)
     return server
 
 

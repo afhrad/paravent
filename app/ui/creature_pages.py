@@ -124,7 +124,11 @@ def creatures_page(
                     )
                 ],
             ],
-            span(class_="pill cond")[t("creatures.unpublished")] if r.unpublished else None,
+            span(class_="pill accent", title=t("creatures.draft_hint"))[t("creatures.draft")]
+            if r.design.drafted_by
+            else span(class_="pill cond")[t("creatures.unpublished")]
+            if r.unpublished
+            else None,
             delete_link(page, f"{creature_url(r.design.id)}/delete", t("creatures.delete")),
         ]
         for r in rows
@@ -619,11 +623,18 @@ def builder_page(
     d = view.design
     url = creature_url(d.id)
     status = (
-        span(class_="pill cond")[t("creatures.unpublished")]
+        span(class_="pill accent", title=t("creatures.draft_hint"))[t("creatures.draft")]
+        if d.drafted_by
+        else span(class_="pill cond")[t("creatures.unpublished")]
         if view.unpublished
         else span(class_="pill heal")[t("creatures.published")]
     )
     actions = div(class_="form-actions cb-actions")[
+        button(type="submit", name="action", value="accept", class_="btn btn-primary")[
+            icon("check"), span[t("creatures.accept")]
+        ]
+        if d.drafted_by
+        else None,
         button(type="submit", name="action", value="save", class_="btn")[
             icon("check"), span[t("creatures.save")]
         ],

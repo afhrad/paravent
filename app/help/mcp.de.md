@@ -190,6 +190,15 @@ Kampf leichter“, „gib dem Schultheiß eine Tochter“.
 
 ---
 
+## 6b. Kreaturen
+
+Claude kann auch Kreaturen im Kreaturenbaukasten entwerfen: „ein Lich mit
+Herausforderungsgrad 5 für die Versunkenen Marschen" ergibt eine Kreatur, die vom Lich der
+Bücher ausgeht, herunterskaliert, mit Zaubern und Ausrüstung aus euren Büchern. Sie wartet
+unter *Kreaturen* als **Entwurf von Claude**: **Veröffentlichen** lässt sie aus, bis du sie
+öffnest und **Annehmen** drückst. Claude prüft selbst, dass sie auf dem gewünschten Grad
+spielt und dass jeder genannte Zauber und Gegenstand in den Büchern der Welt steht.
+
 ## 7. Wenn es nicht klappt
 
 | Was du siehst | Was es heißt | Was zu tun ist |

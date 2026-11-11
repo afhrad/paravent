@@ -822,6 +822,19 @@ class CreatureService:
         self._monster = monster
         self._reload = reload
 
+    def known_cr(self, cr: str) -> bool:
+        """Whether the builder's table has this challenge rating ("5", "1/2")."""
+        return self._tables.row(cr) is not None
+
+    def feature_name(self, name: str) -> str | None:
+        """A monster feature of the guide's table by its name, as the table spells it."""
+        found = self._tables.feature(name)
+        return found.name if found is not None else None
+
+    def cr_order(self) -> builtins.list[str]:
+        """Every challenge rating of the table, lowest first."""
+        return [row.cr for row in self._tables.rows()]
+
     @property
     def homebrew_file(self) -> Path:
         """Where the statblocks are published."""
@@ -904,13 +917,18 @@ class CreatureService:
         """True when its statblock differs from the one last published."""
         return design.published_hash != self._hash(design)
 
+    def accept(self, design_id: str) -> CreatureDesign:
+        """Make Claude's draft one of the gamemaster's designs, published from now on."""
+        return self._store.creatures.update(design_id, drafted_by=None)
+
     def publish(self) -> Published:
-        """Write every design to the homebrew file and reload the compendium.
+        """Write every design but Claude's drafts to the homebrew file and reload the
+        compendium.
 
         A world that declares its books and has a design gets ``Homebrew`` declared,
         so its creatures resolve there (TECHSTACK.md §6c).
         """
-        designs = self.list()
+        designs = [d for d in self.list() if d.drafted_by is None]
         now = datetime.now(UTC)
         data = {
             "_meta": {

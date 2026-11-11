@@ -70,7 +70,10 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         5eTools's expressions in a small evaluator, never `eval`); "Fit to CR" sets AC
         and hit dice. Publishing writes every design to
         `library/homebrew/bestiary/bestiary-paravent.json` as source `Homebrew` and
-        reloads, adding Homebrew to the books of each design's world. **The long tail**
+        reloads, adding Homebrew to the books of each design's world. **Over MCP** (2026-11-11, MCP.md §10): Claude drafts
+        creatures from a description, a world's setting and a CR (`create_creature`,
+        `update_creature`), spells and equipment from the world's books; a draft is
+        published only once the gamemaster accepts it. **The long tail**
         (2026-10-19): `psionic` (52), `vehicle` (39), `vehicleUpgrade` (31), `facility`
         (53), `charoption` (44), `cult` (30), `boon` (12), `deck` (34) and `card` (711)
         load as categories — every count matches the files, 0 errors. Searchable (vehicles

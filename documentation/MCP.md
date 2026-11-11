@@ -123,6 +123,8 @@ plain text. Names and ids are what Claude passes back; ids are Paravent's record
 | `revision_changes(adventure_id)` | What a revision changes against the original |
 | `draft_naming_style(name, pattern, parts, …, world_id?)` | Proposes a naming style: a write outside a draft adventure, but inert, offered nowhere until the gamemaster accepts it; with `world_id` it then joins that world's styles (NAMES.md §5b, §6) |
 | `set_world_naming_styles(world_id, keys)` | Chooses the naming styles a world's names come from (empty: every style). The other write outside a draft adventure, asked for by the user 2026-11-09; it changes only that list (NAMES.md §5b) |
+| `creature_guide()` | How to design a creature: based on the books or blank, placeholders, spellcasting, equipment, what changes the CR (§10) |
+| `create_creature(world_id, name, cr, based_on?, …)` / `update_creature(design_id, …)` | A creature in the creature builder from a description, as **Claude's draft**, left out of a publish until the gamemaster accepts it; each answer is the CR it plays at, its statblock and what its text names that the world's books lack (§10) |
 | `check_adventure(adventure_id)` | The same check over every chapter and the notes of the adventure's NPCs, places, encounters and treasure, naming where each problem is. Called last, once everything exists: a chapter or note may name something written later |
 | `list_sounds()` | The sound desk's scenes and sounds, for `{@sound Name}` (SOUND.md) |
 | `check_chapter(chapter_id)` | The chapter check (ADVENTURES.md §5.7): references that lead nowhere with the nearest names, missing NPCs/encounters/treasure, empty encounters, unknown callouts, missing headings and images |
@@ -279,3 +281,32 @@ original rather than leaving two side by side. **Built 2026-11-02**, `app/servic
   and is marked; so does anything else they wrote. A removed fight that has been run stays.
 - **Discarding** deletes the copy with its records; the original was never touched.
 - Pictures are not copied: a revision changes words, not media.
+
+## 10. Creatures
+
+Asked for by the user 2026-11-11: "if I want a lich at difficulty rating 5, it should do so
+and also select appropriate spells and equipment." `app/mcp/creatures.py` over the creature
+builder (`app/services/creature_builder.py`).
+
+- **`create_creature`** starts a design in a world at a challenge rating, blank or
+  `based_on` a creature of the world's books (resolved through its declared books, as an
+  encounter's creatures are), and takes every field of the design: size, type, alignment,
+  armour and what gives it, hit dice, speeds, scores (merged, so one score can change),
+  saves, skills, senses, languages, defences, the five kinds of blocks, the guide's monster
+  `features`, `damage_per_round` for damage the text cannot tell (spells), and `fit`, which
+  sets armour class and hit dice to the CR table's last. **`update_creature`** changes a
+  draft the same way; a block list given replaces that list.
+- **Claude's drafts:** a design made over MCP carries `drafted_by`, the key that wrote it.
+  The builder marks it ("Claude's draft") and offers **Accept**; `CreatureService.publish`
+  leaves every draft out, so nothing unreviewed reaches `library/homebrew/`. Claude changes
+  only drafts; the gamemaster's designs are refused.
+- **The answer is the builder's working:** the CR it plays at by the guide's method with
+  its defensive and offensive CR and an `advice` when they are more than a step from the
+  target, hit points with their formula, armour class, damage per round, attack and DC, the
+  statblock with its numbers filled in, and every `{@spell}`, `{@item}` or `{@creature}`
+  its text names that the world's books lack, with the nearest names (the chapter check's
+  own `notes_problems`).
+- **`creature_guide`** (`app/mcp/creature_guide.md`) holds the rules Claude follows: start
+  from a close book creature, the placeholders, a Spellcasting trait with spells of the
+  world's books at a caster level of about the CR plus two to four, equipment in the armour
+  line and the attacks, at most one magic item and only as the treasure instructions allow.

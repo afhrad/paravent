@@ -604,3 +604,55 @@ __all__ = [
     "WorldSummary",
     "WorldStyles",
 ]
+
+
+class CreatureBlockInput(BaseModel):
+    """A trait, action, bonus action, reaction or legendary action of a creature."""
+
+    name: str
+    text: str = Field(
+        description="5eTools text with the builder's placeholders, so numbers follow the "
+        "creature: {@atk mw} {@hit <$to_hit__str$>} to hit … {@h}<$damage_avg__4.5+str$> "
+        "({@damage 1d8<$damage_mod__str$>}) slashing damage; DC <$dc__int$>; "
+        "<$title_short_name$> for 'The lich'. Paragraphs split by a blank line"
+    )
+
+
+class CreatureProblem(BaseModel):
+    """A reference in the creature's text that the world's books do not have."""
+
+    text: str
+    instead: list[str] = Field(default_factory=list, description="The nearest names, best first")
+
+
+class CreatureDraft(BaseModel):
+    """A creature design Claude drafted, as the builder works it out."""
+
+    id: str
+    name: str
+    url: str
+    based_on: str | None = None
+    target_cr: str
+    plays_at: str | None = Field(
+        default=None,
+        description="The CR it plays at by the Dungeon Master's Guide method; aim for the "
+        "target, within one step",
+    )
+    defensive_cr: str | None = None
+    offensive_cr: str | None = None
+    hit_points: int
+    hit_point_formula: str
+    armor_class: int
+    damage_per_round: int | None = None
+    attack_bonus: int | None = None
+    save_dc: int | None = None
+    advice: str = ""
+    statblock: list[str] = Field(
+        default_factory=list,
+        description="Every trait and action with its numbers filled in, as the table sees it",
+    )
+    problems: list[CreatureProblem] = Field(
+        default_factory=list,
+        description="Spells, items or creatures named that are not in the world's books: "
+        "mend them before you hand over",
+    )

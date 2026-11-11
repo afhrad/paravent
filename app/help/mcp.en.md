@@ -181,6 +181,15 @@ easier", "give the reeve a daughter".
 
 ---
 
+## 6b. Creatures
+
+Claude can also design creatures in the creature builder: "a lich at challenge rating 5 for
+the Sunken Marches" gets a creature started from the books' lich, scaled down, with spells
+and equipment from your books. It waits under *Creatures* marked **Claude's draft**:
+**Publish** leaves it out until you open it and press **Accept**. Claude checks itself that
+it plays at the rating you asked for, and that every spell and item it names is in the
+world's books.
+
 ## 7. When it does not work
 
 | What you see | What it means | What to do |

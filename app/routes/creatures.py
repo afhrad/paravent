@@ -288,6 +288,8 @@ async def change_creature(
     action = str(form.get("action", "save"))
     design = _read_form(service.get(design_id), form, registry)
     design = _apply(action, design, form, registry)
+    if action == "accept":  # Claude's draft becomes the gamemaster's own
+        design = design.model_copy(update={"drafted_by": None})
     try:
         service.save(design)
     except CreatureError as exc:
