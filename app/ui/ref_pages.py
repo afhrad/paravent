@@ -1266,9 +1266,23 @@ def _names_form(page: Page, entry: ReferenceEntry) -> Node:
     ]
 
 
-def reference_missing_page(page: Page) -> Element:
-    """No such entry in the loaded data."""
+def reference_missing_page(page: Page, *, no_corpus: bool = False) -> Element:
+    """No such entry in the loaded data; with ``no_corpus``, no data loaded at all, which
+    is how every fresh install starts: say how to add some."""
     t = page.t
+    if no_corpus:
+        return app_shell(
+            page,
+            t("notfound.page_title"),
+            message_panel(
+                "book-open",
+                t("notfound.no_corpus"),
+                t("notfound.no_corpus_lede"),
+                a(href="/help/start?back=/", class_="btn btn-primary")[
+                    icon("book-open"), span[t("help.start")]
+                ],
+            ),
+        )
     return app_shell(
         page,
         t("notfound.page_title"),

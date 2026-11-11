@@ -606,6 +606,8 @@
 
   "notfound.reference": "Eintrag nicht gefunden",
   "notfound.reference_lede": "Er ist nicht in den importierten Daten, oder der Verweis ist veraltet.",
+  "notfound.no_corpus": "Noch keine 5eTools-Daten",
+  "notfound.no_corpus_lede": "Paravent bringt keine Regelinhalte mit. Zeige PARAVENT_REFERENCE_DIR auf ein Korpus im 5eTools-Format, dann erscheinen hier Regelbücher, Kreaturen und Zauber.",
 
   "search.open": "Im Nachschlagewerk suchen (Strg+K)",
   "search.title": "Suche",

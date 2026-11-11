@@ -606,6 +606,8 @@
 
   "notfound.reference": "Entry not found",
   "notfound.reference_lede": "It is not in the imported data, or the link is outdated.",
+  "notfound.no_corpus": "No 5eTools data yet",
+  "notfound.no_corpus_lede": "Paravent ships no rules content. Point PARAVENT_REFERENCE_DIR at a corpus in the 5eTools format, and rulebooks, creatures and spells appear here.",
 
   "search.open": "Search the reference (Ctrl+K)",
   "search.title": "Search",

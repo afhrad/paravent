@@ -375,8 +375,11 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(ReferenceNotFound)
     async def _reference_not_found(request: Request, _exc: ReferenceNotFound) -> HTMLResponse:
-        """No such entry in the loaded data."""
-        return HTMLResponse(str(reference_missing_page(build_page(request))), status_code=404)
+        """No such entry in the loaded data, or no data at all yet (a fresh install)."""
+        empty = not request.app.state.stores.settings.reference_configured
+        return HTMLResponse(
+            str(reference_missing_page(build_page(request), no_corpus=empty)), status_code=404
+        )
 
     @app.exception_handler(WorldNotFound)
     async def _world_not_found(request: Request, _exc: WorldNotFound) -> HTMLResponse:

@@ -67,3 +67,11 @@ async def test_a_new_gamemaster_finds_the_getting_started_guide(client: AsyncCli
     assert guide.status_code == 200 and "Getting started" in guide.text
     await client.post("/language", data={"lang": "de", "next": "/"})
     assert "Erste Schritte" in (await client.get("/help/start")).text
+
+
+async def test_a_fresh_install_says_there_is_no_data_yet(client: AsyncClient) -> None:
+    """With no corpus configured, a reference page explains that instead of "not found"."""
+    page = await client.get("/screen")
+    assert page.status_code == 404
+    assert "No 5eTools data yet" in page.text and 'href="/help/start?back=/"' in page.text
+    assert "Entry not found" not in page.text
