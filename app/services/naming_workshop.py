@@ -26,7 +26,7 @@ from app.models.naming import (
     pattern_tokens,
 )
 from app.models.pc import PlayerCharacter
-from app.services.i18n import Translatable
+from app.services.i18n import FALLBACK, Translatable
 from app.services.naming import (
     OWN_PREFIX,
     PERSON,
@@ -611,7 +611,16 @@ def search(
     ]
 
 
+def race_names(glossary: Any, language: str) -> dict[str, str]:
+    """The glossary's races, English → ``language``'s name: what joins a people met under
+    both names (Dwarf, Zwerg) in :meth:`NamingWorkshop.unserved`. English has none."""
+    if language == FALLBACK:
+        return {}
+    return {e: n for e, n in glossary.table(language).get("race", {}).values()}
+
+
 __all__ = [
+    "race_names",
     "KINDS",
     "NamingWorkshop",
     "PartFields",

@@ -1,6 +1,6 @@
 [project]
 name = "paravent"
-version = "0.1.157"
+version = "0.1.158"
 description = "D&D 5e tool for players and dungeon masters"
 license = "MIT"
 license-files = ["LICENSE", "NOTICE.md"]
@@ -64,3 +64,5 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 asyncio_mode = "auto"
+# Each test its own event loop, said explicitly: pytest-asyncio warns until it is set.
+asyncio_default_fixture_loop_scope = "function"

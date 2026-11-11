@@ -25,13 +25,13 @@ from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.models.gamestate import World
 from app.models.naming import SUBJECTS, NamingStyle
 from app.routes.auth import html, redirect
-from app.services.i18n import FALLBACK
 from app.services.naming import GENDERS, OWN_PREFIX, STARTER_PREFIX, NamingError
 from app.services.naming_workshop import (
     PartFields,
     StyleError,
     StyleFields,
     fields_of,
+    race_names,
     races,
     raw_text,
     search,
@@ -138,13 +138,6 @@ async def overview(
     )
 
 
-def _race_names(registry: StoreRegistry, language: str) -> dict[str, str]:
-    """The glossary's races, English → the language's name."""
-    if language == FALLBACK:
-        return {}
-    return {e: n for e, n in registry.glossary.table(language).get("race", {}).values()}
-
-
 def _scope(registry: StoreRegistry, world_id: str) -> WorldScope:
     """Every world to choose from, and the chosen one's styles, its unserved peoples and
     Claude's drafts for them."""
@@ -161,7 +154,7 @@ def _scope(registry: StoreRegistry, world_id: str) -> WorldScope:
             world.id,
             registry.naming_for(world.id),
             edition,
-            _race_names(registry, world.language),
+            race_names(registry.glossary, world.language),
         ),
         runs=drafts.runs(world.id),
         can_draft=drafts.available,

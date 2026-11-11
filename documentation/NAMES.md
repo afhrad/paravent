@@ -253,6 +253,9 @@ world's choice only narrows what they find among.
   drafting and those a style of the table's would serve given an alias (that offer is
   quicker). At most three runs ask Claude at once (`CONCURRENT`); the others wait for a
   slot, their rows saying so, and each row shows its own result.
+  **Over MCP** (2026-11-11): `unserved_peoples(world_id)` gives Claude the same list,
+  with the alias a style of the table's could take and the drafts already waiting, so it
+  drafts styles for a world's peoples while it writes (`draft_naming_style(…, world_id)`).
 - **Claude's styles for a world**: `draft_naming_style(…, world_id)` marks the draft
   `for_world`; accepting it adds it to that world's styles when the world limits them (a
   world with every style has it already), and clears the mark. A replacement keeps the

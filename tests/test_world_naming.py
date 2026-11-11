@@ -205,6 +205,38 @@ class TestClaudesStylesForAWorld:
         assert registry.worlds.get(world.id).naming_styles == [f"own:{orc.id}", key]
         assert registry.naming_workshop.get(draft.id).for_world is None
 
+    async def test_claude_hears_which_peoples_have_no_style_and_which_wait(
+        self,
+        mcp_table: tuple[AsyncClient, Any],  # noqa: F811
+    ) -> None:
+        _raw, facts = mcp_table
+        registry: StoreRegistry = facts["app"].state.stores
+        world = facts["world"]
+        orc = registry.naming_workshop.create(_style("Gruk", race="Orc"))
+        for name, race in (("Baine", "Tauren"), ("Gnash", "Gnoll"), ("Thrall", "Orc")):
+            registry.gamestate.npcs.create(
+                Npc(name=name, race=race, scope=Scope(world_id=world.id))
+            )
+        async with session(mcp_table) as mcp:
+            await call(mcp, "set_world_naming_styles", world_id=world.id, keys=[f"own:{orc.id}"])
+            peoples = {p["race"]: p for p in await call(mcp, "unserved_peoples", world_id=world.id)}
+            assert {"Tauren", "Gnoll"} <= set(peoples) and "Orc" not in peoples
+            assert (
+                peoples["Tauren"]["met"] == ["Tauren"] and not peoples["Tauren"]["drafts_waiting"]
+            )
+            await call(
+                mcp,
+                "draft_naming_style",
+                name="Tauren names",
+                race="Tauren",
+                pattern="{given}",
+                parts={"given": {"kind": "list", "names": ["Cairne", "Hamuul"]}},
+                world_id=world.id,
+            )
+            peoples = {p["race"]: p for p in await call(mcp, "unserved_peoples", world_id=world.id)}
+            assert peoples["Tauren"]["drafts_waiting"] == ["Tauren names"]  # not yet accepted
+            assert peoples["Gnoll"]["drafts_waiting"] == []
+
     def test_a_world_using_every_style_stays_so(self, tmp_path: Path) -> None:
         registry = StoreRegistry(
             Settings(library_dir=tmp_path / "lib", reference_cache_dir=tmp_path / "c")

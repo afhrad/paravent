@@ -388,6 +388,31 @@ class NamingStyleInfo(BaseModel):
     examples: list[str] = Field(default_factory=list)
 
 
+class UnservedPeople(BaseModel):
+    """A people of a world's NPCs and characters that none of the world's naming styles
+    serves: its names come from a fallback until a style is made."""
+
+    race: str = Field(description="The people as the world names it, in the world's language")
+    aliases: list[str] = Field(
+        default_factory=list, description="Its other names, the English one among them"
+    )
+    met: list[str] = Field(
+        default_factory=list, description="How the world's NPCs and characters spell it"
+    )
+    alias_style: str = Field(
+        default="",
+        description="A style of the table's that would serve it if given `alias` as another "
+        "name; only the gamemaster adds that, in the workshop, so suggest it rather than "
+        "drafting a new style",
+    )
+    alias: str = ""
+    drafts_waiting: list[str] = Field(
+        default_factory=list,
+        description="Names of drafts for this people and world still waiting for the "
+        "gamemaster to accept them",
+    )
+
+
 class GeneratedNames(BaseModel):
     """Names in one style, none of them already used in the world."""
 

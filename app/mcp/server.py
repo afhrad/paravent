@@ -41,6 +41,7 @@ from app.mcp.models import (
     SearchMatch,
     SoundInfo,
     SpellKnown,
+    UnservedPeople,
     WorldOverview,
     WorldSummary,
 )
@@ -49,6 +50,7 @@ from app.models.naming import SUBJECTS, Subject
 from app.services.difficulty import rules_for
 from app.services.encounter_roll import EncounterRoller
 from app.services.naming import GENDERS, FoundStyle, NamingError
+from app.services.naming_workshop import race_names
 from app.services.npc_gen import edition_for
 from app.services.search import GROUP_KEYS, Row
 from app.ui.insert import tag_maker
@@ -626,6 +628,43 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
             and (not wanted_culture or entry.culture.casefold() == wanted_culture)
             and (not subject or entry.subject == subject)
         ]
+
+    @server.tool()
+    def unserved_peoples(world_id: str) -> list[UnservedPeople]:
+        """The peoples of a world's NPCs and characters that none of its naming styles
+        serves, as the workshop lists them: a people met under its English and its
+        translated name is one. For each, draft a style with `draft_naming_style(…,
+        world_id)` after `naming_style_rules`, unless `alias_style` says an existing style
+        would do with another name, or `drafts_waiting` shows one is already proposed."""
+        registry = stores()
+        world = world_of(world_id)
+        workshop = registry.naming_workshop
+        found = workshop.unserved(
+            world.id,
+            registry.naming_for(world.id),
+            edition_for(world.source_set, registry.npc_tables),
+            race_names(registry.glossary, world.language),
+        )
+        drafts = [s for s in workshop.styles() if s.draft and s.for_world == world.id]
+        out = []
+        for people in found:
+            names = {people.race.casefold(), *(a.casefold() for a in people.aliases)}
+            waiting = [
+                s.name
+                for s in drafts
+                if s.race.casefold() in names or names & {a.casefold() for a in s.aliases}
+            ]
+            out.append(
+                UnservedPeople(
+                    race=people.race,
+                    aliases=list(people.aliases),
+                    met=list(people.met),
+                    alias_style=people.alias_style[1] if people.alias_style else "",
+                    alias=people.alias,
+                    drafts_waiting=waiting,
+                )
+            )
+        return out
 
     @server.tool()
     def naming_style_rules() -> str:
