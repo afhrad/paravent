@@ -330,8 +330,11 @@ project.
 
 ## Development
 
+How to set up, test and send a change, and what may not go into the repository:
+[CONTRIBUTING.md](CONTRIBUTING.md).
+
 ```bash
-pytest                    # 187 tests
+pytest                    # the whole suite
 pytest --cov=app          # coverage
 ruff check . && ruff format .
 mypy app/
