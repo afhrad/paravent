@@ -140,8 +140,6 @@
 <!-- fact-version:end --></b><span>{{facts.version}}</span></div>
     <div class="fact reveal"><b><!-- fact-tests:start -->
 <!-- fact-tests:end --></b><span>{{facts.tests}}</span></div>
-    <div class="fact reveal"><b><!-- fact-commits:start -->
-<!-- fact-commits:end --></b><span>{{facts.commits}}</span></div>
     <div class="fact reveal"><b>0</b><span>{{facts.content}}</span></div>
     <div class="fact reveal"><b>2</b><span>{{facts.languages}}</span></div>
   </section>
@@ -320,6 +318,9 @@
       <ol class="updates" lang="en">
 <!-- updates:start -->
 <!-- updates:end -->
+{{#updates.pinned}}
+        <li class="update reveal" lang="{{meta.lang|attr}}"><time datetime="{{date|attr}}">{{shown}}</time><span>{{text}}</span></li>
+{{/updates.pinned}}
       </ol>
     </div>
   </section>

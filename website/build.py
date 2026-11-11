@@ -12,8 +12,8 @@ folder runs as it is on any web server. This script keeps it in step with Parave
    textures, and the logo into ``assets/``, and writes
    the icons the pages use (``href="#i-…"``) from ``static/icons.svg`` into each page.
 2. **Update** — writes "What's new" from the git history (each commit subject is
-   already written for a reader) and the numbers in the facts strip (version, tests,
-   commits) into ``index.html``, between ``<!-- name:start -->`` / ``<!-- name:end -->``.
+   already written for a reader) and the numbers in the facts strip (version, tests)
+   into ``index.html``, between ``<!-- name:start -->`` / ``<!-- name:end -->``.
 3. **Pack** — with ``--dist``, copies the site without this script and its notes into
    ``website/dist/site/``, checks that copy as a visitor would meet it (links, anchors,
    pictures, alt texts, sizes, balanced HTML) and, when nothing is broken, zips it as
@@ -96,7 +96,11 @@ SYNCED = {
     ROOT / "NOTICE.md": SITE / "notice.txt",
 }
 # Commits that say nothing to a reader of the site.
-QUIET = re.compile(r"^(merge|bump|wip|fixup|squash|revert|format|lint|typo)\b", re.IGNORECASE)
+# The release commit that started the public history ("Paravent 0.1.x") says nothing either;
+# the content files' pinned item tells that story instead.
+QUIET = re.compile(
+    r"^(?:(?:merge|bump|wip|fixup|squash|revert|format|lint|typo)\b|paravent \d)", re.IGNORECASE
+)
 UPDATES = 14
 SYMBOL = re.compile(r'<symbol id="(i-[\w-]+)".*?</symbol>', re.DOTALL)
 
@@ -325,7 +329,7 @@ def updates(lang: str = "en") -> str:
         f"<span>{html.escape(subject, quote=False)}</span></li>"
         for day, subject in rows
     ]
-    return "\n".join(items) or '      <li class="update">—</li>'
+    return "\n".join(items)
 
 
 def _day(day: str | date, lang: str = "en") -> str:
@@ -343,7 +347,6 @@ def facts(lang: str = "en") -> dict[str, str]:
         len(re.findall(r"^\s*(?:async )?def test_", path.read_text(errors="ignore"), re.M))
         for path in (ROOT / "tests").glob("test_*.py")
     )
-    commits = int(git("rev-list", "--count", "HEAD").strip() or "0")
 
     def number(n: int) -> str:
         return f"{n:,}".replace(",", ".") if lang == "de" else f"{n:,}"
@@ -351,7 +354,6 @@ def facts(lang: str = "en") -> dict[str, str]:
     return {
         "version": version(),
         "tests": number(tests),
-        "commits": number(commits),
         "updated": _day(date.today(), lang),
     }
 

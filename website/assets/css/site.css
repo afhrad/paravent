@@ -276,7 +276,7 @@ svg.ic-moon{ display:none; }
 
 /* ============================================================ facts strip */
 .facts{
-  display:grid; grid-template-columns:repeat(5, 1fr); gap:1px;
+  display:grid; grid-template-columns:repeat(4, 1fr); gap:1px;
   max-width:var(--wrap); margin:0 auto 0; padding:0 var(--gutter);
 }
 .fact{
@@ -287,7 +287,7 @@ svg.ic-moon{ display:none; }
   font-variant-numeric:tabular-nums;
 }
 .fact span{ font-size:13px; color:var(--text-3); }
-@media (max-width: 760px){ .facts{ grid-template-columns:repeat(2, 1fr); } .fact:last-child{ grid-column:1 / -1; } }
+@media (max-width: 760px){ .facts{ grid-template-columns:repeat(2, 1fr); } }
 
 /* ============================================================ bands */
 .band{ padding:var(--band-pad) 0; position:relative; }

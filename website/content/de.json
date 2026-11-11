@@ -61,7 +61,6 @@
   "facts": {
     "version": "aktuelle Version",
     "tests": "automatische Tests",
-    "commits": "Änderungen bisher",
     "content": "Spielinhalte dabei",
     "languages": "Sprachen, Deutsch und Englisch"
   },
@@ -397,7 +396,15 @@
   "updates": {
     "eyebrow": "Neues",
     "title": "Frisch aus der Entwicklung",
-    "intro": "Die letzten Änderungen, so wie sie gemacht wurden, darum auf Englisch. Stand:"
+    "intro": "Die letzten Änderungen, so wie sie gemacht wurden, darum auf Englisch. Stand:",
+    "_pinned": "pinned: von Hand geschrieben, unter den Änderungen aus git gezeigt. date ist der Tag (JJJJ-MM-TT), shown, wie er dasteht.",
+    "pinned": [
+      {
+        "date": "2026-11-11",
+        "shown": "11. November 2026",
+        "text": "Erste öffentliche Version. Paravent ist Open Source unter der MIT-Lizenz, der Code liegt auf [GitHub](https://github.com/afhrad/paravent), und die Regeldaten bringt ihr weiter selbst mit."
+      }
+    ]
   },
   "faq": {
     "_comment": "items: q ist die Frage, a die Antwort (ein Text oder eine Liste von Absätzen).",

@@ -41,9 +41,11 @@ python website/build.py --check    # exit 1 when the pages are behind the app
    writes the icons the pages use (`<use href="#i-name"/>`) from `static/icons.svg` into
    each page between `<!-- icons:start -->` and `<!-- icons:end -->`. Use any icon of the
    app's sprite by name; the next build brings it in.
-2. **Update** — "What's new" from the git history (commit subjects are written for a
-   reader; merges, bumps and the like are left out), and the facts strip: version,
-   number of tests, commits, date. Each lives between `<!-- name:start/end -->` markers.
+2. **Update**: "What's new" from the git history (commit subjects are written for a
+   reader; merges, bumps, the release commit "Paravent 0.1.x" and the like are left out),
+   followed by the hand-written items of `updates.pinned` in the content files (the first
+   public release), and the facts strip: version, number of tests, date. Each lives
+   between `<!-- name:start/end -->` markers.
 3. **Pack** — `dist/site/` and the zip, without `build.py`, this README and dotfiles.
    Before zipping, the copy is checked as a visitor meets it: every link, picture and
    `url()` leads to a file, every `#anchor` to an element, every picture has an `alt`

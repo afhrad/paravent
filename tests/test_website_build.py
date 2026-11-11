@@ -330,3 +330,10 @@ def test_the_site_as_it_ships_passes_the_check(tmp_path: Path) -> None:
     )
     errors, _warnings = build.verify(shipped)
     assert errors == []
+
+
+def test_the_release_commit_and_housekeeping_stay_out_of_the_news() -> None:
+    for quiet in ("Paravent 0.1.x", "paravent 1.0", "Merge branch x", "bump version"):
+        assert build.QUIET.match(quiet), quiet
+    for news in ("Paravent's tracker names creatures", "Draft styles for every people"):
+        assert not build.QUIET.match(news), news
