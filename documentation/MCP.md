@@ -306,6 +306,11 @@ builder (`app/services/creature_builder.py`).
   statblock with its numbers filled in, and every `{@spell}`, `{@item}` or `{@creature}`
   its text names that the world's books lack, with the nearest names (the chapter check's
   own `notes_problems`).
+- **Asking first** (2026-11-11): when a request does not say the creature's role in the
+  story, how it fights, or whether it may carry a magic item, and the world's instructions
+  do not settle it, Claude asks the gamemaster in the chat, with a suggestion for each,
+  before drafting; what it decided unasked it names at handover. Questions go through the
+  conversation, not MCP elicitation, so they work in every client.
 - **`creature_guide`** (`app/mcp/creature_guide.md`) holds the rules Claude follows: start
   from a close book creature, the placeholders, a Spellcasting trait with spells of the
   world's books at a caster level of about the CR plus two to four, equipment in the armour
