@@ -1,6 +1,37 @@
 # Paravent
 
-A D&D 5e tool for players and dungeon masters, served over the local network.
+**The game master's screen in your browser**, for Dungeons & Dragons 5e at a real table.
+Paravent keeps the numbers, notes and handouts in order; the dice, the voices and the story
+stay at the table. It runs on your own machine and your home network, with no cloud and
+no account. [paravent.org](https://paravent.org) shows it in pictures.
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="website/assets/img/screens/en/dark/combat.webp">
+  <img src="website/assets/img/screens/en/combat.webp" alt="The combat tracker: the order of a fight with hit points, and a troll's statblock beside it">
+</picture>
+
+- **For the game master:** a combat tracker that never decides for you, encounters rated
+  for the party you have, adventures written as plain Markdown, handouts, a sound desk,
+  names for every people of your world, and a recap of the evening.
+- **For the players:** their character sheet on the phone, their own dice, the fight from
+  their side, and a journal of what you handed them.
+- **Your books, your rules:** each world declares which books it uses, both the 2014 and
+  the 2024 rules work, the whole interface speaks English and German.
+- **No content included:** Paravent ships no rulebook text. It reads rules data in the
+  5eTools format that you bring, in place, and never changes it (see [Data](#data)).
+
+## Quick start
+
+```bash
+git clone https://github.com/afhrad/paravent.git && cd paravent
+uv venv && uv pip install -e ".[dev]"
+cp .env.example .env      # point PARAVENT_REFERENCE_DIR at your 5eTools data, or empty it
+./run.sh --lan            # open http://localhost:8000, the first visit creates the game master
+```
+
+Then *Table* → **Getting started** walks you to your first fight. On a NAS or server, see
+[Docker](#docker-nas); to work on Paravent itself, [CONTRIBUTING.md](CONTRIBUTING.md). MIT
+licensed (see [Licence and notices](#licence-and-notices)).
 
 ## Documentation
 
@@ -13,11 +44,20 @@ because the agent loads it from there.
 | [PROJECT.md](documentation/PROJECT.md) | Scope and features |
 | [TECHSTACK.md](documentation/TECHSTACK.md) | Stack decisions, the two data roots, corpus coverage, reference resolution |
 | [DESIGN.md](documentation/DESIGN.md) | UI spec — tokens, components, the tag renderer, tooltips |
+| [THEMES.md](documentation/THEMES.md) | Exchangeable looks, and the Tome theme |
+| [ADVENTURES.md](documentation/ADVENTURES.md) | Worlds, adventures, chapters and Paravent's Markdown |
 | [CHARGEN.md](documentation/CHARGEN.md) | What the dataset supports for character creation, and the gaps |
-| [CHARGEN-WIZARD.md](documentation/CHARGEN-WIZARD.md) | The creation wizard's UX, step by step |
-| [TRANSLATION.md](documentation/TRANSLATION.md) | Multilingual design — overlays, glossary, units |
+| [CHARGEN-WIZARD.md](documentation/CHARGEN-WIZARD.md) | The creation wizard's UX, step by step, and levelling up |
+| [CHARACTER-FORMAT.md](documentation/CHARACTER-FORMAT.md) | The character file, its overrides and live updates |
 | [COMBAT.md](documentation/COMBAT.md) | The combat tracker's rules and screens |
 | [RUNNING-A-FIGHT.md](documentation/RUNNING-A-FIGHT.md) | A gamemaster's walkthrough of a fight, turn by turn |
+| [PROTOCOL.md](documentation/PROTOCOL.md) | The log of rolls and events, and its toasts |
+| [PLAYER-VIEW.md](documentation/PLAYER-VIEW.md) | What players may read |
+| [JOURNAL.md](documentation/JOURNAL.md) | Handouts and the players' journal |
+| [SOUND.md](documentation/SOUND.md) | The sound desk and the speaker page |
+| [NAMES.md](documentation/NAMES.md) | Naming styles and the name generator |
+| [TRANSLATION.md](documentation/TRANSLATION.md) | Multilingual design — overlays, glossary, units |
+| [MCP.md](documentation/MCP.md) | Claude as co-author over MCP |
 | [PROGRESS.md](documentation/PROGRESS.md) | What is built, what is next |
 
 Visual reference: [`design-reference/`](design-reference/) — 17 standalone pages, openable
