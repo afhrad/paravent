@@ -17,9 +17,9 @@ from __future__ import annotations
 from typing import Annotated
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Form, Request
-from fastapi.responses import HTMLResponse, Response
-from starlette.datastructures import FormData
+from fastapi import APIRouter, Form, HTTPException, Request
+from fastapi.responses import FileResponse, HTMLResponse, Response
+from starlette.datastructures import FormData, UploadFile
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.models.gamestate import CreatureBlock, CreatureDesign
@@ -34,6 +34,8 @@ from app.services.creature_builder import (
     CreatureError,
     attack_text,
 )
+from app.services.creature_pictures import design_ref
+from app.services.media import MediaError, media_type
 from app.services.references import ReferenceEntry
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
@@ -190,6 +192,12 @@ def _list_page(
     )
 
 
+def _picture_url(registry: StoreRegistry, design: CreatureDesign) -> str | None:
+    """The address of its picture with its version, so the browser may keep it."""
+    version = registry.creature_pictures.version(design.world_id, design_ref(design.name))
+    return f"{creature_url(design.id)}/picture?v={version}" if version is not None else None
+
+
 def _builder(
     page: Page,
     registry: StoreRegistry,
@@ -197,6 +205,7 @@ def _builder(
     *,
     notice_text: str | None = None,
     error: str | None = None,
+    picture_error: str = "",
     status_code: int = 200,
 ) -> HTMLResponse:
     service = registry.creatures
@@ -214,6 +223,7 @@ def _builder(
         features=tables.features(),
         unpublished=service.unpublished(design),
         published=design.published_at is not None,
+        picture=_picture_url(registry, design),
     )
     ctx = localized_context(
         page.t,
@@ -222,7 +232,9 @@ def _builder(
         world_id=design.world_id,
     )
     return html(
-        builder_page(page, view, ctx, notice_text=notice_text, error=error),
+        builder_page(
+            page, view, ctx, notice_text=notice_text, error=error, picture_error=picture_error
+        ),
         status_code=status_code,
     )
 
@@ -286,7 +298,8 @@ async def change_creature(
     service = registry.creatures
     form = await request.form()
     action = str(form.get("action", "save"))
-    design = _read_form(service.get(design_id), form, registry)
+    before = service.get(design_id)
+    design = _read_form(before, form, registry)
     design = _apply(action, design, form, registry)
     if action == "accept":  # Claude's draft becomes the gamemaster's own
         design = design.model_copy(update={"drafted_by": None})
@@ -294,6 +307,10 @@ async def change_creature(
         service.save(design)
     except CreatureError as exc:
         return _builder(page, registry, design, error=page.t.error(exc), status_code=422)
+    # The picture stays with the creature it publishes as.
+    registry.creature_pictures.move(
+        before.world_id, design_ref(before.name), design.world_id, design_ref(design.name)
+    )
     if action == "publish":
         done = service.publish()
         query = {"published": str(done.count)}
@@ -308,6 +325,50 @@ async def change_creature(
     elif action in ("feature", "template:trait") or action.startswith("unfeature:"):
         anchor = "#cb-add" if action != "template:trait" else "#cb-traits"
     return redirect(f"{creature_url(design_id)}{anchor}")
+
+
+@router.get(f"{CREATURES_URL}/{{design_id}}/picture")
+async def creature_picture(
+    _gm: GamemasterDep, registry: RegistryDep, design_id: str
+) -> FileResponse:
+    """Its picture, as the players will see it in a fight."""
+    design = registry.creatures.get(design_id)
+    found = registry.creature_pictures.find(design.world_id, design_ref(design.name))
+    if found is None:
+        raise HTTPException(status_code=404)
+    return FileResponse(
+        found,
+        media_type=media_type(found),
+        headers={"Cache-Control": "private, max-age=31536000"},
+    )
+
+
+@router.post(f"{CREATURES_URL}/{{design_id}}/picture", response_class=HTMLResponse)
+async def change_creature_picture(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    request: Request,
+    design_id: str,
+) -> Response:
+    """Upload its picture, or remove it."""
+    design = registry.creatures.get(design_id)
+    form = await request.form()
+    pictures, ref = registry.creature_pictures, design_ref(design.name)
+    if form.get("do") == "remove":
+        pictures.remove(design.world_id, ref)
+        return redirect(f"{creature_url(design_id)}#cb-picture")
+    upload = form.get("picture")
+    if not isinstance(upload, UploadFile) or not upload.filename:
+        error = page.t("combat.picture.none_chosen")
+    else:
+        try:
+            pictures.set(design.world_id, ref, upload.filename, await upload.read())
+        except MediaError as exc:
+            error = page.t.error(exc)
+        else:
+            return redirect(f"{creature_url(design_id)}#cb-picture")
+    return _builder(page, registry, design, picture_error=error, status_code=422)
 
 
 @router.get(f"{CREATURES_URL}/{{design_id}}/delete", response_class=HTMLResponse)

@@ -73,7 +73,8 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         reloads, adding Homebrew to the books of each design's world. **Over MCP** (2026-11-11, MCP.md §10): Claude drafts
         creatures from a description, a world's setting and a CR (`create_creature`,
         `update_creature`), spells and equipment from the world's books; a draft is
-        published only once the gamemaster accepts it. **The long tail**
+        published only once the gamemaster accepts it. A picture by web address
+        (`image_url`) or uploaded in the builder, shown in fights' Details. **The long tail**
         (2026-10-19): `psionic` (52), `vehicle` (39), `vehicleUpgrade` (31), `facility`
         (53), `charoption` (44), `cult` (30), `boon` (12), `deck` (34) and `card` (711)
         load as categories — every count matches the files, 0 errors. Searchable (vehicles

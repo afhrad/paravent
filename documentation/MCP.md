@@ -311,6 +311,16 @@ builder (`app/services/creature_builder.py`).
   do not settle it, Claude asks the gamemaster in the chat, with a suggestion for each,
   before drafting; what it decided unasked it names at handover. Questions go through the
   conversation, not MCP elicitation, so they work in every client.
+- **A picture** (2026-11-11): `image_url` on either tool, a web address the gamemaster or
+  Claude gives. Paravent fetches it once, then (`creature_pictures.fetch`: `http`/`https`
+  only, redirects followed, 20 s, at most 20 MB, kept only when its bytes are PNG, JPEG,
+  WebP, GIF or AVIF), before anything else changes, so a refused address leaves the draft
+  as it was; an empty `image_url` removes the picture. It is stored as the world's picture
+  of the creature the design publishes as (`Name|Homebrew`, COMBAT.md §5), so players see
+  it in a fight's Details; a rename or another world takes it along, and a design of no
+  world keeps it in the library's folder, serving every world. The answer's `picture` is
+  where the gamemaster sees it. The builder shows it beside the estimate, to upload or
+  remove by hand too.
 - **`creature_guide`** (`app/mcp/creature_guide.md`) holds the rules Claude follows: start
   from a close book creature, the placeholders, a Spellcasting trait with spells of the
   world's books at a caster level of about the CR plus two to four, equipment in the armour

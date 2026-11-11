@@ -24,6 +24,7 @@ from htpy import (
     dt,
     form,
     h2,
+    img,
     label,
     li,
     option,
@@ -54,7 +55,7 @@ from app.services.references import ReferenceEntry
 from app.store.creature_tables import BlockTemplate, CrRow, MonsterFeature
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
-from app.ui.forms import alert, notice, select_field, text_field
+from app.ui.forms import alert, hidden, notice, select_field, text_field
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
@@ -200,6 +201,46 @@ class BuilderView:
     features: Sequence[MonsterFeature]
     unpublished: bool
     published: bool
+    # The address of its picture (versioned), when it has one.
+    picture: str | None = None
+
+
+def _picture(page: Page, view: BuilderView, error: str) -> Element:
+    """Its picture, shown to the players in a fight's Details: uploaded here, or fetched
+    by Claude from a web address."""
+    t = page.t
+    action = f"{creature_url(view.design.id)}/picture"
+    return section(id="cb-picture", class_="panel cb-picture")[
+        h2[t("creatures.picture")],
+        img(src=view.picture, alt=view.design.name, class_="cb-picture-img", loading="lazy")
+        if view.picture
+        else None,
+        p(class_="field-hint")[t("creatures.picture_hint")],
+        alert(error or None),
+        form(
+            method="post",
+            action=action,
+            enctype="multipart/form-data",
+            class_="cb-picture-form",
+        )[
+            input_el(
+                type="file",
+                name="picture",
+                accept="image/png,image/jpeg,image/webp,image/gif,image/avif",
+                required=True,
+                aria_label=t("combat.picture.choose"),
+            ),
+            button(type="submit", class_="btn btn-sm")[t("combat.picture.upload")],
+        ],
+        form(method="post", action=action, class_="cb-picture-form")[
+            hidden("do", "remove"),
+            button(type="submit", class_="btn btn-sm btn-ghost")[
+                icon("trash-2", "sm"), span[t("combat.picture.remove")]
+            ],
+        ]
+        if view.picture
+        else None,
+    ]
 
 
 def _number(
@@ -617,6 +658,7 @@ def builder_page(
     *,
     notice_text: str | None = None,
     error: str | None = None,
+    picture_error: str = "",
 ) -> Element:
     """The builder for one design."""
     t = page.t
@@ -679,6 +721,7 @@ def builder_page(
                 ],
                 div(class_="cb-side")[
                     _estimate(page, view),
+                    _picture(page, view, picture_error),
                     section(class_="cb-preview", aria_label=t("creatures.preview"))[
                         statblock(page, view.preview, ctx)
                     ],

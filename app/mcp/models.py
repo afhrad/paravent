@@ -656,3 +656,6 @@ class CreatureDraft(BaseModel):
         description="Spells, items or creatures named that are not in the world's books: "
         "mend them before you hand over",
     )
+    picture: str | None = Field(
+        default=None, description="Where the gamemaster sees its picture, if it has one"
+    )

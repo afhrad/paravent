@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import httpx
 import pytest
 from httpx import AsyncClient
 
 from app.models.gamestate import Role, World
 from app.models.pc import PlayerCharacter
-from app.services.creature_pictures import CreaturePictures, slug
+from app.services.creature_pictures import CreaturePictures, design_ref, fetch, slug
 from app.services.media import MediaError
 from app.store.gamestate import GameStateStore
 from app.store.registry import StoreRegistry
@@ -49,6 +50,43 @@ class TestStore:
         # a fight outside any world keeps its pictures in the library's media folder
         stored = pictures.set(None, "Goblin|MM", "goblin.png", PNG)
         assert stored == tmp_path / "media" / "creatures" / "goblin--mm.png"
+
+    def test_a_picture_moves_with_its_creature(self, tmp_path: Path) -> None:
+        state = GameStateStore(tmp_path)
+        world = state.worlds.create(World(name="W"))
+        pictures = CreaturePictures(state.prose, tmp_path / "media")
+        assert design_ref("Moorhulk") == "Moorhulk|Homebrew"
+        pictures.set(None, "Moorhulk|Homebrew", "m.png", PNG)
+        # a design of no world serves every world, but is not the world's to remove
+        assert pictures.find(world.id, "Moorhulk|Homebrew") is not None
+        pictures.remove(world.id, "Moorhulk|Homebrew")
+        assert pictures.find(None, "Moorhulk|Homebrew") is not None
+        pictures.move(None, "Moorhulk|Homebrew", world.id, "Bog Hulk|Homebrew")
+        assert pictures.find(None, "Moorhulk|Homebrew") is None
+        moved = pictures.find(world.id, "Bog Hulk|Homebrew", shared=False)
+        assert moved is not None and moved.name == "bog-hulk--homebrew.png"
+        pictures.move(world.id, "Nothing|Homebrew", world.id, "Else|Homebrew")  # no picture
+
+
+class TestFetch:
+    @staticmethod
+    def _transport(status: int, body: bytes) -> httpx.MockTransport:
+        return httpx.MockTransport(lambda request: httpx.Response(status, content=body))
+
+    async def test_an_image_is_fetched_by_its_bytes(self) -> None:
+        name, data = await fetch("https://example.org/lich", self._transport(200, WEBP))
+        assert name == "picture.webp" and data == WEBP
+
+    async def test_what_is_not_an_image_is_refused(self) -> None:
+        with pytest.raises(MediaError, match="content"):
+            await fetch("https://example.org/x.png", self._transport(200, b"<html>"))
+        with pytest.raises(MediaError) as missing:
+            await fetch("https://example.org/x.png", self._transport(404, b""))
+        assert "404" in str(missing.value)
+        for address in ("file:///etc/passwd", "ftp://example.org/x.png", "lich.png"):
+            with pytest.raises(MediaError) as refused:
+                await fetch(address, self._transport(200, PNG))
+            assert "http" in str(refused.value)
 
 
 class TestRoutes:

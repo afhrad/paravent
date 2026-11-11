@@ -1283,6 +1283,8 @@ summary.pv-pick-row{ cursor:pointer; }
 .cb-picture-img{ display:block; max-width:100%; max-height:200px; width:auto; height:auto; }
 .cb-picture-form{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:0; }
 .cb-picture-form input[type=file]{ flex:1 1 200px; min-width:0; font-size:13.5px; }
+.creature-builder .cb-picture{ padding:12px; }
+.creature-builder .cb-picture h2{ margin:0; }
 .cb-known-group > summary{ cursor:pointer; min-height:32px; display:flex; align-items:center; gap:4px;
   font-size:13px; font-weight:600; color:var(--text-2); }
 .cb-known-group > summary::-webkit-details-marker{ display:none; }

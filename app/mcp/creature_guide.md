@@ -104,7 +104,14 @@ Legendary Resistance (with `value`, its uses a day), Undead Fortitude, Regenerat
 Frightful Presence, Pack Tactics, Parry and the rest. Resistances and immunities count as
 the guide counts them; three or more saving throws raise its effective armour class.
 
-## 7. Check, then hand over
+## 7. A picture
+
+When the gamemaster gives a picture's web address, or asks for one and you know an image
+online that they may use, pass it as `image_url` (PNG, JPEG, WebP, GIF or AVIF, at most
+20 MB). Paravent fetches it once and shows it to the players in a fight's Details; an empty
+`image_url` removes it. A refused address changes nothing: say why and ask for another.
+
+## 8. Check, then hand over
 
 Every answer gives the CR it **plays at** by the guide's method, beside the target, with
 its defensive and offensive CR and an `advice` when they are more than a step apart; the

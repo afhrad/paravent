@@ -5,7 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 import httpx
+import pytest
 
+from app.services.creature_pictures import design_ref
+from app.services.media import MediaError
 from app.store.registry import StoreRegistry
 from tests.test_mcp import PASSWORD, call, session
 from tests.test_mcp import table as table  # noqa: F401 - the fixture
@@ -20,6 +23,9 @@ SPELLCASTING = (
     "3rd level (3 slots): {@spell animate dead}, {@spell counterspell}\n\n"
     "4th level (1 slot): {@spell blight}"
 )
+
+
+PNG = b"\x89PNG\r\n\x1a\n" + b"\0" * 32
 
 
 async def _refused(mcp: Any, tool: str, **arguments: Any) -> str:
@@ -128,3 +134,76 @@ class TestDraftingACreature:
             assert "challenge rating" in await _refused(
                 mcp, "create_creature", world_id=facts["world"].id, name="X", cr="99"
             )
+
+
+class TestItsPicture:
+    async def test_claude_gives_a_picture_by_its_address(
+        self,
+        table: tuple[httpx.AsyncClient, Any],  # noqa: F811
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        _raw, facts = table
+        registry: StoreRegistry = facts["app"].state.stores
+        world_id = facts["world"].id
+        fetched: list[str] = []
+
+        async def fake_fetch(url: str) -> tuple[str, bytes]:
+            fetched.append(url)
+            if "broken" in url:
+                raise MediaError("media.error.content")
+            return "picture.png", PNG
+
+        monkeypatch.setattr("app.mcp.creatures.fetch", fake_fetch)
+        pictures = registry.creature_pictures
+        async with session(table) as mcp:
+            drafted = await call(
+                mcp,
+                "create_creature",
+                world_id=world_id,
+                name="Moorhulk",
+                cr="2",
+                image_url="https://example.org/moorhulk.png",
+            )
+            assert drafted["picture"] == f"/gm/creatures/{drafted['id']}/picture"
+            assert pictures.find(world_id, design_ref("Moorhulk")) is not None
+            # a refused address changes nothing, the design included
+            assert "does not match" in await _refused(
+                mcp,
+                "update_creature",
+                design_id=drafted["id"],
+                name="Changed",
+                image_url="https://example.org/broken",
+            )
+            assert registry.creatures.get(drafted["id"]).name == "Moorhulk"
+            renamed = await call(mcp, "update_creature", design_id=drafted["id"], name="Bog Hulk")
+            assert renamed["picture"] and pictures.find(world_id, design_ref("Moorhulk")) is None
+            gone = await call(mcp, "update_creature", design_id=drafted["id"], image_url="")
+            assert gone["picture"] is None
+        assert fetched == ["https://example.org/moorhulk.png", "https://example.org/broken"]
+
+    async def test_the_gamemaster_uploads_and_removes_it_in_the_builder(
+        self,
+        table: tuple[httpx.AsyncClient, Any],  # noqa: F811
+    ) -> None:
+        raw, facts = table
+        registry: StoreRegistry = facts["app"].state.stores
+        design = registry.creatures.create("Bog Hound", facts["world"].id, "1")
+        url = f"/gm/creatures/{design.id}"
+        await raw.post("/login", data={"username": "dm", "password": PASSWORD})
+        assert 'id="cb-picture"' in (await raw.get(url)).text
+        assert (await raw.get(f"{url}/picture")).status_code == 404
+        refused = await raw.post(f"{url}/picture", files={"picture": ("x.png", b"nope")})
+        assert refused.status_code == 422
+        done = await raw.post(f"{url}/picture", files={"picture": ("hound.png", PNG)})
+        assert done.status_code == 303
+        page = (await raw.get(url)).text
+        assert f'src="{url}/picture?v=' in page
+        served = await raw.get(f"{url}/picture")
+        assert served.status_code == 200 and served.content == PNG
+        # renaming in the builder keeps the picture with the creature
+        form = {"action": "save", "name": "Bog Wolf", "world": facts["world"].id, "cr": "1"}
+        await raw.post(url, data=form)
+        assert registry.creatures.get(design.id).name == "Bog Wolf"
+        assert registry.creature_pictures.find(facts["world"].id, design_ref("Bog Wolf"))
+        await raw.post(f"{url}/picture", data={"do": "remove"})
+        assert (await raw.get(f"{url}/picture")).status_code == 404

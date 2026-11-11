@@ -5,7 +5,8 @@ A design Claude makes is a **draft**: it carries the key that wrote it, the buil
 marks it, and a publish leaves it out until the gamemaster accepts it. Claude changes
 only drafts. Every answer is the builder's own working: the CR the design plays at by
 the guide's method, the statblock with its numbers filled in, and the references in its
-text that the world's books do not have.
+text that the world's books do not have. A picture comes from a web address, fetched
+once when given and kept as the world's picture of the creature it publishes as.
 """
 
 from __future__ import annotations
@@ -31,6 +32,7 @@ from app.services.creature_builder import (
     TYPES,
     CreatureNotFound,
 )
+from app.services.creature_pictures import design_ref, fetch
 from app.ui.context import Page
 from app.ui.creature_pages import creature_url
 
@@ -46,6 +48,12 @@ def _blocks(given: Sequence[CreatureBlockInput] | None) -> list[CreatureBlock] |
     if given is None:
         return None
     return [CreatureBlock(name=" ".join(b.name.split()), text=b.text.strip()) for b in given]
+
+
+IMAGE_URL = Field(
+    description="A web address of a picture of it (PNG, JPEG, WebP, GIF or AVIF, at most "
+    "20 MB): fetched once and shown to the players in a fight; empty removes its picture"
+)
 
 
 def _changes(**fields: Any) -> dict[str, Any]:
@@ -140,6 +148,9 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
             advice=advice,
             statblock=lines,
             problems=problems,
+            picture=f"{creature_url(design.id)}/picture"
+            if registry.creature_pictures.find(design.world_id, design_ref(design.name))
+            else None,
         )
 
     def apply(design: CreatureDesign, changes: dict[str, Any], fit: bool) -> CreatureDesign:
@@ -163,13 +174,37 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
         with tool_errors():
             return registry.creatures.save(changed)
 
+    async def picture_of(image_url: str | None) -> tuple[str, bytes] | None:
+        """The picture to store, fetched before anything changes so a bad address
+        leaves the design as it was."""
+        if not image_url or not image_url.strip():
+            return None
+        with tool_errors():
+            return await fetch(image_url)
+
+    def keep_picture(
+        before: CreatureDesign | None,
+        after: CreatureDesign,
+        image_url: str | None,
+        picture: tuple[str, bytes] | None,
+    ) -> None:
+        pictures = stores().creature_pictures
+        ref = design_ref(after.name)
+        if before is not None:
+            pictures.move(before.world_id, design_ref(before.name), after.world_id, ref)
+        if picture is not None:
+            with tool_errors():
+                pictures.set(after.world_id, ref, *picture)
+        elif image_url is not None and not image_url.strip():
+            pictures.remove(after.world_id, ref)
+
     @server.tool()
     def creature_guide() -> str:
         """How to design a creature for the world: read it before `create_creature`."""
         return CREATURE_GUIDE.read_text(encoding="utf-8")
 
     @server.tool()
-    def create_creature(
+    async def create_creature(
         ctx: Context,
         world_id: str,
         name: str,
@@ -226,6 +261,7 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
             bool,
             Field(description="Set armour class and hit dice to the CR table's (after the rest)"),
         ] = False,
+        image_url: Annotated[str | None, IMAGE_URL] = None,
     ) -> CreatureDraft:
         """Draft a creature in the creature builder for a world, after `creature_guide`.
         It waits there as Claude's draft and is published only once the gamemaster
@@ -275,13 +311,16 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
             features=features,
             dpr_override=damage_per_round,
         )
+        picture = await picture_of(image_url)
         with tool_errors():
             design = registry.creatures.create(name, world.id, cr.strip(), base)
         design = design.model_copy(update={"drafted_by": found[0].id})
-        return answer(apply(design, changes, fit))
+        saved = apply(design, changes, fit)
+        keep_picture(None, saved, image_url, picture)
+        return answer(saved)
 
     @server.tool()
-    def update_creature(
+    async def update_creature(
         design_id: str,
         name: str | None = None,
         cr: str | None = None,
@@ -310,6 +349,7 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
         features: list[CreatureFeature] | None = None,
         damage_per_round: Annotated[int | None, Field(ge=0)] = None,
         fit: bool = False,
+        image_url: Annotated[str | None, IMAGE_URL] = None,
     ) -> CreatureDraft:
         """Change a creature you drafted: each field given replaces the design's, a block
         list replaces that whole list. The gamemaster's own designs are not yours."""
@@ -350,7 +390,10 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
             features=features,
             dpr_override=damage_per_round,
         )
-        return answer(apply(design, changes, fit))
+        picture = await picture_of(image_url)
+        saved = apply(design, changes, fit)
+        keep_picture(design, saved, image_url, picture)
+        return answer(saved)
 
 
 __all__ = ["register_creatures"]

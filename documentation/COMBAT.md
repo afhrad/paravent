@@ -372,7 +372,10 @@ with the user:
   / none"), kept in the world's folder as `media/creatures/<name>--<source>.<ext>` (a fight
   outside any world: the library's `media/creatures/`), with the world media's rules
   (an image type its bytes confirm, no SVG, 20 MB); served to the players at
-  `/play/combat/{id}/c/{cid}/picture`, never for a hidden combatant. The description is the
+  `/play/combat/{id}/c/{cid}/picture`, never for a hidden combatant. A creature of the creature
+  builder has its picture set on the builder page or by Claude from a web address
+  (2026-11-11, MCP.md §10), under the creature it publishes as (`Name|Homebrew`); one of
+  a design without a world lies in the library's folder and serves every world's fights. The description is the
   first paragraph, in the reader's language where the gamemaster translated it (the
   tracker's **Description** button; TRANSLATION.md §5), passage by passage, else English.
 
