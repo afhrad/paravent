@@ -53,7 +53,32 @@ python website/build.py --check    # exit 1 when the pages are behind the app
    printed with its page and **no zip is written** (exit 1); pictures over 400 KB and
    other files over 1.5 MB are only named, as worth a second look.
 
-The zip is what goes to the server: unpack it into the web root of paravent.org.
+The zip is what goes to the server: unpack it into the web root of paravent.org, or let
+the build upload it (below).
+
+## Publishing
+
+```sh
+python website/build.py --preview   # build, check, and list what would change on the server
+python website/build.py --deploy    # … and upload
+```
+
+Both build and check the site as `--dist` does; nothing is sent when the check finds a
+problem. The upload goes over **SFTP** (the `sftp` client every Mac and Linux has), into
+`PARAVENT_SITE_TARGET`, set in the environment or in the project's `.env` (see
+`.env.example`), for example `user@example.org:/home/user/paravent.org/`: the site's own
+folder, ending in `/`; a root or home folder is refused. SFTP is used rather than rsync
+because many hosts allow SSH logins without a shell, and rsync needs one.
+
+Beside the site the upload keeps `.paravent-files.json`, every file it put there with a
+fingerprint of its content. Each upload sends only what is new or changed and removes only
+files listed there that the site no longer has, so what the host keeps in the folder
+(`cgi-bin/`, `.well-known/`, a quota file) or anything you put there yourself is never
+touched. The first upload sends everything and deletes nothing. More than 200 files to
+delete stops it before anything happens. Files arrive readable by the web server (folders
+755, files 644). The list is written last, so an interrupted upload is simply run again.
+The SSH login is the one your `~/.ssh/config` and agent give; the build asks for no
+password itself.
 Because every build reads the newest commits, **a deploy always carries the latest
 development news** without anyone editing the page.
 

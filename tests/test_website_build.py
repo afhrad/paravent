@@ -337,3 +337,79 @@ def test_the_release_commit_and_housekeeping_stay_out_of_the_news() -> None:
         assert build.QUIET.match(quiet), quiet
     for news in ("Paravent's tracker names creatures", "Draft styles for every people"):
         assert not build.QUIET.match(news), news
+
+
+# -- the upload ----------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("target", "fine"),
+    [
+        ("me@example.org:/var/www/paravent.org/", True),
+        ("example.org:sites/paravent/", True),
+        ("me@example.org:~/paravent.org/", True),
+        ("", False),
+        ("me@example.org:/var/www/paravent.org", False),  # no trailing slash
+        ("me@example.org:/", False),
+        ("me@example.org:~/", False),
+        ("relative/folder/", False),
+    ],
+)
+def test_only_a_real_folder_is_uploaded_into(target: str, fine: bool) -> None:
+    assert (build.target_problem(target) is None) == fine, target
+
+
+def test_only_changed_files_are_sent_and_only_our_own_removed() -> None:
+    steps = build.plan(
+        {"index.html": "new", "assets/css/site.css": "same", "de/index.html": "1"},
+        {"index.html": "old", "assets/css/site.css": "same", "gone.html": "x"},
+    )
+    assert steps.send == ("index.html", "de/index.html")
+    assert steps.remove == ("gone.html",)
+    assert steps.folders == ("de",)
+
+
+def test_the_sftp_commands_make_folders_send_files_and_write_the_list_last(
+    tmp_path: Path,
+) -> None:
+    steps = build.Plan(send=("de/index.html",), remove=("old.html",), folders=("de",))
+    lines = build.sftp_batch(tmp_path, "/www/site/", steps, tmp_path / "list.json")
+    assert lines[0] == '-mkdir "/www/site/de"'
+    assert f'put "{tmp_path}/de/index.html" "/www/site/de/index.html"' in lines
+    assert 'chmod 644 "/www/site/de/index.html"' in lines
+    assert '-rm "/www/site/old.html"' in lines
+    assert lines[-1] == f'put "{tmp_path}/list.json" "/www/site/{build.MANIFEST}"'
+
+
+def test_a_preview_changes_nothing_and_uploads_touch_only_their_own_files(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    site = _site(tmp_path / "site", {"index.html": "<p>new</p>"}, {"assets/a.css": b"x"})
+    server = tmp_path / "server"
+    _site(server, {"index.html": "<p>by hand</p>", "old.html": "<p>by hand</p>"})
+    _site(server, {}, {".well-known/acme": b"token", "cgi-bin/x": b"host"})
+    monkeypatch.setenv("PARAVENT_SITE_TARGET", f"{server}/")
+
+    assert build.deploy(site, preview=True) == 0
+    assert (server / "index.html").read_text(encoding="utf-8") == "<p>by hand</p>"
+    assert not (server / build.MANIFEST).exists()
+
+    assert build.deploy(site, preview=False) == 0  # the first: replaces, deletes nothing
+    assert (server / "index.html").read_text(encoding="utf-8") == "<p>new</p>"
+    assert (server / "assets" / "a.css").exists() and (server / "old.html").exists()
+
+    (site / "assets" / "a.css").unlink()
+    (site / "legal.html").write_text("<p>legal</p>", encoding="utf-8")
+    assert build.deploy(site, preview=False) == 0
+    assert not (server / "assets" / "a.css").exists()  # ours, and gone from the site
+    assert (server / "legal.html").exists()
+    for kept in ("old.html", ".well-known/acme", "cgi-bin/x"):  # never ours
+        assert (server / kept).exists(), kept
+
+
+def test_without_a_target_nothing_is_uploaded(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("PARAVENT_SITE_TARGET", "")
+    monkeypatch.setattr(build, "ROOT", tmp_path)  # no .env to read it from either
+    assert build.deploy(tmp_path, preview=False) == 1

@@ -18,10 +18,16 @@ folder runs as it is on any web server. This script keeps it in step with Parave
    ``website/dist/site/``, checks that copy as a visitor would meet it (links, anchors,
    pictures, alt texts, sizes, balanced HTML) and, when nothing is broken, zips it as
    ``website/dist/paravent-website-<version>.zip``.
+4. **Deploy** — with ``--deploy``, sends that checked copy to the web server over SFTP
+   (``PARAVENT_SITE_TARGET``, from the environment or the project's ``.env``): only files
+   that changed, and removes only files an earlier upload put there; ``--preview`` lists
+   what would change and changes nothing.
 
     python website/build.py            # sync + update, in place
     python website/build.py --dist     # … and the zip to upload
     python website/build.py --check    # exit 1 if the pages are not up to date
+    python website/build.py --preview  # … what an upload would change on the server
+    python website/build.py --deploy   # build, check, zip and upload
 
 Standard library only; run from anywhere.
 """
@@ -29,16 +35,21 @@ Standard library only; run from anywhere.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import html
 import json
+import os
 import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import zipfile
+from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from datetime import date
 from html.parser import HTMLParser
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 from urllib.parse import unquote, urlsplit
 
@@ -562,7 +573,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--dist", action="store_true", help="also build the zip to upload")
     parser.add_argument("--check", action="store_true", help="fail if the pages are stale")
+    parser.add_argument(
+        "--deploy", action="store_true", help="build, check, zip and upload over SFTP"
+    )
+    parser.add_argument(
+        "--preview", action="store_true", help="list what an upload would change, change nothing"
+    )
     args = parser.parse_args()
+    if args.deploy or args.preview:
+        args.dist = True
     if not args.check:
         sync()
     stale = []
@@ -597,6 +616,187 @@ def main() -> int:
         if archive is None:
             return 1
         print("Zip:", archive.relative_to(ROOT))
+        if args.deploy or args.preview:
+            return deploy(archive.parent / "site", preview=args.preview)
+    return 0
+
+
+# -- 4. deploy --------------------------------------------------------------------------
+
+# On the server, beside the site: every file an upload put there, with its fingerprint. An
+# upload sends what changed and removes only files listed here, so what the host keeps in
+# the folder (cgi-bin, .well-known, its quota file) is never touched.
+MANIFEST = ".paravent-files.json"
+# More than this many files to delete means something is off; nothing is deleted then.
+MAX_DELETE = 200
+# user@host:/path or host:path (SFTP), or a local folder for trying it out.
+REMOTE = re.compile(r"^(?P<host>(?:[\w.+-]+@)?[\w.-]+):(?P<path>.+)$")
+
+
+def setting(name: str) -> str:
+    """A setting from the environment, else from the project's ``.env`` (never printed)."""
+    if os.environ.get(name):
+        return os.environ[name].strip()
+    env = ROOT / ".env"
+    if env.is_file():
+        for line in env.read_text(encoding="utf-8").splitlines():
+            key, sep, value = line.strip().partition("=")
+            if sep and key.strip() == name and not line.lstrip().startswith("#"):
+                return value.strip().strip("\"'")
+    return ""
+
+
+def target_problem(target: str) -> str | None:
+    """Why ``target`` is not a folder to upload into, or None. It must name the site's own
+    folder, ending in ``/``, never a root or home folder."""
+    if not target:
+        return "PARAVENT_SITE_TARGET is not set (user@host:/path/to/paravent.org/)"
+    found = REMOTE.match(target)
+    path = found.group("path") if found else target
+    if not found and not Path(path).is_absolute():
+        return "PARAVENT_SITE_TARGET is neither user@host:/path/ nor an absolute folder"
+    if not path.endswith("/"):
+        return "PARAVENT_SITE_TARGET must end with / (the folder itself, not one inside it)"
+    if path.strip("/~. ") == "":
+        return "PARAVENT_SITE_TARGET names a root or home folder, not the site's own folder"
+    return None
+
+
+def fingerprints(site: Path) -> dict[str, str]:
+    """Every file of the site by its path, with a hash of its content."""
+    return {
+        path.relative_to(site).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+        for path in sorted(site.rglob("*"))
+        if path.is_file() and path.name != ".DS_Store"
+    }
+
+
+@dataclass(frozen=True)
+class Plan:
+    """What an upload does: files to send (new or changed), files to remove (sent by an
+    earlier upload, no longer in the site), and the folders the sent files need."""
+
+    send: tuple[str, ...]
+    remove: tuple[str, ...]
+    folders: tuple[str, ...]
+
+
+def plan(now: Mapping[str, str], before: Mapping[str, str]) -> Plan:
+    send = tuple(path for path, digest in now.items() if before.get(path) != digest)
+    remove = tuple(sorted(path for path in before if path not in now))
+    folders = sorted({str(parent) for path in send for parent in PurePosixPath(path).parents})
+    return Plan(send, remove, tuple(f for f in folders if f != "."))
+
+
+def _quoted(path: str) -> str:
+    return '"' + path.replace("\\", "\\\\").replace('"', '\\"') + '"'
+
+
+def sftp_batch(site: Path, base: str, steps: Plan, manifest: Path) -> list[str]:
+    """The SFTP commands for ``steps``: folders made (an existing one is fine), files sent
+    with readable modes, old files removed, and the new list of files last."""
+    lines = []
+    for folder in steps.folders:
+        lines += [f"-mkdir {_quoted(base + folder)}", f"-chmod 755 {_quoted(base + folder)}"]
+    for path in steps.send:
+        lines += [
+            f"put {_quoted(str(site / path))} {_quoted(base + path)}",
+            f"chmod 644 {_quoted(base + path)}",
+        ]
+    lines += [f"-rm {_quoted(base + path)}" for path in steps.remove]
+    lines += [f"put {_quoted(str(manifest))} {_quoted(base + MANIFEST)}"]
+    return lines
+
+
+def _sftp(host: str, lines: Sequence[str]) -> subprocess.CompletedProcess[str]:
+    """Run SFTP commands non-interactively; the login is the one ~/.ssh gives."""
+    with tempfile.NamedTemporaryFile("w", suffix=".sftp", delete=False, encoding="utf-8") as f:
+        f.write("\n".join(lines) + "\n")
+    try:
+        return subprocess.run(
+            ["sftp", "-b", f.name, "-o", "BatchMode=yes", "-o", "ConnectTimeout=20", host],
+            capture_output=True,
+            text=True,
+        )
+    finally:
+        Path(f.name).unlink(missing_ok=True)
+
+
+def _uploaded_before(target: str) -> dict[str, str]:
+    """The list of files the last upload left on the server; empty before the first."""
+    found = REMOTE.match(target)
+    if found is None:
+        listed = Path(target) / MANIFEST
+        raw = listed.read_text(encoding="utf-8") if listed.is_file() else ""
+    else:
+        with tempfile.TemporaryDirectory() as folder:
+            local = Path(folder) / MANIFEST
+            _sftp(
+                found.group("host"),
+                [f"-get {_quoted(found.group('path') + MANIFEST)} {_quoted(str(local))}"],
+            )
+            raw = local.read_text(encoding="utf-8") if local.is_file() else ""
+    try:
+        data = json.loads(raw) if raw else {}
+    except json.JSONDecodeError:
+        data = {}
+    files = data.get("files") if isinstance(data, dict) else None
+    return {str(k): str(v) for k, v in files.items()} if isinstance(files, dict) else {}
+
+
+def _apply_locally(site: Path, folder: Path, steps: Plan, manifest: Path) -> None:
+    """The same upload into a local folder (to try the build out, and for its tests)."""
+    for path in steps.send:
+        (folder / path).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(site / path, folder / path)
+    for path in steps.remove:
+        (folder / path).unlink(missing_ok=True)
+    shutil.copyfile(manifest, folder / MANIFEST)
+
+
+def deploy(site: Path, *, preview: bool) -> int:
+    """Send the checked copy in ``dist/site`` to the server, or say what that would do."""
+    target = setting("PARAVENT_SITE_TARGET")
+    problem = target_problem(target)
+    if problem:
+        print("Not uploaded:", problem)
+        return 1
+    found = REMOTE.match(target)
+    if found is not None and shutil.which("sftp") is None:
+        print("Not uploaded: sftp is not installed")
+        return 1
+    now, before = fingerprints(site), _uploaded_before(target)
+    steps = plan(now, before)
+    if len(steps.remove) > MAX_DELETE:
+        print(f"Not uploaded: {len(steps.remove)} files to delete, more than {MAX_DELETE}.")
+        return 1
+    print(f"{len(steps.send)} to send, {len(steps.remove)} to delete, of {len(now)} files.")
+    if not before:
+        print("First upload: nothing on the server is deleted; files already there are replaced.")
+    if preview:
+        for path in steps.send:
+            print("  send  ", path)
+        for path in steps.remove:
+            print("  delete", path)
+        print("Nothing was changed (preview).")
+        return 0
+    with tempfile.TemporaryDirectory() as folder:
+        manifest = Path(folder) / MANIFEST
+        manifest.write_text(json.dumps({"files": now}, indent=1, sort_keys=True), encoding="utf-8")
+        if found is None:
+            _apply_locally(site, Path(target), steps, manifest)
+        else:
+            done = _sftp(
+                found.group("host"), sftp_batch(site, found.group("path"), steps, manifest)
+            )
+            if done.returncode:
+                print(done.stderr.strip()[-600:])
+                print(
+                    "sftp stopped; part of the site may be new. Run --deploy again: "
+                    "the list of files is written last, so nothing sent is lost track of."
+                )
+                return done.returncode
+    print("The site is live.")
     return 0
 
 
