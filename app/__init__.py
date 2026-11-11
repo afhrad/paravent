@@ -4,7 +4,6 @@ import tomllib
 from pathlib import Path
 
 
-
 def _version() -> str:
     """The version as pyproject.toml defines it — the one place it is set. Read from the
     file rather than the installed package: the Docker image installs dependencies only
