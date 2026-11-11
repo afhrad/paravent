@@ -268,12 +268,13 @@ def _race_href(race: str, scope: WorldScope | None = None) -> str:
 
 def draftable(scope: WorldScope) -> list[Unserved]:
     """The peoples "draft all" asks Claude for: none drafted or drafting yet, and none a
-    style of the table's would serve given another name (that offer is quicker)."""
+    style of the table's would serve given another name, or for a kind of which the table
+    has a style (those offers are quicker; the row's own button still drafts)."""
     out = []
     for people in scope.unserved:
         run = scope.runs.get(people.race.casefold())
         busy = run is not None and (run.running or (run.style_id and not run.error))
-        if people.alias_style is None and not busy:
+        if people.alias_style is None and not people.related and not busy:
             out.append(people)
     return out
 
@@ -286,17 +287,23 @@ def _people_row(page: Page, scope: WorldScope, people: Unserved) -> Element:
         "race": people.race,
         **({"aliases": ", ".join(people.aliases)} if people.aliases else {}),
     }
-    alias: Node = None
-    if people.alias_style is not None:
-        style_id, style_name = people.alias_style
-        alias = form(method="post", action=f"{style_url(style_id)}/alias")[
+    # A style that would serve it given another name, or styles for a kind of it ("Night
+    # Elf" for "Elf"): one click each gives it the name.
+    offers = [people.alias_style] if people.alias_style is not None else people.related
+    alias: Node = [
+        form(method="post", action=f"{style_url(style_id)}/alias")[
             hidden("alias", people.alias),
             hidden("world", world_id),
-            button(type="submit", class_="btn btn-sm btn-primary")[
+            button(
+                type="submit",
+                class_="btn btn-sm btn-primary" if people.alias_style else "btn btn-sm",
+            )[
                 icon("check", "sm"),
                 span[t("naming.world.alias_add", alias=people.alias, style=style_name)],
             ],
         ]
+        for style_id, style_name in offers
+    ]
     run = scope.runs.get(people.race.casefold())
     claude: Node = None
     if run is not None and run.running:

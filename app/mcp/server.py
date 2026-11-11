@@ -635,7 +635,8 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
         serves, as the workshop lists them: a people met under its English and its
         translated name is one. For each, draft a style with `draft_naming_style(…,
         world_id)` after `naming_style_rules`, unless `alias_style` says an existing style
-        would do with another name, or `drafts_waiting` shows one is already proposed."""
+        would do with another name, `related_styles` names styles for a kind of the people
+        that may (ask the gamemaster), or `drafts_waiting` shows one is already proposed."""
         registry = stores()
         world = world_of(world_id)
         workshop = registry.naming_workshop
@@ -661,6 +662,7 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
                     met=list(people.met),
                     alias_style=people.alias_style[1] if people.alias_style else "",
                     alias=people.alias,
+                    related_styles=[name for _id, name in people.related],
                     drafts_waiting=waiting,
                 )
             )

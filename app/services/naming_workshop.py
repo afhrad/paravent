@@ -63,6 +63,9 @@ class Unserved:
     met: list[str] = field(default_factory=list)
     alias_style: tuple[str, str] | None = None
     alias: str = ""
+    # The table's styles for a kind of this people ("Night Elf", "Nachtelf" for "Elf"),
+    # as (id, name): given ``alias``, one of them may serve it.
+    related: list[tuple[str, str]] = field(default_factory=list)
 
 
 @dataclass
@@ -517,6 +520,20 @@ class NamingWorkshop:
                     people.alias_style = (serving.id, serving.name)
                     people.alias = people.met[0]
                     break
+            if people.alias_style is None:
+                names = [people.race, *people.aliases]
+                people.related = [
+                    (e.style.id, e.style.name)
+                    for e in own
+                    if e.style is not None
+                    and any(
+                        kind_of(word, name)
+                        for word in (e.style.race, *e.style.aliases)
+                        for name in names
+                    )
+                ]
+                if people.related:
+                    people.alias = people.met[0]
         return sorted(found.values(), key=lambda p: p.race.casefold())
 
     def add_alias(self, style_id: str, alias: str) -> NamingStyle:
@@ -611,6 +628,18 @@ def search(
     ]
 
 
+def kind_of(word: str, people: str) -> bool:
+    """Whether ``word`` names a kind of ``people``: its last word is the people ("Night
+    Elf", "Hill Dwarf") or, as German compounds, it ends in it ("Nachtelf", "Hochelf") and
+    is longer by a word's worth, so "Shelf" is no elf."""
+    word, people = word.strip().casefold(), people.strip().casefold()
+    if not word or not people or word == people:
+        return False
+    if " " in word:
+        return word.rsplit(" ", 1)[1] == people
+    return word.endswith(people) and len(word) >= len(people) + 3
+
+
 def race_names(glossary: Any, language: str) -> dict[str, str]:
     """The glossary's races, English → ``language``'s name: what joins a people met under
     both names (Dwarf, Zwerg) in :meth:`NamingWorkshop.unserved`. English has none."""
@@ -620,6 +649,7 @@ def race_names(glossary: Any, language: str) -> dict[str, str]:
 
 
 __all__ = [
+    "kind_of",
     "race_names",
     "KINDS",
     "NamingWorkshop",

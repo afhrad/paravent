@@ -22,6 +22,7 @@ from app.services.style_drafts import StyleDrafts, Submit
 from app.store.gamestate import GameStateStore
 from app.store.npc_tables import NpcTables
 from app.store.registry import StoreRegistry
+from tests.test_mcp import PASSWORD as MCP_PASSWORD
 from tests.test_mcp import call, session
 from tests.test_mcp import table as mcp_table  # noqa: F401 - the fixture
 
@@ -423,3 +424,49 @@ class TestDraftAllFromTheWorkshop:
         # Asked again, nothing already drafted is asked for twice.
         await ac.post("/gm/names/claude/all", data={"world": world.id})
         assert len(asking) == 5
+
+
+class TestKindsOfAPeople:
+    def test_a_kind_is_its_last_word_or_the_end_of_a_compound(self) -> None:
+        from app.services.naming_workshop import kind_of
+
+        assert kind_of("Night Elf", "Elf") and kind_of("Nachtelf", "Elf")
+        assert kind_of("Hill Dwarf", "dwarf") and kind_of("Hochelf", "elf")
+        assert not kind_of("Elf", "Elf") and not kind_of("Shelf", "Elf")
+        assert not kind_of("Elf Lord", "Elf") and not kind_of("Orc", "Elf")
+
+    async def test_an_unserved_people_hears_of_the_styles_for_its_kinds(
+        self,
+        mcp_table: tuple[AsyncClient, Any],  # noqa: F811
+    ) -> None:
+        raw, facts = mcp_table
+        registry: StoreRegistry = facts["app"].state.stores
+        world = facts["world"]
+        night = registry.naming_workshop.create(
+            _style("Kaldorei", race="Nachtelf", aliases=["Night Elf"])
+        )
+        orc = registry.naming_workshop.create(_style("Gruk", race="Orc"))
+        registry.gamestate.npcs.create(
+            Npc(name="Varis", race="Elf", scope=Scope(world_id=world.id))
+        )
+        async with session(mcp_table) as mcp:
+            await call(
+                mcp,
+                "set_world_naming_styles",
+                world_id=world.id,
+                keys=[f"own:{night.id}", f"own:{orc.id}"],
+            )
+            peoples = {p["race"]: p for p in await call(mcp, "unserved_peoples", world_id=world.id)}
+        assert peoples["Elf"]["related_styles"] == ["Kaldorei"]
+        assert peoples["Elf"]["alias"] == "Elf" and peoples["Elf"]["alias_style"] == ""
+        # The workshop offers the alias as one click.
+        await raw.post("/login", data={"username": "dm", "password": MCP_PASSWORD})
+        page = (await raw.get(f"/gm/names?world={world.id}")).text
+        assert f"/gm/names/{night.id}/alias" in page and "Add “Elf” to Kaldorei" in page
+        added = await raw.post(
+            f"/gm/names/{night.id}/alias", data={"alias": "Elf", "world": world.id}
+        )
+        assert added.status_code in (302, 303)
+        assert "Elf" in registry.naming_workshop.get(night.id).aliases
+        panel = (await raw.get(f"/gm/names?world={world.id}")).text
+        assert "/gm/names/new?race=Elf" not in panel  # the Kaldorei style serves it now

@@ -256,6 +256,11 @@ world's choice only narrows what they find among.
   **Over MCP** (2026-11-11): `unserved_peoples(world_id)` gives Claude the same list,
   with the alias a style of the table's could take and the drafts already waiting, so it
   drafts styles for a world's peoples while it writes (`draft_naming_style(…, world_id)`).
+  **Kinds of a people** (2026-11-11): an unserved people also lists the table's styles of
+  the world for a kind of it, a race or alias whose last word it is ("Night Elf", "Hill
+  Dwarf") or a compound ending in it ("Nachtelf"), so a PHB elf finds the setting's elves.
+  The workshop offers to add its name to each as an alias, one click; "draft all" leaves
+  such a people out, and Claude is told to suggest the alias rather than draft.
 - **Claude's styles for a world**: `draft_naming_style(…, world_id)` marks the draft
   `for_world`; accepting it adds it to that world's styles when the world limits them (a
   world with every style has it already), and clears the mark. A replacement keeps the

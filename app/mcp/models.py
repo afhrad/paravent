@@ -406,6 +406,12 @@ class UnservedPeople(BaseModel):
         "drafting a new style",
     )
     alias: str = ""
+    related_styles: list[str] = Field(
+        default_factory=list,
+        description='Styles of the table\'s for a kind of this people ("Night Elf" or '
+        '"Nachtelf" for "Elf"). If one fits the world\'s people, suggest the gamemaster '
+        "adds `alias` to it in the workshop instead of drafting a new style",
+    )
     drafts_waiting: list[str] = Field(
         default_factory=list,
         description="Names of drafts for this people and world still waiting for the "
