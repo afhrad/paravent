@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="{{meta.lang|attr}}">
+<!--
+  Written by website/build.py from templates/legal.html and content/<lang>.md.
+  Edit those, never this page: the next build replaces it.
+-->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{legal_page.title|attr}} — Paravent</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#58180D" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1C150F" media="(prefers-color-scheme: dark)">
+<link rel="alternate" hreflang="en" href="{{url_en|raw}}">
+<link rel="alternate" hreflang="de" href="{{url_de|raw}}">
+<link rel="icon" href="{{root|raw}}favicon.svg" type="image/svg+xml">
+<link rel="icon" href="{{root|raw}}favicon.ico" sizes="any">
+<link rel="stylesheet" href="{{root|raw}}assets/css/paravent/tokens.css">
+<link rel="stylesheet" href="{{root|raw}}assets/css/tome/tokens.css">
+<link rel="stylesheet" href="{{root|raw}}assets/css/paravent/components.css">
+<link rel="stylesheet" href="{{root|raw}}assets/css/site.css">
+<script>
+  try { var t = localStorage.getItem("paravent-site-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+</script>
+<script src="{{root|raw}}assets/js/site.js" defer></script>
+</head>
+<body>
+<!-- icons:start -->
+<!-- icons:end -->
+
+<header class="site-top scrolled">
+  <a class="brand" href="./" aria-label="{{footer.home|attr}}">
+    <svg class="ic brand-mark" aria-hidden="true" style="font-size:28px"><use href="#i-paravent"/></svg>
+    <span>Paravent</span>
+  </a>
+  <div class="site-top-end" style="margin-left:auto">
+    <div class="lang-switch" role="group" aria-label="{{ui.language|attr}}">
+      <a href="{{href_en|raw}}" hreflang="en" lang="en" title="English" data-lang="en"{{current_en|raw}}><img src="{{root|raw}}assets/img/flags/gb.svg" alt="English" width="24" height="16"></a>
+      <a href="{{href_de|raw}}" hreflang="de" lang="de" title="Deutsch" data-lang="de"{{current_de|raw}}><img src="{{root|raw}}assets/img/flags/de.svg" alt="Deutsch" width="24" height="16"></a>
+    </div>
+    <a class="btn" href="./"><svg class="ic" aria-hidden="true"><use href="#i-arrow-left"/></svg><span>{{ui.back}}</span></a>
+    <button class="icon-btn" type="button" data-theme-toggle aria-label="{{ui.theme|attr}}">
+      <svg class="ic ic-sun" aria-hidden="true"><use href="#i-sun"/></svg>
+      <svg class="ic ic-moon" aria-hidden="true"><use href="#i-moon"/></svg>
+    </button>
+  </div>
+</header>
+
+<main class="legal-page">
+  <div class="wrap">
+    <p class="eyebrow">{{legal_page.eyebrow}}</p>
+    <h1>{{legal_page.title}}</h1>
+
+    <section id="imprint">
+      <h2>{{legal_page.imprint_title}}</h2>
+{{legal_page.imprint|p}}
+      <address>{{legal_page.address}}</address>
+{{legal_page.contact|p}}
+    </section>
+
+    <section id="disclaimer">
+      <h2>{{legal_page.disclaimer_title}}</h2>
+{{legal_page.disclaimer|p}}
+    </section>
+
+    <section id="srd">
+      <h2>{{legal_page.srd_title}}</h2>
+{{legal_page.srd|p}}
+    </section>
+
+    <section id="privacy">
+      <h2>{{legal_page.privacy_title}}</h2>
+{{legal_page.privacy|p}}
+    </section>
+  </div>
+</main>
+
+<footer class="footer">
+  <div class="wrap footer-row">
+    <a class="brand" href="./">
+      <svg class="ic brand-mark" aria-hidden="true" style="font-size:24px"><use href="#i-paravent"/></svg><span>Paravent</span>
+    </a>
+    <p class="muted"><a href="./">{{footer.home}}</a></p>
+  </div>
+</footer>
+</body>
+</html>

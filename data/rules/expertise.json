@@ -1,0 +1,28 @@
+{
+  "_meta": {
+    "note": "Hand-authored. Which class features grant Expertise, and in how many proficiencies, exists in the 5eTools corpus only as prose inside each feature's entries ('choose two of your skill proficiencies'). Feats are different: they carry a structured 'expertise' field, read from the corpus directly. A test checks that every row here names a class feature the corpus has, at that level. See documentation/CHARGEN-WIZARD.md §11.",
+    "fields": {
+      "class": "the class name",
+      "source": "the class's source",
+      "feature": "the class feature's name, as classFeatures lists it",
+      "level": "the class level it is gained at",
+      "count": "how many proficiencies gain Expertise",
+      "tools": "tool proficiencies that may be chosen instead of a skill",
+      "skills": "when present, the only skills that may be chosen"
+    }
+  },
+  "features": [
+    {"class": "Rogue", "source": "PHB", "feature": "Expertise", "level": 1, "count": 2, "tools": ["thieves' tools"]},
+    {"class": "Rogue", "source": "PHB", "feature": "Expertise", "level": 6, "count": 2, "tools": ["thieves' tools"]},
+    {"class": "Rogue", "source": "XPHB", "feature": "Expertise", "level": 1, "count": 2},
+    {"class": "Rogue", "source": "XPHB", "feature": "Expertise", "level": 6, "count": 2},
+    {"class": "Bard", "source": "PHB", "feature": "Expertise", "level": 3, "count": 2},
+    {"class": "Bard", "source": "PHB", "feature": "Expertise", "level": 10, "count": 2},
+    {"class": "Bard", "source": "XPHB", "feature": "Expertise", "level": 2, "count": 2},
+    {"class": "Bard", "source": "XPHB", "feature": "Expertise", "level": 9, "count": 2},
+    {"class": "Ranger", "source": "XPHB", "feature": "Deft Explorer", "level": 2, "count": 1},
+    {"class": "Ranger", "source": "XPHB", "feature": "Expertise", "level": 9, "count": 2},
+    {"class": "Wizard", "source": "XPHB", "feature": "Scholar", "level": 2, "count": 1,
+     "skills": ["arcana", "history", "investigation", "medicine", "nature", "religion"]}
+  ]
+}

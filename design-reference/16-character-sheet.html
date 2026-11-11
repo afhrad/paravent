@@ -1,0 +1,1333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Character sheet · Paravent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+
+/* ============================================================
+   PARAVENT — token layer
+   Light palette on bare :root. Dark redefines TOKENS ONLY.
+   ============================================================ */
+:root{
+  /* neutrals — grey with a faint blue bias toward the indigo accent */
+  --bg:        #FFFFFF;
+  --bg-sunken: #F4F6F9;
+  --surface:   #FFFFFF;
+  --surface-2: #F7F8FA;
+  --surface-3: #EDF0F4;
+  --border:    #E1E5EB;
+  --border-strong:#CBD2DB;
+  --text:      #14171C;
+  --text-2:    #545C68;
+  --text-3:    #646C79;
+
+  /* accent */
+  --accent:      #4F6BED;
+  /* Accent used as a FILLED surface needs more depth than accent-as-a-line,
+     so white label text clears 4.5:1 with margin. */
+  --accent-solid:#4560DC;
+  --accent-hover:#3A51C4;
+  --accent-weak: #EDF0FE;
+  --accent-text: #3247B8;
+  --on-accent:   #FFFFFF;
+
+  /* semantic — meaning, never decoration */
+  --dmg:      #D93A3F;  --dmg-weak:  #FDECEC;  --dmg-text:  #B32227;
+  --heal:     #1F8A55;  --heal-weak: #E7F5ED;  --heal-text: #14663D;
+  --magic:    #8144B8;  --magic-weak:#F4EBFB;  --magic-text:#6A2F9C;
+  --cond:     #B57500;  --cond-weak: #FDF3E0;  --cond-text: #8A5A00;
+
+  --shadow-sm: 0 1px 2px rgba(15,20,30,.06), 0 1px 3px rgba(15,20,30,.04);
+  --shadow-md: 0 4px 12px rgba(15,20,30,.08), 0 1px 3px rgba(15,20,30,.05);
+  --shadow-lg: 0 16px 48px rgba(15,20,30,.16), 0 2px 8px rgba(15,20,30,.08);
+
+  --r-sm: 5px; --r: 8px; --r-lg: 12px;
+
+  --font-ui:   'Inter Tight', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Source Sans 3', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --rail: 236px;
+  --tap: 44px;
+
+  /* Scrollbars. Track is transparent so it inherits whatever surface it sits
+     on; thumb is a neutral that reads on every surface in both themes. */
+  --sb-size: 10px;
+  --sb-thumb: #98A1B0;
+  --sb-thumb-hover: #7C8595;
+  --sb-thumb-active: #656E7E;
+
+  /* Tells the browser which way to paint native UI it still owns:
+     the caret, form controls, and the scrollbar corner. Without this a dark
+     page gets light system scrollbars. */
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:        #0E1013;
+    --bg-sunken: #090B0D;
+    --surface:   #171A1F;
+    --surface-2: #1D2127;
+    --surface-3: #252A31;
+    --border:    #282D35;
+    --border-strong:#3A414B;
+    --text:      #E9ECF1;
+    --text-2:    #A0A8B4;
+    --text-3:    #949DAB;
+
+    --accent:      #7B92F5;
+    --accent-solid:#7B92F5;
+    --accent-hover:#93A6F8;
+    --accent-weak: #1B2140;
+    --accent-text: #A7B7FA;
+    --on-accent:   #0E1013;
+
+    --dmg:   #F0656A; --dmg-weak:  #33191B; --dmg-text:  #F79A9D;
+    --heal:  #45C083; --heal-weak: #12291F; --heal-text: #7BD9AC;
+    --magic: #B678E6; --magic-weak:#2A1B38; --magic-text:#CFA3F0;
+    --cond:  #E5A73C; --cond-weak: #302411; --cond-text: #F0C578;
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.5);
+    --shadow-md: 0 4px 12px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.4);
+    --shadow-lg: 0 16px 48px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.5);
+
+    --sb-thumb: #5D6776;
+    --sb-thumb-hover: #737D8E;
+    --sb-thumb-active: #8A94A5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:        #0E1013;
+  --bg-sunken: #090B0D;
+  --surface:   #171A1F;
+  --surface-2: #1D2127;
+  --surface-3: #252A31;
+  --border:    #282D35;
+  --border-strong:#3A414B;
+  --text:      #E9ECF1;
+  --text-2:    #A0A8B4;
+  --text-3:    #949DAB;
+
+  --accent:      #7B92F5;
+  --accent-solid:#7B92F5;
+  --accent-hover:#93A6F8;
+  --accent-weak: #1B2140;
+  --accent-text: #A7B7FA;
+  --on-accent:   #0E1013;
+
+  --dmg:   #F0656A; --dmg-weak:  #33191B; --dmg-text:  #F79A9D;
+  --heal:  #45C083; --heal-weak: #12291F; --heal-text: #7BD9AC;
+  --magic: #B678E6; --magic-weak:#2A1B38; --magic-text:#CFA3F0;
+  --cond:  #E5A73C; --cond-weak: #302411; --cond-text: #F0C578;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.5);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.4);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.5);
+
+  --sb-thumb: #5D6776;
+  --sb-thumb-hover: #737D8E;
+  --sb-thumb-active: #8A94A5;
+  color-scheme: dark;
+}
+
+/* ============================================================ base */
+*{ box-sizing:border-box; }
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--font-body); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,h5{ font-family:var(--font-ui); font-weight:600; margin:0; text-wrap:balance; letter-spacing:-.011em; }
+p{ margin:0; }
+button{ font:inherit; color:inherit; }
+:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
+@media (prefers-reduced-motion:reduce){ *{ animation-duration:.01ms!important; transition-duration:.01ms!important; } }
+
+/* ============================================================
+   SCROLLBARS
+   Firefox gets scrollbar-color (thin, two colours, no pseudo-elements).
+   Chromium/Safari get ::-webkit-scrollbar, which allows a rounded thumb
+   inset from a transparent track. Both read from the same tokens, so a
+   theme switch moves them with everything else.
+   ============================================================ */
+*{ scrollbar-color: var(--sb-thumb) transparent; scrollbar-width: thin; }
+
+::-webkit-scrollbar{ width: var(--sb-size); height: var(--sb-size); }
+::-webkit-scrollbar-track{ background: transparent; }
+::-webkit-scrollbar-thumb{
+  background-color: var(--sb-thumb);
+  border-radius: 999px;
+  /* Transparent border + background-clip insets the thumb without a track,
+     so it floats clear of the content edge. */
+  border: 2.5px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover{ background-color: var(--sb-thumb-hover); }
+::-webkit-scrollbar-thumb:active{ background-color: var(--sb-thumb-active); }
+::-webkit-scrollbar-corner{ background: transparent; }
+
+/* Horizontal strips — filter chips, the wizard step rail, wide tables — are
+   short. A 10px bar would crowd them, so they get a slimmer one that only
+   appears while the strip is hovered or focused within. */
+.filterbar, .steps, .tablewrap{ scrollbar-width: none; }
+.filterbar::-webkit-scrollbar,
+.steps::-webkit-scrollbar,
+.tablewrap::-webkit-scrollbar{ height: 6px; }
+.filterbar::-webkit-scrollbar-thumb,
+.steps::-webkit-scrollbar-thumb,
+.tablewrap::-webkit-scrollbar-thumb{
+  background-color: transparent; border-width: 1.5px;
+  transition: background-color .15s;
+}
+.filterbar:hover::-webkit-scrollbar-thumb, .filterbar:focus-within::-webkit-scrollbar-thumb,
+.steps:hover::-webkit-scrollbar-thumb, .steps:focus-within::-webkit-scrollbar-thumb,
+.tablewrap:hover::-webkit-scrollbar-thumb, .tablewrap:focus-within::-webkit-scrollbar-thumb{
+  background-color: var(--sb-thumb);
+}
+.filterbar:hover, .steps:hover, .tablewrap:hover,
+.filterbar:focus-within, .steps:focus-within, .tablewrap:focus-within{
+  scrollbar-width: thin;
+}
+
+/* Touch devices draw their own overlay scrollbar that fades out on its own.
+   Ours would sit under a thumb and steal 10px of a narrow screen. */
+@media (hover: none){
+  *{ scrollbar-width: auto; }
+  ::-webkit-scrollbar{ width: 0; height: 0; }
+}
+
+.mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+.eyebrow{
+  font-family:var(--font-ui); font-size:10.5px; font-weight:600;
+  letter-spacing:.09em; text-transform:uppercase; color:var(--text-3);
+}
+
+/* ============================================================
+   ICONS — Lucide 1.39.0 (ISC). One contract, applied globally.
+   Lucide is a stroke set: fill:none + stroke:currentColor is
+   mandatory, or every glyph renders as a black blob.
+   ============================================================ */
+svg.ic{
+  fill:none; stroke:currentColor; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round;
+  width:1em; height:1em; flex-shrink:0;
+  vertical-align:-.125em; display:inline-block;
+}
+/* Optical sizing: stroke-width is scaled DOWN as the icon grows,
+   so weight stays visually constant across sizes. */
+.ic-xs{ font-size:13px; stroke-width:2.25; }
+.ic-sm{ font-size:15px; stroke-width:2; }
+.ic-md{ font-size:18px; stroke-width:1.85; }
+.ic-lg{ font-size:22px; stroke-width:1.7; }
+.ic-xl{ font-size:28px; stroke-width:1.6; }
+
+/* Icons inside a text run sit at the text's own weight, never louder. */
+.ic-muted{ opacity:.62; }
+
+/* ============================================================ doc shell */
+.doc{ max-width:1180px; margin:0 auto; padding:0 24px 120px; }
+.masthead{ padding:56px 0 40px; border-bottom:1px solid var(--border); }
+.masthead h1{ font-size:clamp(30px,5vw,44px); font-weight:700; letter-spacing:-.03em; margin:10px 0 12px; }
+.masthead .lede{ color:var(--text-2); max-width:64ch; font-size:16.5px; }
+.mast-row{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+
+.themetoggle{
+  display:inline-flex; gap:2px; padding:3px; background:var(--surface-2);
+  border:1px solid var(--border); border-radius:var(--r); font-family:var(--font-ui);
+}
+.themetoggle button{
+  border:0; background:transparent; color:var(--text-2); cursor:pointer;
+  padding:6px 12px; border-radius:var(--r-sm); font-size:12.5px; font-weight:500;
+}
+.themetoggle button[aria-pressed="true"]{ background:var(--surface); color:var(--text); box-shadow:var(--shadow-sm); }
+
+section.block{ padding-top:64px; }
+.block > .eyebrow{ display:block; margin-bottom:8px; }
+.block > h2{ font-size:25px; letter-spacing:-.02em; margin-bottom:8px; }
+.block > .intro{ color:var(--text-2); max-width:70ch; margin-bottom:26px; }
+
+/* ============================================================ device frames */
+.frames{ display:grid; grid-template-columns:1fr; gap:28px; }
+@media (min-width:1000px){ .frames.split{ grid-template-columns:1fr 372px; align-items:start; } }
+
+.frame{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-md);
+}
+.frame-bar{
+  display:flex; align-items:center; gap:8px; padding:9px 12px;
+  background:var(--surface-2); border-bottom:1px solid var(--border);
+}
+.frame-dots{ display:flex; gap:5px; }
+.frame-dots i{ width:9px; height:9px; border-radius:50%; background:var(--border-strong); display:block; }
+.frame-label{
+  font-family:var(--font-ui); font-size:11.5px; font-weight:500; color:var(--text-3);
+  letter-spacing:.01em; margin-left:4px;
+}
+.frame-body{ background:var(--bg); }
+
+/* phone */
+.phone{
+  width:100%; max-width:372px; margin:0 auto;
+  border:1px solid var(--border-strong); border-radius:26px; padding:9px;
+  background:var(--surface-2); box-shadow:var(--shadow-md);
+}
+.phone-screen{
+  background:var(--bg); border-radius:18px; overflow:hidden;
+  border:1px solid var(--border); height:668px; display:flex; flex-direction:column;
+}
+
+/* ============================================================ app chrome */
+.app{ display:flex; min-height:520px; }
+.rail{
+  width:var(--rail); flex-shrink:0; background:var(--surface-2);
+  border-right:1px solid var(--border); padding:14px 10px;
+  display:flex; flex-direction:column; gap:2px;
+}
+.rail-brand{ display:flex; align-items:center; gap:9px; padding:6px 8px 16px; }
+.mark{
+  width:26px; height:26px; border-radius:7px; background:var(--accent-solid);
+  display:grid; place-items:center; flex-shrink:0;
+}
+.mark svg{ font-size:15px; }
+.rail-brand b{ font-family:var(--font-ui); font-size:15px; font-weight:600; letter-spacing:-.015em; }
+.rail-group{ margin-top:14px; }
+.rail-group .eyebrow{ padding:0 8px 6px; display:block; }
+.navitem{
+  display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  padding:7px 8px; border:0; background:transparent; border-radius:var(--r-sm);
+  color:var(--text-2); font-family:var(--font-ui); font-size:13.5px; font-weight:500;
+  cursor:pointer; min-height:34px;
+}
+.navitem:hover{ background:var(--surface-3); color:var(--text); }
+.navitem[aria-current="page"]{ background:var(--accent-weak); color:var(--accent-text); font-weight:600; }
+.navitem svg{ font-size:16px; opacity:.8; }
+.navitem .count{
+  margin-left:auto; font-family:var(--font-mono); font-size:10.5px; color:var(--text-3);
+  font-variant-numeric:tabular-nums;
+}
+.rail-foot{ margin-top:auto; padding-top:14px; border-top:1px solid var(--border); }
+.userchip{ display:flex; align-items:center; gap:9px; padding:6px 8px; }
+.avatar{
+  width:26px; height:26px; border-radius:50%; background:var(--surface-3);
+  border:1px solid var(--border-strong); display:grid; place-items:center;
+  font-family:var(--font-ui); font-size:11px; font-weight:600; color:var(--text-2); flex-shrink:0;
+}
+.userchip div{ min-width:0; }
+.userchip b{ display:block; font-family:var(--font-ui); font-size:12.5px; font-weight:500; }
+.userchip span{ font-size:11px; color:var(--text-3); }
+
+.main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.topbar{
+  display:flex; align-items:center; gap:12px; padding:11px 16px;
+  border-bottom:1px solid var(--border); background:var(--surface);
+}
+.crumbs{ font-family:var(--font-ui); font-size:13px; color:var(--text-3); display:flex; align-items:center; gap:6px; min-width:0; }
+.crumbs b{ color:var(--text); font-weight:600; }
+.crumbs .sep{ opacity:.5; }
+
+/* ============================================================ controls */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  padding:7px 13px; min-height:34px; border-radius:var(--r-sm);
+  border:1px solid var(--border-strong); background:var(--surface); color:var(--text);
+  font-family:var(--font-ui); font-size:13px; font-weight:500; cursor:pointer;
+  white-space:nowrap; transition:background .12s, border-color .12s;
+}
+.btn:hover{ background:var(--surface-2); border-color:var(--text-3); }
+.btn svg{ font-size:15px; }
+.btn-primary{ background:var(--accent-solid); border-color:var(--accent-solid); color:var(--on-accent); font-weight:600; }
+.btn-primary:hover{ background:var(--accent-hover); border-color:var(--accent-hover); }
+.btn-ghost{ border-color:transparent; background:transparent; color:var(--text-2); }
+.btn-ghost:hover{ background:var(--surface-3); color:var(--text); }
+.btn-sm{ padding:4px 9px; min-height:28px; font-size:12px; }
+.btn-dmg{ color:var(--dmg-text); border-color:var(--dmg-weak); background:var(--dmg-weak); font-weight:600; }
+.btn-heal{ color:var(--heal-text); border-color:var(--heal-weak); background:var(--heal-weak); font-weight:600; }
+
+.search{
+  display:flex; align-items:center; gap:8px; flex:1; max-width:420px;
+  padding:0 11px; min-height:34px; background:var(--surface-2);
+  border:1px solid var(--border); border-radius:var(--r-sm); color:var(--text-3);
+  font-size:13px; cursor:pointer; transition:border-color .12s;
+}
+.search:hover{ border-color:var(--border-strong); }
+.search svg{ font-size:15px; }
+.search .kbd{ margin-left:auto; }
+.kbd{
+  font-family:var(--font-mono); font-size:10.5px; padding:2px 5px; border-radius:4px;
+  background:var(--surface-3); border:1px solid var(--border); color:var(--text-3);
+  line-height:1.4; white-space:nowrap;
+}
+
+/* pills / chips */
+.pill{
+  display:inline-flex; align-items:center; gap:5px; padding:2px 8px;
+  border-radius:999px; font-family:var(--font-ui); font-size:11px; font-weight:600;
+  letter-spacing:.01em; border:1px solid transparent; white-space:nowrap;
+}
+.pill.dmg  { background:var(--dmg-weak);   color:var(--dmg-text);   border-color:color-mix(in srgb,var(--dmg) 22%, transparent); }
+.pill.heal { background:var(--heal-weak);  color:var(--heal-text);  border-color:color-mix(in srgb,var(--heal) 22%, transparent); }
+.pill.magic{ background:var(--magic-weak); color:var(--magic-text); border-color:color-mix(in srgb,var(--magic) 22%,transparent); }
+.pill.cond { background:var(--cond-weak);  color:var(--cond-text);  border-color:color-mix(in srgb,var(--cond) 25%, transparent); }
+.pill.neutral{ background:var(--surface-3); color:var(--text-2); border-color:var(--border); }
+.pill.accent{ background:var(--accent-weak); color:var(--accent-text); border-color:color-mix(in srgb,var(--accent) 22%,transparent); }
+.pill .dot{ width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
+.pill svg{ font-size:12px; stroke-width:2.4; margin-left:-1px; }
+
+/* Icon-prefixed reference links. The icon states the CATEGORY, so the
+   dashed underline can stay quiet and the label stays readable. */
+.ref svg{ font-size:12px; stroke-width:2.3; margin-right:1px; vertical-align:-.1em; opacity:.85; }
+.ref.dice svg{ opacity:1; }
+
+/* reference link — the {@spell fireball} renderer output */
+.ref{
+  font-family:inherit; font-weight:600; cursor:pointer; background:none;
+  border:0; padding:0 1px; border-bottom:1px dashed currentColor; line-height:inherit;
+}
+.ref.spell{ color:var(--magic-text); }
+.ref.creature{ color:var(--dmg-text); }
+.ref.item{ color:var(--accent-text); }
+.ref.cond{ color:var(--cond-text); }
+.ref.dice{
+  font-family:var(--font-mono); font-size:.92em; font-weight:500; color:var(--text);
+  background:var(--surface-3); border:1px solid var(--border); border-bottom-style:solid;
+  padding:1px 5px; border-radius:4px;
+}
+.ref:hover{ border-bottom-style:solid; }
+.ref.dice:hover{ background:var(--accent-weak); border-color:var(--accent); color:var(--accent-text); }
+
+/* ============================================================ combat tracker */
+.tracker{ padding:14px 16px; display:flex; flex-direction:column; gap:8px; background:var(--bg); }
+.round-head{
+  display:flex; align-items:center; gap:12px; padding-bottom:12px;
+  border-bottom:1px solid var(--border); margin-bottom:4px; flex-wrap:wrap;
+}
+.round-n{ display:flex; align-items:baseline; gap:7px; }
+.round-n .big{ font-family:var(--font-mono); font-size:20px; font-weight:700; letter-spacing:-.02em; }
+
+.combatant{
+  display:grid; grid-template-columns:auto 34px 1fr auto; gap:12px; align-items:center;
+  padding:10px 12px 10px 0; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r); position:relative; overflow:hidden;
+}
+/* severity stripe: state readable at a glance, before any number is parsed */
+.combatant::before{
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--border-strong);
+}
+.combatant.is-active{ border-color:var(--accent); background:var(--accent-weak); }
+.combatant.is-active::before{ background:var(--accent); width:4px; }
+.combatant.is-bloodied::before{ background:var(--cond); }
+.combatant.is-critical::before{ background:var(--dmg); }
+.combatant.is-down{ opacity:.62; }
+.combatant.is-down::before{ background:var(--text-3); }
+
+.init{
+  font-family:var(--font-mono); font-size:16px; font-weight:700; text-align:center;
+  color:var(--text-2); font-variant-numeric:tabular-nums; padding-left:12px;
+}
+.combatant.is-active .init{ color:var(--accent-text); }
+.token{
+  width:34px; height:34px; border-radius:var(--r-sm); background:var(--surface-3);
+  border:1px solid var(--border-strong); display:grid; place-items:center;
+  font-family:var(--font-ui); font-size:13px; font-weight:600; color:var(--text-2);
+}
+.c-body{ min-width:0; }
+.c-name{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+.c-name b{ font-family:var(--font-ui); font-size:14.5px; font-weight:600; letter-spacing:-.01em; }
+.c-meta{ display:flex; align-items:center; gap:8px; margin-top:3px; flex-wrap:wrap; font-size:12px; color:var(--text-3); }
+
+.hpbar{ height:4px; border-radius:2px; background:var(--surface-3); overflow:hidden; margin-top:7px; max-width:220px; }
+.hpbar i{ display:block; height:100%; border-radius:2px; background:var(--heal); }
+.hpbar.warn i{ background:var(--cond); }
+.hpbar.crit i{ background:var(--dmg); }
+
+.hp{ display:flex; align-items:center; gap:6px; }
+.hp-val{ font-family:var(--font-mono); font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; min-width:56px; text-align:right; }
+.hp-val small{ font-weight:400; color:var(--text-3); font-size:11.5px; }
+.c-actions{ display:flex; align-items:center; gap:5px; }
+
+/* ============================================================ statblock / reference drawer */
+.drawer{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
+  overflow:hidden; box-shadow:var(--shadow-md); display:flex; flex-direction:column;
+}
+.drawer-head{
+  padding:13px 15px; border-bottom:1px solid var(--border); background:var(--surface-2);
+  display:flex; align-items:flex-start; gap:10px;
+}
+.drawer-head h3{ font-size:17px; letter-spacing:-.02em; }
+.drawer-head .sub{ font-size:12.5px; color:var(--text-3); font-style:italic; margin-top:1px; }
+.drawer-body{ padding:15px; display:flex; flex-direction:column; gap:13px; font-size:13.5px; overflow:auto; }
+
+.statrow{ display:grid; grid-template-columns:repeat(6,1fr); gap:6px; }
+.stat{
+  background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-sm);
+  padding:7px 4px; text-align:center;
+}
+.stat .ab{ font-family:var(--font-ui); font-size:10px; font-weight:600; letter-spacing:.07em; color:var(--text-3); }
+.stat .sc{ font-family:var(--font-mono); font-size:15px; font-weight:700; line-height:1.25; }
+.stat .md{ font-family:var(--font-mono); font-size:11px; color:var(--accent-text); font-weight:500; cursor:pointer; }
+
+.defline{ display:flex; gap:16px; flex-wrap:wrap; padding-bottom:12px; border-bottom:1px solid var(--border); }
+.defline > div{ display:flex; align-items:baseline; gap:6px; }
+.defline .eyebrow{ font-size:10px; }
+.defline .v{ font-family:var(--font-mono); font-size:13.5px; font-weight:600; }
+
+.trait{ padding-top:2px; }
+.trait h5{ font-size:13.5px; display:inline; font-style:italic; font-weight:700; }
+.trait p{ display:inline; color:var(--text-2); }
+.sect-rule{
+  font-family:var(--font-ui); font-size:11.5px; font-weight:700; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--accent-text); padding-bottom:5px;
+  border-bottom:1px solid color-mix(in srgb,var(--accent) 28%, transparent); margin-top:4px;
+}
+
+/* ============================================================ command palette / dialog */
+.dialog{
+  background:var(--surface); border:1px solid var(--border-strong);
+  border-radius:var(--r-lg); box-shadow:var(--shadow-lg); overflow:hidden;
+  max-width:600px; margin:0 auto;
+}
+.dialog-search{
+  display:flex; align-items:center; gap:10px; padding:13px 15px;
+  border-bottom:1px solid var(--border);
+}
+.dialog-search svg{ font-size:18px; color:var(--text-3); stroke-width:1.9; }
+.dialog-search .q{ font-size:15px; flex:1; }
+.dialog-search .q .caret{
+  display:inline-block; width:1.5px; height:16px; background:var(--accent);
+  vertical-align:-3px; animation:blink 1.1s step-end infinite;
+}
+@keyframes blink{ 50%{ opacity:0; } }
+
+.filterbar{ display:flex; gap:5px; padding:9px 15px; border-bottom:1px solid var(--border); overflow-x:auto; }
+.chip{
+  padding:3px 10px; border-radius:999px; border:1px solid var(--border);
+  background:var(--surface-2); color:var(--text-2); font-family:var(--font-ui);
+  font-size:11.5px; font-weight:500; cursor:pointer; white-space:nowrap;
+}
+.chip[aria-pressed="true"]{ background:var(--accent-solid); border-color:var(--accent-solid); color:var(--on-accent); font-weight:600; }
+
+.results{ max-height:330px; overflow:auto; padding:6px; }
+.res-group{ padding:9px 9px 4px; }
+.res{
+  display:grid; grid-template-columns:26px 1fr auto; gap:11px; align-items:center;
+  padding:8px 9px; border-radius:var(--r-sm); cursor:pointer; border:1px solid transparent;
+}
+.res:hover{ background:var(--surface-2); }
+.res[aria-selected="true"]{ background:var(--accent-weak); border-color:color-mix(in srgb,var(--accent) 30%,transparent); }
+.res-ico{
+  width:26px; height:26px; border-radius:var(--r-sm); display:grid; place-items:center;
+}
+.res-ico svg{ font-size:15px; stroke-width:2.1; }
+.res-ico.magic{ background:var(--magic-weak); color:var(--magic-text); }
+.res-ico.dmg{ background:var(--dmg-weak); color:var(--dmg-text); }
+.res-ico.item{ background:var(--accent-weak); color:var(--accent-text); }
+.res b{ font-family:var(--font-ui); font-size:13.5px; font-weight:600; display:block; }
+.res .rsub{ font-size:12px; color:var(--text-3); }
+.res .rmeta{ display:flex; align-items:center; gap:7px; }
+.dialog-foot{
+  display:flex; align-items:center; gap:14px; padding:8px 15px;
+  border-top:1px solid var(--border); background:var(--surface-2); font-size:11.5px; color:var(--text-3);
+}
+.dialog-foot span{ display:flex; align-items:center; gap:5px; }
+
+/* the multilingual line — 5eTools cross-referencing across languages */
+.langline{
+  display:flex; align-items:center; gap:7px; padding:7px 15px; font-size:11.5px;
+  background:var(--surface-2); border-top:1px solid var(--border); color:var(--text-3);
+}
+.langline b{ color:var(--text-2); font-family:var(--font-ui); font-weight:600; }
+
+/* ============================================================ wizard */
+.wizard{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-md); }
+.steps{ display:flex; gap:0; padding:0; border-bottom:1px solid var(--border); background:var(--surface-2); overflow-x:auto; }
+.step{
+  display:flex; align-items:center; gap:8px; padding:11px 15px; border:0; background:transparent;
+  cursor:pointer; font-family:var(--font-ui); font-size:12.5px; font-weight:500; color:var(--text-3);
+  white-space:nowrap; border-bottom:2px solid transparent; min-height:var(--tap);
+}
+.step:hover{ color:var(--text); }
+.step .num{
+  width:19px; height:19px; border-radius:50%; display:grid; place-items:center;
+  font-family:var(--font-mono); font-size:10.5px; font-weight:700;
+  background:var(--surface-3); color:var(--text-3); border:1px solid var(--border);
+}
+.step.done{ color:var(--text-2); }
+.step.done .num{ background:var(--heal-weak); color:var(--heal-text); border-color:transparent; }
+.step[aria-current="step"]{ color:var(--text); font-weight:600; border-bottom-color:var(--accent); background:var(--surface); }
+.step[aria-current="step"] .num{ background:var(--accent-solid); color:var(--on-accent); border-color:transparent; }
+
+.wizard-body{ padding:20px; }
+.wizard-foot{
+  display:flex; align-items:center; gap:10px; padding:12px 20px;
+  border-top:1px solid var(--border); background:var(--surface-2);
+}
+.autosave{ margin-left:auto; font-size:11.5px; color:var(--text-3); display:flex; align-items:center; gap:6px; }
+.autosave .dot{ width:6px; height:6px; border-radius:50%; background:var(--heal); }
+
+.cardgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(158px,1fr)); gap:10px; }
+.pick{
+  text-align:left; padding:12px; border-radius:var(--r); border:1px solid var(--border);
+  background:var(--surface); cursor:pointer; display:flex; flex-direction:column; gap:5px;
+  min-height:var(--tap); transition:border-color .12s, background .12s;
+}
+.pick:hover{ border-color:var(--border-strong); background:var(--surface-2); }
+.pick[aria-pressed="true"]{ border-color:var(--accent); background:var(--accent-weak); box-shadow:inset 0 0 0 1px var(--accent); }
+.pick b{ font-family:var(--font-ui); font-size:13.5px; font-weight:600; }
+.pick .pd{ font-size:12px; color:var(--text-3); line-height:1.45; }
+
+/* ============================================================ mobile app */
+.m-top{
+  display:flex; align-items:center; gap:10px; padding:11px 13px;
+  border-bottom:1px solid var(--border); background:var(--surface); flex-shrink:0;
+}
+.m-top h4{ font-size:15px; letter-spacing:-.015em; flex:1; min-width:0; }
+.m-scroll{ flex:1; overflow:auto; padding:13px; display:flex; flex-direction:column; gap:11px; }
+.m-tabs{
+  display:flex; border-top:1px solid var(--border); background:var(--surface);
+  padding:5px 4px 7px; flex-shrink:0;
+}
+.m-tab{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+  border:0; background:transparent; cursor:pointer; padding:5px 2px;
+  font-family:var(--font-ui); font-size:10px; font-weight:500; color:var(--text-3);
+  min-height:var(--tap); border-radius:var(--r-sm);
+}
+.m-tab svg{ font-size:21px; stroke-width:1.8; }
+.m-tab[aria-current="page"]{ color:var(--accent-text); font-weight:600; }
+
+.hpcard{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
+  padding:15px; display:flex; flex-direction:column; gap:12px;
+}
+.hpbig{ display:flex; align-items:baseline; justify-content:center; gap:4px; font-family:var(--font-mono); }
+.hpbig .n{ font-size:44px; font-weight:700; line-height:1; letter-spacing:-.03em; }
+.hpbig .d{ font-size:18px; color:var(--text-3); font-weight:500; }
+.hprow{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.hprow .btn{ min-height:var(--tap); font-size:14px; }
+
+.diceset{ display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
+.die{
+  aspect-ratio:1; border:1px solid var(--border); border-radius:var(--r);
+  background:var(--surface); cursor:pointer; display:grid; place-items:center;
+  font-family:var(--font-mono); font-size:13px; font-weight:700; color:var(--text-2);
+  min-height:var(--tap);
+}
+.die:hover{ border-color:var(--accent); color:var(--accent-text); background:var(--accent-weak); }
+
+.rollout{
+  background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r);
+  padding:11px 13px; display:flex; align-items:center; gap:11px;
+}
+.rollout .tot{ font-family:var(--font-mono); font-size:26px; font-weight:700; letter-spacing:-.02em; }
+.rollout .brk{ font-family:var(--font-mono); font-size:11.5px; color:var(--text-3); }
+
+/* advantage toggle — three-state, the AD&D-correct control */
+.advset{ display:flex; padding:3px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-sm); gap:2px; }
+.advset button{
+  flex:1; border:0; background:transparent; cursor:pointer; padding:7px 4px;
+  border-radius:4px; font-family:var(--font-ui); font-size:11.5px; font-weight:600;
+  color:var(--text-3); min-height:36px;
+}
+.advset button[aria-pressed="true"]{ background:var(--surface); color:var(--text); box-shadow:var(--shadow-sm); }
+.advset button.adv[aria-pressed="true"]{ color:var(--heal-text); }
+.advset button.dis[aria-pressed="true"]{ color:var(--dmg-text); }
+
+.sheetgrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+
+/* ============================================================ spec tables */
+.spec{ width:100%; border-collapse:collapse; font-size:13px; }
+.spec th, .spec td{ text-align:left; padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+.spec th{ font-family:var(--font-ui); font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--text-3); }
+.spec td:first-child{ font-family:var(--font-mono); font-size:12px; color:var(--text); white-space:nowrap; }
+.spec td .sw{ display:inline-block; width:13px; height:13px; border-radius:3px; border:1px solid var(--border-strong); vertical-align:-2px; margin-right:7px; }
+.tablewrap{ overflow-x:auto; border:1px solid var(--border); border-radius:var(--r); background:var(--surface); }
+
+.notes{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); }
+.note{
+  background:var(--surface); border:1px solid var(--border); border-left:2px solid var(--accent);
+  border-radius:var(--r); padding:13px 15px;
+}
+.note h5{ font-size:13.5px; margin-bottom:4px; }
+.note p{ font-size:13px; color:var(--text-2); }
+.note.warn{ border-left-color:var(--cond); }
+
+.caption{ font-size:12.5px; color:var(--text-3); margin-top:9px; }
+
+
+/* ── design-reference chrome (not part of the app) ── */
+.dr-nav{
+  position:sticky; top:0; z-index:50; background:var(--surface);
+  border-bottom:1px solid var(--border); padding:9px 24px;
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  box-shadow:var(--shadow-sm);
+}
+.dr-home{
+  font-family:var(--font-ui); font-size:13px; font-weight:600; color:var(--text);
+  text-decoration:none; white-space:nowrap;
+}
+.dr-links{ display:flex; gap:3px; overflow-x:auto; scrollbar-width:none; }
+.dr-links::-webkit-scrollbar{ height:0; }
+.dr-links a{
+  font-family:var(--font-ui); font-size:12.5px; font-weight:500; color:var(--text-2);
+  text-decoration:none; padding:5px 9px; border-radius:var(--r-sm); white-space:nowrap;
+}
+.dr-links a:hover{ background:var(--surface-3); color:var(--text); }
+.dr-links a.here{ background:var(--accent-weak); color:var(--accent-text); font-weight:600; }
+.dr-foot{
+  max-width:1180px; margin:0 auto; padding:60px 24px 40px;
+  border-top:1px solid var(--border); display:flex; justify-content:space-between;
+  gap:16px; flex-wrap:wrap; font-size:12.5px; color:var(--text-3);
+}
+.dr-foot a{ color:var(--accent-text); }
+
+</style>
+<style>
+/* ---- character sheet --------------------------------------------------- */
+.sheet-shell{border:1px solid var(--border);border-radius:var(--r-lg);overflow:hidden;background:var(--surface);box-shadow:var(--shadow-md)}
+.sh-head{display:flex;align-items:center;gap:13px;padding:14px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.sh-av{width:44px;height:44px;border-radius:50%;background:var(--magic-weak);color:var(--magic-text);display:grid;place-items:center;font-family:var(--font-ui);font-weight:700;font-size:16px;flex:0 0 44px}
+.sh-name{font-family:var(--font-ui);font-weight:700;font-size:17px;letter-spacing:-.01em}
+.sh-sub{font-size:12.5px;color:var(--text-3);margin-top:1px}
+.sh-body{display:grid;grid-template-columns:200px 1fr 232px;gap:0;align-items:start}
+@media(max-width:1080px){.sh-body{grid-template-columns:1fr}}
+.sh-col{padding:16px;min-width:0}
+.sh-col+.sh-col{border-left:1px solid var(--border)}
+@media(max-width:1080px){.sh-col+.sh-col{border-left:0;border-top:1px solid var(--border)}}
+.lbl{font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3);font-weight:600;margin-bottom:7px}
+.statbig{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.sb{border:1px solid var(--border);border-radius:var(--r);padding:9px;text-align:center;background:var(--surface);cursor:help;position:relative}
+.sb .k{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3)}
+.sb .v{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:21px;line-height:1.15}
+.sb.ac .v{color:var(--accent-text)} .sb.dc .v{color:var(--magic-text)}
+.ab6{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px}
+.ab{border:1px solid var(--border);border-radius:var(--r);padding:8px 3px;text-align:center;background:var(--surface);cursor:pointer}
+.ab:hover{border-color:var(--accent);background:var(--accent-weak)}
+.ab .k{font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--text-3)}
+.ab .m{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:18px}
+.ab .s{font-family:var(--font-mono);font-size:10px;color:var(--text-3)}
+.hpbox{border:1px solid var(--border);border-radius:var(--r);padding:11px;background:var(--surface);margin-bottom:12px}
+.hprow{display:flex;align-items:baseline;gap:6px;justify-content:center}
+.hpnow{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:27px;line-height:1}
+.hpmax{font-family:var(--font-mono);font-size:13px;color:var(--text-3)}
+.hpbar{height:7px;border-radius:999px;background:var(--surface-3);margin:9px 0;overflow:hidden}
+.hpbar i{display:block;height:100%;border-radius:999px;background:var(--heal);transition:width .3s,background .3s}
+.hpbar i.hurt{background:var(--cond)} .hpbar i.crit{background:var(--dmg)}
+.hpbtns{display:flex;gap:5px}
+.hpbtns .btn{flex:1;min-height:38px;padding:0}
+.tmp{font-size:11px;color:var(--heal-text);background:var(--heal-weak);border-radius:999px;padding:1px 7px}
+.slotgrid{display:flex;flex-direction:column;gap:7px}
+.slotrow{display:flex;align-items:center;gap:8px}
+.slotrow .lv{font-family:var(--font-mono);font-size:11px;color:var(--text-3);width:22px;flex:0 0 22px}
+.pips{display:flex;gap:4px;flex-wrap:wrap}
+.pip{width:19px;height:19px;border-radius:5px;border:1.5px solid var(--magic);background:var(--magic-weak);cursor:pointer;padding:0}
+.pip.used{background:transparent;border-color:var(--border-strong);opacity:.5}
+.pip:hover{transform:scale(1.12)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:13px;overflow-x:auto}
+.tab{padding:8px 13px;border:0;background:transparent;font-family:var(--font-ui);font-size:13px;font-weight:500;
+  color:var(--text-2);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;min-height:40px}
+.tab:hover{color:var(--text)}
+.tab[aria-selected="true"]{color:var(--text);font-weight:600;border-bottom-color:var(--accent)}
+.filterrow{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:11px}
+.fchip{font-size:12px;padding:0 11px;min-height:32px;display:inline-flex;align-items:center;gap:5px;border-radius:999px;
+  border:1px solid var(--border);background:var(--surface);cursor:pointer;color:var(--text)}
+.fchip.on{background:var(--accent-weak);border-color:var(--accent);color:var(--accent-text);font-weight:600}
+.spell{display:flex;align-items:center;gap:10px;padding:9px 11px;border:1px solid var(--border);border-radius:var(--r);
+  background:var(--surface);margin-bottom:6px;cursor:pointer;min-height:var(--tap)}
+.spell:hover{border-color:var(--border-strong);background:var(--surface-2)}
+.spell.prep{border-left:2px solid var(--magic)}
+.spell .nm{font-family:var(--font-ui);font-weight:600;font-size:13.5px}
+.spell .meta{font-size:11.5px;color:var(--text-3);margin-top:1px;display:flex;gap:7px;flex-wrap:wrap}
+.spell .act{margin-left:auto;display:flex;gap:5px;flex:0 0 auto}
+.tag{font-size:10px;padding:1px 6px;border-radius:999px;background:var(--surface-3);color:var(--text-2);white-space:nowrap}
+.tag.conc{background:var(--cond-weak);color:var(--cond-text)}
+.tag.ritual{background:var(--accent-weak);color:var(--accent-text)}
+.tag.dmg{background:var(--dmg-weak);color:var(--dmg-text)}
+.tag.save{background:var(--heal-weak);color:var(--heal-text)}
+.roll{font-family:var(--font-mono);font-weight:700;font-size:12px;padding:0 9px;min-height:32px;display:inline-flex;
+  align-items:center;gap:5px;border-radius:var(--r-sm);border:1px solid var(--accent);background:var(--accent-weak);
+  color:var(--accent-text);cursor:pointer}
+.roll:hover{background:var(--accent-solid);color:var(--on-accent);border-color:var(--accent-solid)}
+.roll.magic{border-color:var(--magic);background:var(--magic-weak);color:var(--magic-text)}
+.roll.magic:hover{background:var(--magic);color:#fff}
+.skill{display:flex;align-items:center;gap:9px;padding:6px 9px;border-radius:var(--r-sm);cursor:pointer;min-height:38px;font-size:13px}
+.skill:hover{background:var(--surface-2)}
+.skill .dot{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--border-strong);flex:0 0 8px}
+.skill .dot.prof{background:var(--accent);border-color:var(--accent)}
+.skill .dot.exp{background:var(--magic);border-color:var(--magic);box-shadow:0 0 0 2px var(--magic-weak)}
+.skill .md{margin-left:auto;font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:13px}
+.condrow{display:flex;gap:5px;flex-wrap:wrap}
+.cbtn{font-size:11.5px;padding:0 10px;min-height:32px;display:inline-flex;align-items:center;gap:5px;border-radius:999px;
+  border:1px solid var(--border);background:var(--surface);cursor:pointer;color:var(--text-2)}
+.cbtn.on{background:var(--cond-weak);border-color:var(--cond);color:var(--cond-text);font-weight:600}
+.log{max-height:186px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--r);background:var(--surface-2)}
+.logrow{padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;display:flex;gap:8px;align-items:baseline}
+.logrow:last-child{border-bottom:0}
+.logrow .res{font-family:var(--font-mono);font-weight:700;font-size:14px;margin-left:auto}
+.logrow .res.crit{color:var(--heal-text)} .logrow .res.fumble{color:var(--dmg-text)}
+.logrow .det{font-family:var(--font-mono);font-size:10.5px;color:var(--text-3)}
+.adv{display:inline-flex;border:1px solid var(--border);border-radius:var(--r-sm);overflow:hidden}
+.adv button{border:0;background:transparent;font-size:11.5px;padding:0 9px;min-height:32px;cursor:pointer;color:var(--text-2);font-family:var(--font-ui)}
+.adv button[aria-pressed="true"]{background:var(--accent-solid);color:var(--on-accent);font-weight:600}
+.adv button.dis[aria-pressed="true"]{background:var(--dmg);color:#fff}
+.adv button.advn[aria-pressed="true"]{background:var(--heal);color:#fff}
+.rest{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+/* tooltip */
+.tip{position:fixed;z-index:60;max-width:310px;background:var(--surface);border:1px solid var(--border-strong);
+  border-radius:var(--r);box-shadow:var(--shadow-lg);padding:11px 13px;font-size:12.5px;line-height:1.55;display:none}
+.tip.show{display:block}
+.tip b{font-family:var(--font-ui);font-size:13px;display:block;margin-bottom:3px}
+.tip .tm{font-size:11px;color:var(--text-3);margin-bottom:6px;display:flex;gap:8px;flex-wrap:wrap}
+.tip p{margin:0;color:var(--text-2)}
+.tip .foot{margin-top:8px;display:flex;gap:6px}
+.ref{border-bottom:1px dashed var(--border-strong);cursor:help}
+/* mobile frame */
+.mstage{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.phone{width:352px;max-width:100%;border:1px solid var(--border-strong);border-radius:26px;overflow:hidden;
+  background:var(--surface);box-shadow:var(--shadow-lg);display:flex;flex-direction:column;height:700px}
+.mp-head{padding:11px 14px;border-bottom:1px solid var(--border);background:var(--surface-2);flex:0 0 auto;
+  display:flex;align-items:center;gap:10px}
+.mp-body{flex:1 1 auto;overflow-y:auto;padding:12px}
+.mp-tabs{display:flex;border-top:1px solid var(--border);background:var(--surface);flex:0 0 auto}
+.mp-tab{flex:1;border:0;background:transparent;padding:7px 2px 8px;display:flex;flex-direction:column;align-items:center;
+  gap:2px;font-size:10px;color:var(--text-3);cursor:pointer;min-height:56px;font-family:var(--font-ui)}
+.mp-tab[aria-selected="true"]{color:var(--accent-text);font-weight:600}
+.mp-tab svg{font-size:20px}
+.mhp{display:flex;align-items:center;gap:9px;padding:10px 12px;border:1px solid var(--border);border-radius:var(--r);background:var(--surface);margin-bottom:10px}
+.mhp .n{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:22px}
+.mhp .btn{min-height:40px;padding:0 11px}
+.sidenote{flex:1 1 300px;min-width:270px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(88px,1fr));gap:7px}
+.kvc{border:1px solid var(--border);border-radius:var(--r);padding:8px;background:var(--surface);text-align:center}
+.kvc .k{font-size:9.5px;text-transform:uppercase;letter-spacing:.04em;color:var(--text-3)}
+.kvc .v{font-family:var(--font-mono);font-variant-numeric:tabular-nums;font-weight:700;font-size:17px}
+</style>
+</head>
+<body>
+<svg style="display:none" aria-hidden="true">
+  <!-- Lucide 1.39.0 — ISC. Canonical names only, no deprecated aliases. -->
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15M9 3.236v15"/></symbol>
+  <symbol id="i-swords" viewBox="0 0 24 24"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6M16 16l4 4M19 21l2-2"/><path d="M9.5 6.5 21 18v3h-3L6.5 9.5"/><path d="M5 13 3 15l2 2M3 21l2-2"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-users-round" viewBox="0 0 24 24"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></symbol>
+  <symbol id="i-vault" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/><path d="m7.9 7.9 2.7 2.7"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/><path d="m13.4 10.6 2.7-2.7"/><circle cx="7.5" cy="16.5" r=".5" fill="currentColor"/><path d="m7.9 16.1 2.7-2.7"/><circle cx="16.5" cy="16.5" r=".5" fill="currentColor"/><path d="m13.4 13.4 2.7 2.7"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-book-open" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-scroll" viewBox="0 0 24 24"><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-shield-check" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-backpack" viewBox="0 0 24 24"><path d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M8 10h8M8 18h8"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M18 15h-2a2 2 0 0 1 0-4h2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/></symbol>
+  <symbol id="i-heart-crack" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/><path d="m12 13-1-1 2-2-3-3 2-2"/></symbol>
+  <symbol id="i-dices" viewBox="0 0 24 24"><rect width="12" height="12" x="2" y="10" rx="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6"/><path d="M6 18h.01M10 14h.01M15 6h.01M18 9h.01"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4M22 4h-4"/><circle cx="4" cy="20" r="2"/></symbol>
+  <symbol id="i-wand-sparkles" viewBox="0 0 24 24"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3M5 6v4M19 14v4M10 2v2M7 8H3M21 16h-4M11 3H9"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/></symbol>
+  <symbol id="i-snowflake" viewBox="0 0 24 24"><path d="m10 20-1.25-2.5L6 18"/><path d="M10 4 8.75 6.5 6 6M10.585 15H10"/><path d="M2 12h6.5L10 9.5M2.143 6.667 4 8l.669-1.95M2.143 17.333 4 16l.669 1.95M14 20l1.25-2.5L18 18M14 4l1.25 2.5L18 6M17 12h-5.5"/><path d="m21.858 6.667-1.858 1.333-.669-1.95M21.858 17.333 20 16l-.669 1.95M22 12h-4.5L16 14.5"/><path d="m5 12 1.5 2.5M12 2v20"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></symbol>
+  <symbol id="i-skull" viewBox="0 0 24 24"><path d="m12.5 17-.5-1-.5 1z"/><path d="M15 22a1 1 0 0 0 1-1v-1a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20v1a1 1 0 0 0 1 1z"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="12" r="1"/></symbol>
+  <symbol id="i-footprints" viewBox="0 0 24 24"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0M16 17h4M4 13h4"/></symbol>
+  <symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M5 22h14M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-gem" viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6M2 9h20"/></symbol>
+  <symbol id="i-coins" viewBox="0 0 24 24"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></symbol>
+  <symbol id="i-languages" viewBox="0 0 24 24"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></symbol>
+  <symbol id="i-triangle-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-refresh-cw" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+  <symbol id="i-log-out" viewBox="0 0 24 24"><path d="m16 17 5-5-5-5M21 12H9M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 6h18M7 12h10M10 18h4"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol>
+</svg>
+<nav class="dr-nav" aria-label="Design reference">
+  <a class="dr-home" href="index.html">Paravent design reference</a>
+  <div class="dr-links"><a href="01-principles.html">Principles</a><a href="02-combat-tracker.html">Combat Tracker</a><a href="03-command-palette.html">Command Palette</a><a href="04-player-mobile.html">Player on Mobile</a><a href="05-wizard.html">Wizard</a><a href="06-tag-renderer.html">Tag Renderer</a><a href="07-icons.html">Icons</a><a href="08-tokens.html">Tokens</a><a href="09-scrollbars.html">Scrollbars</a><a href="10-responsive.html">Responsive</a><a href="11-implementation.html">Implementation</a><a href="12-tooltips.html">Tooltips</a><a href="13-chargen-wizard.html">Character Generation</a><a href="14-chargen-demo-desktop.html">Demo &middot; Desktop</a><a href="15-chargen-demo-mobile.html">Demo &middot; Mobile</a><a href="16-character-sheet.html" class="here" aria-current="page">Character Sheet</a></div>
+</nav>
+
+<header class="masthead" style="padding:34px 0 26px;">
+  <div class="mast-row">
+    <span class="eyebrow">16 &middot; Interactive prototype</span>
+    <div class="themetoggle" role="group" aria-label="Theme">
+      <button type="button" data-set="light" aria-pressed="false">Light</button>
+      <button type="button" data-set="system" aria-pressed="true">System</button>
+      <button type="button" data-set="dark" aria-pressed="false">Dark</button>
+    </div>
+  </div>
+  <h1 style="font-size:clamp(26px,4vw,34px); margin:8px 0 10px;">Playing the character</h1>
+  <p class="lede" style="font-size:15.5px;"><b>Clickable.</b> Lyra Mooncaller, a level&nbsp;10 evocation wizard &mdash; the build from <a href="14-chargen-demo-desktop.html">page&nbsp;14</a>, now at the table. Spend slots, take damage, roll saves, cast spells, rest. Spell mechanics come from the real PHB data.</p>
+</header>
+
+<div class="doc">
+
+<section class="block">
+  <h2>Desktop</h2>
+  <p class="lede">Three columns: <b>who you are</b> on the left (and it never moves), <b>what you do</b> in the middle, <b>what you spend</b> on the right. Hover any spell, ability or condition for a tooltip.</p>
+  <div class="sheet-shell" style="margin-top:14px">
+    <div class="sh-head">
+      <div class="sh-av">LM</div>
+      <div><div class="sh-name">Lyra Mooncaller</div>
+        <div class="sh-sub">High Elf &middot; Wizard 10 &middot; School of Evocation &middot; Sage</div></div>
+      <div style="margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span class="tag" style="font-size:11.5px">Passive Perception <b id="pp">11</b></span>
+        <button class="btn btn-sm" data-rest="short"><svg class="ic ic-xs"><use href="#i-hourglass"/></svg>Short rest</button>
+        <button class="btn btn-sm" data-rest="long"><svg class="ic ic-xs"><use href="#i-moon"/></svg>Long rest</button>
+      </div>
+    </div>
+    <div class="sh-body">
+      <div class="sh-col" id="d-left"></div>
+      <div class="sh-col" id="d-mid"></div>
+      <div class="sh-col" id="d-right"></div>
+    </div>
+  </div>
+  <div class="note" style="margin-top:16px">
+    <b>Try it</b>
+    <p>Cast <b>Fireball</b> &mdash; a level&nbsp;3 slot disappears. Cast <b>Haste</b> &mdash; a concentration badge appears; take damage and a concentration check is logged. Tap a spell slot pip to spend or recover it. <b>Long rest</b> restores everything.</p>
+  </div>
+</section>
+
+<section class="block">
+  <h2>Mobile</h2>
+  <p class="lede">The same state, same handlers. HP controls sit above the fold on the spells tab, because that is what a player touches most; the bottom bar carries the five views. Tooltips open as taps, never hover.</p>
+  <div class="mstage" style="margin-top:14px">
+    <div class="phone">
+      <div class="mp-head">
+        <div class="sh-av" style="width:34px;height:34px;flex:0 0 34px;font-size:13px">LM</div>
+        <div style="min-width:0"><div style="font-family:var(--font-ui);font-weight:600;font-size:13.5px">Lyra Mooncaller</div>
+          <div style="font-size:11px;color:var(--text-3)">Wizard 10 &middot; Evocation</div></div>
+        <div style="margin-left:auto;font-family:var(--font-mono);font-size:15px" id="m-hpline"></div>
+      </div>
+      <div class="mp-body" id="m-body"></div>
+      <div class="mp-tabs" role="tablist">
+        <button class="mp-tab" role="tab" data-mtab="spells"><svg class="ic"><use href="#i-sparkles"/></svg>Spells</button>
+        <button class="mp-tab" role="tab" data-mtab="stats"><svg class="ic"><use href="#i-heart"/></svg>Stats</button>
+        <button class="mp-tab" role="tab" data-mtab="skills"><svg class="ic"><use href="#i-target"/></svg>Skills</button>
+        <button class="mp-tab" role="tab" data-mtab="slots"><svg class="ic"><use href="#i-scroll"/></svg>Slots</button>
+        <button class="mp-tab" role="tab" data-mtab="log"><svg class="ic"><use href="#i-dices"/></svg>Log</button>
+      </div>
+    </div>
+    <div class="sidenote">
+      <div class="note"><b>Everything a player touches mid-turn</b>
+        <p>HP &plusmn;1/&plusmn;5 with temp-HP absorbed first &middot; spell slot pips &middot; cast buttons that actually spend the slot &middot; attack and damage rolls &middot; ability checks, saves and skills &middot; the advantage three-state &middot; conditions &middot; short and long rest &middot; a dice log.</p></div>
+      <div class="note" style="margin-top:12px"><b>Advantage is three states, never a checkbox</b>
+        <p>Dis / Normal / Adv, because the rule has three states. It rolls two d20s and shows both in the log, so the player can see which was taken.</p></div>
+      <div class="note" style="margin-top:12px"><b>Tooltips follow the input, not the screen width</b>
+        <p><code>matchMedia('(hover: hover) and (pointer: fine)')</code> decides. A mouse hovers after 350&nbsp;ms; a finger taps. <kbd>Esc</kbd> closes. An iPad in landscape is 1024px wide with no hover &mdash; width would get it wrong.</p></div>
+      <div class="note" style="margin-top:12px"><b>Real spell data</b>
+        <p>Casting time, range, components, duration, concentration, save type and scaling dice all come from <code>spells-phb.json</code>. Fire Bolt shows <b>2d10</b> because the character is level&nbsp;10 &mdash; the next step up is 3d10 at level&nbsp;11. Read from <code>scalingLevelDice</code>, not typed in.</p></div>
+    </div>
+  </div>
+</section>
+
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+<footer class="dr-foot">
+  <span>Paravent design reference &middot; see <a href="../documentation/DESIGN.md">DESIGN.md</a> for the written spec</span>
+  <span><a href="index.html">All sections</a></span>
+</footer>
+<script>
+(function(){
+  var root=document.documentElement, b=document.querySelectorAll('.themetoggle button');
+  b.forEach(function(x){ x.addEventListener('click',function(){
+    var v=x.dataset.set;
+    if(v==='system') root.removeAttribute('data-theme'); else root.setAttribute('data-theme',v);
+    b.forEach(function(o){ o.setAttribute('aria-pressed',String(o===x)); });
+    try{ localStorage.setItem('pv-theme',v); }catch(e){}
+  });});
+  try{ var s=localStorage.getItem('pv-theme');
+    if(s){ var t=document.querySelector('.themetoggle button[data-set="'+s+'"]'); if(t) t.click(); }
+  }catch(e){}
+  document.querySelectorAll('.chip, .pick, .advset button').forEach(function(el){
+    el.addEventListener('click',function(){
+      var g=el.closest('.filterbar, .cardgrid, .advset'); if(!g) return;
+      g.querySelectorAll('[aria-pressed]').forEach(function(o){ o.setAttribute('aria-pressed','false'); });
+      el.setAttribute('aria-pressed','true');
+    });
+  });
+  document.querySelectorAll('.res').forEach(function(el){
+    el.addEventListener('click',function(){
+      document.querySelectorAll('.res').forEach(function(o){ o.setAttribute('aria-selected','false'); });
+      el.setAttribute('aria-selected','true');
+    });
+  });
+})();
+</script>
+<script>
+const SPELLS=[{"n":"Fire Bolt","l":0,"sc":"V","t":"Action","r":"120 ft","c":"VS","d":"Instant","conc":false,"atk":true,"save":null,"dmg":"fire","scale":{"label":"fire damage","scaling":{"1":"1d10","5":"2d10","11":"3d10","17":"4d10"}},"ritual":false,"txt":"You hurl a mote of fire at a creature or object within range. Make a ranged spell attack against the target. On a hit, the target takes {@damage 1d10} fire damage. A flammable object hit by this spell ignites if it isn't being worn or carried. This spell's damage increases by {@damage 1d10} when you","mat":null},{"n":"Prestidigitation","l":0,"sc":"T","t":"Action","r":"10 ft","c":"VS","d":"1 hour","conc":false,"atk":false,"save":null,"dmg":null,"scale":null,"ritual":false,"txt":"This spell is a minor magical trick that novice spellcasters use for practice. You create one of the following magical effects within range: If you cast this spell multiple times, you can have up to three of its non-instantaneous effects active at a time, and you can dismiss such an effect as an act","mat":null},{"n":"Mage Hand","l":0,"sc":"C","t":"Action","r":"30 ft","c":"VS","d":"1 minute","conc":false,"atk":false,"save":null,"dmg":null,"scale":null,"ritual":false,"txt":"A spectral, floating hand appears at a point you choose within range. The hand lasts for the duration or until you dismiss it as an action. The hand vanishes if it is ever more than 30 feet away from you or if you cast this spell again. You can use your action to control the hand. You can use the ha","mat":null},{"n":"Minor Illusion","l":0,"sc":"I","t":"Action","r":"30 ft","c":"SM","d":"1 minute","conc":false,"atk":false,"save":null,"dmg":null,"scale":null,"ritual":false,"txt":"You create a sound or an image of an object within range that lasts for the duration. The illusion also ends if you dismiss it as an action or cast this spell again. If you create a sound, its volume can range from a whisper to a scream. It can be your voice, someone else's voice, a lion's roar, a b","mat":"a bit of fleece"},{"n":"Light","l":0,"sc":"V","t":"Action","r":"Touch","c":"VM","d":"1 hour","conc":false,"atk":false,"save":"dexterity","dmg":null,"scale":null,"ritual":false,"txt":"You touch one object that is no larger than 10 feet in any dimension. Until the spell ends, the object sheds bright light in a 20-foot radius and dim light for an additional 20 feet. The light can be colored as you like. Completely covering the object with something opaque blocks the light. The spel","mat":"a firefly or phosphorescent moss"},{"n":"Magic Missile","l":1,"sc":"V","t":"Action","r":"120 ft","c":"VS","d":"Instant","conc":false,"atk":false,"save":null,"dmg":"force","scale":null,"ritual":false,"txt":"You create three glowing darts of magical force. Each dart hits a creature of your choice that you can see within range. A dart deals {@damage 1d4 + 1} force damage to its target. The darts all strike simultaneously, and you can direct them to hit one creature or several.","mat":null},{"n":"Shield","l":1,"sc":"A","t":"Reaction","r":"Self","c":"VS","d":"1 round","conc":false,"atk":false,"save":null,"dmg":null,"scale":null,"ritual":false,"txt":"An invisible barrier of magical force appears and protects you. Until the start of your next turn, you have a +5 bonus to AC, including against the triggering attack, and you take no damage from {@spell magic missile}.","mat":null},{"n":"Mage Armor","l":1,"sc":"A","t":"Action","r":"Touch","c":"VSM","d":"8 hour","conc":false,"atk":false,"save":null,"dmg":null,"scale":null,"ritual":false,"txt":"You touch a willing creature who isn't wearing armor, and a protective magical force surrounds it until the spell ends. The target's base AC becomes 13 + its Dexterity modifier. The spell ends if the target dons armor or if you dismiss the spell as an action.","mat":"a piece of cured leather"},{"n":"Detect Magic","l":1,"sc":"D","t":"Action","r":"Self","c":"VS","d":"Conc, 10 minute","conc":true,"atk":false,"save":null,"dmg":null,"scale":null,"ritual":true,"txt":"For the duration, you sense the presence of magic within 30 feet of you. If you sense magic in this way, you can use your action to see a faint aura around any visible creature or object in the area that bears magic, and you learn its {@book school of magic|PHB|10|The Schools of Magic}, if any. The ","mat":null},{"n":"Feather Fall","l":1,"sc":"T","t":"Reaction","r":"60 ft","c":"VM","d":"1 minute","conc":false,"atk":false,"save":null,"dmg":null,"scale":null,"ritual":false,"txt":"Choose up to five falling creatures within range. A falling creature's rate of descent slows to 60 feet per round until the spell ends. If the creature lands before the spell ends, it takes no falling damage and can land on its feet, and the spell ends for that creature.","mat":"a small feather or a piece of down"},{"n":"Misty Step","l":2,"sc":"C","t":"Bonus","r":"Self","c":"V","d":"Instant","conc":false,"atk":false,"save":null,"dmg":null,"scale":null,"ritual":false,"txt":"Briefly surrounded by silvery mist, you teleport up to 30 feet to an unoccupied space that you can see.","mat":null},{"n":"Invisibility","l":2,"sc":"I","t":"Action","r":"Touch","c":"VSM","d":"Conc, 1 hour","conc":true,"atk":false,"save":null,"dmg":null,"scale":null,"ritual":false,"txt":"A creature you touch becomes {@condition invisible} until the spell ends. Anything the target is wearing or carrying is {@condition invisible} as long as it is on the target's person. The spell ends for a target that attacks or casts a spell.","mat":"an eyelash encased in gum arabic"},{"n":"Scorching Ray","l":2,"sc":"V","t":"Action","r":"120 ft","c":"VS","d":"Instant","conc":false,"atk":true,"save":null,"dmg":"fire","scale":null,"ritual":false,"txt":"You create three rays of fire and hurl them at targets within range. You can hurl them at one target or several. Make a ranged spell attack for each ray. On a hit, the target takes {@damage 2d6} fire damage.","mat":null},{"n":"Web","l":2,"sc":"C","t":"Action","r":"60 ft","c":"VSM","d":"Conc, 1 hour","conc":true,"atk":false,"save":"dexterity","dmg":"fire","scale":null,"ritual":false,"txt":"You conjure a mass of thick, sticky webbing at a point of your choice within range. The webs fill a 20-foot cube from that point for the duration. The webs are {@quickref difficult terrain||3} and lightly obscure their area. If the webs aren't anchored between two solid masses (such as walls or tree","mat":"a bit of spiderweb"},{"n":"Fireball","l":3,"sc":"V","t":"Action","r":"150 ft","c":"VSM","d":"Instant","conc":false,"atk":false,"save":"dexterity","dmg":"fire","scale":null,"ritual":false,"txt":"A bright streak flashes from your pointing finger to a point you choose within range and then blossoms with a low roar into an explosion of flame. Each creature in a 20-foot-radius sphere centered on that point must make a Dexterity saving throw. A target takes {@damage 8d6} fire damage on a failed ","mat":"a tiny ball of bat guano and sulfur"},{"n":"Counterspell","l":3,"sc":"A","t":"Reaction","r":"60 ft","c":"S","d":"Instant","conc":false,"atk":false,"save":null,"dmg":null,"scale":null,"ritual":false,"txt":"You attempt to interrupt a creature in the process of casting a spell. If the creature is casting a spell of 3rd level or lower, its spell fails and has no effect. If it is casting a spell of 4th level or higher, make an ability check using your spellcasting ability. The DC equals 10 + the spell's l","mat":null},{"n":"Fly","l":3,"sc":"T","t":"Action","r":"Touch","c":"VSM","d":"Conc, 10 minute","conc":true,"atk":false,"save":null,"dmg":null,"scale":null,"ritual":false,"txt":"You touch a willing creature. The target gains a flying speed of 60 feet for the duration. When the spell ends, the target falls if it is still aloft, unless it can stop the fall.","mat":"a wing feather from any bird"},{"n":"Haste","l":3,"sc":"T","t":"Action","r":"30 ft","c":"VSM","d":"Conc, 1 minute","conc":true,"atk":false,"save":null,"dmg":null,"scale":null,"ritual":false,"txt":"Choose a willing creature that you can see within range. Until the spell ends, the target's speed is doubled, it gains a +2 bonus to AC, it has advantage on Dexterity saving throws, and it gains an additional action on each of its turns. That action can be used only to take the {@action Attack} (one","mat":"a shaving of licorice root"},{"n":"Greater Invisibility","l":4,"sc":"I","t":"Action","r":"Touch","c":"VS","d":"Conc, 1 minute","conc":true,"atk":false,"save":null,"dmg":null,"scale":null,"ritual":false,"txt":"You or a creature you touch becomes {@condition invisible} until the spell ends. Anything the target is wearing or carrying is {@condition invisible} as long as it is on the target's person.","mat":null},{"n":"Polymorph","l":4,"sc":"T","t":"Action","r":"60 ft","c":"VSM","d":"Conc, 1 hour","conc":true,"atk":false,"save":"wisdom","dmg":null,"scale":null,"ritual":false,"txt":"This spell transforms a creature that you can see within range into a new form. An unwilling creature must make a Wisdom saving throw to avoid the effect. The spell has no effect on a shapechanger or a creature with 0 hit points. The transformation lasts for the duration, or until the target drops t","mat":"a caterpillar cocoon"},{"n":"Wall of Fire","l":4,"sc":"V","t":"Action","r":"120 ft","c":"VSM","d":"Conc, 1 minute","conc":true,"atk":false,"save":"dexterity","dmg":"fire","scale":null,"ritual":false,"txt":"You create a wall of fire on a solid surface within range. You can make the wall up to 60 feet long, 20 feet high, and 1 foot thick, or a ringed wall up to 20 feet in diameter, 20 feet high, and 1 foot thick. The wall is opaque and lasts for the duration. When the wall appears, each creature within ","mat":"a small piece of phosphorus"},{"n":"Cone of Cold","l":5,"sc":"V","t":"Action","r":"60 ft","c":"VSM","d":"Instant","conc":false,"atk":false,"save":"constitution","dmg":"cold","scale":null,"ritual":false,"txt":"A blast of cold air erupts from your hands. Each creature in a 60-foot cone must make a Constitution saving throw. A creature takes {@damage 8d8} cold damage on a failed save, or half as much damage on a successful one. A creature killed by this spell becomes a frozen statue until it thaws.","mat":"a small crystal or glass cone"},{"n":"Wall of Force","l":5,"sc":"V","t":"Action","r":"120 ft","c":"VSM","d":"Conc, 10 minute","conc":true,"atk":false,"save":null,"dmg":null,"scale":null,"ritual":false,"txt":"An invisible wall of force springs into existence at a point you choose within range. The wall appears in any orientation you choose, as a horizontal or vertical barrier or at an angle. It can be free floating or resting on a solid surface. You can form it into a hemispherical dome or a sphere with ","mat":"a pinch of powder made by crushing a clear gemstone"}];
+const CONDS=[{"n":"Blinded","e":["A blinded creature can't see and automatically fails any ability check that requires sight.","Attack rolls against the creature have advantage, and the creature's attack rolls have disadvantage."]},{"n":"Charmed","e":["A charmed creature can't attack the charmer or target the charmer with harmful abilities or magical effects.","The charmer has advantage on any ability check to interact socially with the creature."]},{"n":"Deafened","e":["A deafened creature can't hear and automatically fails any ability check that requires hearing."]},{"n":"Exhaustion","e":["Some special abilities and environmental hazards, such as starvation and the long-term effects of freezing or scorching temperatures, can lead to a special condition called exhaustion. Exhaustion is measured in six levels. An effect can give a creature one or more levels of exhaustion, as specified in the effect's description.","If an already exhausted creature suffers another effect that causes exhaustion, its current level of exhaustion increases by the amount specified in the effect's description.","A creature suffers the effect of its current level of exhaustion as well as all lower levels. For example, a creature suffering level 2 exhaustion has its speed halved and has disadvantage on ability checks.","An effect that removes exhaustion reduces its level as specified in the effect's description, with all exhaustion effects ending if a creature's exhaustion level is reduced below 1."]},{"n":"Frightened","e":["A frightened creature has disadvantage on ability checks and attack rolls while the source of its fear is within line of sight.","The creature can't willingly move closer to the source of its fear."]},{"n":"Grappled","e":["A grappled creature's speed becomes 0, and it can't benefit from any bonus to its speed.","The condition ends if the grappler is incapacitated.","The condition also ends if an effect removes the grappled creature from the reach of the grappler or grappling effect, such as when a creature is hurled away by the thunderwave spell."]},{"n":"Incapacitated","e":["An incapacitated creature can't take actions or reactions."]},{"n":"Invisible","e":["An invisible creature is impossible to see without the aid of magic or a special sense. For the purpose of hiding, the creature is heavily obscured. The creature's location can be detected by any noise it makes or any tracks it leaves.","Attack rolls against the creature have disadvantage, and the creature's attack rolls have advantage."]},{"n":"Paralyzed","e":["A paralyzed creature is incapacitated and can't move or speak.","The creature automatically fails Strength and Dexterity saving throws.","Attack rolls against the creature have advantage.","Any attack that hits the creature is a critical hit if the attacker is within 5 feet of the creature."]},{"n":"Petrified","e":["A petrified creature is transformed, along with any nonmagical object it is wearing or carrying, into a solid inanimate substance (usually stone). Its weight increases by a factor of ten, and it ceases aging.","The creature is incapacitated, can't move or speak, and is unaware of its surroundings.","Attack rolls against the creature have advantage.","The creature automatically fails Strength and Dexterity saving throws."]},{"n":"Poisoned","e":["A poisoned creature has disadvantage on attack rolls and ability checks."]},{"n":"Prone","e":["A prone creature's only movement option is to crawl, unless it stands up and thereby ends the condition.","The creature has disadvantage on attack rolls.","An attack roll against the creature has advantage if the attacker is within 5 feet of the creature. Otherwise, the attack roll has disadvantage."]},{"n":"Restrained","e":["A restrained creature's speed becomes 0, and it can't benefit from any bonus to its speed.","Attack rolls against the creature have advantage, and the creature's attack rolls have disadvantage.","The creature has disadvantage on Dexterity saving throws."]},{"n":"Stunned","e":["A stunned creature is incapacitated, can't move, and can speak only falteringly.","The creature automatically fails Strength and Dexterity saving throws.","Attack rolls against the creature have advantage."]},{"n":"Unconscious","e":["An unconscious creature is incapacitated, can't move or speak, and is unaware of its surroundings.","The creature drops whatever it's holding and falls prone.","The creature automatically fails Strength and Dexterity saving throws.","Attack rolls against the creature have advantage."]}];
+
+/* ============================================================
+   Lyra Mooncaller — High Elf Wizard 10 (Evocation)
+   Every number derives from the character; nothing is typed twice.
+   ============================================================ */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const SCHOOL={A:'Abjuration',C:'Conjuration',D:'Divination',E:'Enchantment',V:'Evocation',I:'Illusion',N:'Necromancy',T:'Transmutation'};
+const ABN={str:'Strength',dex:'Dexterity',con:'Constitution',int:'Intelligence',wis:'Wisdom',cha:'Charisma'};
+
+const PC={ name:'Lyra Mooncaller', race:'High Elf', cls:'Wizard', sub:'Evocation', level:10,
+  scores:{str:8,dex:16,con:14,int:20,wis:12,cha:10},
+  saveProf:['int','wis'], speed:30, hitDice:{n:10,f:6},
+  skills:[['Arcana','int',1],['History','int',1],['Investigation','int',1],['Insight','wis',1],
+          ['Perception','wis',0],['Stealth','dex',0],['Persuasion','cha',0],['Athletics','str',0]],
+  prepared:['Fire Bolt','Mage Hand','Minor Illusion','Prestidigitation','Light',
+            'Shield','Magic Missile','Mage Armor','Misty Step','Scorching Ray','Web',
+            'Fireball','Counterspell','Haste','Greater Invisibility','Wall of Fire','Cone of Cold'] };
+
+let ST={ hp:62, hpMax:62, tmp:0, slots:[4,3,3,3,2], slotsMax:[4,3,3,3,2],
+  conds:[], adv:0, log:[], tab:'spells', mtab:'spells', conc:null, arcaneRecovery:true, filter:null };
+
+const mod=v=>Math.floor((v-10)/2);
+const fmt=n=>(n>=0?'+':'')+n;
+const prof=()=>Math.ceil(PC.level/4)+1;
+const abilMod=a=>mod(PC.scores[a]);
+const saveMod=a=>abilMod(a)+(PC.saveProf.includes(a)?prof():0);
+const spellDC=()=>8+prof()+abilMod('int');
+const spellAtk=()=>prof()+abilMod('int');
+const ac=()=>10+abilMod('dex')+(ST.conds.includes('Mage Armor')?0:0)+(ST.mageArmor?3:0);
+const initiative=()=>abilMod('dex');
+const passivePerc=()=>10+abilMod('wis');
+
+function roll(n,f){ let t=0,rolls=[]; for(let i=0;i<n;i++){const r=1+Math.floor(Math.random()*f);rolls.push(r);t+=r;} return {t,rolls}; }
+function d20(){
+  const a=roll(1,20).t, b=roll(1,20).t;
+  if(ST.adv>0) return {v:Math.max(a,b),pair:[a,b],kind:'adv'};
+  if(ST.adv<0) return {v:Math.min(a,b),pair:[a,b],kind:'dis'};
+  return {v:a,pair:[a],kind:''};
+}
+function logIt(label,detail,result,cls){
+  ST.log.unshift({label,detail,result,cls,t:Date.now()});
+  if(ST.log.length>40) ST.log.pop();
+  render();
+}
+function rollCheck(label,bonus){
+  const r=d20();
+  const tot=r.v+bonus;
+  const cls = r.v===20?'crit' : r.v===1?'fumble' : '';
+  logIt(label, `d20${r.pair.length>1?'['+r.pair.join(',')+']':''} ${r.v} ${fmt(bonus)}`, tot, cls);
+}
+function rollDamage(label,expr){
+  const m=/^(\d+)d(\d+)$/.exec(expr);
+  if(!m){ logIt(label,expr,'—',''); return; }
+  const r=roll(+m[1],+m[2]);
+  logIt(label, `${expr} [${r.rolls.join(',')}]`, r.t, '');
+}
+
+/* ---------- rendering --------------------------------------------------- */
+function spellByName(n){ return SPELLS.find(s=>s.n===n); }
+function prepared(){ return PC.prepared.map(spellByName).filter(Boolean); }
+function slotTag(l){ return l===0?'Cantrip':'L'+l; }
+
+function renderStats(el){
+  el.innerHTML=`
+  <div class="statbig">
+    <div class="sb ac" data-tip="ac"><div class="k">Armor class</div><div class="v">${ac()}</div></div>
+    <div class="sb dc" data-tip="dc"><div class="k">Spell DC</div><div class="v">${spellDC()}</div></div>
+    <div class="sb" data-tip="init"><div class="k">Initiative</div><div class="v">${fmt(initiative())}</div></div>
+    <div class="sb" data-tip="speed"><div class="k">Speed</div><div class="v">${PC.speed}</div></div>
+  </div>
+  <div class="hpbox">
+    <div class="hprow"><span class="hpnow" style="color:${ST.hp<=ST.hpMax*.25?'var(--dmg-text)':ST.hp<=ST.hpMax*.5?'var(--cond-text)':'var(--text)'}">${ST.hp}</span>
+      <span class="hpmax">/ ${ST.hpMax}</span>${ST.tmp?`<span class="tmp">+${ST.tmp} temp</span>`:''}</div>
+    <div class="hpbar"><i class="${ST.hp<=ST.hpMax*.25?'crit':ST.hp<=ST.hpMax*.5?'hurt':''}" style="width:${Math.max(0,ST.hp/ST.hpMax*100)}%"></i></div>
+    <div class="hpbtns">
+      <button class="btn btn-dmg" data-hp="-5" title="Take 5 damage">&minus;5</button>
+      <button class="btn btn-dmg" data-hp="-1">&minus;1</button>
+      <button class="btn btn-heal" data-hp="1">+1</button>
+      <button class="btn btn-heal" data-hp="5">+5</button>
+    </div>
+    <div class="rest">
+      <button class="btn btn-sm" data-rest="short"><svg class="ic ic-xs"><use href="#i-hourglass"/></svg>Short rest</button>
+      <button class="btn btn-sm" data-rest="long"><svg class="ic ic-xs"><use href="#i-moon"/></svg>Long rest</button>
+    </div>
+  </div>
+  <div class="lbl">Ability scores</div>
+  <div class="ab6">${Object.keys(PC.scores).map(a=>`
+    <button class="ab" data-check="${a}" data-tip="ab:${a}">
+      <div class="k">${a}</div><div class="m">${fmt(abilMod(a))}</div><div class="s">${PC.scores[a]}</div></button>`).join('')}</div>
+  <div class="lbl" style="margin-top:14px">Saving throws</div>
+  <div>${Object.keys(PC.scores).map(a=>`
+    <div class="skill" data-save="${a}"><span class="dot ${PC.saveProf.includes(a)?'prof':''}"></span>
+      ${ABN[a]}<span class="md">${fmt(saveMod(a))}</span></div>`).join('')}</div>`;
+}
+
+function renderSlots(el){
+  el.innerHTML=`<div class="lbl">Spell slots <span style="text-transform:none;font-weight:400;color:var(--text-3)">&mdash; tap to spend</span></div>
+    <div class="slotgrid">${ST.slots.map((n,i)=>`
+      <div class="slotrow"><span class="lv">L${i+1}</span><div class="pips">
+        ${Array.from({length:ST.slotsMax[i]},(_,j)=>`<button class="pip ${j>=n?'used':''}" data-slot="${i}" data-idx="${j}"
+          title="${j<n?'Spend a level '+(i+1)+' slot':'Recover this slot'}"></button>`).join('')}
+      </div><span style="margin-left:auto;font-family:var(--font-mono);font-size:11px;color:var(--text-3)">${n}/${ST.slotsMax[i]}</span></div>`).join('')}
+    </div>
+    ${ST.conc?`<div style="margin-top:11px" class="tag conc"><svg class="ic ic-xs"><use href="#i-hourglass"/></svg> Concentrating: ${esc(ST.conc)}
+      <button class="btn btn-sm" data-conc="drop" style="margin-left:6px;min-height:26px">Drop</button></div>`:''}
+    <div class="lbl" style="margin-top:14px">Class resources</div>
+    <div class="skill" data-arcane="1"><span class="dot ${ST.arcaneRecovery?'prof':''}"></span>
+      Arcane Recovery<span class="md">${ST.arcaneRecovery?'1':'0'}</span></div>
+    <div class="lbl" style="margin-top:14px">Conditions</div>
+    <div class="condrow">${CONDS.map(c=>`<button class="cbtn ${ST.conds.includes(c.n)?'on':''}" data-cond="${esc(c.n)}" data-tip="cond:${esc(c.n)}">${esc(c.n)}</button>`).join('')}</div>`;
+}
+
+function renderSpells(el){
+  const lv=ST.filter;
+  let list=prepared();
+  if(lv!=null) list=list.filter(s=>s.l===lv);
+  const lvls=[...new Set(prepared().map(s=>s.l))].sort((a,b)=>a-b);
+  el.innerHTML=`
+    <div class="filterrow">
+      <button class="fchip ${lv==null?'on':''}" data-flt="">All</button>
+      ${lvls.map(l=>`<button class="fchip ${lv===l?'on':''}" data-flt="${l}">${slotTag(l)}</button>`).join('')}
+      <span style="margin-left:auto;display:flex;align-items:center;gap:7px">
+        <span style="font-size:11.5px;color:var(--text-3)">Roll with</span>
+        <span class="adv" role="group" aria-label="Advantage state">
+          <button class="dis" data-adv="-1" aria-pressed="${ST.adv<0}">Dis</button>
+          <button data-adv="0" aria-pressed="${ST.adv===0}">Normal</button>
+          <button class="advn" data-adv="1" aria-pressed="${ST.adv>0}">Adv</button>
+        </span></span>
+    </div>
+    ${list.map(s=>`
+      <div class="spell prep" data-tip="spell:${esc(s.n)}">
+        <div style="min-width:0">
+          <div class="nm">${esc(s.n)}</div>
+          <div class="meta"><span>${slotTag(s.l)} ${SCHOOL[s.sc]||''}</span><span>${esc(s.t)}</span><span>${esc(s.r)}</span><span>${esc(s.c)}</span>
+            ${s.conc?'<span class="tag conc">Conc</span>':''}
+            ${s.save?`<span class="tag save">${s.save.slice(0,3).toUpperCase()} save DC ${spellDC()}</span>`:''}
+            ${s.dmg?`<span class="tag dmg">${esc(s.dmg)}</span>`:''}</div>
+        </div>
+        <div class="act">
+          ${s.atk?`<button class="roll" data-atk="${esc(s.n)}"><svg class="ic ic-xs"><use href="#i-target"/></svg>${fmt(spellAtk())}</button>`:''}
+          ${s.scale?`<button class="roll magic" data-dmg="${esc(s.n)}"><svg class="ic ic-xs"><use href="#i-dices"/></svg>${esc(scaleFor(s))}</button>`:''}
+          ${s.l>0?`<button class="roll magic" data-cast="${esc(s.n)}"><svg class="ic ic-xs"><use href="#i-sparkles"/></svg>Cast</button>`
+                 :`<button class="roll magic" data-cast="${esc(s.n)}">Cast</button>`}
+        </div>
+      </div>`).join('')}`;
+}
+function scaleFor(s){
+  if(!s.scale) return '';
+  const sc=s.scale.scaling; let best='';
+  Object.keys(sc).map(Number).sort((a,b)=>a-b).forEach(k=>{ if(PC.level>=k) best=sc[k]; });
+  return best;
+}
+function renderSkills(el){
+  el.innerHTML=`<div class="lbl">Skills <span style="text-transform:none;font-weight:400;color:var(--text-3)">&mdash; tap to roll</span></div>
+    ${PC.skills.map(([n,a,p])=>`<div class="skill" data-skill="${esc(n)}" data-ab="${a}" data-p="${p}">
+      <span class="dot ${p?'prof':''}"></span>${esc(n)}
+      <span style="font-size:10.5px;color:var(--text-3)">${a.toUpperCase()}</span>
+      <span class="md">${fmt(abilMod(a)+(p?prof():0))}</span></div>`).join('')}
+    <div class="lbl" style="margin-top:14px">Passive</div>
+    <div class="kv"><div class="kvc"><div class="k">Perception</div><div class="v">${passivePerc()}</div></div>
+      <div class="kvc"><div class="k">Prof. bonus</div><div class="v">${fmt(prof())}</div></div>
+      <div class="kvc"><div class="k">Spell atk</div><div class="v">${fmt(spellAtk())}</div></div></div>`;
+}
+function renderLog(el){
+  el.innerHTML=`<div class="lbl">Dice log
+      <button class="btn btn-sm" data-clear="1" style="float:right;min-height:26px">Clear</button></div>
+    <div class="log">${ST.log.length?ST.log.map(l=>`<div class="logrow">
+      <span>${esc(l.label)}</span><span class="det">${esc(l.detail)}</span>
+      <span class="res ${l.cls}">${l.result}</span></div>`).join(''):
+      '<div class="logrow" style="color:var(--text-3)">Nothing rolled yet — tap any modifier, attack or damage button.</div>'}</div>`;
+}
+
+/* ---------- tooltips: hover on mouse, tap on touch (DESIGN.md §7) -------- */
+const hoverMQ = window.matchMedia('(hover: hover) and (pointer: fine)');
+let tipTimer=null, tipPinned=false;
+function tipContent(key){
+  const [kind,arg]=key.split(/:(.+)/);
+  if(kind==='spell'){
+    const s=spellByName(arg); if(!s) return null;
+    return {title:s.n, meta:[slotTag(s.l)+' '+(SCHOOL[s.sc]||''), s.t, s.r, s.c, s.d].filter(Boolean),
+      body:s.txt||'', foot:[ s.atk?`Attack ${fmt(spellAtk())}`:null, s.save?`${s.save} save DC ${spellDC()}`:null,
+        s.scale?`${scaleFor(s)} ${s.dmg||''}`:null, s.mat?('M: '+s.mat):null ].filter(Boolean)};
+  }
+  if(kind==='cond'){
+    const c=CONDS.find(x=>x.n===arg); if(!c) return null;
+    return {title:c.n, meta:['Condition'], body:c.e.join(' '), foot:[]};
+  }
+  if(kind==='ab'){ const a=arg;
+    return {title:ABN[a], meta:['Score '+PC.scores[a], 'Modifier '+fmt(abilMod(a))],
+      body:`Tap to roll a ${ABN[a]} check: d20 ${fmt(abilMod(a))}. Saving throw ${fmt(saveMod(a))}${PC.saveProf.includes(a)?' (proficient)':''}.`, foot:[]};
+  }
+  const M={ ac:{title:'Armor class',meta:['AC '+ac()],body:`10 + DEX ${fmt(abilMod('dex'))}${ST.mageArmor?' + 3 (Mage Armor)':''}. Cast Mage Armor to raise it to ${13+abilMod('dex')}.`},
+    dc:{title:'Spell save DC',meta:['DC '+spellDC()],body:`8 + proficiency ${fmt(prof())} + INT ${fmt(abilMod('int'))}. Creatures roll against this when your spell allows a save.`},
+    init:{title:'Initiative',meta:[fmt(initiative())],body:'Your DEX modifier. The gamemaster rolls initiative at the start of combat; this is what gets added.'},
+    speed:{title:'Speed',meta:[PC.speed+' ft'],body:'High Elf base walking speed. Difficult terrain costs double.'} };
+  return M[kind]?{...M[kind],foot:[]}:null;
+}
+function showTip(el,key){
+  const c=tipContent(key); if(!c) return;
+  const t=$('#tip');
+  t.innerHTML=`<b>${esc(c.title)}</b>
+    <div class="tm">${c.meta.map(m=>`<span>${esc(m)}</span>`).join('')}</div>
+    ${c.body?`<p>${esc(c.body)}</p>`:''}
+    ${c.foot&&c.foot.length?`<div class="foot">${c.foot.map(f=>`<span class="tag">${esc(f)}</span>`).join('')}</div>`:''}`;
+  t.classList.add('show');
+  const r=el.getBoundingClientRect(), tr=t.getBoundingClientRect();
+  let top=r.bottom+8, left=r.left;
+  if(top+tr.height>innerHeight-8) top=r.top-tr.height-8;
+  if(left+tr.width>innerWidth-8) left=innerWidth-tr.width-8;
+  t.style.top=Math.max(8,top)+'px'; t.style.left=Math.max(8,left)+'px';
+}
+function hideTip(){ $('#tip').classList.remove('show'); tipPinned=false; }
+document.addEventListener('pointerenter',e=>{
+  if(!hoverMQ.matches || e.pointerType!=='mouse') return;
+  const el=e.target.closest&&e.target.closest('[data-tip]'); if(!el) return;
+  clearTimeout(tipTimer);
+  tipTimer=setTimeout(()=>showTip(el,el.dataset.tip), $('#tip').classList.contains('show')?0:350);
+},true);
+document.addEventListener('pointerleave',e=>{
+  if(!hoverMQ.matches || e.pointerType!=='mouse') return;
+  if(!(e.target.closest&&e.target.closest('[data-tip]'))) return;
+  clearTimeout(tipTimer);
+  if(!tipPinned) tipTimer=setTimeout(hideTip,180);
+},true);
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') hideTip(); });
+
+/* ---------- actions ------------------------------------------------------ */
+function spendSlot(i){ if(ST.slots[i]>0){ ST.slots[i]--; return true; } return false; }
+function cast(name){
+  const s=spellByName(name); if(!s) return;
+  if(s.l>0){
+    if(!spendSlot(s.l-1)){ logIt('Cast '+name,'no level '+s.l+' slot left','—','fumble'); return; }
+  }
+  if(s.conc) ST.conc=name;
+  if(s.n==='Mage Armor') ST.mageArmor=true;
+  logIt('Cast '+name, s.l>0?`level ${s.l} slot`:'cantrip', s.l>0?'✦':'∞','');
+}
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-hp],[data-rest],[data-slot],[data-cond],[data-check],[data-save],[data-skill],[data-atk],[data-dmg],[data-dmgx],[data-cast],[data-adv],[data-flt],[data-clear],[data-tab],[data-mtab],[data-conc],[data-arcane],[data-tip]');
+  if(!t){ if(!e.target.closest('#tip')) hideTip(); return; }
+  if(t.dataset.tip!=null && !hoverMQ.matches){ showTip(t,t.dataset.tip); tipPinned=true; }
+  if(t.dataset.hp!=null){ const d=+t.dataset.hp;
+    if(d<0 && ST.tmp>0){ const a=Math.min(ST.tmp,-d); ST.tmp-=a; ST.hp=Math.max(0,ST.hp+d+a); }
+    else ST.hp=Math.max(0,Math.min(ST.hpMax,ST.hp+d));
+    if(d<0&&ST.conc) logIt('Concentration check','DC 10 or half damage','CON '+fmt(saveMod('con')),'');
+    render(); return; }
+  if(t.dataset.rest){ if(t.dataset.rest==='long'){ ST.hp=ST.hpMax; ST.slots=ST.slotsMax.slice(); ST.conds=[]; ST.conc=null; ST.arcaneRecovery=true; ST.mageArmor=false;
+      logIt('Long rest','HP, slots and conditions restored','✓',''); }
+    else { logIt('Short rest','hit dice available; slots unchanged','✓',''); } render(); return; }
+  if(t.dataset.slot!=null){ const i=+t.dataset.slot, j=+t.dataset.idx;
+    if(j<ST.slots[i]) ST.slots[i]--; else if(ST.slots[i]<ST.slotsMax[i]) ST.slots[i]++;
+    render(); return; }
+  if(t.dataset.cond){ const c=t.dataset.cond, i=ST.conds.indexOf(c);
+    if(i>=0) ST.conds.splice(i,1); else ST.conds.push(c); render(); return; }
+  if(t.dataset.check){ rollCheck(ABN[t.dataset.check]+' check', abilMod(t.dataset.check)); return; }
+  if(t.dataset.save){ rollCheck(ABN[t.dataset.save]+' save', saveMod(t.dataset.save)); return; }
+  if(t.dataset.skill){ rollCheck(t.dataset.skill, abilMod(t.dataset.ab)+(+t.dataset.p?prof():0)); return; }
+  if(t.dataset.atk){ rollCheck(t.dataset.atk+' attack', spellAtk()); return; }
+  if(t.dataset.dmg){ const s=spellByName(t.dataset.dmg); rollDamage(t.dataset.dmg+' damage', scaleFor(s)); return; }
+  if(t.dataset.dmgx){ rollDamage('Quarterstaff damage', t.dataset.dmgx); return; }
+  if(t.dataset.cast){ cast(t.dataset.cast); return; }
+  if(t.dataset.adv!=null){ ST.adv=+t.dataset.adv; render(); return; }
+  if(t.dataset.flt!=null){ ST.filter=t.dataset.flt===''?null:+t.dataset.flt; render(); return; }
+  if(t.dataset.clear){ ST.log=[]; render(); return; }
+  if(t.dataset.tab){ ST.tab=t.dataset.tab; render(); return; }
+  if(t.dataset.mtab){ ST.mtab=t.dataset.mtab; render(); return; }
+  if(t.dataset.conc){ ST.conc=null; render(); return; }
+  if(t.dataset.arcane){ if(ST.arcaneRecovery){ ST.arcaneRecovery=false;
+      let budget=Math.ceil(PC.level/2);
+      for(let i=0;i<5&&budget>0;i++){ while(ST.slots[i]<ST.slotsMax[i]&&budget>=i+1&&i<4){ ST.slots[i]++; budget-=i+1; } }
+      logIt('Arcane Recovery','recovered slots on a short rest','✓',''); } render(); return; }
+});
+
+/* ---------- master render: desktop 3-column + mobile tabbed phone -------- */
+function render(){
+  /* desktop */
+  renderStats($('#d-left'));
+  const mid=$('#d-mid');
+  mid.innerHTML=`<div class="tabs" role="tablist">
+      <button class="tab" role="tab" data-tab="spells" aria-selected="${ST.tab==='spells'}">Spells</button>
+      <button class="tab" role="tab" data-tab="skills" aria-selected="${ST.tab==='skills'}">Skills</button>
+      <button class="tab" role="tab" data-tab="actions" aria-selected="${ST.tab==='actions'}">Actions</button>
+      <button class="tab" role="tab" data-tab="gear" aria-selected="${ST.tab==='gear'}">Gear &amp; features</button>
+    </div><div id="d-tabbody"></div>`;
+  const tb=$('#d-tabbody');
+  if(ST.tab==='spells') renderSpells(tb);
+  else if(ST.tab==='skills') renderSkills(tb);
+  else if(ST.tab==='actions') renderActions(tb);
+  else renderGear(tb);
+  const right=$('#d-right');
+  right.innerHTML='<div id="d-slots"></div><div style="margin-top:14px" id="d-log"></div>';
+  renderSlots($('#d-slots')); renderLog($('#d-log'));
+
+  /* mobile */
+  const mb=$('#m-body');
+  if(ST.mtab==='spells'){ mb.innerHTML=mobileHp()+'<div id="m-sp"></div>'; renderSpells($('#m-sp')); }
+  else if(ST.mtab==='stats'){ mb.innerHTML='<div id="m-st"></div>'; renderStats($('#m-st')); }
+  else if(ST.mtab==='skills'){ mb.innerHTML='<div id="m-sk"></div>'; renderSkills($('#m-sk')); }
+  else if(ST.mtab==='slots'){ mb.innerHTML='<div id="m-sl"></div>'; renderSlots($('#m-sl')); }
+  else { mb.innerHTML='<div id="m-lg"></div>'; renderLog($('#m-lg')); }
+  $$('.mp-tab').forEach(b=>b.setAttribute('aria-selected', String(b.dataset.mtab===ST.mtab)));
+  $('#m-hpline').innerHTML=`<span class="mono" style="font-weight:700">${ST.hp}</span><span style="color:var(--text-3)">/${ST.hpMax}</span>`;
+}
+function mobileHp(){
+  return `<div class="mhp">
+    <button class="btn btn-dmg" data-hp="-5">&minus;5</button>
+    <button class="btn btn-dmg" data-hp="-1">&minus;1</button>
+    <span class="n" style="margin:0 auto;color:${ST.hp<=ST.hpMax*.25?'var(--dmg-text)':ST.hp<=ST.hpMax*.5?'var(--cond-text)':'var(--text)'}">${ST.hp}<span style="font-size:12px;color:var(--text-3)">/${ST.hpMax}</span></span>
+    <button class="btn btn-heal" data-hp="1">+1</button>
+    <button class="btn btn-heal" data-hp="5">+5</button></div>`;
+}
+function renderActions(el){
+  el.innerHTML=`<div class="lbl">Every turn</div>
+    <div class="spell"><div><div class="nm">Attack / Cast a spell</div>
+      <div class="meta"><span>Action</span><span>one per turn</span></div></div>
+      <div class="act"><button class="roll" data-atk="Spell"><svg class="ic ic-xs"><use href="#i-target"/></svg>${fmt(spellAtk())}</button></div></div>
+    <div class="spell"><div><div class="nm">Dash / Disengage / Dodge / Hide</div>
+      <div class="meta"><span>Action</span><span>movement and defence</span></div></div></div>
+    <div class="spell"><div><div class="nm">Move</div><div class="meta"><span>${PC.speed} ft</span><span>split before and after your action</span></div></div></div>
+    <div class="lbl" style="margin-top:14px">Reactions</div>
+    <div class="spell prep" data-tip="spell:Shield"><div><div class="nm">Shield</div>
+      <div class="meta"><span>Reaction</span><span>when hit by an attack</span><span class="tag">+5 AC</span></div></div>
+      <div class="act"><button class="roll magic" data-cast="Shield">Cast</button></div></div>
+    <div class="spell prep" data-tip="spell:Counterspell"><div><div class="nm">Counterspell</div>
+      <div class="meta"><span>Reaction</span><span>when a creature within 60 ft casts</span></div></div>
+      <div class="act"><button class="roll magic" data-cast="Counterspell">Cast</button></div></div>
+    <div class="spell"><div><div class="nm">Opportunity attack</div>
+      <div class="meta"><span>Reaction</span><span>when a hostile leaves your reach</span></div></div></div>
+    <div class="lbl" style="margin-top:14px">Bonus action</div>
+    <div class="spell prep" data-tip="spell:Misty Step"><div><div class="nm">Misty Step</div>
+      <div class="meta"><span>Bonus</span><span>teleport 30 ft</span></div></div>
+      <div class="act"><button class="roll magic" data-cast="Misty Step">Cast</button></div></div>`;
+}
+function renderGear(el){
+  el.innerHTML=`<div class="lbl">Class features</div>
+    <div class="spell"><div><div class="nm">Arcane Recovery</div>
+      <div class="meta"><span>Once per day</span><span>recover ${Math.ceil(PC.level/2)} levels of slots on a short rest</span></div></div>
+      <div class="act"><button class="roll ${ST.arcaneRecovery?'':'magic'}" data-arcane="1" ${ST.arcaneRecovery?'':'disabled'}>${ST.arcaneRecovery?'Use':'Used'}</button></div></div>
+    <div class="spell"><div><div class="nm">Sculpt Spells</div>
+      <div class="meta"><span>Evocation 2</span><span>${1+2} allies auto-succeed on your evocation saves</span></div></div></div>
+    <div class="spell"><div><div class="nm">Potent Cantrip</div>
+      <div class="meta"><span>Evocation 6</span><span>cantrips deal half damage on a successful save</span></div></div></div>
+    <div class="spell"><div><div class="nm">Empowered Evocation</div>
+      <div class="meta"><span>Evocation 10</span><span class="tag dmg">+${abilMod('int')} damage</span><span>to evocation spells</span></div></div></div>
+    <div class="lbl" style="margin-top:14px">Equipment</div>
+    <div class="spell"><div><div class="nm">Quarterstaff</div><div class="meta"><span>Melee</span><span class="tag dmg">1d6 bludgeoning</span></div></div>
+      <div class="act"><button class="roll" data-atk="Quarterstaff">${fmt(abilMod('str')+prof())}</button>
+      <button class="roll magic" data-dmgx="1d6">1d6</button></div></div>
+    <div class="spell"><div><div class="nm">Spellbook</div><div class="meta"><span>24 spells</span><span>17 prepared</span></div></div></div>
+    <div class="spell"><div><div class="nm">Component pouch &middot; Scholar&rsquo;s pack</div><div class="meta"><span>Focus and supplies</span></div></div></div>`;
+}
+render();
+
+</script>
+</body>
+</html>

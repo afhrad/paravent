@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="de">
+<!--
+  Written by website/build.py from templates/index.html and content/<lang>.md.
+  Edit those, never this page: the next build replaces it.
+-->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paravent: der Spielleiterschirm im Browser</title>
+<meta name="description" content="Paravent hilft einer Dungeons &amp; Dragons 5e Runde am echten Tisch. Die Spielleitung führt Kämpfe, Notizen und Handouts vom Tablet, die Spieler haben ihre Bögen auf dem Handy, und das Spiel bleibt am Tisch.">
+<meta name="theme-color" content="#58180D" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1C150F" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Paravent">
+<meta property="og:description" content="Der Spielleiterschirm im Browser. Für den Spieltisch zu Hause, nicht statt ihm.">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="de_DE">
+<meta property="og:url" content="https://paravent.org/de/">
+<meta property="og:site_name" content="Paravent">
+<meta property="og:image" content="https://paravent.org/assets/img/share-de.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Die Kampfverwaltung von Paravent: die Reihenfolge eines Kampfes und der Wertekasten eines Trolls, im Pergament-Aussehen">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="alternate" hreflang="en" href="https://paravent.org/">
+<link rel="alternate" hreflang="de" href="https://paravent.org/de/">
+<link rel="alternate" hreflang="x-default" href="https://paravent.org/">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="../apple-touch-icon.png">
+<link rel="stylesheet" href="../assets/css/paravent/tokens.css">
+<link rel="stylesheet" href="../assets/css/tome/tokens.css">
+<link rel="stylesheet" href="../assets/css/paravent/components.css">
+<link rel="stylesheet" href="../assets/css/site.css">
+<script>
+  /* The theme before the first paint, so a dark reader never sees a white flash. */
+  try { var t = localStorage.getItem("paravent-site-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  /* The folding screen starts closed; site.js opens it (with no script it stands open). */
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    document.documentElement.style.setProperty("--open", "0");
+    document.documentElement.style.setProperty("--hinge", "176deg");
+  }
+</script>
+<script src="../assets/js/site.js" defer></script>
+</head>
+<body>
+<!-- icons:start -->
+<svg xmlns="http://www.w3.org/2000/svg" style="display:none" aria-hidden="true"><symbol id="i-swords" viewBox="0 0 24 24"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6M16 16l4 4M19 21l2-2"/><path d="M9.5 6.5 21 18v3h-3L6.5 9.5"/><path d="M5 13 3 15l2 2M3 21l2-2"/></symbol><symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol><symbol id="i-book-open" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol><symbol id="i-scroll" viewBox="0 0 24 24"><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></symbol><symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol><symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol><symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol><symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></symbol><symbol id="i-dices" viewBox="0 0 24 24"><rect width="12" height="12" x="2" y="10" rx="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6"/><path d="M6 18h.01M10 14h.01M15 6h.01M18 9h.01"/></symbol><symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4M22 4h-4"/><circle cx="4" cy="20" r="2"/></symbol><symbol id="i-wand-sparkles" viewBox="0 0 24 24"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3M5 6v4M19 14v4M10 2v2M7 8H3M21 16h-4M11 3H9"/></symbol><symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol><symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol><symbol id="i-languages" viewBox="0 0 24 24"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></symbol><symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol><symbol id="i-volume-2" viewBox="0 0 24 24"><path d="M11 5 6 9H2v6h4l5 4V5z"/><path d="M16 9a5 5 0 0 1 0 6M19.36 18.36a9 9 0 0 0 0-12.72"/></symbol><symbol id="i-user-plus" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M19 8v6M22 11h-6"/></symbol><symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol><symbol id="i-eye-off" viewBox="0 0 24 24"><path d="M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49"/><path d="M14.084 14.158a3 3 0 0 1-4.242-4.242"/><path d="M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143"/><path d="m2 2 20 20"/></symbol><symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></symbol><symbol id="i-clipboard-list" viewBox="0 0 24 24"><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><path d="M12 11h4"/><path d="M12 16h4"/><path d="M8 11h.01"/><path d="M8 16h.01"/></symbol><symbol id="i-palette" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".5"/><circle cx="17.5" cy="10.5" r=".5"/><circle cx="8.5" cy="7.5" r=".5"/><circle cx="6.5" cy="12.5" r=".5"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></symbol><symbol id="i-paravent" viewBox="6 10 52 48"><polygon points="20.5,22 20.5,46 8,51 8,17" fill="currentColor" fill-opacity=".5" stroke="none"/><polygon points="43.5,22 43.5,46 56,51 56,17" fill="currentColor" fill-opacity=".5" stroke="none"/><rect x="22" y="22" width="20" height="24" fill="currentColor" stroke="none"/></symbol><symbol id="i-send" viewBox="0 0 24 24"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></symbol></svg>
+<!-- icons:end -->
+
+<div class="progress" aria-hidden="true"><i></i></div>
+
+<header class="site-top">
+  <a class="brand" href="#top" aria-label="Paravent, zurück nach oben">
+    <svg class="ic brand-mark" aria-hidden="true" style="font-size:28px"><use href="#i-paravent"/></svg>
+    <span>Paravent</span>
+  </a>
+  <nav class="site-nav" aria-label="Abschnitte">
+    <a href="#why">Warum</a>
+    <a href="#features">Funktionen</a>
+    <a href="#evening">Ein Abend</a>
+    <a href="#philosophy">Wie es denkt</a>
+    <a href="#screens">Bilder</a>
+    <a href="#stack">Technik</a>
+    <a href="#updates">Neues</a>
+    <a href="#faq">Fragen</a>
+    <a href="#legal">Rechtliches</a>
+  </nav>
+  <div class="site-top-end">
+    <div class="lang-switch" role="group" aria-label="Sprache">
+      <a href="../" hreflang="en" lang="en" title="English" data-lang="en"><img src="../assets/img/flags/gb.svg" alt="English" width="24" height="16"></a>
+      <a href="./" hreflang="de" lang="de" title="Deutsch" data-lang="de" aria-current="page"><img src="../assets/img/flags/de.svg" alt="Deutsch" width="24" height="16"></a>
+    </div>
+    <button class="icon-btn" type="button" data-theme-toggle aria-label="Zwischen hell und dunkel wechseln">
+      <svg class="ic ic-sun" aria-hidden="true"><use href="#i-sun"/></svg>
+      <svg class="ic ic-moon" aria-hidden="true"><use href="#i-moon"/></svg>
+    </button>
+    <button class="icon-btn menu-btn" type="button" data-menu aria-expanded="false" aria-label="Menü">
+      <svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============================================================ hero -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-glow" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="hero-text">
+      <p class="eyebrow">Für Dungeons &amp; Dragons 5e am echten Tisch</p>
+      <h1 id="hero-title">Der Spielleiterschirm,<br><span class="ink"><span class="sr-only">überall</span><span class="rot-end"><span class="rot" aria-hidden="true" data-words="[&quot;im Browser&quot;, &quot;auf dem Laptop&quot;, &quot;auf dem Tablet&quot;, &quot;auf dem Handy&quot;, &quot;unter Linux&quot;, &quot;unter Windows&quot;, &quot;auf dem Mac&quot;, &quot;auf iOS&quot;, &quot;überall&quot;]">überall</span><span class="rot-dot">.</span></span></span></h1>
+      <p class="lede">Ein <em>Paravent</em> ist eine Faltwand, genau die, hinter der die Spielleitung sitzt. Paravent hält Notizen, Regeln und den Kampf in Ordnung, damit ihr vom Bildschirm aufschauen könnt, zu euren Leuten. Die Würfel, die Stimmen und die Geschichte bleiben am Tisch.</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="#features">
+          <svg class="ic" aria-hidden="true"><use href="#i-sparkles"/></svg><span>Was es kann</span>
+        </a>
+        <a class="btn btn-lg" href="#philosophy">Wie es denkt</a>
+      </div>
+    </div>
+
+    <div class="screen3d" aria-hidden="true">
+      <div class="screen3d-stage">
+        <div class="leaf leaf-left"><div class="face">
+          <div class="mini-head"><b></b><i></i></div>
+          <div class="mini-stat"><span>RK</span><span>TP</span><span>HG</span></div>
+          <div class="mini-lines"><i></i><i></i><i style="width:62%"></i><i></i><i style="width:48%"></i></div>
+        </div><div class="face back"><svg class="ic" aria-hidden="true"><use href="#i-paravent"/></svg></div></div>
+        <div class="leaf leaf-mid"><div class="face">
+          <div class="mini-round">Runde 3</div>
+          <div class="mini-row is-turn"><span class="tok"></span><b></b><em style="--hp:82%"></em></div>
+          <div class="mini-row"><span class="tok foe"></span><b></b><em style="--hp:40%"></em></div>
+          <div class="mini-row"><span class="tok"></span><b></b><em style="--hp:100%"></em></div>
+          <div class="mini-row"><span class="tok foe"></span><b></b><em style="--hp:12%"></em></div>
+          <div class="mini-row"><span class="tok"></span><b></b><em style="--hp:66%"></em></div>
+        </div></div>
+        <div class="leaf leaf-right"><div class="face">
+          <div class="mini-dice"><span>20</span></div>
+          <div class="mini-lines"><i></i><i style="width:70%"></i><i></i><i style="width:54%"></i></div>
+          <div class="mini-chip">Feuerball · 8W6</div>
+        </div><div class="face back"><svg class="ic" aria-hidden="true"><use href="#i-paravent"/></svg></div></div>
+      </div>
+      <div class="screen3d-floor"></div>
+      <div class="screen3d-gleam"></div>
+    </div>
+
+    <a class="scroll-cue" href="#why" aria-label="Nach unten"><span></span></a>
+  </section>
+
+  <!-- ============================================================ facts -->
+  <section class="facts" aria-label="In Zahlen">
+    <div class="fact reveal"><b><!-- fact-version:start -->
+0.1.149
+<!-- fact-version:end --></b><span>aktuelle Version</span></div>
+    <div class="fact reveal"><b><!-- fact-tests:start -->
+1.865
+<!-- fact-tests:end --></b><span>automatische Tests</span></div>
+    <div class="fact reveal"><b><!-- fact-commits:start -->
+259
+<!-- fact-commits:end --></b><span>Änderungen bisher</span></div>
+    <div class="fact reveal"><b>0</b><span>Spielinhalte dabei</span></div>
+    <div class="fact reveal"><b>2</b><span>Sprachen, Deutsch und Englisch</span></div>
+  </section>
+
+  <!-- ============================================================ why -->
+  <section id="why" class="band" aria-labelledby="why-title">
+    <div class="wrap two-col">
+      <div class="reveal">
+        <p class="eyebrow">Warum es das gibt</p>
+        <h2 id="why-title">Gemacht für Deinen Spieletisch.</h2>
+      </div>
+      <div class="prose reveal">
+        <p>Angefangen hat es mit einer wöchentlichen Runde und einer Spielleitung, der die Hände ausgingen. Hier ein PDF, dort drei Browser-Tabs, Trefferpunkte in einer Tabelle, die Initiative auf einem Klebezettel. Die Spieler wollten ihre Charaktere auf dem Handy haben, und ein weiteres Abo wollte niemand.</p>
+        <p>Daraus ist Paravent geworden. Es spielt das Spiel nicht für euch. Es behält den Überblick über das, was eine Runde ausbremst, damit der Abend der Geschichte gehört. Den Drachen beschreibt ihr immer noch selbst, die Gruppe streitet immer noch über den Plan, und entscheiden tun weiter die Würfel.</p>
+        <p>Es läuft auf einem Laptop, einem Mini-PC oder einem NAS bei euch zu Hause. Niemand meldet sich irgendwo an, nichts geht in eine Cloud. Alles, was ihr schreibt, liegt in einfachen Dateien, die ihr selbst öffnen, kopieren und sichern könnt.</p>
+      </div>
+    </div>
+
+    <div class="wrap intents">
+      <article class="intent reveal">
+        <svg class="ic" aria-hidden="true"><use href="#i-users"/></svg>
+        <h3>Am Tisch, nicht statt des Tisches</h3>
+        <p>Große Knöpfe, schnelles Tippen, nichts einzurichten vor dem ersten Abend. Paravent liegt neben den Würfeln und den Chips und überlässt euch das Reden.</p>
+      </article>
+      <article class="intent reveal">
+        <svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg>
+        <h3>Geheimnisse bleiben geheim</h3>
+        <p>Nur euer Heimnetz. Die Spielleitung sieht alles, die Spieler sehen, was ihre Figuren wissen können. Ein Schwierigkeitsgrad taucht nie auf einem Handy auf.</p>
+      </article>
+      <article class="intent reveal">
+        <svg class="ic" aria-hidden="true"><use href="#i-book-open"/></svg>
+        <h3>Jede Regel griffbereit</h3>
+        <p>Die Bücher, die ihr mitbringt, sind in einem einzigen Suchfeld durchsuchbar. Fahrt in euren Notizen über einen Zauber und lest ihn, ohne die Stelle zu verlieren.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ============================================================ features -->
+  <section id="features" class="band band-sunken" aria-labelledby="features-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">Funktionen</p>
+        <h2 id="features-title">Was bietet Paravent?</h2>
+        <p class="intro">Manches hilft bei der Vorbereitung am Schreibtisch. Das meiste ist für den Moment da, in dem die Gruppe etwas tut, womit ihr nicht gerechnet habt.</p>
+      </div>
+
+      <div class="feature-grid">
+        <article class="feature reveal">
+          <svg class="ic" aria-hidden="true"><use href="#i-swords"/></svg>
+          <h3>Ein Kampf, in dem ihr entscheidet</h3>
+        <p>Initiative, Trefferpunkte, Zustände, die rundenweise ablaufen, Konzentrationswürfe, Hortaktionen. Monsterangriffe sind einen Knopf entfernt, aber ob sie treffen, entscheidet ihr, und kein Trefferpunkt ändert sich, bevor ihr es sagt.</p>
+        </article>
+        <article class="feature reveal">
+          <svg class="ic" aria-hidden="true"><use href="#i-dices"/></svg>
+          <h3>Die Spieler würfeln selbst</h3>
+        <p>Initiative und Rettungswürfe würfelt jede Person auf dem eigenen Handy, und einen Augenblick später stehen sie bei euch im Kampf. Sie hören ihre Würfel, sehen „Du bist dran!“ und nie den Schwierigkeitsgrad.</p>
+        </article>
+        <article class="feature reveal">
+          <svg class="ic" aria-hidden="true"><use href="#i-eye-off"/></svg>
+          <h3>Hinter dem Schirm</h3>
+        <p>Monsterwürfe kommen bei den Spielern nur als Ergebnis an: Treffer, neun Hiebschaden. Trefferpunkte und Rüstungsklasse eines Gegners bleiben bei euch, und lesen dürfen sie nur die Bücher, die ihr freigebt.</p>
+        </article>
+        <article class="feature reveal">
+          <svg class="ic" aria-hidden="true"><use href="#i-eye"/></svg>
+          <h3>Die Gruppe lernt dazu</h3>
+        <p>Die Spieler können sich eine Kreatur ansehen und sehen, was ihre Figuren sehen. Was sie im Kampf herausfinden, bleibt hängen, etwa der Troll, dem das Feuer nichts anhaben konnte. Beim nächsten Mal wissen sie es.</p>
+        </article>
+        <article class="feature reveal">
+          <svg class="ic" aria-hidden="true"><use href="#i-target"/></svg>
+          <h3>Begegnungen, die passen</h3>
+        <p>Stellt einen Kampf zusammen und seht, wie schwer er für eure tatsächliche Gruppe ist, nach den Regeln von 2014 oder 2024. Würfelt eine Zufallsbegegnung für die Reise oder einen Schatz für den Hort.</p>
+        </article>
+        <article class="feature reveal">
+          <svg class="ic" aria-hidden="true"><use href="#i-user-plus"/></svg>
+          <h3>Charaktere ohne Hausaufgaben</h3>
+        <p>Eine Charaktererschaffung für beide Editionen auf jeder Stufe und ein Bogen, der seine Zahlen erklärt. So sieht jede, woher die 17 kommt. Stufen vergebt ihr, wenn die Geschichte es sagt.</p>
+        </article>
+        <article class="feature reveal">
+          <svg class="ic" aria-hidden="true"><use href="#i-scroll"/></svg>
+          <h3>Abenteuer als einfacher Text</h3>
+        <p>Schreibt Kapitel so, wie ihr Notizen schreibt. Obsidian funktioniert. NSC, Orte, Kämpfe und Schätze stehen als Karten im Text, die ihr mitten im Spiel aufklappt. Ihr könnt auch mit einem veröffentlichten Abenteuer anfangen und eigene Ideen dazuschreiben.</p>
+        </article>
+        <article class="feature reveal">
+          <svg class="ic" aria-hidden="true"><use href="#i-send"/></svg>
+          <h3>Handouts</h3>
+        <p>Gebt einen Brief, eine Karte oder eine Beschreibung an die Figuren, die sie gefunden haben. Sie bekommen eine eigene Kopie aufs Handy, eure Geheimnisse bleiben draußen, und ihr seht, wer schon gelesen hat.</p>
+        </article>
+        <article class="feature reveal">
+          <svg class="ic" aria-hidden="true"><use href="#i-clipboard-list"/></svg>
+          <h3>Der Abend, aufgeschrieben</h3>
+        <p>Jeder Wurf landet mit Würfeln und Boni in einem gemeinsamen Protokoll. Danach gibt es eine Zusammenfassung des Kampfes oder des ganzen Abends, fertig für das „Was bisher geschah“ in der nächsten Woche.</p>
+        </article>
+        <article class="feature reveal">
+          <svg class="ic" aria-hidden="true"><use href="#i-volume-2"/></svg>
+          <h3>Klang für den Raum</h3>
+        <p>Regen, ein knisterndes Feuer, die Musik für den Endgegner. Startet sie vom Tablet, lasst sie aus der Box im Raum kommen, und lasst ein Kapitel den Lärm der Taverne selbst anstimmen.</p>
+        </article>
+        <article class="feature reveal">
+          <svg class="ic" aria-hidden="true"><use href="#i-wand-sparkles"/></svg>
+          <h3>Namen, wenn ihr einen braucht</h3>
+        <p>Die Gruppe fragt nach dem Namen des Wirts, und ihr habt einen, im Stil des Volkes und der Welt, in der ihr spielt. Goblins heißen wie Goblins, Zwergenhallen wie Zwergenhallen.</p>
+        </article>
+        <article class="feature reveal">
+          <svg class="ic" aria-hidden="true"><use href="#i-sparkles"/></svg>
+          <h3>Claude als Schreibpartner</h3>
+        <p>Wenn ihr mögt, entwirft Claude ein Abenteuer für eure Gruppe: Kapitel, Figuren und Kämpfe aus euren eigenen Büchern. Es bleibt ein Entwurf, bis ihr es gelesen und angenommen habt.</p>
+        </article>
+        <article class="feature reveal">
+          <svg class="ic" aria-hidden="true"><use href="#i-languages"/></svg>
+          <h3>Auf Deutsch, richtig</h3>
+        <p>Die ganze Oberfläche spricht Deutsch, Entfernungen stehen in Metern, und übersetzte Regeltexte fallen auf Englisch zurück, wo noch niemand übersetzt hat.</p>
+        </article>
+        <article class="feature reveal">
+          <svg class="ic" aria-hidden="true"><use href="#i-palette"/></svg>
+          <h3>Ein Aussehen für euren Tisch</h3>
+        <p>Ein schlichter Standard oder Tome: Pergament bei Tag, Leder bei Kerzenschein, gesetzt wie die gedruckten Bücher. Jede Person kann ihr eigenes wählen.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ evening -->
+  <section id="evening" class="band" aria-labelledby="evening-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">Ein Spieleabend</p>
+        <h2 id="evening-title">So läuft ein Abend</h2>
+        <p class="intro">Paravent steht nie in der Mitte des Tisches. Hier hilft es an einem ganz normalen Abend, und das bleibt genau so, wie es immer war.</p>
+      </div>
+
+      <ol class="evening">
+        <li class="ev-step reveal">
+          <span class="ev-dot" aria-hidden="true">01</span>
+          <div class="ev-text">
+            <p class="ev-time">Am Nachmittag davor</p>
+            <h3>Das Kapitel steht</h3>
+        <p>Ihr schreibt das Kapitel für heute als einfachen Text: die Fähre, die Goblins im Schilf, der Troll unter dem Steg. Paravent prüft eure Verweise, bewertet den Hinterhalt für die Gruppe, die ihr wirklich habt, und findet einen Namen für den Grottenschrat.</p>
+            <p class="ev-table"><svg class="ic" aria-hidden="true"><use href="#i-dices"/></svg><span><b>Am Tisch:</b> eure Ideen und Notizen, so locker, wie ihr mögt.</span></p>
+          </div>
+          <figure class="ev-shot">
+            <div class="frame"><div class="shot-body">
+              <img src="../assets/img/screens/de/chapter.webp" data-dark="../assets/img/screens/de/dark/chapter.webp" alt="Ein Kapitel mit Vorlesetext und der Begegnung, die darin wartet" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-scroll"/></svg></div>
+            </div></div>
+            <figcaption class="sr-only">Das Kapitel steht</figcaption>
+          </figure>
+        </li>
+        <li class="ev-step reveal">
+          <span class="ev-dot" aria-hidden="true">02</span>
+          <div class="ev-text">
+            <p class="ev-time">19 Uhr</p>
+            <h3>Nebel auf dem Fluss</h3>
+        <p>Die Spieler öffnen ihre Charaktere auf dem Handy. Ihr lest den Kasten vor, und ein Tipp aufs Klangpult lässt den Regen aus dem Lautsprecher am Regal kommen. Keine Playlist, die ihr suchen müsst.</p>
+            <p class="ev-table"><svg class="ic" aria-hidden="true"><use href="#i-dices"/></svg><span><b>Am Tisch:</b> eure Stimme, die Knabbereien, die ersten Witze.</span></p>
+          </div>
+          <figure class="ev-shot ev-right">
+            <div class="frame"><div class="shot-body">
+              <img src="../assets/img/screens/de/sound.webp" data-dark="../assets/img/screens/de/dark/sound.webp" alt="Das Klangpult neben dem Kapitel, Regen und Trommeln laufen" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-volume-2"/></svg></div>
+            </div></div>
+            <figcaption class="sr-only">Nebel auf dem Fluss</figcaption>
+          </figure>
+        </li>
+        <li class="ev-step reveal">
+          <span class="ev-dot" aria-hidden="true">03</span>
+          <div class="ev-text">
+            <p class="ev-time">19:40 Uhr</p>
+            <h3>Etwas zum Festhalten</h3>
+        <p>Die Zeilen über die versunkene Glocke gehen als Handout an die Spieler. Sie landen im Journal auf ihren Handys und bleiben dort, damit sich niemand bis nächsten Monat jedes Wort merken muss.</p>
+            <p class="ev-table"><svg class="ic" aria-hidden="true"><use href="#i-dices"/></svg><span><b>Am Tisch:</b> die Spieler, die es sich gegenseitig vorlesen.</span></p>
+          </div>
+          <figure class="ev-shot ev-phone">
+            <div class="phone"><div class="phone-screen shot-body">
+              <img src="../assets/img/screens/de/journal.webp" data-dark="../assets/img/screens/de/dark/journal.webp" alt="Das Handout im Journal einer Spielerin auf dem Handy" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-book-open"/></svg></div>
+            </div></div>
+            <figcaption class="sr-only">Etwas zum Festhalten</figcaption>
+          </figure>
+        </li>
+        <li class="ev-step reveal">
+          <span class="ev-dot" aria-hidden="true">04</span>
+          <div class="ev-text">
+            <p class="ev-time">20:15 Uhr</p>
+            <h3>Würfelt Initiative</h3>
+        <p>Die Kampfverwaltung hält Reihenfolge, Trefferpunkte und Konzentration fest, der Wertekasten des Trolls gleich daneben. Die Spieler würfeln auf dem Handy, oder mit echten Würfeln, und ihr tippt die Zahl ein. Ob ein Schlag trifft, entscheidet immer ihr.</p>
+            <p class="ev-table"><svg class="ic" aria-hidden="true"><use href="#i-dices"/></svg><span><b>Am Tisch:</b> echte Würfel, die Karte, die Miniaturen, der Jubel.</span></p>
+          </div>
+          <figure class="ev-shot">
+            <div class="frame"><div class="shot-body">
+              <img src="../assets/img/screens/de/combat.webp" data-dark="../assets/img/screens/de/dark/combat.webp" alt="Die Kampfverwaltung in Runde zwei mit dem Wertekasten des Trolls" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-swords"/></svg></div>
+            </div></div>
+            <figcaption class="sr-only">Würfelt Initiative</figcaption>
+          </figure>
+        </li>
+        <li class="ev-step reveal">
+          <span class="ev-dot" aria-hidden="true">05</span>
+          <div class="ev-text">
+            <p class="ev-time">Mitternacht</p>
+            <h3>Bis zum nächsten Mal</h3>
+        <p>Die Zusammenfassung zeigt, wer den großen Treffer gelandet hat, wer zu Boden ging und was der Kampf wert war. In einer Minute wird daraus eine Notiz für die nächste Runde, dann klappt ihr den Laptop zu.</p>
+            <p class="ev-table"><svg class="ic" aria-hidden="true"><use href="#i-dices"/></svg><span><b>Am Tisch:</b> die Geschichten, die sich alle auf dem Heimweg erzählen.</span></p>
+          </div>
+          <figure class="ev-shot">
+            <div class="frame"><div class="shot-body">
+              <img src="../assets/img/screens/de/recap.webp" data-dark="../assets/img/screens/de/dark/recap.webp" alt="Die Zusammenfassung eines Kampfes: Schaden, natürliche Zwanziger, Erfahrung" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-scroll"/></svg></div>
+            </div></div>
+            <figcaption class="sr-only">Bis zum nächsten Mal</figcaption>
+          </figure>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============================================================ philosophy -->
+  <section id="philosophy" class="band band-sunken philosophy" aria-labelledby="philosophy-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">Wie es denkt</p>
+        <h2 id="philosophy-title">Ein paar Regeln, an die sich Paravent hält</h2>
+      </div>
+
+      <ol class="principles">
+        <li class="principle reveal">
+          <span class="num">01</span>
+          <div>
+            <h3>Der Tisch kommt zuerst.</h3>
+        <p>Paravent hilft Menschen, gemeinsam in einem Raum zu spielen. Es hält die Buchhaltung aus dem Weg, damit der Abend der Geschichte gehört und den Leuten am Tisch.</p>
+          </div>
+        </li>
+        <li class="principle reveal">
+          <span class="num">02</span>
+          <div>
+            <h3>Das letzte Wort hat die Spielleitung.</h3>
+        <p>Hat der Pfeil getroffen? Wer stand im Feuer? Ist es Zeit für die nächste Stufe? Paravent bietet die Zahlen und einen Knopf. Die Entscheidung bleibt bei euch.</p>
+          </div>
+        </li>
+        <li class="principle reveal">
+          <span class="num">03</span>
+          <div>
+            <h3>Erinnern, nicht übernehmen.</h3>
+        <p>Zu Beginn eines Zuges erinnert es an den Aufladewurf und die Hortaktion. Es zeigt eine Resistenz, statt den Schaden heimlich zu halbieren. Nichts passiert hinter eurem Rücken.</p>
+          </div>
+        </li>
+        <li class="principle reveal">
+          <span class="num">04</span>
+          <div>
+            <h3>Eure Welt sagt, welche Bücher gelten.</h3>
+        <p>Zwei Drittel aller Zaubernamen gibt es in mehr als einem Buch. Wählt eure, das Spielerhandbuch von 2014 oder das von 2024, und jeder Verweis findet die richtige Fassung. Ein Buch, das niemand besitzt, bleibt außen vor und sagt das auch.</p>
+          </div>
+        </li>
+        <li class="principle reveal">
+          <span class="num">05</span>
+          <div>
+            <h3>Eure Arbeit und die Bücher bleiben getrennt.</h3>
+        <p>Die Regeln, die ihr mitbringt, werden nur gelesen. Alles, was ihr erschafft, liegt woanders. Tauscht die Bücher gegen eine neue Ausgabe, und eure Kampagne bleibt unberührt.</p>
+          </div>
+        </li>
+        <li class="principle reveal">
+          <span class="num">06</span>
+          <div>
+            <h3>Ein Charakter merkt sich Entscheidungen, keine Zahlen.</h3>
+        <p>Die Datei weiß, was gewählt wurde. Rüstungsklasse und Trefferpunkte werden jedes Mal neu berechnet, und eine korrigierte Regel bringt jeden Bogen auf einmal in Ordnung.</p>
+          </div>
+        </li>
+        <li class="principle reveal">
+          <span class="num">07</span>
+          <div>
+            <h3>Eine Übersetzung liegt obendrauf.</h3>
+        <p>Deutscher Text berührt nie die Regeln darunter. Ein halb übersetztes Buch ist völlig normal, und eine Übersetzung zu entfernen ist immer gefahrlos.</p>
+          </div>
+        </li>
+        <li class="principle reveal">
+          <span class="num">08</span>
+          <div>
+            <h3>Claude schlägt vor, ihr entscheidet.</h3>
+        <p>Was Claude schreibt, ist ein Entwurf. Es erscheint nirgends in eurem Spiel, bis ihr es gelesen und angenommen habt.</p>
+          </div>
+        </li>
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============================================================ screens -->
+  <section id="screens" class="band" aria-labelledby="screens-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">Bilder</p>
+        <h2 id="screens-title">So sieht es am Tisch aus</h2>
+        <p class="intro">Vom Tablet der Spielleitung und vom Handy einer Spielerin, hell und dunkel. Ein Klick zeigt ein Bild größer.</p>
+      </div>
+
+      <div class="shots">
+        <figure class="shot shot-wide reveal">
+          <div class="frame">
+            <div class="frame-bar"><span class="frame-dots"><i></i><i></i><i></i></span><span class="frame-label">Kampfverwaltung</span></div>
+            <div class="shot-body">
+              <img src="../assets/img/screens/de/combat.webp" data-dark="../assets/img/screens/de/dark/combat.webp" alt="Die Kampfverwaltung: die Reihenfolge eines Kampfes mit Trefferpunktbalken und daneben der Wertekasten einer Kreatur" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-swords"/></svg></div>
+            </div>
+          </div>
+          <figcaption>Die Reihenfolge des Kampfes, daneben der Wertekasten der Kreatur.</figcaption>
+        </figure>
+        <figure class="shot reveal">
+          <div class="frame">
+            <div class="frame-bar"><span class="frame-dots"><i></i><i></i><i></i></span><span class="frame-label">Kapitel</span></div>
+            <div class="shot-body">
+              <img src="../assets/img/screens/de/chapter.webp" data-dark="../assets/img/screens/de/dark/chapter.webp" alt="Ein Kapitel eines Abenteuers mit Vorlesetext und einer Begegnungskarte" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-scroll"/></svg></div>
+            </div>
+          </div>
+          <figcaption>Ein Kapitel mit Vorlesetext und einem Kampf, der gleich losgehen kann.</figcaption>
+        </figure>
+        <figure class="shot reveal">
+          <div class="frame">
+            <div class="frame-bar"><span class="frame-dots"><i></i><i></i><i></i></span><span class="frame-label">Begegnung</span></div>
+            <div class="shot-body">
+              <img src="../assets/img/screens/de/encounter.webp" data-dark="../assets/img/screens/de/dark/encounter.webp" alt="Der Begegnungsplaner bewertet einen Kampf für die Gruppe" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-target"/></svg></div>
+            </div>
+          </div>
+          <figcaption>Wie schwer der Kampf für eure tatsächliche Gruppe ist.</figcaption>
+        </figure>
+        <figure class="shot shot-phone reveal">
+          <div class="phone">
+            <div class="phone-screen shot-body">
+              <img src="../assets/img/screens/de/sheet.webp" data-dark="../assets/img/screens/de/dark/sheet.webp" alt="Ein Charakterbogen auf dem Handy" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-shield"/></svg></div>
+            </div>
+          </div>
+          <figcaption>Der Charakterbogen in der Hand einer Spielerin.</figcaption>
+        </figure>
+        <figure class="shot shot-phone reveal">
+          <div class="phone">
+            <div class="phone-screen shot-body">
+              <img src="../assets/img/screens/de/fight-phone.webp" data-dark="../assets/img/screens/de/dark/fight-phone.webp" alt="Die Sicht einer Spielerin auf den laufenden Kampf am Handy" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-dices"/></svg></div>
+            </div>
+          </div>
+          <figcaption>„Du bist dran!“ Derselbe Kampf von der Seite der Spieler.</figcaption>
+        </figure>
+        <figure class="shot shot-phone reveal">
+          <div class="phone">
+            <div class="phone-screen shot-body">
+              <img src="../assets/img/screens/de/journal.webp" data-dark="../assets/img/screens/de/dark/journal.webp" alt="Ein Handout im Journal einer Spielerin auf dem Handy: der Vorlesetext, den die Spielleitung geteilt hat" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-book-open"/></svg></div>
+            </div>
+          </div>
+          <figcaption>Ein Handout, gerade über den Tisch gereicht.</figcaption>
+        </figure>
+        <figure class="shot reveal">
+          <div class="frame">
+            <div class="frame-bar"><span class="frame-dots"><i></i><i></i><i></i></span><span class="frame-label">Charakterassistent</span></div>
+            <div class="shot-body">
+              <img src="../assets/img/screens/de/wizard.webp" data-dark="../assets/img/screens/de/dark/wizard.webp" alt="Der Charakterassistent bei der Wahl der Klasse, mit den Klassen aus den Büchern der Welt" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-user-plus"/></svg></div>
+            </div>
+          </div>
+          <figcaption>Ein neuer Charakter, Schritt für Schritt, aus den Büchern eurer Welt.</figcaption>
+        </figure>
+        <figure class="shot reveal">
+          <div class="frame">
+            <div class="frame-bar"><span class="frame-dots"><i></i><i></i><i></i></span><span class="frame-label">Namen</span></div>
+            <div class="shot-body">
+              <img src="../assets/img/screens/de/names.webp" data-dark="../assets/img/screens/de/dark/names.webp" alt="Die Namenswerkstatt mit Namensstilen und Beispielnamen" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-wand-sparkles"/></svg></div>
+            </div>
+          </div>
+          <figcaption>Namensstile für jedes Volk eurer Welt, mit Namen zum Ausprobieren.</figcaption>
+        </figure>
+        <figure class="shot shot-wide reveal">
+          <div class="frame">
+            <div class="frame-bar"><span class="frame-dots"><i></i><i></i><i></i></span><span class="frame-label">Klangpult</span></div>
+            <div class="shot-body">
+              <img src="../assets/img/screens/de/sound.webp" data-dark="../assets/img/screens/de/dark/sound.webp" alt="Das Klangpult neben einem Kapitel: Felder für Atmosphäre, Musik und Effekte" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-volume-2"/></svg></div>
+            </div>
+          </div>
+          <figcaption>Regen, eine Glocke, Kriegstrommeln: das Klangpult neben dem Kapitel, das gerade läuft.</figcaption>
+        </figure>
+      </div>
+      <p class="shots-note muted">Die Bildschirmfotos zeigen Kreaturen aus dem System Reference Document 5.1 von Wizards of the Coast LLC, unter der <a href="https://creativecommons.org/licenses/by/4.0/deed.de">Lizenz Creative Commons Namensnennung 4.0</a>.</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ stack -->
+  <section id="stack" class="band band-sunken" aria-labelledby="stack-title">
+    <div class="wrap two-col">
+      <div class="reveal">
+        <p class="eyebrow">Unter der Haube</p>
+        <h2 id="stack-title">Einfache Technik, mit Absicht</h2>
+        <p class="intro">Kein Datenbankserver, keine Cloud, nichts zu kompilieren. Ein kleiner Python-Server und einfache Dateien auf einer Platte, so etwas läuft auch in zehn Jahren noch.</p>
+      </div>
+      <dl class="stack reveal">
+        <div><dt>Server</dt><dd>Python und FastAPI</dd></div>
+        <div><dt>Seiten</dt><dd>Auf dem Server mit htpy erzeugt und von HTMX an Ort und Stelle aktualisiert. Sehr wenig JavaScript.</dd></div>
+        <div><dt>Live</dt><dd>Ein Wurf auf dem Handy erscheint in etwa einer Zehntelsekunde auf dem Schirm der Spielleitung.</dd></div>
+        <div><dt>Daten</dt><dd>Einfache JSON- und Markdown-Dateien, sicher gespeichert. Keine Datenbank.</dd></div>
+        <div><dt>Regeln</dt><dd>Die 5eTools-Daten, die ihr mitbringt, dort gelesen, wo sie liegen, und in etwa zwei Sekunden bereit.</dd></div>
+        <div><dt>Aussehen</dt><dd>Ein Stylesheet, hell und dunkel, auf Kontrast geprüft. Auch diese Seite nutzt es.</dd></div>
+        <div><dt>Geräte</dt><dd>Lässt sich auf Tablet und Handy aus dem Browser wie eine App installieren.</dd></div>
+        <div><dt>Claude</dt><dd>Freiwillig. Eine MCP-Verbindung zum Entwerfen von Abenteuern und die Claude-API für Übersetzungen und Namen.</dd></div>
+        <div><dt>Qualität</dt><dd>Automatische Tests, Typprüfung und Linting bei jeder Änderung.</dd></div>
+        <div><dt>Von KI gemacht</dt><dd>Das gesamte System ist von Claude gebaut. Alle Ideen dazu kamen vom Autor.</dd></div>
+      </dl>
+    </div>
+  </section>
+
+  <!-- ============================================================ updates -->
+  <section id="updates" class="band" aria-labelledby="updates-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">Neues</p>
+        <h2 id="updates-title">Frisch aus der Entwicklung</h2>
+        <p class="intro">Die letzten Änderungen, so wie sie gemacht wurden, darum auf Englisch. Stand: <!-- fact-updated:start -->
+11. November 2026
+<!-- fact-updated:end -->.</p>
+      </div>
+      <ol class="updates" lang="en">
+<!-- updates:start -->
+      <li class="update reveal"><time datetime="2026-11-11">11. November 2026</time><span>Ignore the local .claude folder</span></li>
+      <li class="update reveal"><time datetime="2026-11-11">11. November 2026</time><span>Notices for what Paravent carries from others, and no publisher prose in public files</span></li>
+      <li class="update reveal"><time datetime="2026-11-11">11. November 2026</time><span>Fix a flaky tracker test: the player's attack no longer rolls a natural 1 by chance</span></li>
+      <li class="update reveal"><time datetime="2026-11-11">11. November 2026</time><span>Import a translated corpus from the translations page</span></li>
+      <li class="update reveal"><time datetime="2026-11-11">11. November 2026</time><span>Import a translated 5eTools corpus as translations</span></li>
+      <li class="update reveal"><time datetime="2026-11-11">11. November 2026</time><span>Draft naming styles for all of a world's unserved peoples at once</span></li>
+      <li class="update reveal"><time datetime="2026-11-11">11. November 2026</time><span>Getting started guide, a FAQ on the site, and screenshots in each language</span></li>
+      <li class="update reveal"><time datetime="2026-11-11">11. November 2026</time><span>A repeatable feat's ability increase per taking, and the site checked before packing</span></li>
+      <li class="update reveal"><time datetime="2026-11-11">11. November 2026</time><span>Website: how an evening goes, and tests for the build</span></li>
+      <li class="update reveal"><time datetime="2026-11-11">11. November 2026</time><span>Website: screenshots in light and dark, four more screens, share image and sitemap</span></li>
+      <li class="update reveal"><time datetime="2026-11-11">11. November 2026</time><span>Website: texts rewritten for players and game masters, and a narrower top margin</span></li>
+      <li class="update reveal"><time datetime="2026-11-10">10. November 2026</time><span>Website: screenshots open large on a click</span></li>
+      <li class="update reveal"><time datetime="2026-11-10">10. November 2026</time><span>Website: the text in JSON instead of Markdown</span></li>
+      <li class="update reveal"><time datetime="2026-11-09">9. November 2026</time><span>Website: the headline's words rotate, and the folding screen springs open</span></li>
+<!-- updates:end -->
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============================================================ faq -->
+  <section id="faq" class="band band-sunken" aria-labelledby="faq-title">
+    <div class="wrap two-col">
+      <div class="reveal">
+        <p class="eyebrow">Fragen</p>
+        <h2 id="faq-title">Was zuerst gefragt wird</h2>
+        <p class="intro">Kurze Antworten, bevor ihr irgendetwas einrichtet.</p>
+      </div>
+      <div class="faq reveal">
+        <details class="qa">
+          <summary><span>Leitet Paravent das Spiel für mich?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+          <div class="qa-a">
+        <p>Nein, und das wird es nie. Du erzählst die Geschichte, die Spieler würfeln, womit sie mögen, und du entscheidest, was passiert. Paravent hält Zahlen, Notizen und Handouts in Ordnung, damit du öfter vom Bildschirm aufschauen kannst.</p>
+          </div>
+        </details>
+        <details class="qa">
+          <summary><span>Was brauche ich dafür?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+          <div class="qa-a">
+        <p>Ein Gerät, das beim Spielen läuft: ein Laptop, ein Mini-PC oder ein NAS, mit Python oder Docker. Alle anderen brauchen nur einen Browser im selben Netz, auf Handy, Tablet oder Laptop. Nichts aus einem App Store.</p>
+          </div>
+        </details>
+        <details class="qa">
+          <summary><span>Warum sind keine Monster und Zauber dabei?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+          <div class="qa-a">
+        <p>Paravent bringt keinerlei Spielinhalte mit. Es liest Regeldaten im 5eTools-Format aus einem Ordner auf eurem eigenen Gerät und verändert sie nie. Welche Daten dort liegen, entscheidet ihr, so wie ihr entscheidet, welche Bücher im Regal stehen.</p>
+          </div>
+        </details>
+        <details class="qa">
+          <summary><span>Wo liegen unsere Daten?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+          <div class="qa-a">
+        <p>Auf eurem Gerät, in einem Ordner: Welten, Abenteuer, Charaktere, Kämpfe, alles als lesbare Markdown- und JSON-Dateien. Es gibt kein Konto bei uns, keine Cloud und kein Tracking. Auf Wunsch packt Paravent diesen Ordner jede Nacht in ein Zip.</p>
+          </div>
+        </details>
+        <details class="qa">
+          <summary><span>Braucht es Internet?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+          <div class="qa-a">
+        <p>Nur euer eigenes Netz. Die Handys sprechen mit dem Gerät, auf dem Paravent läuft, ins Internet geht nichts. Diese Verbindung braucht es aber: Einen Offline-Modus gibt es nicht.</p>
+          </div>
+        </details>
+        <details class="qa">
+          <summary><span>Brauchen meine Spieler ein Konto?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+          <div class="qa-a">
+        <p>Eine einfache Anmeldung, die du für jede Person anlegst. Sie sehen ihre eigenen Charaktere, den Kampf von ihrer Seite und was du mit ihnen teilst, nie deine Notizen oder die Trefferpunkte eines Monsters.</p>
+          </div>
+        </details>
+        <details class="qa">
+          <summary><span>Regeln von 2014 oder 2024?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+          <div class="qa-a">
+        <p>Beide. Jede Welt nennt die Bücher, mit denen ihr spielt, und das entscheidet die Edition. Wer beide besitzt, kann sie mischen, und Paravent zeigt immer, aus welchem Buch eine Regel stammt.</p>
+          </div>
+        </details>
+        <details class="qa">
+          <summary><span>Können wir auf Deutsch spielen?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+          <div class="qa-a">
+        <p>Ja. Die ganze Oberfläche spricht Deutsch, Entfernungen stehen in Metern, und Regeltexte lassen sich Absatz für Absatz übersetzen. Was noch niemand übersetzt hat, bleibt englisch, und jeder Verweis funktioniert weiter.</p>
+          </div>
+        </details>
+        <details class="qa">
+          <summary><span>Was kostet das?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+          <div class="qa-a">
+        <p>Nichts. Paravent ist frei und quelloffen. Kosten kann nur, was ihr zusätzlich einschaltet: Die Claude-Funktionen nutzen euer eigenes Claude-Konto oder einen API-Schlüssel, bezahlt an Anthropic. Ohne sie lässt Paravent diese Funktionen einfach aus.</p>
+          </div>
+        </details>
+        <details class="qa">
+          <summary><span>Ist Paravent Open Source?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+          <div class="qa-a">
+        <p>Ja. Paravent steht unter der MIT-Lizenz: Ihr dürft es nutzen, verändern und weitergeben, solange der Urheberrechtshinweis dabei bleibt. Der Quelltext liegt auf <a href="https://github.com/afhrad/paravent">GitHub</a>. Die Lizenz gilt für das Programm, nicht für die Regeldaten, die ihr mitbringt.</p>
+          </div>
+        </details>
+        <details class="qa">
+          <summary><span>Kann ich eigene Abenteuer und Homebrew mitbringen?</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+          <div class="qa-a">
+        <p>Ja. Abenteuer sind einfaches Markdown, geschrieben in Paravent oder in jedem Editor, Obsidian eingeschlossen. Eigene Kreaturen entstehen im Kreaturenbaukasten, und Homebrew im 5eTools-Format steht neben den Büchern und funktioniert wie sie.</p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ legal -->
+  <section id="legal" class="band" aria-labelledby="legal-title">
+    <div class="wrap two-col">
+      <div class="reveal">
+        <p class="eyebrow">Rechtliches</p>
+        <h2 id="legal-title">Ein Werkzeug, keine Inhaltssammlung</h2>
+      </div>
+      <div class="prose reveal">
+        <p><strong>Paravent kommt ohne Spielinhalte.</strong> Keine Zauber, keine Monster, keine Regeltexte, keine Abenteuer. Welche Daten eine Runde nutzt, entscheidet, wer es betreibt, genau wie bei einer Textverarbeitung und den Büchern im eigenen Regal.</p>
+        <p>Paravent ist ein unabhängiges Open-Source-Projekt und kostenlos nutzbar. Es steht in keiner Verbindung zu Wizards of the Coast oder dem 5eTools-Projekt und wird von ihnen weder unterstützt noch gefördert. <em>Dungeons &amp; Dragons</em> und <em>D&amp;D</em> sind Marken von Wizards of the Coast LLC. Alle anderen Namen gehören ihren Inhabern.</p>
+        <p>Diese Seite setzt keine Cookies und verwendet kein Tracking, keine Statistik und keine fremden Schriften. <a href="legal.html">Impressum und Datenschutz</a>.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog class="lightbox" aria-label="Bildschirmfoto, vergrößert" data-enlarge="Größer zeigen">
+  <figure class="lightbox-figure">
+    <img alt="">
+    <figcaption class="lightbox-caption"></figcaption>
+  </figure>
+  <button class="icon-btn lightbox-close" type="button" aria-label="Schließen" autofocus>
+    <svg class="ic" aria-hidden="true"><use href="#i-x"/></svg>
+  </button>
+</dialog>
+
+<footer class="footer">
+  <div class="wrap footer-row">
+    <a class="brand" href="#top">
+      <svg class="ic brand-mark" aria-hidden="true" style="font-size:24px"><use href="#i-paravent"/></svg><span>Paravent</span>
+    </a>
+    <p class="muted">Gemacht für einen Tisch, geteilt mit anderen. · <a href="legal.html">Impressum &amp; Datenschutz</a></p>
+  </div>
+</footer>
+</body>
+</html>

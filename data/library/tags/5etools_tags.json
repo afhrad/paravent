@@ -1,0 +1,1407 @@
+{
+ "source": "5etools-data, 499 JSON files, 109,857,630 bytes",
+ "distinct_tags": 110,
+ "total_occurrences": 249546,
+ "by_category": {
+  "entity": 143053,
+  "roll": 49230,
+  "nav": 28967,
+  "format": 14858,
+  "shorthand": 12232,
+  "comic": 674,
+  "external": 389,
+  "asset": 125,
+  "misc": 18
+ },
+ "tags": [
+  {
+   "tag": "creature",
+   "count": 54753,
+   "category": "entity",
+   "icon": "skull",
+   "handler": "ref",
+   "note": "Bestiary entry",
+   "examples": [
+    "{@creature troll||trolls}",
+    "{@creature will-o'-wisp||will-o'-wisps}",
+    "{@creature water weird||water weirds}"
+   ]
+  },
+  {
+   "tag": "spell",
+   "count": 25118,
+   "category": "entity",
+   "icon": "sparkles",
+   "handler": "ref",
+   "note": "Spell",
+   "examples": [
+    "{@spell shocking grasp}",
+    "{@spell modify memory}",
+    "{@spell lesser restoration}"
+   ]
+  },
+  {
+   "tag": "item",
+   "count": 19666,
+   "category": "entity",
+   "icon": "gem",
+   "handler": "ref",
+   "note": "Item; magic items same glyph in violet",
+   "examples": [
+    "{@item shield|phb}",
+    "{@item Shield|XPHB}",
+    "{@item Shortsword|XPHB}"
+   ]
+  },
+  {
+   "tag": "dc",
+   "count": 15462,
+   "category": "roll",
+   "icon": "shield-check",
+   "handler": "roll",
+   "note": "Fixed save DC",
+   "examples": [
+    "{@dc 15}",
+    "{@dc 10}",
+    "{@dc 12}"
+   ]
+  },
+  {
+   "tag": "dice",
+   "count": 14254,
+   "category": "roll",
+   "icon": "dices",
+   "handler": "roll",
+   "note": "Plain dice expression",
+   "examples": [
+    "{@dice 1d4}",
+    "{@dice 1d4 + 2}",
+    "{@dice 1d10 + 5}"
+   ]
+  },
+  {
+   "tag": "area",
+   "count": 13494,
+   "category": "nav",
+   "icon": "map-pin",
+   "handler": "ref",
+   "note": "Adventure map area cross-ref",
+   "examples": [
+    "{@area Pregenerated characters|030|x}",
+    "{@area Dark Secrets|3ec|x}",
+    "{@area The Companion|007|x}"
+   ]
+  },
+  {
+   "tag": "damage",
+   "count": 11645,
+   "category": "roll",
+   "icon": "dices",
+   "handler": "roll",
+   "note": "Damage roll; icon swaps to damage type when known",
+   "examples": [
+    "{@damage 4d10}",
+    "{@damage 2d10}",
+    "{@damage 1d6}"
+   ]
+  },
+  {
+   "tag": "condition",
+   "count": 11634,
+   "category": "entity",
+   "icon": "footprints",
+   "handler": "ref",
+   "note": "Condition rule",
+   "examples": [
+    "{@condition Incapacitated|XPHB}",
+    "{@condition grappled}",
+    "{@condition incapacitated}"
+   ]
+  },
+  {
+   "tag": "skill",
+   "count": 10756,
+   "category": "entity",
+   "icon": "target",
+   "handler": "ref",
+   "note": "Skill check",
+   "examples": [
+    "{@skill Athletics}",
+    "{@skill Acrobatics}",
+    "{@skill Athletics|XPHB}"
+   ]
+  },
+  {
+   "tag": "book",
+   "count": 9264,
+   "category": "nav",
+   "icon": "book-open",
+   "handler": "ref",
+   "note": "Source book chapter",
+   "examples": [
+    "{@book Making an Attack|phb|9|making an attack}",
+    "{@book chapter 10|phb|10|casting a spell}",
+    "{@book stabilize a creature|XPHB|1|Stabilizing a Character}"
+   ]
+  },
+  {
+   "tag": "i",
+   "count": 7478,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "italic",
+   "examples": [
+    "{@i A Zib for Your Thoughts}",
+    "{@i Baldur's Gate: Descent into Avernus}",
+    "{@i Uncivil Serpent}"
+   ]
+  },
+  {
+   "tag": "b",
+   "count": 6659,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "bold",
+   "examples": [
+    "{@b bold}",
+    "{@b Argona}",
+    "{@b Delrim Munn}"
+   ]
+  },
+  {
+   "tag": "hit",
+   "count": 6212,
+   "category": "roll",
+   "icon": "target",
+   "handler": "roll",
+   "note": "Attack bonus, rolls 1d20+N",
+   "examples": [
+    "{@hit 8}",
+    "{@hit 5}",
+    "{@hit 2}"
+   ]
+  },
+  {
+   "tag": "adventure",
+   "count": 6209,
+   "category": "nav",
+   "icon": "map",
+   "handler": "ref",
+   "note": "Adventure chapter",
+   "examples": [
+    "{@adventure The Hidden Page|AitFR-THP}",
+    "{@adventure Krenko's Way|kkw}",
+    "{@adventure Chapter 1|BGDIA|1}"
+   ]
+  },
+  {
+   "tag": "variantrule",
+   "count": 5758,
+   "category": "entity",
+   "icon": "book-open",
+   "handler": "ref",
+   "note": "Rules gloss",
+   "examples": [
+    "{@variantrule Unarmed Strike|XPHB}",
+    "{@variantrule Speed|XPHB}",
+    "{@variantrule Fly Speed|XPHB}"
+   ]
+  },
+  {
+   "tag": "h",
+   "count": 5468,
+   "category": "shorthand",
+   "icon": null,
+   "handler": "expand",
+   "note": "'Hit:' — 5,468 uses, must not be missed",
+   "examples": [
+    "{@h}"
+   ]
+  },
+  {
+   "tag": "atk",
+   "count": 4623,
+   "category": "shorthand",
+   "icon": null,
+   "handler": "expand",
+   "note": "Attack type: mw/rw/ms/rs",
+   "examples": [
+    "{@atk rw}",
+    "{@atk ms,rs}",
+    "{@atk mw}"
+   ]
+  },
+  {
+   "tag": "action",
+   "count": 1990,
+   "category": "entity",
+   "icon": "zap",
+   "handler": "ref",
+   "note": "Combat action",
+   "examples": [
+    "{@action Use an Object}",
+    "{@action grapple||grappling}",
+    "{@action Opportunity Attack|XPHB|Opportunity Attacks}"
+   ]
+  },
+  {
+   "tag": "filter",
+   "count": 1502,
+   "category": "entity",
+   "icon": "filter",
+   "handler": "ref",
+   "note": "Pre-filtered compendium list",
+   "examples": [
+    "{@filter Supernatural Gifts|rewards|type=charm}",
+    "{@filter uncommon magic items|items|source=DMG|rarity=uncommon}",
+    "{@filter Dwarf|races|Base Species=Dwarf}"
+   ]
+  },
+  {
+   "tag": "quickref",
+   "count": 1459,
+   "category": "entity",
+   "icon": "book-open",
+   "handler": "ref",
+   "note": "Quick reference rule",
+   "examples": [
+    "{@quickref difficult terrain||3}",
+    "{@quickref Vision and Light||2||dim light}",
+    "{@quickref Vision and Light||2||bright light}"
+   ]
+  },
+  {
+   "tag": "deity",
+   "count": 1138,
+   "category": "entity",
+   "icon": "landmark",
+   "handler": "ref",
+   "note": "Deity",
+   "examples": [
+    "{@deity Silvanus|Faerûnian|SCAG}",
+    "{@deity Paladine|dragonlance|DSotDQ}",
+    "{@deity Branchala|dragonlance|DSotDQ}"
+   ]
+  },
+  {
+   "tag": "sense",
+   "count": 1057,
+   "category": "entity",
+   "icon": "eye",
+   "handler": "ref",
+   "note": "Darkvision, truesight, tremorsense",
+   "examples": [
+    "{@sense darkvision}",
+    "{@sense truesight}",
+    "{@sense Darkvision|XPHB}"
+   ]
+  },
+  {
+   "tag": "class",
+   "count": 1039,
+   "category": "entity",
+   "icon": "shield",
+   "handler": "ref",
+   "note": "Class / subclass link",
+   "examples": [
+    "{@class Warlock||the Fiend|Fiend}",
+    "{@class Bard}",
+    "{@class Cleric}"
+   ]
+  },
+  {
+   "tag": "background",
+   "count": 970,
+   "category": "entity",
+   "icon": "scroll",
+   "handler": "ref",
+   "note": "Background",
+   "examples": [
+    "{@background Baldur's Gate Acolyte|BGDIA|Acolyte}",
+    "{@background Baldur's Gate Charlatan|BGDIA|Charlatan}",
+    "{@background Baldur's Gate Criminal|BGDIA|Criminal}"
+   ]
+  },
+  {
+   "tag": "recharge",
+   "count": 923,
+   "category": "roll",
+   "icon": "refresh-cw",
+   "handler": "roll",
+   "note": "Recharge N-6",
+   "examples": [
+    "{@recharge 5}",
+    "{@recharge 4}",
+    "{@recharge}"
+   ]
+  },
+  {
+   "tag": "status",
+   "count": 897,
+   "category": "entity",
+   "icon": "hourglass",
+   "handler": "ref",
+   "note": "Status e.g. concentration",
+   "examples": [
+    "{@status concentration}",
+    "{@status Concentration|XPHB}",
+    "{@status concentration||concentrating}"
+   ]
+  },
+  {
+   "tag": "atkr",
+   "count": 857,
+   "category": "shorthand",
+   "icon": null,
+   "handler": "expand",
+   "note": "Attack range shorthand (2024)",
+   "examples": [
+    "{@atkr m}",
+    "{@atkr r}",
+    "{@atkr m,r}"
+   ]
+  },
+  {
+   "tag": "feat",
+   "count": 845,
+   "category": "entity",
+   "icon": "star",
+   "handler": "ref",
+   "note": "Feat",
+   "examples": [
+    "{@feat Healer||Healer feat}",
+    "{@feat Skilled}",
+    "{@feat Tough}"
+   ]
+  },
+  {
+   "tag": "table",
+   "count": 838,
+   "category": "entity",
+   "icon": "table",
+   "handler": "ref",
+   "note": "Random / reference table",
+   "examples": [
+    "{@table Cover|XPHB|Half Cover}",
+    "{@table Urban Chase Complications|dmg}",
+    "{@table Cover|XPHB|Total Cover}"
+   ]
+  },
+  {
+   "tag": "card",
+   "count": 609,
+   "category": "entity",
+   "icon": "layers",
+   "handler": "ref",
+   "note": "Deck card e.g. Tarokka",
+   "examples": [
+    "{@card Ghost|Tarokka Deck|CoS}",
+    "{@card Innocent|Tarokka Deck|CoS}",
+    "{@card Marionette|Tarokka Deck|CoS}"
+   ]
+  },
+  {
+   "tag": "race",
+   "count": 489,
+   "category": "entity",
+   "icon": "users-round",
+   "handler": "ref",
+   "note": "Species / race",
+   "examples": [
+    "{@race tiefling}",
+    "{@race Elf (Wood)||wood elves}",
+    "{@race Human}"
+   ]
+  },
+  {
+   "tag": "comic",
+   "count": 448,
+   "category": "comic",
+   "icon": null,
+   "handler": "block",
+   "note": "Comic panel",
+   "examples": [
+    "{@comic {@5etoolsImg Meatface|pdf/RMBRE/Meatface.pdf}: Human Fighter}",
+    "{@comic A line of comic lettering}",
+    "{@comic Another line, set the same way}"
+   ]
+  },
+  {
+   "tag": "actSaveFail",
+   "count": 443,
+   "category": "shorthand",
+   "icon": null,
+   "handler": "expand",
+   "note": "'Failure:'",
+   "examples": [
+    "{@actSaveFail}",
+    "{@actSaveFail 1}",
+    "{@actSaveFail 2}"
+   ]
+  },
+  {
+   "tag": "actSave",
+   "count": 425,
+   "category": "shorthand",
+   "icon": null,
+   "handler": "expand",
+   "note": "'Dexterity Saving Throw:'",
+   "examples": [
+    "{@actSave dex}",
+    "{@actSave cha}",
+    "{@actSave wis}"
+   ]
+  },
+  {
+   "tag": "chance",
+   "count": 413,
+   "category": "roll",
+   "icon": "percent",
+   "handler": "roll",
+   "note": "Percentage chance",
+   "examples": [
+    "{@chance 25}",
+    "{@chance 50}",
+    "{@chance 30}"
+   ]
+  },
+  {
+   "tag": "vehicle",
+   "count": 309,
+   "category": "entity",
+   "icon": "ship",
+   "handler": "ref",
+   "note": "Vehicle",
+   "examples": [
+    "{@vehicle sailing ship}",
+    "{@vehicle Demon Grinder|BGDIA}",
+    "{@vehicle Devil's Ride|BGDIA}"
+   ]
+  },
+  {
+   "tag": "note",
+   "count": 306,
+   "category": "format",
+   "icon": "info",
+   "handler": "block",
+   "note": "Aside / callout box",
+   "examples": [
+    "{@note See the table below.}",
+    "{@note An optional rule.}",
+    "{@note A remark set apart from the text}"
+   ]
+  },
+  {
+   "tag": "reward",
+   "count": 276,
+   "category": "entity",
+   "icon": "award",
+   "handler": "ref",
+   "note": "Boon / charm / blessing",
+   "examples": [
+    "{@reward Golgari charm|GGR}",
+    "{@reward charm of vitality}",
+    "{@reward charm of restoration}"
+   ]
+  },
+  {
+   "tag": "itemProperty",
+   "count": 273,
+   "category": "entity",
+   "icon": "tag",
+   "handler": "ref",
+   "note": "Weapon/armor property e.g. finesse",
+   "examples": [
+    "{@itemProperty 2H|PHB|two-handed}",
+    "{@itemProperty F|PHB|finesse}",
+    "{@itemProperty R|PHB|reach}"
+   ]
+  },
+  {
+   "tag": "language",
+   "count": 236,
+   "category": "entity",
+   "icon": "languages",
+   "handler": "ref",
+   "note": "Language",
+   "examples": [
+    "{@language Primordial||Terran}",
+    "{@language Common|DSotDQ}",
+    "{@language Abanasinian|DSotDQ}"
+   ]
+  },
+  {
+   "tag": "hazard",
+   "count": 224,
+   "category": "entity",
+   "icon": "triangle-alert",
+   "handler": "ref",
+   "note": "Hazard",
+   "examples": [
+    "{@hazard yellow mold}",
+    "{@hazard extreme cold}",
+    "{@hazard demon ichor|BGDIA|Traps and Hazards}"
+   ]
+  },
+  {
+   "tag": "5etools",
+   "count": 211,
+   "category": "external",
+   "icon": "external-link",
+   "handler": "link",
+   "note": "Link into 5etools UI — rewrite to our own route",
+   "examples": [
+    "{@5etools Magic Items Listing|items.html}",
+    "{@5etools Equipment Items Listing|items.html}",
+    "{@5etools bestiary|bestiary.html}"
+   ]
+  },
+  {
+   "tag": "actSaveSuccess",
+   "count": 203,
+   "category": "shorthand",
+   "icon": null,
+   "handler": "expand",
+   "note": "'Success:'",
+   "examples": [
+    "{@actSaveSuccess}"
+   ]
+  },
+  {
+   "tag": "scaledamage",
+   "count": 180,
+   "category": "roll",
+   "icon": "dices",
+   "handler": "roll",
+   "note": "Damage scaled by level/slot",
+   "examples": [
+    "{@scaledamage 1d10|1-7|1d10|psi}",
+    "{@scaledamage 1d6|1-7|1d6|psi}",
+    "{@scaledamage 6d6|5-7|1d6|psi}"
+   ]
+  },
+  {
+   "tag": "link",
+   "count": 176,
+   "category": "external",
+   "icon": "external-link",
+   "handler": "link",
+   "note": "Arbitrary external URL",
+   "examples": [
+    "{@link www.dmsguild.com|https://www.dmsguild.com}",
+    "{@link DnDBeyond.com/games|https://www.dndbeyond.com/games}",
+    "{@link DungeonsandDragons.com|https://dnd.wizards.com}"
+   ]
+  },
+  {
+   "tag": "optfeature",
+   "count": 172,
+   "category": "entity",
+   "icon": "star",
+   "handler": "ref",
+   "note": "Optional feature / invocation",
+   "examples": [
+    "{@optfeature Favored in House|EFA}",
+    "{@optfeature Recognized in House|EFA}",
+    "{@optfeature Celebrated in House|EFA}"
+   ]
+  },
+  {
+   "tag": "recipe",
+   "count": 170,
+   "category": "entity",
+   "icon": "utensils-crossed",
+   "handler": "ref",
+   "note": "Recipe",
+   "examples": [
+    "{@recipe Elverquisst|HFFotM}",
+    "{@recipe Spicy shredded stirge sliders|HFDoMM}",
+    "{@recipe Purple Grapemash No. 3|HFFotM}"
+   ]
+  },
+  {
+   "tag": "classFeature",
+   "count": 147,
+   "category": "entity",
+   "icon": "star",
+   "handler": "ref",
+   "note": "Class feature",
+   "examples": [
+    "{@classFeature Flash of Genius|Artificer|TCE|7|TCE}",
+    "{@classFeature Spell-Storing Item|Artificer|TCE|11|TCE}",
+    "{@classFeature Infuse Item|Artificer|TCE|2|TCE}"
+   ]
+  },
+  {
+   "tag": "deck",
+   "count": 135,
+   "category": "entity",
+   "icon": "layers",
+   "handler": "ref",
+   "note": "Card deck",
+   "examples": [
+    "{@deck Tarokka Deck|CoS|deck of tarokka cards}",
+    "{@deck Tarokka Deck|CoS|tarokka cards}",
+    "{@deck tarokka deck|CoS}"
+   ]
+  },
+  {
+   "tag": "5etoolsImg",
+   "count": 123,
+   "category": "asset",
+   "icon": "image",
+   "handler": "asset",
+   "note": "Image/PDF asset",
+   "examples": [
+    "{@5etoolsImg Cathartic|pdf/DitLCoT/cathartic.pdf}",
+    "{@5etoolsImg Dunil|pdf/DitLCoT/dunil.pdf}",
+    "{@5etoolsImg Ethelrede|pdf/DitLCoT/ethelrede.pdf}"
+   ]
+  },
+  {
+   "tag": "itemMastery",
+   "count": 108,
+   "category": "entity",
+   "icon": "swords",
+   "handler": "ref",
+   "note": "Weapon mastery property",
+   "examples": [
+    "{@itemMastery Slow}",
+    "{@itemMastery Sap}",
+    "{@itemMastery Vex}"
+   ]
+  },
+  {
+   "tag": "color",
+   "count": 104,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "explicit hex — MUST be remapped to a token",
+   "examples": [
+    "{@color ♦|#ff0000}",
+    "{@color ♥|#ff0000}",
+    "{@color X|ee1c25}"
+   ]
+  },
+  {
+   "tag": "facility",
+   "count": 87,
+   "category": "entity",
+   "icon": "house",
+   "handler": "ref",
+   "note": "Bastion facility",
+   "examples": [
+    "{@facility Lyrandar Helm|EFA}",
+    "{@facility Navigator's Helm|EFA}",
+    "{@facility Orien Helm|EFA}"
+   ]
+  },
+  {
+   "tag": "disease",
+   "count": 85,
+   "category": "entity",
+   "icon": "biohazard",
+   "handler": "ref",
+   "note": "Disease",
+   "examples": [
+    "{@disease Sewer plague}",
+    "{@disease sewer plague}",
+    "{@disease sight rot}"
+   ]
+  },
+  {
+   "tag": "comicH3",
+   "count": 70,
+   "category": "comic",
+   "icon": null,
+   "handler": "block",
+   "note": "Comic heading 3",
+   "examples": [
+    "{@comicH3 Yeah and no.}",
+    "{@comicH3 god}",
+    "{@comicH3 me}"
+   ]
+  },
+  {
+   "tag": "subclassFeature",
+   "count": 69,
+   "category": "entity",
+   "icon": "star",
+   "handler": "ref",
+   "note": "Subclass feature",
+   "examples": [
+    "{@subclassFeature Fast Hands|Rogue||Thief||3}",
+    "{@subclassFeature Dragon Ancestor|Sorcerer|PHB|Draconic|PHB|1|PHB}",
+    "{@subclassFeature Cutting Words|Bard|PHB|Lore|PHB|3|PHB}"
+   ]
+  },
+  {
+   "tag": "hitYourSpellAttack",
+   "count": 64,
+   "category": "roll",
+   "icon": "target",
+   "handler": "roll",
+   "note": "Resolves to caster's spell attack mod",
+   "examples": [
+    "{@hitYourSpellAttack Bonus equals your spell attack modifier}",
+    "{@hitYourSpellAttack}",
+    "{@hitYourSpellAttack with optional display text}"
+   ]
+  },
+  {
+   "tag": "comicH1",
+   "count": 62,
+   "category": "comic",
+   "icon": null,
+   "handler": "block",
+   "note": "Comic heading 1",
+   "examples": [
+    "{@comicH1 POWER, Morty!}",
+    "{@comicH1 it's good stuff.}",
+    "{@comicH1 A comic heading}"
+   ]
+  },
+  {
+   "tag": "actSaveSuccessOrFail",
+   "count": 60,
+   "category": "shorthand",
+   "icon": null,
+   "handler": "expand",
+   "note": "'Failure or Success:'",
+   "examples": [
+    "{@actSaveSuccessOrFail}"
+   ]
+  },
+  {
+   "tag": "italic",
+   "count": 60,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "italic (long form)",
+   "examples": [
+    "{@italic Dungeon Master's Guide}",
+    "{@italic Brutal Pick}",
+    "{@italic Earthheart Forge}"
+   ]
+  },
+  {
+   "tag": "bold",
+   "count": 59,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "bold (long form)",
+   "examples": [
+    "{@bold bold}",
+    "{@bold Apathy.}",
+    "{@bold Dread.}"
+   ]
+  },
+  {
+   "tag": "actTrigger",
+   "count": 59,
+   "category": "shorthand",
+   "icon": null,
+   "handler": "expand",
+   "note": "'Trigger:'",
+   "examples": [
+    "{@actTrigger}"
+   ]
+  },
+  {
+   "tag": "actResponse",
+   "count": 59,
+   "category": "shorthand",
+   "icon": null,
+   "handler": "expand",
+   "note": "'Response:'",
+   "examples": [
+    "{@actResponse}",
+    "{@actResponse d}"
+   ]
+  },
+  {
+   "tag": "comicNote",
+   "count": 59,
+   "category": "comic",
+   "icon": null,
+   "handler": "block",
+   "note": "Comic note",
+   "examples": [
+    "{@comicNote MEH}",
+    "{@comicNote Ok}",
+    "{@comicNote Yes, Burn}"
+   ]
+  },
+  {
+   "tag": "object",
+   "count": 57,
+   "category": "entity",
+   "icon": "shapes",
+   "handler": "ref",
+   "note": "Interactable object",
+   "examples": [
+    "{@object boilerdrak|DSotDQ}",
+    "{@object Boilerdrak|DSotDQ}",
+    "{@object Gnomeflinger|DSotDQ}"
+   ]
+  },
+  {
+   "tag": "trap",
+   "count": 54,
+   "category": "entity",
+   "icon": "triangle-alert",
+   "handler": "ref",
+   "note": "Trap",
+   "examples": [
+    "{@trap malfunctioning Phase Transference Emitter|AZFYT}",
+    "{@trap death fog trap|RtG}",
+    "{@trap poison needle}"
+   ]
+  },
+  {
+   "tag": "unit",
+   "count": 45,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "Pluralizing unit, e.g. egg/eggs",
+   "examples": [
+    "{@unit {=amount1/v}|egg|eggs}",
+    "{@unit {=amount1}|egg|eggs}",
+    "{@unit {=amount1/v}|clove|cloves}"
+   ]
+  },
+  {
+   "tag": "footnote",
+   "count": 36,
+   "category": "format",
+   "icon": "asterisk",
+   "handler": "inline",
+   "note": "Footnote marker + body",
+   "examples": [
+    "{@footnote the marked words|The footnote they carry}",
+    "{@footnote __________________|EXCLAMATION}",
+    "{@footnote __________________|ADJECTIVE}"
+   ]
+  },
+  {
+   "tag": "cult",
+   "count": 36,
+   "category": "entity",
+   "icon": "landmark",
+   "handler": "ref",
+   "note": "Cult",
+   "examples": [
+    "{@cult cult of Baphomet|MPMM|cultist of Baphomet}",
+    "{@cult Cult of Baphomet|MPMM}",
+    "{@cult Cult of Demogorgon|MPMM}"
+   ]
+  },
+  {
+   "tag": "vehupgrade",
+   "count": 35,
+   "category": "entity",
+   "icon": "ship",
+   "handler": "ref",
+   "note": "Vehicle upgrade",
+   "examples": [
+    "{@vehupgrade Infernal Screamer|BGDIA}",
+    "{@vehupgrade Gilded Death Armor|BGDIA}",
+    "{@vehupgrade Acidic Bile Sprayer|BGDIA}"
+   ]
+  },
+  {
+   "tag": "hom",
+   "count": 32,
+   "category": "shorthand",
+   "icon": null,
+   "handler": "expand",
+   "note": "'Hit or Miss:'",
+   "examples": [
+    "{@hom}"
+   ]
+  },
+  {
+   "tag": "s",
+   "count": 31,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "strike",
+   "examples": [
+    "{@s Test rockets!}",
+    "{@s Separate Barn Door from foundation!}",
+    "{@s Set correct coordinates!}"
+   ]
+  },
+  {
+   "tag": "comicH4",
+   "count": 31,
+   "category": "comic",
+   "icon": null,
+   "handler": "block",
+   "note": "Comic heading 4",
+   "examples": [
+    "{@comicH4 MEANINGLESS}",
+    "{@comicH4 INFINITE IDEAS}",
+    "{@comicH4 INFINITE POWER}"
+   ]
+  },
+  {
+   "tag": "skillCheck",
+   "count": 28,
+   "category": "roll",
+   "icon": "target",
+   "handler": "roll",
+   "note": "Skill check with bonus",
+   "examples": [
+    "{@skillCheck athletics 4}",
+    "{@skillCheck athletics 0}",
+    "{@skillCheck athletics 2}"
+   ]
+  },
+  {
+   "tag": "charoption",
+   "count": 28,
+   "category": "entity",
+   "icon": "circle-user",
+   "handler": "ref",
+   "note": "Character option",
+   "examples": [
+    "{@charoption Cult of the Dragon Infiltrator|HotDQ}",
+    "{@charoption Dragon Scholar|HotDQ}",
+    "{@charoption Hollow One|egw}"
+   ]
+  },
+  {
+   "tag": "style",
+   "count": 25,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "named style e.g. small-caps",
+   "examples": [
+    "{@style The Far Realm: Real Yet Unreal|small-caps}",
+    "{@style Hooves of Fury|small-caps}",
+    "{@style Manual of Clay Golems|small-caps}"
+   ]
+  },
+  {
+   "tag": "crochet",
+   "count": 18,
+   "category": "misc",
+   "icon": null,
+   "handler": "inline",
+   "note": "Crochet pattern (one book)",
+   "examples": [
+    "{@crochet Schools of Magic Granny Squares}",
+    "{@crochet Gloves of Missile Snaring}",
+    "{@crochet Bag of Holding}"
+   ]
+  },
+  {
+   "tag": "scaledice",
+   "count": 17,
+   "category": "roll",
+   "icon": "dices",
+   "handler": "roll",
+   "note": "Dice scaled by level/slot",
+   "examples": [
+    "{@scaledice 1d8|1-7|1d8|psi}",
+    "{@scaledice 6d10|1-9|2d10}",
+    "{@scaledice 8d6|3-9|1d6}"
+   ]
+  },
+  {
+   "tag": "subclass",
+   "count": 14,
+   "category": "entity",
+   "icon": "shield",
+   "handler": "ref",
+   "note": "Subclass",
+   "examples": [
+    "{@subclass Alchemist|Artificer|EFA|EFA}",
+    "{@subclass Armorer|Artificer|EFA|EFA}",
+    "{@subclass Artillerist|Artificer|EFA|EFA}"
+   ]
+  },
+  {
+   "tag": "ability",
+   "count": 11,
+   "category": "roll",
+   "icon": "dumbbell",
+   "handler": "roll",
+   "note": "Ability score + modifier",
+   "examples": [
+    "{@ability con 10|+0}",
+    "{@ability con 14|+2}",
+    "{@ability con 12|+1}"
+   ]
+  },
+  {
+   "tag": "font",
+   "count": 11,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "custom @font-face, e.g. Draconic script",
+   "examples": [
+    "{@font RACH DARASTRIX|languages/XPHB/Draconic/Iokharik-v2.woff2}",
+    "{@font AURIX DARASTRIX|languages/XPHB/Draconic/Iokharik-v2.woff2}",
+    "{@font VUTHA DARASTRIX|languages/XPHB/Draconic/Iokharik-v2.woff2}"
+   ]
+  },
+  {
+   "tag": "boon",
+   "count": 11,
+   "category": "entity",
+   "icon": "award",
+   "handler": "ref",
+   "note": "Demonic boon",
+   "examples": [
+    "{@boon Demonic Boon of Baphomet}",
+    "{@boon Demonic Boon of Demogorgon}",
+    "{@boon Demonic Boon of Fraz-Urb'luu}"
+   ]
+  },
+  {
+   "tag": "highlight",
+   "count": 11,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "highlighted run",
+   "examples": [
+    "{@highlight the highlighted words}",
+    "{@highlight miniature figures}",
+    "{@highlight if you halve 15, you get 7.}"
+   ]
+  },
+  {
+   "tag": "d20",
+   "count": 10,
+   "category": "roll",
+   "icon": "dices",
+   "handler": "roll",
+   "note": "Explicit d20 roll",
+   "examples": [
+    "{@d20 4}",
+    "{@d20 +8}",
+    "{@d20 +6}"
+   ]
+  },
+  {
+   "tag": "u",
+   "count": 7,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "underline",
+   "examples": [
+    "{@u Appetizers}",
+    "{@u Main Dishes}",
+    "{@u Desserts & Drinks}"
+   ]
+  },
+  {
+   "tag": "tip",
+   "count": 6,
+   "category": "format",
+   "icon": "info",
+   "handler": "inline",
+   "note": "Hover tooltip",
+   "examples": [
+    "{@tip {@link DnDBeyond.com|https://www.dndbeyond.com/}|:^)}",
+    "{@tip Die Size|Psionic Energy Die Size}",
+    "{@tip Number|Psionic Energy Die Number}"
+   ]
+  },
+  {
+   "tag": "kbd",
+   "count": 6,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "keyboard key",
+   "examples": [
+    "{@kbd keyboard}",
+    "{@kbd SHIFT}",
+    "{@kbd ALT}"
+   ]
+  },
+  {
+   "tag": "coinflip",
+   "count": 5,
+   "category": "roll",
+   "icon": "circle-dot",
+   "handler": "roll",
+   "note": "Coin flip",
+   "examples": [
+    "{@coinflip FLIP A COIN}",
+    "{@coinflip flipping one}",
+    "{@coinflip}"
+   ]
+  },
+  {
+   "tag": "comicH2",
+   "count": 4,
+   "category": "comic",
+   "icon": null,
+   "handler": "block",
+   "note": "Comic heading 2",
+   "examples": [
+    "{@comicH2 LOVE AND FRIENDSHIP ARE}",
+    "{@comicH2 BIOLOGICAL BULLS**T}",
+    "{@comicH2 DON'T F*** WITH THAT SIMPLE LIFE-DEATH ECOSYSTEM}"
+   ]
+  },
+  {
+   "tag": "dcYourSpellSave",
+   "count": 3,
+   "category": "roll",
+   "icon": "shield-check",
+   "handler": "roll",
+   "note": "Resolves to caster's spell save DC",
+   "examples": [
+    "{@dcYourSpellSave}",
+    "{@dcYourSpellSave with optional display text}"
+   ]
+  },
+  {
+   "tag": "homebrew",
+   "count": 3,
+   "category": "format",
+   "icon": "flask-conical",
+   "handler": "inline",
+   "note": "Homebrew delta vs official",
+   "examples": [
+    "{@homebrew changes|modifications}",
+    "{@homebrew additions}",
+    "{@homebrew |removals}"
+   ]
+  },
+  {
+   "tag": "legroup",
+   "count": 3,
+   "category": "entity",
+   "icon": "crown",
+   "handler": "ref",
+   "note": "Legendary group",
+   "examples": [
+    "{@legroup unicorn}",
+    "{@legroup balhannoth|MPMM}",
+    "{@legroup Shadow Dragon|FTD}"
+   ]
+  },
+  {
+   "tag": "psionic",
+   "count": 3,
+   "category": "entity",
+   "icon": "brain-circuit",
+   "handler": "ref",
+   "note": "Psionic discipline",
+   "examples": [
+    "{@psionic Mastery of Force}",
+    "{@psionic Mastery of Force|UATheMysticClass}",
+    "{@psionic Mastery of Force|UATheMysticClass|shown under another name}"
+   ]
+  },
+  {
+   "tag": "savingThrow",
+   "count": 2,
+   "category": "roll",
+   "icon": "shield-check",
+   "handler": "roll",
+   "note": "Saving throw with bonus",
+   "examples": [
+    "{@savingThrow con 3}",
+    "{@savingThrow str 5}"
+   ]
+  },
+  {
+   "tag": "5etoolsAudio",
+   "count": 2,
+   "category": "asset",
+   "icon": "volume-2",
+   "handler": "asset",
+   "note": "Audio asset",
+   "examples": [
+    "{@5etoolsAudio Saltmarsh Shanty|adventure/GoS/saltmarsh-shanty.opus}",
+    "{@5etoolsAudio Saltmarsh Shanty|adventure/GoS/saltmarsh-shanty.mp3}"
+   ]
+  },
+  {
+   "tag": "creatureFluff",
+   "count": 2,
+   "category": "entity",
+   "icon": "skull",
+   "handler": "ref",
+   "note": "Creature lore variant",
+   "examples": [
+    "{@creatureFluff Rusted|FRAiF|Other Rusted}"
+   ]
+  },
+  {
+   "tag": "sup",
+   "count": 2,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "superscript",
+   "examples": [
+    "{@sup [{@footnote *1|The footnote behind the mark}]}",
+    "{@sup superscript}"
+   ]
+  },
+  {
+   "tag": "code",
+   "count": 2,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "monospace",
+   "examples": [
+    "{@code print(&quot;hello world&quot;)}",
+    "{@code &lt;name&gt;|&lt;source&gt;|&lt;displayText&gt;}"
+   ]
+  },
+  {
+   "tag": "loader",
+   "count": 2,
+   "category": "external",
+   "icon": "download",
+   "handler": "link",
+   "note": "Homebrew loader link — disable",
+   "examples": [
+    "{@loader Tome of Beasts|creature/Kobold Press; Tome of Beasts.json}",
+    "{@loader UA: When Armies Clash|collection/Unearthed Arcana - When Armies Clash.json|prerelease}"
+   ]
+  },
+  {
+   "tag": "m",
+   "count": 2,
+   "category": "shorthand",
+   "icon": null,
+   "handler": "expand",
+   "note": "'Miss:'",
+   "examples": [
+    "{@m}"
+   ]
+  },
+  {
+   "tag": "actSaveFailBy",
+   "count": 1,
+   "category": "shorthand",
+   "icon": null,
+   "handler": "expand",
+   "note": "'Failure by N or more:'",
+   "examples": [
+    "{@actSaveFailBy 5}"
+   ]
+  },
+  {
+   "tag": "legendaryGroup",
+   "count": 1,
+   "category": "entity",
+   "icon": "crown",
+   "handler": "ref",
+   "note": "Legendary group (alt spelling)",
+   "examples": [
+    "{@legendaryGroup Shadow Dragon|FTD}"
+   ]
+  },
+  {
+   "tag": "underline",
+   "count": 1,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "underline (long form)",
+   "examples": [
+    "{@underline some text to be underlined}"
+   ]
+  },
+  {
+   "tag": "underlineDouble",
+   "count": 1,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "double underline",
+   "examples": [
+    "{@underlineDouble some text to be underlined}"
+   ]
+  },
+  {
+   "tag": "u2",
+   "count": 1,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "underline shorthand",
+   "examples": [
+    "{@u2 shorthand}"
+   ]
+  },
+  {
+   "tag": "strike",
+   "count": 1,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "strike (long form)",
+   "examples": [
+    "{@strike some text to strike-through}"
+   ]
+  },
+  {
+   "tag": "strikeDouble",
+   "count": 1,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "double strike",
+   "examples": [
+    "{@strikeDouble some text to strike-through}"
+   ]
+  },
+  {
+   "tag": "s2",
+   "count": 1,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "strike shorthand",
+   "examples": [
+    "{@s2 shorthand}"
+   ]
+  },
+  {
+   "tag": "sub",
+   "count": 1,
+   "category": "format",
+   "icon": null,
+   "handler": "inline",
+   "note": "subscript",
+   "examples": [
+    "{@sub subscript}"
+   ]
+  },
+  {
+   "tag": "autodice",
+   "count": 1,
+   "category": "roll",
+   "icon": "dices",
+   "handler": "roll",
+   "note": "Auto-rolled expression",
+   "examples": [
+    "{@autodice 2d10+2}"
+   ]
+  }
+ ]
+}

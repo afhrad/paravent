@@ -1,0 +1,62 @@
+# Paravent on a NAS (or any Docker host).
+#
+#   1. Put the 5eTools corpus somewhere on the NAS and set PARAVENT_REFERENCE_DIR.
+#   2. Pick a folder for your own content and set PARAVENT_LIBRARY_DIR. Back it up.
+#   3. docker compose up -d   →   http://<nas>:8000   →   create the gamemaster at /setup
+#
+# Every setting below can be set in a .env file next to this one instead of editing here.
+
+services:
+  paravent:
+    build: .
+    image: paravent:latest
+    container_name: paravent
+    restart: unless-stopped
+
+    # The user the app runs as. Match the owner of the library folder on the NAS
+    # (Synology: `id <user>` over SSH; the admin user is often 1026:100).
+    user: "${PUID:-1000}:${PGID:-1000}"
+
+    ports:
+      - "${PARAVENT_PORT:-8000}:8000"
+
+    volumes:
+      # The 5eTools corpus — read in place, read-only. Paravent never writes here.
+      - "${PARAVENT_REFERENCE_DIR:-./data/reference}:/data/reference:ro"
+      - "${PARAVENT_IMAGE_DIR:-./data/img}:/data/img:ro"
+      # Everything made with Paravent: worlds, adventures, characters, combat, users,
+      # sessions, homebrew, media, translations and the generated signing key.
+      - "${PARAVENT_LIBRARY_DIR:-./data/library}:/data/library"
+      # Derived from the corpus; safe to delete.
+      - paravent-cache:/data/reference-cache
+      # Backups of the library (zip files); never the corpus.
+      - "${PARAVENT_BACKUP_DIR:-./data/backups}:/data/backups"
+
+    environment:
+      # Pin the session signing key; empty means one is generated into the library.
+      PARAVENT_SECRET_KEY: "${PARAVENT_SECRET_KEY:-}"
+      PARAVENT_SESSION_DAYS: "${PARAVENT_SESSION_DAYS:-30}"
+      # Only behind HTTPS (a reverse proxy with a certificate) — over plain HTTP the
+      # browser drops a Secure cookie and login appears to do nothing.
+      PARAVENT_COOKIE_SECURE: "${PARAVENT_COOKIE_SECURE:-false}"
+      PARAVENT_DEFAULT_LANGUAGE: "${PARAVENT_DEFAULT_LANGUAGE:-en}"
+      # Reload on file changes (hand edits of characters, chapters, homebrew).
+      PARAVENT_WATCH_FILES: "${PARAVENT_WATCH_FILES:-true}"
+      # Network shares (SMB/NFS) send no change events; polling makes the watcher see edits.
+      WATCHFILES_FORCE_POLLING: "${WATCHFILES_FORCE_POLLING:-false}"
+      # The reverse proxy's address, so the login rate limiter sees real client addresses.
+      FORWARDED_ALLOW_IPS: "${FORWARDED_ALLOW_IPS:-127.0.0.1}"
+      # Machine-drafted translations (Claude API). Empty: no machine drafts.
+      PARAVENT_TRANSLATE_API_KEY: "${PARAVENT_TRANSLATE_API_KEY:-}"
+      PARAVENT_TRANSLATE_MODEL: "${PARAVENT_TRANSLATE_MODEL:-claude-opus-5-5}"
+      PARAVENT_TRANSLATE_EFFORT: "${PARAVENT_TRANSLATE_EFFORT:-low}"
+      # Backups of the library into the folder mounted above: daily at these local
+      # times ("03:00" or "03:00,15:00"; empty: only `python -m app.cli backup run`),
+      # keeping the newest PARAVENT_BACKUP_KEEP. TZ makes "03:00" the NAS's 03:00.
+      PARAVENT_BACKUP_DIR: /data/backups
+      PARAVENT_BACKUP_AT: "${PARAVENT_BACKUP_AT:-}"
+      PARAVENT_BACKUP_KEEP: "${PARAVENT_BACKUP_KEEP:-14}"
+      TZ: "${TZ:-Europe/Berlin}"
+
+volumes:
+  paravent-cache:

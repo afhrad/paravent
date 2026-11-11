@@ -1,0 +1,168 @@
+/* ============================================================
+   TOME — tokens
+   Parchment and ink by day, leather and candlelight by night. Every text colour
+   clears 4.5:1 on the surfaces it sits on (checked in tests/test_themes.py).
+   ============================================================ */
+
+@font-face{ font-family:"Libre Baskerville"; font-weight:400; font-style:normal; font-display:swap;
+  src:url(fonts/libre-baskerville-latin-400-normal.woff2) format("woff2"); }
+@font-face{ font-family:"Libre Baskerville"; font-weight:400; font-style:italic; font-display:swap;
+  src:url(fonts/libre-baskerville-latin-400-italic.woff2) format("woff2"); }
+@font-face{ font-family:"Libre Baskerville"; font-weight:700; font-style:normal; font-display:swap;
+  src:url(fonts/libre-baskerville-latin-700-normal.woff2) format("woff2"); }
+@font-face{ font-family:"Cinzel"; font-weight:600; font-style:normal; font-display:swap;
+  src:url(fonts/cinzel-latin-600-normal.woff2) format("woff2"); }
+@font-face{ font-family:"Cinzel"; font-weight:700; font-style:normal; font-display:swap;
+  src:url(fonts/cinzel-latin-700-normal.woff2) format("woff2"); }
+@font-face{ font-family:"Alegreya Sans"; font-weight:400; font-style:normal; font-display:swap;
+  src:url(fonts/alegreya-sans-latin-400-normal.woff2) format("woff2"); }
+@font-face{ font-family:"Alegreya Sans"; font-weight:400; font-style:italic; font-display:swap;
+  src:url(fonts/alegreya-sans-latin-400-italic.woff2) format("woff2"); }
+@font-face{ font-family:"Alegreya Sans"; font-weight:500; font-style:normal; font-display:swap;
+  src:url(fonts/alegreya-sans-latin-500-normal.woff2) format("woff2"); }
+@font-face{ font-family:"Alegreya Sans"; font-weight:600 700; font-style:normal; font-display:swap;
+  src:url(fonts/alegreya-sans-latin-700-normal.woff2) format("woff2"); }
+
+:root{
+  /* parchment */
+  --bg:        #EEE5CE;
+  --bg-sunken: #E3D6B5;
+  --surface:   #F7F0DD;
+  --surface-2: #F0E6CB;
+  --surface-3: #E6D8B4;
+  --border:    #D3C299;
+  --border-strong:#B39E72;
+  --text:      #2A1C0E;
+  --text-2:    #4E3C26;
+  --text-3:    #6A5537;
+
+  /* the books' red-brown ink */
+  --accent:      #8A2A14;
+  --accent-solid:#7A2210;
+  --accent-hover:#5E180A;
+  --accent-weak: #F1DCC3;
+  --accent-text: #74200F;
+  --on-accent:   #FBF4E2;
+
+  --dmg:      #A3241B;  --dmg-weak:  #F3D6C8;  --dmg-text:  #8A1A13;
+  --heal:     #3F6B27;  --heal-weak: #DFE6C4;  --heal-text: #30561C;
+  --magic:    #5E3B8C;  --magic-weak:#E7DCE6;  --magic-text:#4C2D78;
+  --cond:     #94600A;  --cond-weak: #F2E1B9;  --cond-text: #6F4705;
+
+  /* gilt, for rules and frames */
+  --gilt:      #B8862F;
+  --gilt-weak: #D9B867;
+
+  --shadow-sm: 0 1px 2px rgba(70,45,15,.12), 0 1px 3px rgba(70,45,15,.08);
+  --shadow-md: 0 4px 14px rgba(70,45,15,.16), 0 1px 3px rgba(70,45,15,.1);
+  --shadow-lg: 0 18px 50px rgba(50,30,10,.28), 0 2px 8px rgba(50,30,10,.14);
+
+  --r-sm: 3px; --r: 4px; --r-lg: 6px;
+
+  --font-display: 'Cinzel', 'Trajan Pro', Georgia, serif;
+  --font-body:    'Libre Baskerville', 'Baskerville', Georgia, serif;
+  --font-ui:      'Alegreya Sans', 'Gill Sans', 'Segoe UI', sans-serif;
+  --font-mono:    'Alegreya Sans', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --texture:      url(images/parchment.svg);
+  --backdrop:     rgba(40,25,10,.5);
+
+  --sb-thumb: #B39E72;
+  --sb-thumb-hover: #9A845A;
+  --sb-thumb-active: #806C45;
+
+  --role-player: #2F5C8F;
+  --role-gm:     #A8501A;
+
+  color-scheme: light;
+}
+
+/* Candlelight: dark leather, text the colour of old paper, gilt for the accent. */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:        #1B140E;
+    --bg-sunken: #130E09;
+    --surface:   #261C14;
+    --surface-2: #2E2219;
+    --surface-3: #3A2B1F;
+    --border:    #4A3826;
+    --border-strong:#654D34;
+    --text:      #EDE0C4;
+    --text-2:    #CBB894;
+    --text-3:    #AE9B78;
+
+    --accent:      #D9A35E;
+    --accent-solid:#C98D45;
+    --accent-hover:#DDA562;
+    --accent-weak: #3A2816;
+    --accent-text: #E9BC7F;
+    --on-accent:   #1B140E;
+
+    --dmg:   #E0705C; --dmg-weak:  #3E1E16; --dmg-text:  #F2A08E;
+    --heal:  #93BD6C; --heal-weak: #232F19; --heal-text: #B8D79B;
+    --magic: #B795DE; --magic-weak:#2E2338; --magic-text:#D0B6EE;
+    --cond:  #E2B04C; --cond-weak: #3B2C12; --cond-text: #F0CD82;
+
+    --gilt:      #C99A45;
+    --gilt-weak: #8A6A30;
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.55);
+    --shadow-md: 0 4px 14px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.4);
+    --shadow-lg: 0 18px 50px rgba(0,0,0,.65), 0 2px 8px rgba(0,0,0,.5);
+
+    --texture:   url(images/leather.svg);
+    --backdrop:  rgba(0,0,0,.6);
+
+    --sb-thumb: #654D34;
+    --sb-thumb-hover: #7D6243;
+    --sb-thumb-active: #957754;
+
+    --role-player: #7FA9D9;
+    --role-gm:     #E0914F;
+
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:        #1B140E;
+  --bg-sunken: #130E09;
+  --surface:   #261C14;
+  --surface-2: #2E2219;
+  --surface-3: #3A2B1F;
+  --border:    #4A3826;
+  --border-strong:#654D34;
+  --text:      #EDE0C4;
+  --text-2:    #CBB894;
+  --text-3:    #AE9B78;
+
+  --accent:      #D9A35E;
+  --accent-solid:#C98D45;
+  --accent-hover:#DDA562;
+  --accent-weak: #3A2816;
+  --accent-text: #E9BC7F;
+  --on-accent:   #1B140E;
+
+  --dmg:   #E0705C; --dmg-weak:  #3E1E16; --dmg-text:  #F2A08E;
+  --heal:  #93BD6C; --heal-weak: #232F19; --heal-text: #B8D79B;
+  --magic: #B795DE; --magic-weak:#2E2338; --magic-text:#D0B6EE;
+  --cond:  #E2B04C; --cond-weak: #3B2C12; --cond-text: #F0CD82;
+
+  --gilt:      #C99A45;
+  --gilt-weak: #8A6A30;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.55);
+  --shadow-md: 0 4px 14px rgba(0,0,0,.5), 0 1px 3px rgba(0,0,0,.4);
+  --shadow-lg: 0 18px 50px rgba(0,0,0,.65), 0 2px 8px rgba(0,0,0,.5);
+
+  --texture:   url(images/leather.svg);
+  --backdrop:  rgba(0,0,0,.6);
+
+  --sb-thumb: #654D34;
+  --sb-thumb-hover: #7D6243;
+  --sb-thumb-active: #957754;
+
+  --role-player: #7FA9D9;
+  --role-gm:     #E0914F;
+
+  color-scheme: dark;
+}

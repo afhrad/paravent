@@ -1,0 +1,718 @@
+<title>Paravent Tooltip Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+
+<style>
+/* Tokens carried over verbatim from DESIGN.md §2, including the contrast fix. */
+:root{
+  --bg:#FFFFFF; --surface:#FFFFFF; --surface-2:#F7F8FA; --surface-3:#EDF0F4;
+  --border:#E1E5EB; --border-strong:#CBD2DB;
+  --text:#14171C; --text-2:#545C68; --text-3:#646C79;
+  --accent:#4F6BED; --accent-solid:#4560DC; --accent-hover:#3A51C4;
+  --accent-weak:#EDF0FE; --accent-text:#3247B8; --on-accent:#FFFFFF;
+  --dmg:#D93A3F; --dmg-weak:#FDECEC; --dmg-text:#B32227;
+  --heal:#1F8A55; --heal-weak:#E7F5ED; --heal-text:#14663D;
+  --magic:#8144B8; --magic-weak:#F4EBFB; --magic-text:#6A2F9C;
+  --cond:#B57500; --cond-weak:#FDF3E0; --cond-text:#8A5A00;
+  --shadow-md:0 4px 12px rgba(15,20,30,.08), 0 1px 3px rgba(15,20,30,.05);
+  --shadow-lg:0 16px 48px rgba(15,20,30,.18), 0 2px 8px rgba(15,20,30,.08);
+  --r-sm:5px; --r:8px; --r-lg:12px;
+  --font-ui:'Inter Tight',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-body:'Source Sans 3',system-ui,-apple-system,sans-serif;
+  --font-mono:'JetBrains Mono',ui-monospace,'SF Mono',Menlo,monospace;
+  --sb-size:10px; --sb-thumb:#98A1B0; --sb-thumb-hover:#7C8595; --sb-thumb-active:#656E7E;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E1013; --surface:#171A1F; --surface-2:#1D2127; --surface-3:#252A31;
+    --border:#282D35; --border-strong:#3A414B;
+    --text:#E9ECF1; --text-2:#A0A8B4; --text-3:#949DAB;
+    --accent:#7B92F5; --accent-solid:#7B92F5; --accent-hover:#93A6F8;
+    --accent-weak:#1B2140; --accent-text:#A7B7FA; --on-accent:#0E1013;
+    --dmg:#F0656A; --dmg-weak:#33191B; --dmg-text:#F79A9D;
+    --heal:#45C083; --heal-weak:#12291F; --heal-text:#7BD9AC;
+    --magic:#B678E6; --magic-weak:#2A1B38; --magic-text:#CFA3F0;
+    --cond:#E5A73C; --cond-weak:#302411; --cond-text:#F0C578;
+    --shadow-md:0 4px 12px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.4);
+    --shadow-lg:0 16px 48px rgba(0,0,0,.65), 0 2px 8px rgba(0,0,0,.5);
+    --sb-thumb:#5D6776; --sb-thumb-hover:#737D8E; --sb-thumb-active:#8A94A5;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E1013; --surface:#171A1F; --surface-2:#1D2127; --surface-3:#252A31;
+  --border:#282D35; --border-strong:#3A414B;
+  --text:#E9ECF1; --text-2:#A0A8B4; --text-3:#949DAB;
+  --accent:#7B92F5; --accent-solid:#7B92F5; --accent-hover:#93A6F8;
+  --accent-weak:#1B2140; --accent-text:#A7B7FA; --on-accent:#0E1013;
+  --dmg:#F0656A; --dmg-weak:#33191B; --dmg-text:#F79A9D;
+  --heal:#45C083; --heal-weak:#12291F; --heal-text:#7BD9AC;
+  --magic:#B678E6; --magic-weak:#2A1B38; --magic-text:#CFA3F0;
+  --cond:#E5A73C; --cond-weak:#302411; --cond-text:#F0C578;
+  --shadow-md:0 4px 12px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.4);
+  --shadow-lg:0 16px 48px rgba(0,0,0,.65), 0 2px 8px rgba(0,0,0,.5);
+  --sb-thumb:#5D6776; --sb-thumb-hover:#737D8E; --sb-thumb-active:#8A94A5;
+  color-scheme:dark;
+}
+
+*{ box-sizing:border-box; }
+body{ margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--font-body); font-size:15px; line-height:1.6; -webkit-font-smoothing:antialiased; }
+h1,h2,h3,h4,h5{ font-family:var(--font-ui); font-weight:600; margin:0; text-wrap:balance; letter-spacing:-.015em; }
+p{ margin:0; }
+button{ font:inherit; color:inherit; }
+:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
+@media (prefers-reduced-motion:reduce){ *{ animation-duration:.01ms!important; transition-duration:.01ms!important; } }
+/* Scrollbars — same tokens, same behaviour as the main kit. color-scheme is
+   what stops the browser painting light system bars on a dark page. */
+*{ scrollbar-color:var(--sb-thumb) transparent; scrollbar-width:thin; }
+::-webkit-scrollbar{ width:var(--sb-size); height:var(--sb-size); }
+::-webkit-scrollbar-track{ background:transparent; }
+::-webkit-scrollbar-thumb{
+  background-color:var(--sb-thumb); border-radius:999px;
+  border:2.5px solid transparent; background-clip:content-box;
+}
+::-webkit-scrollbar-thumb:hover{ background-color:var(--sb-thumb-hover); }
+::-webkit-scrollbar-thumb:active{ background-color:var(--sb-thumb-active); }
+::-webkit-scrollbar-corner{ background:transparent; }
+.tablewrap{ scrollbar-width:none; }
+.tablewrap::-webkit-scrollbar{ height:6px; }
+.tablewrap::-webkit-scrollbar-thumb{ background-color:transparent; border-width:1.5px; transition:background-color .15s; }
+.tablewrap:hover::-webkit-scrollbar-thumb, .tablewrap:focus-within::-webkit-scrollbar-thumb{ background-color:var(--sb-thumb); }
+.tablewrap:hover, .tablewrap:focus-within{ scrollbar-width:thin; }
+@media (hover:none){ *{ scrollbar-width:auto; } ::-webkit-scrollbar{ width:0; height:0; } }
+
+.mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+.eyebrow{ font-family:var(--font-ui); font-size:10.5px; font-weight:600;
+  letter-spacing:.09em; text-transform:uppercase; color:var(--text-3); }
+
+svg.ic{ fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round;
+  width:1em; height:1em; flex-shrink:0; vertical-align:-.125em; display:inline-block; }
+
+.doc{ max-width:1120px; margin:0 auto; padding:0 24px 140px; }
+.masthead{ padding:52px 0 34px; border-bottom:1px solid var(--border); }
+.masthead h1{ font-size:clamp(28px,4.6vw,40px); font-weight:700; letter-spacing:-.03em; margin:10px 0 12px; }
+.lede{ color:var(--text-2); max-width:66ch; font-size:16.5px; }
+.mast-row{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+.themetoggle{ display:inline-flex; gap:2px; padding:3px; background:var(--surface-2);
+  border:1px solid var(--border); border-radius:var(--r); font-family:var(--font-ui); }
+.themetoggle button{ border:0; background:transparent; color:var(--text-2); cursor:pointer;
+  padding:6px 12px; border-radius:var(--r-sm); font-size:12.5px; font-weight:500; }
+.themetoggle button[aria-pressed="true"]{ background:var(--surface); color:var(--text); box-shadow:var(--shadow-md); }
+
+section.block{ padding-top:56px; }
+.block > .eyebrow{ display:block; margin-bottom:8px; }
+.block > h2{ font-size:24px; letter-spacing:-.02em; margin-bottom:8px; }
+.block > .intro{ color:var(--text-2); max-width:70ch; margin-bottom:22px; }
+
+.card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:22px 24px; }
+.prose{ max-width:68ch; font-size:15.5px; }
+.prose p + p{ margin-top:14px; }
+
+/* ══════════════════ THE TAG ITSELF ══════════════════ */
+.ref{
+  font:inherit; background:none; border:0; padding:0 1px; cursor:pointer;
+  font-weight:600; line-height:inherit;
+  border-bottom:1px dashed currentColor;
+  border-radius:2px;
+  transition:background-color .12s, border-bottom-color .12s;
+}
+.ref:hover, .ref[aria-expanded="true"]{ border-bottom-style:solid; }
+.ref svg{ font-size:12px; stroke-width:2.3; margin-right:1px; vertical-align:-.1em; opacity:.85; }
+.ref.creature{ color:var(--dmg-text); }
+.ref.creature:hover,.ref.creature[aria-expanded="true"]{ background:var(--dmg-weak); }
+.ref.spell{ color:var(--magic-text); }
+.ref.spell:hover,.ref.spell[aria-expanded="true"]{ background:var(--magic-weak); }
+.ref.item{ color:var(--accent-text); }
+.ref.item:hover,.ref.item[aria-expanded="true"]{ background:var(--accent-weak); }
+.ref.cond{ color:var(--cond-text); }
+.ref.cond:hover,.ref.cond[aria-expanded="true"]{ background:var(--cond-weak); }
+.ref.rule{ color:var(--text-2); }
+.ref.rule:hover,.ref.rule[aria-expanded="true"]{ background:var(--surface-3); }
+
+/* unresolved: no source imported. Never a dead link. */
+.ref.unresolved{
+  color:var(--text-3); font-weight:400; cursor:help;
+  border-bottom:1px dotted var(--text-3);
+}
+.ref.unresolved:hover{ background:var(--surface-3); }
+
+/* rollable chip — rolls, never previews */
+.ref.dice{
+  font-family:var(--font-mono); font-size:.9em; font-weight:500; color:var(--text);
+  background:var(--surface-3); border:1px solid var(--border);
+  padding:1px 6px; border-radius:4px;
+}
+.ref.dice:hover{ background:var(--accent-weak); border-color:var(--accent); color:var(--accent-text); }
+.ref.dice.rolled{ background:var(--heal-weak); border-color:var(--heal); color:var(--heal-text); }
+
+/* ══════════════════ TOOLTIP ══════════════════ */
+.tip{
+  position:fixed; z-index:80; width:340px; max-width:calc(100vw - 24px);
+  background:var(--surface); border:1px solid var(--border-strong);
+  border-radius:var(--r-lg); box-shadow:var(--shadow-lg);
+  font-size:13.5px; line-height:1.5;
+  opacity:0; transform:translateY(4px) scale(.985); transform-origin:top center;
+  pointer-events:none; transition:opacity .13s ease, transform .13s ease;
+  overflow:hidden;
+}
+.tip.show{ opacity:1; transform:none; pointer-events:auto; }
+.tip.below{ transform-origin:bottom center; }
+
+.tip-head{
+  padding:11px 13px 9px; border-bottom:1px solid var(--border); background:var(--surface-2);
+  display:flex; align-items:flex-start; gap:9px;
+}
+.tip-badge{
+  width:26px; height:26px; border-radius:var(--r-sm); display:grid; place-items:center; flex-shrink:0;
+}
+.tip-badge svg{ font-size:15px; stroke-width:2.1; }
+.tip-badge.creature{ background:var(--dmg-weak); color:var(--dmg-text); }
+.tip-badge.spell{ background:var(--magic-weak); color:var(--magic-text); }
+.tip-badge.item{ background:var(--accent-weak); color:var(--accent-text); }
+.tip-badge.cond{ background:var(--cond-weak); color:var(--cond-text); }
+.tip-badge.rule{ background:var(--surface-3); color:var(--text-2); }
+.tip-head-txt{ min-width:0; flex:1; }
+.tip-head h4{ font-size:14.5px; letter-spacing:-.015em; }
+.tip-head .sub{ font-size:11.5px; color:var(--text-3); font-style:italic; margin-top:1px; }
+.tip-body{ padding:11px 13px; display:flex; flex-direction:column; gap:9px; }
+.tip-body p{ color:var(--text-2); }
+.tip-body p strong{ color:var(--text); font-style:italic; }
+
+.tip-stats{ display:flex; gap:13px; flex-wrap:wrap; }
+.tip-stats > div{ display:flex; align-items:baseline; gap:5px; }
+.tip-stats .eyebrow{ font-size:9.5px; }
+.tip-stats .v{ font-family:var(--font-mono); font-size:13px; font-weight:600; font-variant-numeric:tabular-nums; }
+
+.tip-abil{ display:grid; grid-template-columns:repeat(6,1fr); gap:4px; }
+.tip-abil div{ background:var(--surface-2); border:1px solid var(--border); border-radius:4px; padding:4px 2px; text-align:center; }
+.tip-abil .ab{ font-family:var(--font-ui); font-size:8.5px; font-weight:600; letter-spacing:.06em; color:var(--text-3); }
+.tip-abil .sc{ font-family:var(--font-mono); font-size:12px; font-weight:700; line-height:1.2; }
+.tip-abil .md{ font-family:var(--font-mono); font-size:10px; color:var(--accent-text); }
+
+.tip-list{ margin:0; padding-left:17px; color:var(--text-2); display:flex; flex-direction:column; gap:5px; }
+.tip-list li::marker{ color:var(--text-3); }
+
+.tip-foot{
+  display:flex; align-items:center; gap:8px; padding:8px 13px;
+  border-top:1px solid var(--border); background:var(--surface-2);
+}
+.tip-src{ font-size:11px; color:var(--text-3); margin-right:auto; }
+.tipbtn{
+  display:inline-flex; align-items:center; gap:5px; padding:4px 9px; min-height:28px;
+  border-radius:var(--r-sm); border:1px solid var(--border-strong); background:var(--surface);
+  font-family:var(--font-ui); font-size:11.5px; font-weight:500; cursor:pointer; white-space:nowrap;
+}
+.tipbtn:hover{ background:var(--surface-3); }
+.tipbtn.primary{ background:var(--accent-solid); border-color:var(--accent-solid); color:var(--on-accent); font-weight:600; }
+.tipbtn.primary:hover{ background:var(--accent-hover); border-color:var(--accent-hover); }
+.tipbtn svg{ font-size:13px; }
+
+.tip-pills{ display:flex; gap:5px; flex-wrap:wrap; }
+.pill{
+  display:inline-flex; align-items:center; gap:4px; padding:2px 7px; border-radius:999px;
+  font-family:var(--font-ui); font-size:10.5px; font-weight:600; border:1px solid transparent; white-space:nowrap;
+}
+.pill svg{ font-size:11px; stroke-width:2.4; }
+.pill.dmg{ background:var(--dmg-weak); color:var(--dmg-text); }
+.pill.heal{ background:var(--heal-weak); color:var(--heal-text); }
+.pill.magic{ background:var(--magic-weak); color:var(--magic-text); }
+.pill.cond{ background:var(--cond-weak); color:var(--cond-text); }
+.pill.neutral{ background:var(--surface-3); color:var(--text-2); border-color:var(--border); }
+.pill.accent{ background:var(--accent-weak); color:var(--accent-text); }
+
+/* nested tag inside a tooltip — one level only */
+.tip-body .ref{ font-size:inherit; }
+.tip-body .ref.nested{ cursor:default; border-bottom-style:dotted; }
+
+/* mobile: tooltip becomes a bottom sheet */
+.sheet-back{
+  position:fixed; inset:0; background:rgba(10,12,16,.45); z-index:70;
+  opacity:0; pointer-events:none; transition:opacity .18s;
+}
+.sheet-back.show{ opacity:1; pointer-events:auto; }
+/* Sheet presentation applies when there is no hovering pointer (any touch
+   device, at any width) OR the viewport is phone-sized. Width alone is the
+   wrong test: an iPad in landscape is 1024px wide and still has no hover. */
+@media (max-width:640px), (hover:none), (pointer:coarse){
+  .tip{
+    width:100%; max-width:none; left:0!important; right:0; bottom:0; top:auto!important;
+    border-radius:var(--r-lg) var(--r-lg) 0 0; border-bottom:0;
+    transform:translateY(100%); transition:transform .22s cubic-bezier(.32,.72,0,1), opacity .15s;
+  }
+  .tip.show{ transform:translateY(0); }
+  .tip-grab{ display:block; }
+  .tipbtn{ min-height:44px; font-size:13px; padding:8px 14px; }
+}
+
+/* On a touch device the dashed underline is the only affordance a tag has —
+   there is no hover to reveal it, so make it a touch more present. */
+@media (hover:none){
+  .ref{ border-bottom-width:1.5px; }
+  .ref:hover{ background:none; }
+}
+.tip-grab{
+  display:none; width:34px; height:4px; border-radius:2px; background:var(--border-strong);
+  margin:8px auto 0;
+}
+
+/* ══════════════════ roll log ══════════════════ */
+.rolllog{
+  position:fixed; right:16px; bottom:16px; z-index:60; width:250px;
+  display:flex; flex-direction:column; gap:7px; pointer-events:none;
+}
+.rollcard{
+  background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r);
+  box-shadow:var(--shadow-lg); padding:9px 12px; display:flex; align-items:center; gap:10px;
+  animation:rollin .22s cubic-bezier(.32,.72,0,1);
+}
+@keyframes rollin{ from{ opacity:0; transform:translateX(14px); } }
+.rollcard .tot{ font-family:var(--font-mono); font-size:21px; font-weight:700; letter-spacing:-.02em; }
+.rollcard .lbl{ font-family:var(--font-ui); font-size:11px; font-weight:600; }
+.rollcard .brk{ font-family:var(--font-mono); font-size:10.5px; color:var(--text-3); }
+.rollcard.crit{ border-color:var(--heal); }
+.rollcard.crit .tot{ color:var(--heal-text); }
+.rollcard.fumble{ border-color:var(--dmg); }
+.rollcard.fumble .tot{ color:var(--dmg-text); }
+@media (max-width:640px){ .rolllog{ left:12px; right:12px; width:auto; bottom:12px; } }
+
+/* ══════════════════ spec tables ══════════════════ */
+.tablewrap{ overflow-x:auto; border:1px solid var(--border); border-radius:var(--r); background:var(--surface); }
+.spec{ width:100%; border-collapse:collapse; font-size:13px; }
+.spec th,.spec td{ text-align:left; padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+.spec th{ font-family:var(--font-ui); font-size:10.5px; font-weight:600; letter-spacing:.06em;
+  text-transform:uppercase; color:var(--text-3); }
+.spec td:first-child{ font-family:var(--font-mono); font-size:12px; white-space:nowrap; }
+.spec tr:last-child td{ border-bottom:0; }
+
+.notes{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(258px,1fr)); }
+.note{ background:var(--surface); border:1px solid var(--border); border-left:2px solid var(--accent);
+  border-radius:var(--r); padding:13px 15px; }
+.note h5{ font-size:13.5px; margin-bottom:4px; }
+.note p{ font-size:13px; color:var(--text-2); }
+.note.warn{ border-left-color:var(--cond); }
+.caption{ font-size:12.5px; color:var(--text-3); margin-top:10px; }
+.kbd{ font-family:var(--font-mono); font-size:10.5px; padding:2px 5px; border-radius:4px;
+  background:var(--surface-3); border:1px solid var(--border); color:var(--text-3); }
+</style>
+
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-skull" viewBox="0 0 24 24"><path d="m12.5 17-.5-1-.5 1z"/><path d="M15 22a1 1 0 0 0 1-1v-1a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20v1a1 1 0 0 0 1 1z"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="12" r="1"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4M22 4h-4"/><circle cx="4" cy="20" r="2"/></symbol>
+  <symbol id="i-gem" viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6M2 9h20"/></symbol>
+  <symbol id="i-footprints" viewBox="0 0 24 24"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0M16 17h4M4 13h4"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></symbol>
+  <symbol id="i-book-open" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-dices" viewBox="0 0 24 24"><rect width="12" height="12" x="2" y="10" rx="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6"/><path d="M6 18h.01M10 14h.01M15 6h.01M18 9h.01"/></symbol>
+  <symbol id="i-shield-check" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+  <symbol id="i-external" viewBox="0 0 24 24"><path d="M15 3h6v6M10 14 21 3M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/></symbol>
+  <symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+  <symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 17v5M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M5 22h14M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></symbol>
+</svg>
+
+<div class="doc">
+<header class="masthead">
+  <div class="mast-row">
+    <span class="eyebrow">Paravent · Prototype</span>
+    <div class="themetoggle" role="group" aria-label="Theme">
+      <button type="button" data-set="light" aria-pressed="false">Light</button>
+      <button type="button" data-set="system" aria-pressed="true">System</button>
+      <button type="button" data-set="dark" aria-pressed="false">Dark</button>
+    </div>
+  </div>
+  <h1>Hover anything underlined</h1>
+  <p class="lede">A working tooltip system for every referenceable tag. <b>Mouse hovers, touch taps</b> — the two never share a code path, and the device is judged by what its pointer can do rather than how wide the screen is. Every preview below uses real content pulled from the 5eTools corpus; nothing here is invented.</p>
+</header>
+
+<!-- ═══════════════ 1. LIVE PROSE ═══════════════ -->
+<section class="block">
+  <span class="eyebrow">01 · Try it</span>
+  <h2>A statblock, rendered</h2>
+  <p class="intro">This is the Goblin's actual <em>Nimble Escape</em> trait and <em>Scimitar</em> action, with every <span class="mono">{@tag}</span> resolved. Hover the underlined terms; click the boxed dice to roll them.</p>
+
+  <div class="card prose">
+    <p><strong style="font-style:italic">Nimble Escape.</strong> The <button class="ref creature" data-tip="goblin"><svg class="ic"><use href="#i-skull"/></svg>goblin</button> can take the <button class="ref rule" data-tip="disengage"><svg class="ic"><use href="#i-zap"/></svg>Disengage</button> or <button class="ref rule" data-tip="hide"><svg class="ic"><use href="#i-zap"/></svg>Hide</button> action as a bonus action on each of its turns.</p>
+
+    <p><strong style="font-style:italic">Scimitar.</strong> <em>Melee Weapon Attack:</em> <button class="ref dice" data-roll="1d20+4" data-label="Scimitar attack">+4</button> to hit, reach 5 ft., one target. <em>Hit:</em> 5 (<button class="ref dice" data-roll="1d6+2" data-label="Scimitar damage">1d6 + 2</button>) slashing damage.</p>
+
+    <p>A goblin wearing <button class="ref item" data-tip="leather"><svg class="ic"><use href="#i-gem"/></svg>leather armor</button> and carrying a <button class="ref item" data-tip="shield"><svg class="ic"><use href="#i-gem"/></svg>shield</button> has AC 15. If it drops <button class="ref cond" data-tip="prone"><svg class="ic"><use href="#i-footprints"/></svg>prone</button> it has disadvantage on attacks, and an <button class="ref creature" data-tip="bugbear"><svg class="ic"><use href="#i-skull"/></svg>bugbear</button> ally within 5 feet gains advantage against it.</p>
+
+    <p>A <button class="ref spell" data-tip="fireball"><svg class="ic"><use href="#i-sparkles"/></svg>fireball</button> centered here forces a <button class="ref dice" data-roll="dc15" data-label="Dexterity save">DC 15</button> Dexterity save for <button class="ref dice" data-roll="8d6" data-label="Fire damage">8d6</button> fire damage — enough to leave every goblin <button class="ref cond" data-tip="unconscious"><svg class="ic"><use href="#i-footprints"/></svg>unconscious</button>. Survivors are often left <button class="ref cond" data-tip="poisoned"><svg class="ic"><use href="#i-footprints"/></svg>poisoned</button> by the fumes.</p>
+
+    <p>Its <button class="ref rule" data-tip="stealth"><svg class="ic"><use href="#i-target"/></svg>Stealth</button> is +6 and it has <button class="ref rule" data-tip="darkvision"><svg class="ic"><use href="#i-eye"/></svg>darkvision</button> 60 ft. Compare the <button class="ref creature unresolved" data-tip="unresolved">Ghoul Chieftain</button> — a reference into a book you have not imported.</p>
+  </div>
+  <p class="caption">The last link is deliberately unresolvable. It renders as plain grey text with a dotted underline and explains itself on hover — never a dead link, never a raw brace.</p>
+</section>
+
+<!-- ═══════════════ 2. GALLERY ═══════════════ -->
+<section class="block">
+  <span class="eyebrow">02 · Every type</span>
+  <h2>One tooltip shape per category</h2>
+  <p class="intro">Each category shows only what a gamemaster needs mid-sentence. A creature preview leads with AC and HP; a spell leads with level and range; a condition is just the rule text, because that is the whole question.</p>
+
+  <div class="card" style="display:flex; flex-wrap:wrap; gap:9px 16px; align-items:center;">
+    <button class="ref creature" data-tip="goblin"><svg class="ic"><use href="#i-skull"/></svg>Goblin</button>
+    <button class="ref creature" data-tip="bugbear"><svg class="ic"><use href="#i-skull"/></svg>Bugbear</button>
+    <button class="ref spell" data-tip="fireball"><svg class="ic"><use href="#i-sparkles"/></svg>Fireball</button>
+    <button class="ref item" data-tip="longsword"><svg class="ic"><use href="#i-gem"/></svg>Longsword</button>
+    <button class="ref item" data-tip="potion"><svg class="ic"><use href="#i-gem"/></svg>Potion of Healing</button>
+    <button class="ref cond" data-tip="prone"><svg class="ic"><use href="#i-footprints"/></svg>Prone</button>
+    <button class="ref cond" data-tip="grappled"><svg class="ic"><use href="#i-footprints"/></svg>Grappled</button>
+    <button class="ref cond" data-tip="poisoned"><svg class="ic"><use href="#i-footprints"/></svg>Poisoned</button>
+    <button class="ref cond" data-tip="unconscious"><svg class="ic"><use href="#i-footprints"/></svg>Unconscious</button>
+    <button class="ref rule" data-tip="dash"><svg class="ic"><use href="#i-zap"/></svg>Dash</button>
+    <button class="ref rule" data-tip="dodge"><svg class="ic"><use href="#i-zap"/></svg>Dodge</button>
+    <button class="ref rule" data-tip="hide"><svg class="ic"><use href="#i-zap"/></svg>Hide</button>
+    <button class="ref rule" data-tip="stealth"><svg class="ic"><use href="#i-target"/></svg>Stealth</button>
+    <button class="ref rule" data-tip="darkvision"><svg class="ic"><use href="#i-eye"/></svg>Darkvision</button>
+    <button class="ref rule" data-tip="concentration"><svg class="ic"><use href="#i-hourglass"/></svg>Concentration</button>
+    <button class="ref creature unresolved" data-tip="unresolved">Ghoul Chieftain</button>
+  </div>
+</section>
+
+<!-- ═══════════════ 3. RULES ═══════════════ -->
+<section class="block">
+  <span class="eyebrow">03 · Behaviour</span>
+  <h2>The interaction contract</h2>
+  <p class="intro">Hover is for mice, touch is for fingers, and the two never share a code path. The device is detected by <span class="mono">(hover: hover) and (pointer: fine)</span> — what the input can actually do — not by screen width. An iPad in landscape is 1024px wide and still has no pointer to hover with.</p>
+
+  <div class="tablewrap" style="margin-bottom:22px;">
+    <table class="spec">
+      <thead><tr><th>Input</th><th>Behaviour</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>hover in <span class="pill accent" style="margin-left:5px">mouse only</span></td><td>Opens after <b>350 ms</b></td><td>Long enough to survive a mouse crossing the word on its way elsewhere.</td></tr>
+        <tr><td>hover out <span class="pill accent" style="margin-left:5px">mouse only</span></td><td>Closes after <b>180 ms</b></td><td>Grace period so you can move the pointer <em>into</em> the tooltip to click a button.</td></tr>
+        <tr><td>hover, already open</td><td>Opens <b>instantly</b></td><td>Once you are clearly browsing references, the delay becomes friction.</td></tr>
+        <tr><td>tap <span class="pill cond" style="margin-left:5px">touch only</span></td><td>Opens a <b>bottom sheet</b></td><td>The only way a tooltip opens on touch. No delay — a tap is already deliberate.</td></tr>
+        <tr><td>tap again / backdrop</td><td>Closes</td><td>A finger covers a small popover, so the sheet clears the thumb entirely.</td></tr>
+        <tr><td>click <span class="pill accent" style="margin-left:5px">mouse only</span></td><td><b>Pins</b> it open</td><td>Survives the pointer leaving, so you can click a button inside it.</td></tr>
+        <tr><td><span class="kbd">Tab</span></td><td>Opens on focus</td><td>Every tag is a real <span class="mono">&lt;button&gt;</span>. Uses <span class="mono">:focus-visible</span>, so a tap does not also trigger it.</td></tr>
+        <tr><td><span class="kbd">Esc</span></td><td>Closes, returns focus</td><td>Focus goes back to the tag you came from, never to the top of the page.</td></tr>
+        <tr><td>dice chip</td><td><b>Rolls</b>, no preview</td><td>Same on both: a rollable has nothing to preview.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="notes">
+    <div class="note">
+      <h5>Never more than one open</h5>
+      <p>Opening a second tooltip closes the first. Reference is a glance, not a workspace — if you want two things side by side, that is what the drawer is for.</p>
+    </div>
+    <div class="note warn">
+      <h5>Capability, not screen width</h5>
+      <p>Detection is <span class="mono">(hover: hover) and (pointer: fine)</span>, re-evaluated live — plug in a mouse and hover starts working without a reload. Width would misjudge two real cases: an iPad in landscape (wide, no hover) and a narrow desktop window (small, has hover).</p>
+    </div>
+    <div class="note">
+      <h5>Synthetic mouse events are filtered</h5>
+      <p>Touch browsers replay a fake <span class="mono">mouseenter</span> after a tap, which would open the tooltip twice. Listeners are <span class="mono">pointerenter</span>/<span class="mono">pointerleave</span> and check <span class="mono">pointerType === 'mouse'</span>, so the replay is ignored.</p>
+    </div>
+    <div class="note">
+      <h5>Nested tags do not chain</h5>
+      <p>A tooltip's own body renders its tags with a dotted underline and no hover target. Chained popovers are unusable with a mouse; "Open full entry" is the way deeper.</p>
+    </div>
+    <div class="note">
+      <h5>It flips rather than clipping</h5>
+      <p>The tooltip measures itself against the viewport and flips above the tag when there is no room below, shifting horizontally to stay on screen. It never renders partly off the edge.</p>
+    </div>
+    <div class="note warn">
+      <h5>Preview, never the whole entry</h5>
+      <p>A tooltip is capped at roughly six lines. Anything longer belongs in the drawer — a tooltip you have to scroll has failed at being a glance.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ 4. IMPLEMENTATION ═══════════════ -->
+<section class="block">
+  <span class="eyebrow">04 · Build</span>
+  <h2>How it maps onto FastAPI + HTMX</h2>
+  <div class="notes">
+    <div class="note">
+      <h5>One endpoint, one fragment</h5>
+      <p><span class="mono">GET /ref/{type}/{slug}/preview</span> returns the tooltip fragment. The renderer emits <span class="mono">hx-get</span> with <span class="mono">hx-trigger="mouseenter delay:350ms, focus"</span> and <span class="mono">hx-target="#tip"</span>. No bespoke fetch code.</p>
+    </div>
+    <div class="note">
+      <h5>Cached, because prose repeats</h5>
+      <p><span class="mono">{@creature goblin}</span> appears 54,753 times in the corpus. Preview fragments are pure functions of the compendium — <span class="mono">@lru_cache</span> them and invalidate on the JSON watcher's reload signal.</p>
+    </div>
+    <div class="note">
+      <h5>The preview is a different projection</h5>
+      <p>Not a truncated statblock. <span class="mono">preview_for(entity)</span> selects per type: creature → AC/HP/speed/CR + abilities; spell → level/school/time/range + one sentence; condition → the rule list, complete.</p>
+    </div>
+    <div class="note">
+      <h5>Degrades without JavaScript</h5>
+      <p>Every tag is a real link to its full entry. Without JS the tooltip never opens and the click navigates to the reference page — the content is always reachable.</p>
+    </div>
+  </div>
+</section>
+</div>
+
+<div class="sheet-back" id="back"></div>
+<div class="tip" id="tip" role="dialog" aria-modal="false"></div>
+<div class="rolllog" id="rolllog" aria-live="polite"></div>
+
+<script>
+(function(){
+  /* ── theme ───────────────────────────────────────────── */
+  var root=document.documentElement, tbtns=document.querySelectorAll('.themetoggle button');
+  tbtns.forEach(function(b){ b.addEventListener('click',function(){
+    var v=b.dataset.set;
+    if(v==='system') root.removeAttribute('data-theme'); else root.setAttribute('data-theme',v);
+    tbtns.forEach(function(o){ o.setAttribute('aria-pressed',String(o===b)); });
+    try{ localStorage.setItem('pv-theme',v); }catch(e){}
+  });});
+  try{ var sv=localStorage.getItem('pv-theme');
+    if(sv){ var t=document.querySelector('.themetoggle button[data-set="'+sv+'"]'); if(t) t.click(); }
+  }catch(e){}
+
+  /* ── content: real 5eTools data ──────────────────────── */
+  var ic=function(n){ return '<svg class="ic"><use href="#i-'+n+'"/></svg>'; };
+  var DB={
+    goblin:{kind:'creature',icon:'skull',name:'Goblin',sub:'Small humanoid (goblinoid), neutral evil',
+      stats:[['AC','15'],['HP','7'],['Speed','30 ft.'],['CR','1/4']],
+      abil:[['STR',8,'−1'],['DEX',14,'+2'],['CON',10,'+0'],['INT',10,'+0'],['WIS',8,'−1'],['CHA',8,'−1']],
+      body:'<p><strong>Nimble Escape.</strong> Takes the Disengage or Hide action as a bonus action on each of its turns.</p>',
+      pills:'<span class="pill neutral">Stealth +6</span><span class="pill neutral">Darkvision 60 ft.</span><span class="pill neutral">Passive 9</span>',
+      src:'Monster Manual'},
+    bugbear:{kind:'creature',icon:'skull',name:'Bugbear',sub:'Medium humanoid (goblinoid), chaotic evil',
+      stats:[['AC','16'],['HP','27'],['Speed','30 ft.'],['CR','1']],
+      abil:[['STR',15,'+2'],['DEX',14,'+2'],['CON',13,'+1'],['INT',8,'−1'],['WIS',11,'+0'],['CHA',9,'−1']],
+      body:'<p><strong>Brute.</strong> A melee weapon deals one extra die of damage when the bugbear hits with it.</p>',
+      pills:'<span class="pill neutral">Stealth +6</span><span class="pill neutral">Survival +2</span><span class="pill neutral">Darkvision 60 ft.</span>',
+      src:'Monster Manual'},
+    fireball:{kind:'spell',icon:'sparkles',name:'Fireball',sub:'3rd-level evocation',
+      stats:[['Time','1 action'],['Range','150 ft.'],['Comp.','V S M'],['Dur.','Instant']],
+      body:'<p>Each creature in a 20-foot-radius sphere must make a Dexterity saving throw, taking <button class="ref dice nested">8d6</button> fire damage on a failure, or half as much on a success.</p>',
+      pills:'<span class="pill magic">Level 3</span><span class="pill dmg">Fire</span><span class="pill neutral">Dex save</span>',
+      src:"Player's Handbook p. 241"},
+    longsword:{kind:'item',icon:'gem',name:'Longsword',sub:'Martial melee weapon',
+      stats:[['Damage','1d8'],['Type','Slashing'],['Weight','3 lb.'],['Cost','15 gp']],
+      body:'<p><strong>Versatile (1d10).</strong> Can be used with one or two hands; the larger die applies when wielded in two.</p>',
+      pills:'<span class="pill neutral">Martial</span><span class="pill neutral">Versatile</span>',
+      src:"Player's Handbook"},
+    potion:{kind:'item',icon:'gem',name:'Potion of Healing',sub:'Potion, common',
+      stats:[['Heals','2d4 + 2'],['Weight','0.5 lb.'],['Cost','50 gp']],
+      body:'<p>You regain <button class="ref dice nested">2d4 + 2</button> hit points when you drink this potion. Its red liquid glimmers when agitated.</p>',
+      pills:'<span class="pill heal">Healing</span><span class="pill neutral">Common</span>',
+      src:"Dungeon Master's Guide"},
+    shield:{kind:'item',icon:'gem',name:'Shield',sub:'Armor, shield',
+      stats:[['AC','+2'],['Weight','6 lb.'],['Cost','10 gp']],
+      body:'<p>A shield is made from wood or metal and carried in one hand. Wielding it increases your Armor Class by 2. You can benefit from only one shield at a time.</p>',
+      src:"Player's Handbook"},
+    leather:{kind:'item',icon:'gem',name:'Leather Armor',sub:'Light armor',
+      stats:[['AC','11 + Dex'],['Weight','10 lb.'],['Cost','10 gp']],
+      body:'<p>The breastplate and shoulder protectors are made of leather stiffened by boiling in oil. The rest is softer, more flexible material.</p>',
+      src:"Player's Handbook"},
+    prone:{kind:'cond',icon:'footprints',name:'Prone',sub:'Condition',
+      list:["Your only movement option is to crawl, unless you stand up and end the condition.",
+            "You have disadvantage on attack rolls.",
+            "Attacks against you have advantage if the attacker is within 5 feet, otherwise disadvantage."],
+      src:"Player's Handbook"},
+    grappled:{kind:'cond',icon:'footprints',name:'Grappled',sub:'Condition',
+      list:["Your speed becomes 0, and you can't benefit from any bonus to your speed.",
+            "The condition ends if the grappler is <button class=\"ref cond nested\">incapacitated</button>.",
+            "It also ends if you are moved out of the grappler's reach."],
+      src:"Player's Handbook"},
+    poisoned:{kind:'cond',icon:'footprints',name:'Poisoned',sub:'Condition',
+      list:["You have disadvantage on attack rolls and ability checks."],
+      src:"Player's Handbook"},
+    unconscious:{kind:'cond',icon:'footprints',name:'Unconscious',sub:'Condition',
+      list:["You are <button class=\"ref cond nested\">incapacitated</button>, can't move or speak, and are unaware of your surroundings.",
+            "You drop what you're holding and fall <button class=\"ref cond nested\">prone</button>.",
+            "You automatically fail Strength and Dexterity saving throws.",
+            "Attacks against you have advantage, and any attack that hits from within 5 feet is a critical hit."],
+      src:"Player's Handbook"},
+    dash:{kind:'rule',icon:'zap',name:'Dash',sub:'Action',
+      body:'<p>You gain extra movement for the current turn equal to your speed, after applying any modifiers. With a speed of 30 feet, you can move up to 60 feet on your turn.</p>',
+      src:"Player's Handbook"},
+    dodge:{kind:'rule',icon:'zap',name:'Dodge',sub:'Action',
+      body:'<p>Until the start of your next turn, any attack roll against you has disadvantage if you can see the attacker, and you make Dexterity saving throws with advantage.</p>',
+      src:"Player's Handbook"},
+    disengage:{kind:'rule',icon:'zap',name:'Disengage',sub:'Action',
+      body:'<p>Your movement doesn\'t provoke opportunity attacks for the rest of the turn.</p>',
+      src:"Player's Handbook"},
+    hide:{kind:'rule',icon:'zap',name:'Hide',sub:'Action',
+      body:'<p>You make a Dexterity (<button class="ref rule nested">Stealth</button>) check in an attempt to hide. If you succeed, you gain benefits described in the rules on unseen attackers.</p>',
+      src:"Player's Handbook"},
+    stealth:{kind:'rule',icon:'target',name:'Stealth',sub:'Dexterity skill',
+      body:'<p>Covers your attempt to conceal yourself from enemies, slink past guards, slip away without being noticed, or sneak up on someone without being seen or heard.</p>',
+      pills:'<span class="pill accent">Dexterity</span>',
+      src:"Player's Handbook"},
+    darkvision:{kind:'rule',icon:'eye',name:'Darkvision',sub:'Sense',
+      body:'<p>Within the given radius you can see in dim light as if it were bright light, and in darkness as if it were dim light. You discern colour in darkness only as shades of grey.</p>',
+      src:"Player's Handbook"},
+    concentration:{kind:'rule',icon:'hourglass',name:'Concentration',sub:'Status',
+      body:'<p>Some spells require concentration to maintain. Taking damage forces a Constitution save — DC 10 or half the damage taken, whichever is higher. You can concentrate on only one spell at a time.</p>',
+      pills:'<span class="pill magic">One at a time</span>',
+      src:"Player's Handbook"},
+    unresolved:{kind:'rule',icon:'info',name:'Ghoul Chieftain',sub:'Not in your compendium',
+      body:'<p>This entry references a source you have not imported. The text stays readable and the reference is kept, so it resolves automatically once that book is added.</p>',
+      unresolved:true, src:'Unresolved reference'}
+  };
+
+  /* ── build the tooltip markup ────────────────────────── */
+  function render(d){
+    var h='<div class="tip-grab"></div>';
+    h+='<div class="tip-head"><span class="tip-badge '+d.kind+'">'+ic(d.icon)+'</span>'+
+       '<div class="tip-head-txt"><h4>'+d.name+'</h4><div class="sub">'+d.sub+'</div></div></div>';
+    h+='<div class="tip-body">';
+    if(d.stats){
+      h+='<div class="tip-stats">';
+      d.stats.forEach(function(s){ h+='<div><span class="eyebrow">'+s[0]+'</span><span class="v">'+s[1]+'</span></div>'; });
+      h+='</div>';
+    }
+    if(d.abil){
+      h+='<div class="tip-abil">';
+      d.abil.forEach(function(a){ h+='<div><div class="ab">'+a[0]+'</div><div class="sc">'+a[1]+'</div><div class="md">'+a[2]+'</div></div>'; });
+      h+='</div>';
+    }
+    if(d.list){
+      h+='<ul class="tip-list">';
+      d.list.forEach(function(li){ h+='<li>'+li+'</li>'; });
+      h+='</ul>';
+    }
+    if(d.body) h+=d.body;
+    if(d.pills) h+='<div class="tip-pills">'+d.pills+'</div>';
+    h+='</div>';
+    h+='<div class="tip-foot"><span class="tip-src">'+d.src+'</span>';
+    if(d.unresolved){
+      h+='<button class="tipbtn">'+ic('external')+'Import source</button>';
+    }else{
+      if(d.kind==='creature') h+='<button class="tipbtn">'+ic('plus')+'Encounter</button>';
+      if(d.kind==='cond')     h+='<button class="tipbtn">'+ic('plus')+'Apply</button>';
+      h+='<button class="tipbtn primary">'+ic('book-open')+'Open</button>';
+    }
+    h+='</div>';
+    return h;
+  }
+
+  /* ── positioning: flip and clamp, never clip ─────────── */
+  var tip=document.getElementById('tip'), back=document.getElementById('back');
+  var cur=null, pinned=false, showT=null, hideT=null;
+
+  /* Input capability, NOT screen width.
+     canHover  — a real pointer that can rest on a word (mouse, trackpad, stylus).
+     A touch laptop reports BOTH; hover is the primary there, so canHover wins.
+     Re-evaluated live: plugging in a mouse or picking up an iPad flips it. */
+  var hoverMQ = matchMedia('(hover: hover) and (pointer: fine)');
+  var sheetMQ = matchMedia('(max-width: 640px)');
+  var canHover = function(){ return hoverMQ.matches; };
+  var asSheet  = function(){ return !canHover() || sheetMQ.matches; };
+
+  function place(anchor){
+    if(asSheet()) return;
+    var r=anchor.getBoundingClientRect(), t=tip.getBoundingClientRect();
+    var gap=8, vw=innerWidth, vh=innerHeight;
+    var top=r.bottom+gap, below=true;
+    if(top+t.height>vh-10 && r.top-gap-t.height>10){ top=r.top-gap-t.height; below=false; }
+    top=Math.max(10,Math.min(top,vh-t.height-10));
+    var left=r.left+r.width/2-t.width/2;
+    left=Math.max(10,Math.min(left,vw-t.width-10));
+    tip.style.top=top+'px'; tip.style.left=left+'px';
+    tip.classList.toggle('below',!below);
+  }
+
+  function open(anchor,instant){
+    var d=DB[anchor.dataset.tip]; if(!d) return;
+    if(cur && cur!==anchor) cur.setAttribute('aria-expanded','false');
+    cur=anchor;
+    tip.innerHTML=render(d);
+    tip.style.top='-9999px'; tip.style.left='0px';
+    anchor.setAttribute('aria-expanded','true');
+    requestAnimationFrame(function(){
+      place(anchor);
+      tip.classList.add('show');
+      if(asSheet()) back.classList.add('show');
+    });
+  }
+  function close(){
+    tip.classList.remove('show'); back.classList.remove('show');
+    if(cur){ cur.setAttribute('aria-expanded','false'); }
+    cur=null; pinned=false;
+  }
+
+  var anyOpen=false;
+  document.querySelectorAll('.ref[data-tip]').forEach(function(el){
+    el.setAttribute('aria-expanded','false');
+    /* pointerenter/leave carry pointerType, so a synthetic mouse event
+       replayed after a tap is identifiable and ignored. */
+    el.addEventListener('pointerenter',function(e){
+      if(e.pointerType!=='mouse' || !canHover() || pinned) return;
+      clearTimeout(hideT);
+      showT=setTimeout(function(){ open(el); anyOpen=true; }, anyOpen?0:350);
+    });
+    el.addEventListener('pointerleave',function(e){
+      if(e.pointerType!=='mouse' || !canHover() || pinned) return;
+      clearTimeout(showT);
+      hideT=setTimeout(function(){ close(); anyOpen=false; },180);
+    });
+    /* Keyboard focus opens on every device; touch focus does not,
+       or tapping would open twice. */
+    el.addEventListener('focus',function(){
+      if(el.matches(':focus-visible')) open(el);
+    });
+    el.addEventListener('blur',function(){
+      if(!pinned && cur===el) close();
+    });
+    el.addEventListener('click',function(e){
+      e.preventDefault(); e.stopPropagation();
+      clearTimeout(showT); clearTimeout(hideT);
+      if(pinned && cur===el){ close(); return; }
+      open(el); pinned=true;
+    });
+  });
+
+  tip.addEventListener('pointerenter',function(e){
+    if(e.pointerType==='mouse') clearTimeout(hideT);
+  });
+  tip.addEventListener('pointerleave',function(e){
+    if(e.pointerType!=='mouse' || !canHover() || pinned) return;
+    hideT=setTimeout(function(){ close(); anyOpen=false; },180);
+  });
+  back.addEventListener('click',close);
+  document.addEventListener('click',function(e){
+    if(pinned && !tip.contains(e.target)) close();
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape' && cur){ var c=cur; close(); c.focus(); }
+  });
+  addEventListener('scroll',function(){ if(cur&&!asSheet()) place(cur); },{passive:true});
+  addEventListener('resize',close);
+  var onCap=function(){ close(); anyOpen=false; };
+  if(hoverMQ.addEventListener){ hoverMQ.addEventListener('change',onCap); sheetMQ.addEventListener('change',onCap); }
+  else if(hoverMQ.addListener){ hoverMQ.addListener(onCap); sheetMQ.addListener(onCap); }
+
+  /* ── dice ────────────────────────────────────────────── */
+  var log=document.getElementById('rolllog');
+  function d(n){ return 1+Math.floor(Math.random()*n); }
+  function roll(expr){
+    if(expr==='dc15'){ var r=d(20); return {tot:r,brk:'d20: '+r+' vs DC 15',crit:r>=15,fum:r===1}; }
+    var m=expr.match(/^(\d+)d(\d+)(?:\+(\d+))?$/); if(!m) return null;
+    var n=+m[1],f=+m[2],b=+m[3]||0,parts=[],s=0;
+    for(var i=0;i<n;i++){ var v=d(f); parts.push(v); s+=v; }
+    return {tot:s+b, brk:n+'d'+f+': '+parts.join(' ')+(b?' +'+b:''),
+            crit:f===20&&parts[0]===20, fum:f===20&&parts[0]===1};
+  }
+  document.querySelectorAll('.ref.dice[data-roll]').forEach(function(el){
+    el.addEventListener('click',function(e){
+      e.preventDefault(); e.stopPropagation();
+      var r=roll(el.dataset.roll); if(!r) return;
+      el.classList.add('rolled'); setTimeout(function(){ el.classList.remove('rolled'); },450);
+      var c=document.createElement('div');
+      c.className='rollcard'+(r.crit?' crit':r.fum?' fumble':'');
+      c.innerHTML='<div><div class="lbl">'+el.dataset.label+'</div><div class="brk">'+r.brk+'</div></div>'+
+                  '<div class="tot" style="margin-left:auto">'+r.tot+'</div>';
+      log.appendChild(c);
+      setTimeout(function(){ c.style.transition='opacity .3s'; c.style.opacity='0';
+        setTimeout(function(){ c.remove(); },320); },3400);
+      while(log.children.length>3) log.firstChild.remove();
+    });
+  });
+})();
+</script>

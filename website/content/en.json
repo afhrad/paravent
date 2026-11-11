@@ -1,0 +1,498 @@
+{
+  "_about": "The English text of paravent.org. `python website/build.py` writes index.html and legal.html from it (structure: website/templates/); website/README.md, 'Writing the text', explains the shape.",
+  "_marks": "In a text: *italic*, **bold**, ==highlighted== (the hero's gold ink), [link](url), [[placeholder]] (marked to fill in). A list of strings is paragraphs where the page shows paragraphs, lines elsewhere (a title, the address).",
+  "meta": {
+    "lang": "en",
+    "title": "Paravent: the game master's screen in your browser",
+    "description": "Paravent helps a Dungeons & Dragons 5e group at a real table. The game master runs fights, notes and handouts from a tablet, the players keep their sheets on their phones, and the game stays at the table.",
+    "og_description": "The game master's screen in your browser. For the table at home, not instead of it.",
+    "locale": "en_GB",
+    "share_alt": "Paravent's combat tracker: the order of a fight and a troll's statblock, in the parchment look"
+  },
+  "ui": {
+    "home": "Paravent, back to the top",
+    "sections": "Sections",
+    "language": "Language",
+    "theme": "Switch between light and dark",
+    "menu": "Menu",
+    "scroll": "Scroll down",
+    "numbers": "In numbers",
+    "back": "Back",
+    "close": "Close",
+    "enlarge": "Show larger",
+    "enlarged": "Screenshot, enlarged"
+  },
+  "nav": {
+    "why": "Why",
+    "features": "Features",
+    "evening": "An evening",
+    "philosophy": "How it thinks",
+    "screens": "Screens",
+    "stack": "Tech",
+    "updates": "Updates",
+    "faq": "FAQ",
+    "legal": "Legal"
+  },
+  "hero": {
+    "_comment": "title_words: shown one after the other; the last entry is where it stops. Change any, add or remove entries.",
+    "eyebrow": "For Dungeons & Dragons 5e at a real table",
+    "title": "The game master's screen,",
+    "title_prefix": "",
+    "title_words": [
+      "in your browser",
+      "on your laptop",
+      "on your tablet",
+      "on your mobile",
+      "on Linux",
+      "on Windows",
+      "on MacOS",
+      "on iOS",
+      "anywhere"
+    ],
+    "lede": "A *paravent* is a folding screen, the one the game master sits behind. Paravent keeps your notes, the rules and the fight in order, so you can look up from the screen and back at your players. The dice, the voices and the story stay at the table where they belong.",
+    "primary": "See what it does",
+    "secondary": "How it thinks",
+    "mini_ac": "AC",
+    "mini_hp": "HP",
+    "mini_cr": "CR",
+    "mini_round": "Round 3",
+    "mini_spell": "Fireball · 8d6"
+  },
+  "facts": {
+    "version": "current version",
+    "tests": "automated tests",
+    "commits": "changes so far",
+    "content": "game content included",
+    "languages": "languages, English and German"
+  },
+  "why": {
+    "eyebrow": "Why it exists",
+    "title": "Made for your gaming table.",
+    "text": [
+      "It began with a weekly game and a game master who had run out of hands. A PDF here, three browser tabs there, hit points on a spreadsheet, initiative on a sticky note. The players wanted their characters on their phones, and nobody wanted another subscription.",
+      "Paravent is what came out of it. It does not play the game for you. It keeps track of the things that slow a session down, so the table can spend its evening on the story. You still describe the dragon, the players still argue about the plan, and the dice still decide.",
+      "It runs on a laptop, a mini PC or a NAS in your home. Nobody signs up anywhere and nothing goes to a cloud. Everything you write lives in plain files that you can open, copy and back up yourself."
+    ],
+    "intents": [
+      {
+        "title": "At the table, not instead of it",
+        "icon": "users",
+        "text": "Big buttons, quick taps, no setup before the first session. Paravent sits beside the dice and the snacks and leaves the talking to you."
+      },
+      {
+        "title": "Secrets stay secret",
+        "icon": "lock",
+        "text": "Only your home network. The game master sees everything, players see what their characters would know. A DC never shows up on a phone."
+      },
+      {
+        "title": "Every rule within reach",
+        "icon": "book-open",
+        "text": "The books you bring are searchable in one box. Hover over a spell in your notes and read it without losing your place."
+      }
+    ]
+  },
+  "features": {
+    "eyebrow": "Features",
+    "title": "What it does for your gaming session",
+    "intro": "Some of it helps you prepare at the desk. Most of it is there for the moment the players do something you did not expect.",
+    "items": [
+      {
+        "title": "A tracker that lets you decide",
+        "icon": "swords",
+        "text": "Initiative, hit points, conditions that count down by round, concentration checks, lair actions. Monster attacks are a button away, but whether they hit is your call, and nothing changes a hit point until you say so."
+      },
+      {
+        "title": "Players roll their own",
+        "icon": "dices",
+        "text": "Initiative and saving throws are rolled on each player's phone and show up in your tracker a moment later. They hear their dice, see \"Your turn!\" and never see the DC."
+      },
+      {
+        "title": "Behind the screen",
+        "icon": "eye-off",
+        "text": "Monster rolls reach the players as results only: hit, nine slashing. They never learn a foe's hit points or armor class, and they only read the books you allow."
+      },
+      {
+        "title": "The party learns",
+        "icon": "eye",
+        "text": "Players can look at a creature and see what their characters see. What they find out in a fight is remembered, like the troll that shrugged off the fire. Next time they meet one, they know."
+      },
+      {
+        "title": "Encounters that fit",
+        "icon": "target",
+        "text": "Build a fight and see how hard it is for the party you actually have, by the 2014 or the 2024 rules. Roll a random encounter for the road or a hoard for the lair."
+      },
+      {
+        "title": "Characters without homework",
+        "icon": "user-plus",
+        "text": "A builder for both editions at any level, and a sheet that explains its numbers, so everyone can see where that 17 comes from. You grant levels when the story says so."
+      },
+      {
+        "title": "Adventures in plain text",
+        "icon": "scroll",
+        "text": "Write chapters the way you write notes. Obsidian works. NPCs, places, fights and treasure sit in the text as cards you can open mid session. You can also start from a published adventure and add your own ideas."
+      },
+      {
+        "title": "Handouts",
+        "icon": "send",
+        "text": "Pass a letter, a map or a description to the players who found it. They get their own copy on their phone, your secrets stay out of it, and you see who has read it."
+      },
+      {
+        "title": "The evening, written down",
+        "icon": "clipboard-list",
+        "text": "Every roll lands in one log with its dice and bonuses. Afterwards you get a summary of the fight or the whole night, ready for next week's \"previously on\"."
+      },
+      {
+        "title": "Sound for the room",
+        "icon": "volume-2",
+        "text": "Rain, a crackling fire, the music for the boss. Start them from your tablet, play them on the speaker in the room, and let a chapter cue the tavern noise for you."
+      },
+      {
+        "title": "Names when you need one",
+        "icon": "wand-sparkles",
+        "text": "The players ask the innkeeper's name and you have one, in the style of the people and the world you play in. Goblins get goblin names, dwarven halls get dwarven ones."
+      },
+      {
+        "title": "Claude as a writing partner",
+        "icon": "sparkles",
+        "text": "If you like, Claude drafts an adventure for your group: chapters, characters and fights from your own books. It stays a draft until you read it and say yes."
+      },
+      {
+        "title": "German, done properly",
+        "icon": "languages",
+        "text": "The whole interface speaks German, distances come in metres, and translated rules fall back to English where nobody has translated them yet."
+      },
+      {
+        "title": "A look for your table",
+        "icon": "palette",
+        "text": "A clean default, or Tome: parchment by day and leather by candlelight, set like the printed books. Each player can pick their own."
+      }
+    ]
+  },
+  "evening": {
+    "_comment": "steps: one per moment of the evening. time and title head it, text says what Paravent does, table says what stays at the table. file is a screenshot from assets/img/screens/<lang>/ (shots.py), kind window or phone. align right shows the right side of a wide picture.",
+    "eyebrow": "A game night",
+    "title": "How an evening goes",
+    "intro": "Paravent never sits in the middle of the table. This is where it helps on an ordinary evening, and what stays exactly as it always was.",
+    "table": "At the table:",
+    "steps": [
+      {
+        "time": "The afternoon before",
+        "title": "The chapter is ready",
+        "text": "You write tonight's chapter in plain text: the ferry, the goblins in the reeds, the troll under the landing. Paravent checks your links, rates the ambush for the party you actually have and finds a name for the bugbear.",
+        "table": "your ideas and notes, as loose as you like.",
+        "kind": "window",
+        "file": "chapter.webp",
+        "icon": "scroll",
+        "alt": "A chapter with its read aloud box and the encounter waiting in it"
+      },
+      {
+        "time": "7 pm",
+        "title": "Fog on the river",
+        "text": "The players open their characters on their phones. You read the box aloud, and with one tap on the sound desk the rain starts on the speaker by the shelf. No playlist to hunt for.",
+        "table": "your voice, the snacks, the first jokes.",
+        "kind": "window",
+        "file": "sound.webp",
+        "icon": "volume-2",
+        "alt": "The sound desk open beside the chapter, rain and drums playing",
+        "align": "right"
+      },
+      {
+        "time": "7:40 pm",
+        "title": "Something to hold",
+        "text": "The words about the drowned bell go to the players as a handout. They land in the journal on their phones and stay there, so nobody has to remember them word for word next month.",
+        "table": "the players reading it out to each other.",
+        "kind": "phone",
+        "file": "journal.webp",
+        "icon": "book-open",
+        "alt": "The handout in a player's journal on a phone"
+      },
+      {
+        "time": "8:15 pm",
+        "title": "Roll for initiative",
+        "text": "The tracker keeps the order, the hit points and who is concentrating, with the troll's statblock right beside it. The players roll on their phones, or with real dice and you type in the number. Whether a blow lands is always your call.",
+        "table": "real dice, the map, the miniatures, the cheering.",
+        "kind": "window",
+        "file": "combat.webp",
+        "icon": "swords",
+        "alt": "The combat tracker in round two with the troll's statblock"
+      },
+      {
+        "time": "Midnight",
+        "title": "Until next time",
+        "text": "The recap shows who landed the big blow, who went down and what the fight was worth. Turn it into a note for the next session in a minute, then close the laptop.",
+        "table": "the stories the players tell on the way home.",
+        "kind": "window",
+        "file": "recap.webp",
+        "icon": "scroll",
+        "alt": "The recap of a fight: damage dealt and taken, natural twenties, experience"
+      }
+    ]
+  },
+  "philosophy": {
+    "eyebrow": "How it thinks",
+    "title": "A few rules Paravent keeps",
+    "items": [
+      {
+        "title": "The table comes first.",
+        "text": "Paravent helps people play together in one room. It keeps the bookkeeping out of the way so the evening belongs to the story and the people around the table."
+      },
+      {
+        "title": "The game master has the last word.",
+        "text": "Did the arrow hit? Who stood in the fire? Is it time to level up? Paravent offers the numbers and a button. The decision stays with you."
+      },
+      {
+        "title": "Reminders, never autopilot.",
+        "text": "At the start of a turn it reminds you of the recharge roll and the lair action. It shows a resistance instead of quietly halving the damage. Nothing happens behind your back."
+      },
+      {
+        "title": "Your world says which books it uses.",
+        "text": "Two thirds of all spell names exist in more than one book. Pick yours, the 2014 handbook or the 2024 one, and every reference finds the right version. A book nobody owns stays out of play and says so."
+      },
+      {
+        "title": "Your work and the books stay apart.",
+        "text": "The rules you bring are only ever read. Everything you create is kept separately. Swap the books for a new release and your campaign is untouched."
+      },
+      {
+        "title": "A character keeps choices, not numbers.",
+        "text": "The file remembers what the player picked. Armor class and hit points are worked out fresh every time, so a corrected rule fixes every sheet at once."
+      },
+      {
+        "title": "A translation sits on top.",
+        "text": "German text never touches the rules underneath. A half translated book is perfectly normal, and removing a translation is always safe."
+      },
+      {
+        "title": "Claude suggests, you decide.",
+        "text": "Whatever Claude writes is a draft. It appears nowhere in your game until you have read it and accepted it."
+      }
+    ]
+  },
+  "screens": {
+    "_comment": "items: kind is wide (the whole row), window or phone; file is the picture in assets/img/screens/<lang>/ (shots.py takes them); alt says what it shows.",
+    "srd": "The screenshots show creatures from the System Reference Document 5.1 by Wizards of the Coast LLC, under the [Creative Commons Attribution 4.0 licence](https://creativecommons.org/licenses/by/4.0/).",
+    "eyebrow": "Screens",
+    "title": "How it looks at the table",
+    "intro": "From the game master's tablet and a player's phone, in light and dark. Click a picture to see it larger.",
+    "items": [
+      {
+        "title": "Combat tracker",
+        "kind": "wide",
+        "file": "combat.webp",
+        "icon": "swords",
+        "alt": "The combat tracker: the order of a fight with hit point bars, and a creature's statblock beside it",
+        "text": "The order of the fight with the creature's statblock beside it."
+      },
+      {
+        "title": "Chapter",
+        "kind": "window",
+        "file": "chapter.webp",
+        "icon": "scroll",
+        "alt": "A chapter of an adventure with a read-aloud box and an encounter card",
+        "text": "A chapter with its read aloud text and a fight ready to start."
+      },
+      {
+        "title": "Encounter",
+        "kind": "window",
+        "file": "encounter.webp",
+        "icon": "target",
+        "alt": "The encounter builder rating a fight against the party",
+        "text": "How hard the fight is for the party you actually have."
+      },
+      {
+        "title": "Character sheet",
+        "kind": "phone",
+        "file": "sheet.webp",
+        "icon": "shield",
+        "alt": "A character sheet on a phone",
+        "text": "The character sheet in a player's hand."
+      },
+      {
+        "title": "The fight on a phone",
+        "kind": "phone",
+        "file": "fight-phone.webp",
+        "icon": "dices",
+        "alt": "A player's view of the running fight on a phone",
+        "text": "\"Your turn!\" The same fight from a player's side."
+      },
+      {
+        "title": "Handouts",
+        "kind": "phone",
+        "file": "journal.webp",
+        "icon": "book-open",
+        "alt": "A handout in a player's journal on a phone: the read aloud text the game master shared",
+        "text": "A handout the game master just passed across the table."
+      },
+      {
+        "title": "Character wizard",
+        "kind": "window",
+        "file": "wizard.webp",
+        "icon": "user-plus",
+        "alt": "The character wizard choosing a class, with the cards of the classes in the world's books",
+        "text": "A new character, one choice at a time, from the books your world uses."
+      },
+      {
+        "title": "Names",
+        "kind": "window",
+        "file": "names.webp",
+        "icon": "wand-sparkles",
+        "alt": "The names workshop with naming styles and sample names",
+        "text": "Naming styles for every people of your world, with names to try."
+      },
+      {
+        "title": "Sound desk",
+        "kind": "wide",
+        "file": "sound.webp",
+        "icon": "volume-2",
+        "alt": "The sound desk open beside a chapter: pads for ambience, music and effects",
+        "text": "Rain, a bell, the drums of battle: the sound desk beside the chapter you are running."
+      }
+    ]
+  },
+  "stack": {
+    "eyebrow": "Under the hood",
+    "title": "Simple technology, on purpose",
+    "intro": "No database server, no cloud, nothing to compile. A small Python server and plain files on a disk, the kind of setup that still runs in ten years.",
+    "items": [
+      {
+        "title": "Server",
+        "text": "Python and FastAPI"
+      },
+      {
+        "title": "Pages",
+        "text": "Rendered on the server with htpy and updated in place by HTMX. Very little JavaScript."
+      },
+      {
+        "title": "Live",
+        "text": "A roll on a phone appears on the game master's screen in about a tenth of a second."
+      },
+      {
+        "title": "Data",
+        "text": "Plain JSON and Markdown files, saved safely. No database."
+      },
+      {
+        "title": "Rules",
+        "text": "The 5eTools data you bring, read where it lies and ready in about two seconds."
+      },
+      {
+        "title": "Look",
+        "text": "One stylesheet, light and dark, checked for contrast. This page uses it too."
+      },
+      {
+        "title": "Devices",
+        "text": "Installs from the browser on a tablet or phone like an app."
+      },
+      {
+        "title": "Claude",
+        "text": "Optional. An MCP connection for drafting adventures, and the Claude API for translations and names."
+      },
+      {
+        "title": "Quality",
+        "text": "Automated tests, type checks and linting on every change."
+      },
+      {
+        "title": "Made by AI",
+        "text": "Completely written by Claude Code. All ideas were developed by the author."
+      }
+    ]
+  },
+  "updates": {
+    "eyebrow": "What's new",
+    "title": "Fresh from development",
+    "intro": "The latest changes as they were made. Updated"
+  },
+  "faq": {
+    "_comment": "items: q is the question, a the answer (a string, or a list of paragraphs).",
+    "eyebrow": "Questions",
+    "title": "What people ask first",
+    "intro": "Short answers, before you set anything up.",
+    "items": [
+      {
+        "q": "Does Paravent run the game for me?",
+        "a": "No, and it never will. You tell the story, the players roll the dice they like and you decide what happens. Paravent keeps the numbers, notes and handouts in order, so you can look up from the screen more often."
+      },
+      {
+        "q": "What do I need to run it?",
+        "a": "One machine that stays on while you play: a laptop, a mini PC or a NAS, with Python or Docker. Everyone else only needs a browser on the same network, on a phone, tablet or laptop. Nothing to install from an app store."
+      },
+      {
+        "q": "Why are there no monsters or spells in it?",
+        "a": "Paravent ships no game content at all. It reads rules data in the 5eTools format from a folder on your own machine and never changes it. Which data you put there is your decision, the same as which books stand on your shelf."
+      },
+      {
+        "q": "Where does our data live?",
+        "a": "On your machine, in one folder: worlds, adventures, characters, fights, all as readable Markdown and JSON files. There is no account with us, no cloud and no tracking. Paravent zips that folder every night if you let it."
+      },
+      {
+        "q": "Does it need the internet?",
+        "a": "Only your own network. The phones talk to the machine running Paravent, nothing goes out to the internet. It does need that connection, though: there is no offline mode."
+      },
+      {
+        "q": "Do my players need an account?",
+        "a": "A simple login that you create for each of them. They see their own characters, the fight from their side and what you share with them, never your notes or a monster's hit points."
+      },
+      {
+        "q": "2014 or 2024 rules?",
+        "a": "Both. Each world declares the books it uses, and that decides the edition. A table that owns both can mix them, and Paravent always shows which printing a rule came from."
+      },
+      {
+        "q": "Can we play in German?",
+        "a": "Yes. The whole interface speaks German, distances come in metres, and rules texts can be translated passage by passage. Whatever nobody has translated yet stays in English, and every link keeps working."
+      },
+      {
+        "q": "What does it cost?",
+        "a": "Nothing. Paravent is free and open source. The only part that can cost money is optional: Claude features use your own Claude account or API key, paid to Anthropic. Without them, Paravent simply leaves those features off."
+      },
+      {
+        "q": "Is Paravent open source?",
+        "a": "Yes. Paravent is released under the MIT License: use it, change it and pass it on, as long as the copyright notice stays with it. The source code is on [GitHub](https://github.com/afhrad/paravent). The licence covers the program, not the rules data you bring."
+      },
+      {
+        "q": "Can I bring my own adventures and homebrew?",
+        "a": "Yes. Adventures are plain Markdown, written in Paravent or in any editor, Obsidian included. Your own creatures come from the creature builder, and homebrew in the 5eTools format sits next to the books and works like them."
+      }
+    ]
+  },
+  "legal": {
+    "eyebrow": "Legal",
+    "title": "A tool, not a library of content",
+    "text": [
+      "**Paravent comes without any game content.** No spells, no monsters, no rules text, no adventures. Which data a group uses is up to whoever runs it, just like a word processor and the books on your shelf.",
+      "Paravent is an independent open-source project and free to use. It is not affiliated with, endorsed or sponsored by Wizards of the Coast or the 5eTools project. *Dungeons & Dragons* and *D&D* are trademarks of Wizards of the Coast LLC. All other names belong to their owners.",
+      "This site sets no cookies and uses no tracking, analytics or outside fonts. [Imprint and privacy policy](legal.html)."
+    ],
+    "link": "Imprint & privacy"
+  },
+  "footer": {
+    "line": "Made for one table, shared with others.",
+    "home": "Back to the start"
+  },
+  "legal_page": {
+    "title": "Imprint & privacy",
+    "eyebrow": "Legal",
+    "imprint_title": "Imprint (Impressum)",
+    "imprint": "Information according to § 5 DDG (Digitale-Dienste-Gesetz):",
+    "address": [
+      "Thorsten Sommermann",
+      "Wirbenz 65",
+      "95469 Speichersdorf",
+      "Deutschland"
+    ],
+    "contact": [
+      "Kontakt: info@paravent.org",
+      "Responsible for the content according to § 18 (2) MStV: as named above."
+    ],
+    "disclaimer_title": "Content and trademarks",
+    "disclaimer": [
+      "Paravent is an independent open-source project and free to use. It ships no game content: no rules text, spells, creatures or adventures. It is not affiliated with, endorsed or sponsored by Wizards of the Coast or the 5eTools project. *Dungeons & Dragons* and *D&D* are trademarks of Wizards of the Coast LLC. All other names and trademarks belong to their respective owners.",
+      "Links to other websites are checked when they are set. Their content is the responsibility of their operators.",
+      "The site and the app use open-source components: the Lucide icons (ISC License, some of them from Feather under the MIT License) and the typefaces Alegreya Sans, Cinzel and Libre Baskerville (SIL Open Font License 1.1). Their copyright and licence notices are in [notice.txt](notice.txt)."
+    ],
+    "srd_title": "System Reference Document",
+    "srd": "This work includes material taken from the System Reference Document 5.1 (\"SRD 5.1\") by Wizards of the Coast LLC and available at [dnd.wizards.com](https://dnd.wizards.com/resources/systems-reference-document). The SRD 5.1 is licensed under the [Creative Commons Attribution 4.0 International License](https://creativecommons.org/licenses/by/4.0/legalcode). It appears on this site only in the screenshots, which show creatures from it.",
+    "privacy_title": "Privacy (Datenschutz)",
+    "privacy": [
+      "This website is a set of static pages. It sets no cookies, runs no analytics or tracking, embeds no third-party content and loads no fonts or scripts from other servers. The only things it keeps in your browser are your choice of light or dark mode and of language, in local storage, which never leave your device.",
+      "When you open the site, the hosting provider's web server records technical access data (IP address, time, page requested, browser) in log files, as every web server does. This is necessary to deliver the site and keep it secure (Art. 6 (1) (f) GDPR). Hosting provider: Hosteurope, Gertrudenstraße 30-36, 50667 Köln; logs are kept for 30 days.",
+      "Controller within the meaning of the GDPR is the person named in the imprint above. You have the right to information, rectification, erasure, restriction of processing, objection and data portability, and the right to lodge a complaint with a data protection supervisory authority."
+    ]
+  }
+}

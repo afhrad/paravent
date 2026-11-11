@@ -1,0 +1,1016 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Combat Tracker · Paravent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+
+/* ============================================================
+   PARAVENT — token layer
+   Light palette on bare :root. Dark redefines TOKENS ONLY.
+   ============================================================ */
+:root{
+  /* neutrals — grey with a faint blue bias toward the indigo accent */
+  --bg:        #FFFFFF;
+  --bg-sunken: #F4F6F9;
+  --surface:   #FFFFFF;
+  --surface-2: #F7F8FA;
+  --surface-3: #EDF0F4;
+  --border:    #E1E5EB;
+  --border-strong:#CBD2DB;
+  --text:      #14171C;
+  --text-2:    #545C68;
+  --text-3:    #646C79;
+
+  /* accent */
+  --accent:      #4F6BED;
+  /* Accent used as a FILLED surface needs more depth than accent-as-a-line,
+     so white label text clears 4.5:1 with margin. */
+  --accent-solid:#4560DC;
+  --accent-hover:#3A51C4;
+  --accent-weak: #EDF0FE;
+  --accent-text: #3247B8;
+  --on-accent:   #FFFFFF;
+
+  /* semantic — meaning, never decoration */
+  --dmg:      #D93A3F;  --dmg-weak:  #FDECEC;  --dmg-text:  #B32227;
+  --heal:     #1F8A55;  --heal-weak: #E7F5ED;  --heal-text: #14663D;
+  --magic:    #8144B8;  --magic-weak:#F4EBFB;  --magic-text:#6A2F9C;
+  --cond:     #B57500;  --cond-weak: #FDF3E0;  --cond-text: #8A5A00;
+
+  --shadow-sm: 0 1px 2px rgba(15,20,30,.06), 0 1px 3px rgba(15,20,30,.04);
+  --shadow-md: 0 4px 12px rgba(15,20,30,.08), 0 1px 3px rgba(15,20,30,.05);
+  --shadow-lg: 0 16px 48px rgba(15,20,30,.16), 0 2px 8px rgba(15,20,30,.08);
+
+  --r-sm: 5px; --r: 8px; --r-lg: 12px;
+
+  --font-ui:   'Inter Tight', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Source Sans 3', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --rail: 236px;
+  --tap: 44px;
+
+  /* Scrollbars. Track is transparent so it inherits whatever surface it sits
+     on; thumb is a neutral that reads on every surface in both themes. */
+  --sb-size: 10px;
+  --sb-thumb: #98A1B0;
+  --sb-thumb-hover: #7C8595;
+  --sb-thumb-active: #656E7E;
+
+  /* Tells the browser which way to paint native UI it still owns:
+     the caret, form controls, and the scrollbar corner. Without this a dark
+     page gets light system scrollbars. */
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:        #0E1013;
+    --bg-sunken: #090B0D;
+    --surface:   #171A1F;
+    --surface-2: #1D2127;
+    --surface-3: #252A31;
+    --border:    #282D35;
+    --border-strong:#3A414B;
+    --text:      #E9ECF1;
+    --text-2:    #A0A8B4;
+    --text-3:    #949DAB;
+
+    --accent:      #7B92F5;
+    --accent-solid:#7B92F5;
+    --accent-hover:#93A6F8;
+    --accent-weak: #1B2140;
+    --accent-text: #A7B7FA;
+    --on-accent:   #0E1013;
+
+    --dmg:   #F0656A; --dmg-weak:  #33191B; --dmg-text:  #F79A9D;
+    --heal:  #45C083; --heal-weak: #12291F; --heal-text: #7BD9AC;
+    --magic: #B678E6; --magic-weak:#2A1B38; --magic-text:#CFA3F0;
+    --cond:  #E5A73C; --cond-weak: #302411; --cond-text: #F0C578;
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.5);
+    --shadow-md: 0 4px 12px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.4);
+    --shadow-lg: 0 16px 48px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.5);
+
+    --sb-thumb: #5D6776;
+    --sb-thumb-hover: #737D8E;
+    --sb-thumb-active: #8A94A5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:        #0E1013;
+  --bg-sunken: #090B0D;
+  --surface:   #171A1F;
+  --surface-2: #1D2127;
+  --surface-3: #252A31;
+  --border:    #282D35;
+  --border-strong:#3A414B;
+  --text:      #E9ECF1;
+  --text-2:    #A0A8B4;
+  --text-3:    #949DAB;
+
+  --accent:      #7B92F5;
+  --accent-solid:#7B92F5;
+  --accent-hover:#93A6F8;
+  --accent-weak: #1B2140;
+  --accent-text: #A7B7FA;
+  --on-accent:   #0E1013;
+
+  --dmg:   #F0656A; --dmg-weak:  #33191B; --dmg-text:  #F79A9D;
+  --heal:  #45C083; --heal-weak: #12291F; --heal-text: #7BD9AC;
+  --magic: #B678E6; --magic-weak:#2A1B38; --magic-text:#CFA3F0;
+  --cond:  #E5A73C; --cond-weak: #302411; --cond-text: #F0C578;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.5);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.4);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.5);
+
+  --sb-thumb: #5D6776;
+  --sb-thumb-hover: #737D8E;
+  --sb-thumb-active: #8A94A5;
+  color-scheme: dark;
+}
+
+/* ============================================================ base */
+*{ box-sizing:border-box; }
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--font-body); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,h5{ font-family:var(--font-ui); font-weight:600; margin:0; text-wrap:balance; letter-spacing:-.011em; }
+p{ margin:0; }
+button{ font:inherit; color:inherit; }
+:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
+@media (prefers-reduced-motion:reduce){ *{ animation-duration:.01ms!important; transition-duration:.01ms!important; } }
+
+/* ============================================================
+   SCROLLBARS
+   Firefox gets scrollbar-color (thin, two colours, no pseudo-elements).
+   Chromium/Safari get ::-webkit-scrollbar, which allows a rounded thumb
+   inset from a transparent track. Both read from the same tokens, so a
+   theme switch moves them with everything else.
+   ============================================================ */
+*{ scrollbar-color: var(--sb-thumb) transparent; scrollbar-width: thin; }
+
+::-webkit-scrollbar{ width: var(--sb-size); height: var(--sb-size); }
+::-webkit-scrollbar-track{ background: transparent; }
+::-webkit-scrollbar-thumb{
+  background-color: var(--sb-thumb);
+  border-radius: 999px;
+  /* Transparent border + background-clip insets the thumb without a track,
+     so it floats clear of the content edge. */
+  border: 2.5px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover{ background-color: var(--sb-thumb-hover); }
+::-webkit-scrollbar-thumb:active{ background-color: var(--sb-thumb-active); }
+::-webkit-scrollbar-corner{ background: transparent; }
+
+/* Horizontal strips — filter chips, the wizard step rail, wide tables — are
+   short. A 10px bar would crowd them, so they get a slimmer one that only
+   appears while the strip is hovered or focused within. */
+.filterbar, .steps, .tablewrap{ scrollbar-width: none; }
+.filterbar::-webkit-scrollbar,
+.steps::-webkit-scrollbar,
+.tablewrap::-webkit-scrollbar{ height: 6px; }
+.filterbar::-webkit-scrollbar-thumb,
+.steps::-webkit-scrollbar-thumb,
+.tablewrap::-webkit-scrollbar-thumb{
+  background-color: transparent; border-width: 1.5px;
+  transition: background-color .15s;
+}
+.filterbar:hover::-webkit-scrollbar-thumb, .filterbar:focus-within::-webkit-scrollbar-thumb,
+.steps:hover::-webkit-scrollbar-thumb, .steps:focus-within::-webkit-scrollbar-thumb,
+.tablewrap:hover::-webkit-scrollbar-thumb, .tablewrap:focus-within::-webkit-scrollbar-thumb{
+  background-color: var(--sb-thumb);
+}
+.filterbar:hover, .steps:hover, .tablewrap:hover,
+.filterbar:focus-within, .steps:focus-within, .tablewrap:focus-within{
+  scrollbar-width: thin;
+}
+
+/* Touch devices draw their own overlay scrollbar that fades out on its own.
+   Ours would sit under a thumb and steal 10px of a narrow screen. */
+@media (hover: none){
+  *{ scrollbar-width: auto; }
+  ::-webkit-scrollbar{ width: 0; height: 0; }
+}
+
+.mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+.eyebrow{
+  font-family:var(--font-ui); font-size:10.5px; font-weight:600;
+  letter-spacing:.09em; text-transform:uppercase; color:var(--text-3);
+}
+
+/* ============================================================
+   ICONS — Lucide 1.39.0 (ISC). One contract, applied globally.
+   Lucide is a stroke set: fill:none + stroke:currentColor is
+   mandatory, or every glyph renders as a black blob.
+   ============================================================ */
+svg.ic{
+  fill:none; stroke:currentColor; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round;
+  width:1em; height:1em; flex-shrink:0;
+  vertical-align:-.125em; display:inline-block;
+}
+/* Optical sizing: stroke-width is scaled DOWN as the icon grows,
+   so weight stays visually constant across sizes. */
+.ic-xs{ font-size:13px; stroke-width:2.25; }
+.ic-sm{ font-size:15px; stroke-width:2; }
+.ic-md{ font-size:18px; stroke-width:1.85; }
+.ic-lg{ font-size:22px; stroke-width:1.7; }
+.ic-xl{ font-size:28px; stroke-width:1.6; }
+
+/* Icons inside a text run sit at the text's own weight, never louder. */
+.ic-muted{ opacity:.62; }
+
+/* ============================================================ doc shell */
+.doc{ max-width:1180px; margin:0 auto; padding:0 24px 120px; }
+.masthead{ padding:56px 0 40px; border-bottom:1px solid var(--border); }
+.masthead h1{ font-size:clamp(30px,5vw,44px); font-weight:700; letter-spacing:-.03em; margin:10px 0 12px; }
+.masthead .lede{ color:var(--text-2); max-width:64ch; font-size:16.5px; }
+.mast-row{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+
+.themetoggle{
+  display:inline-flex; gap:2px; padding:3px; background:var(--surface-2);
+  border:1px solid var(--border); border-radius:var(--r); font-family:var(--font-ui);
+}
+.themetoggle button{
+  border:0; background:transparent; color:var(--text-2); cursor:pointer;
+  padding:6px 12px; border-radius:var(--r-sm); font-size:12.5px; font-weight:500;
+}
+.themetoggle button[aria-pressed="true"]{ background:var(--surface); color:var(--text); box-shadow:var(--shadow-sm); }
+
+section.block{ padding-top:64px; }
+.block > .eyebrow{ display:block; margin-bottom:8px; }
+.block > h2{ font-size:25px; letter-spacing:-.02em; margin-bottom:8px; }
+.block > .intro{ color:var(--text-2); max-width:70ch; margin-bottom:26px; }
+
+/* ============================================================ device frames */
+.frames{ display:grid; grid-template-columns:1fr; gap:28px; }
+@media (min-width:1000px){ .frames.split{ grid-template-columns:1fr 372px; align-items:start; } }
+
+.frame{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-md);
+}
+.frame-bar{
+  display:flex; align-items:center; gap:8px; padding:9px 12px;
+  background:var(--surface-2); border-bottom:1px solid var(--border);
+}
+.frame-dots{ display:flex; gap:5px; }
+.frame-dots i{ width:9px; height:9px; border-radius:50%; background:var(--border-strong); display:block; }
+.frame-label{
+  font-family:var(--font-ui); font-size:11.5px; font-weight:500; color:var(--text-3);
+  letter-spacing:.01em; margin-left:4px;
+}
+.frame-body{ background:var(--bg); }
+
+/* phone */
+.phone{
+  width:100%; max-width:372px; margin:0 auto;
+  border:1px solid var(--border-strong); border-radius:26px; padding:9px;
+  background:var(--surface-2); box-shadow:var(--shadow-md);
+}
+.phone-screen{
+  background:var(--bg); border-radius:18px; overflow:hidden;
+  border:1px solid var(--border); height:668px; display:flex; flex-direction:column;
+}
+
+/* ============================================================ app chrome */
+.app{ display:flex; min-height:520px; }
+.rail{
+  width:var(--rail); flex-shrink:0; background:var(--surface-2);
+  border-right:1px solid var(--border); padding:14px 10px;
+  display:flex; flex-direction:column; gap:2px;
+}
+.rail-brand{ display:flex; align-items:center; gap:9px; padding:6px 8px 16px; }
+.mark{
+  width:26px; height:26px; border-radius:7px; background:var(--accent-solid);
+  display:grid; place-items:center; flex-shrink:0;
+}
+.mark svg{ font-size:15px; }
+.rail-brand b{ font-family:var(--font-ui); font-size:15px; font-weight:600; letter-spacing:-.015em; }
+.rail-group{ margin-top:14px; }
+.rail-group .eyebrow{ padding:0 8px 6px; display:block; }
+.navitem{
+  display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  padding:7px 8px; border:0; background:transparent; border-radius:var(--r-sm);
+  color:var(--text-2); font-family:var(--font-ui); font-size:13.5px; font-weight:500;
+  cursor:pointer; min-height:34px;
+}
+.navitem:hover{ background:var(--surface-3); color:var(--text); }
+.navitem[aria-current="page"]{ background:var(--accent-weak); color:var(--accent-text); font-weight:600; }
+.navitem svg{ font-size:16px; opacity:.8; }
+.navitem .count{
+  margin-left:auto; font-family:var(--font-mono); font-size:10.5px; color:var(--text-3);
+  font-variant-numeric:tabular-nums;
+}
+.rail-foot{ margin-top:auto; padding-top:14px; border-top:1px solid var(--border); }
+.userchip{ display:flex; align-items:center; gap:9px; padding:6px 8px; }
+.avatar{
+  width:26px; height:26px; border-radius:50%; background:var(--surface-3);
+  border:1px solid var(--border-strong); display:grid; place-items:center;
+  font-family:var(--font-ui); font-size:11px; font-weight:600; color:var(--text-2); flex-shrink:0;
+}
+.userchip div{ min-width:0; }
+.userchip b{ display:block; font-family:var(--font-ui); font-size:12.5px; font-weight:500; }
+.userchip span{ font-size:11px; color:var(--text-3); }
+
+.main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.topbar{
+  display:flex; align-items:center; gap:12px; padding:11px 16px;
+  border-bottom:1px solid var(--border); background:var(--surface);
+}
+.crumbs{ font-family:var(--font-ui); font-size:13px; color:var(--text-3); display:flex; align-items:center; gap:6px; min-width:0; }
+.crumbs b{ color:var(--text); font-weight:600; }
+.crumbs .sep{ opacity:.5; }
+
+/* ============================================================ controls */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  padding:7px 13px; min-height:34px; border-radius:var(--r-sm);
+  border:1px solid var(--border-strong); background:var(--surface); color:var(--text);
+  font-family:var(--font-ui); font-size:13px; font-weight:500; cursor:pointer;
+  white-space:nowrap; transition:background .12s, border-color .12s;
+}
+.btn:hover{ background:var(--surface-2); border-color:var(--text-3); }
+.btn svg{ font-size:15px; }
+.btn-primary{ background:var(--accent-solid); border-color:var(--accent-solid); color:var(--on-accent); font-weight:600; }
+.btn-primary:hover{ background:var(--accent-hover); border-color:var(--accent-hover); }
+.btn-ghost{ border-color:transparent; background:transparent; color:var(--text-2); }
+.btn-ghost:hover{ background:var(--surface-3); color:var(--text); }
+.btn-sm{ padding:4px 9px; min-height:28px; font-size:12px; }
+.btn-dmg{ color:var(--dmg-text); border-color:var(--dmg-weak); background:var(--dmg-weak); font-weight:600; }
+.btn-heal{ color:var(--heal-text); border-color:var(--heal-weak); background:var(--heal-weak); font-weight:600; }
+
+.search{
+  display:flex; align-items:center; gap:8px; flex:1; max-width:420px;
+  padding:0 11px; min-height:34px; background:var(--surface-2);
+  border:1px solid var(--border); border-radius:var(--r-sm); color:var(--text-3);
+  font-size:13px; cursor:pointer; transition:border-color .12s;
+}
+.search:hover{ border-color:var(--border-strong); }
+.search svg{ font-size:15px; }
+.search .kbd{ margin-left:auto; }
+.kbd{
+  font-family:var(--font-mono); font-size:10.5px; padding:2px 5px; border-radius:4px;
+  background:var(--surface-3); border:1px solid var(--border); color:var(--text-3);
+  line-height:1.4; white-space:nowrap;
+}
+
+/* pills / chips */
+.pill{
+  display:inline-flex; align-items:center; gap:5px; padding:2px 8px;
+  border-radius:999px; font-family:var(--font-ui); font-size:11px; font-weight:600;
+  letter-spacing:.01em; border:1px solid transparent; white-space:nowrap;
+}
+.pill.dmg  { background:var(--dmg-weak);   color:var(--dmg-text);   border-color:color-mix(in srgb,var(--dmg) 22%, transparent); }
+.pill.heal { background:var(--heal-weak);  color:var(--heal-text);  border-color:color-mix(in srgb,var(--heal) 22%, transparent); }
+.pill.magic{ background:var(--magic-weak); color:var(--magic-text); border-color:color-mix(in srgb,var(--magic) 22%,transparent); }
+.pill.cond { background:var(--cond-weak);  color:var(--cond-text);  border-color:color-mix(in srgb,var(--cond) 25%, transparent); }
+.pill.neutral{ background:var(--surface-3); color:var(--text-2); border-color:var(--border); }
+.pill.accent{ background:var(--accent-weak); color:var(--accent-text); border-color:color-mix(in srgb,var(--accent) 22%,transparent); }
+.pill .dot{ width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
+.pill svg{ font-size:12px; stroke-width:2.4; margin-left:-1px; }
+
+/* Icon-prefixed reference links. The icon states the CATEGORY, so the
+   dashed underline can stay quiet and the label stays readable. */
+.ref svg{ font-size:12px; stroke-width:2.3; margin-right:1px; vertical-align:-.1em; opacity:.85; }
+.ref.dice svg{ opacity:1; }
+
+/* reference link — the {@spell fireball} renderer output */
+.ref{
+  font-family:inherit; font-weight:600; cursor:pointer; background:none;
+  border:0; padding:0 1px; border-bottom:1px dashed currentColor; line-height:inherit;
+}
+.ref.spell{ color:var(--magic-text); }
+.ref.creature{ color:var(--dmg-text); }
+.ref.item{ color:var(--accent-text); }
+.ref.cond{ color:var(--cond-text); }
+.ref.dice{
+  font-family:var(--font-mono); font-size:.92em; font-weight:500; color:var(--text);
+  background:var(--surface-3); border:1px solid var(--border); border-bottom-style:solid;
+  padding:1px 5px; border-radius:4px;
+}
+.ref:hover{ border-bottom-style:solid; }
+.ref.dice:hover{ background:var(--accent-weak); border-color:var(--accent); color:var(--accent-text); }
+
+/* ============================================================ combat tracker */
+.tracker{ padding:14px 16px; display:flex; flex-direction:column; gap:8px; background:var(--bg); }
+.round-head{
+  display:flex; align-items:center; gap:12px; padding-bottom:12px;
+  border-bottom:1px solid var(--border); margin-bottom:4px; flex-wrap:wrap;
+}
+.round-n{ display:flex; align-items:baseline; gap:7px; }
+.round-n .big{ font-family:var(--font-mono); font-size:20px; font-weight:700; letter-spacing:-.02em; }
+
+.combatant{
+  display:grid; grid-template-columns:auto 34px 1fr auto; gap:12px; align-items:center;
+  padding:10px 12px 10px 0; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r); position:relative; overflow:hidden;
+}
+/* severity stripe: state readable at a glance, before any number is parsed */
+.combatant::before{
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--border-strong);
+}
+.combatant.is-active{ border-color:var(--accent); background:var(--accent-weak); }
+.combatant.is-active::before{ background:var(--accent); width:4px; }
+.combatant.is-bloodied::before{ background:var(--cond); }
+.combatant.is-critical::before{ background:var(--dmg); }
+.combatant.is-down{ opacity:.62; }
+.combatant.is-down::before{ background:var(--text-3); }
+
+.init{
+  font-family:var(--font-mono); font-size:16px; font-weight:700; text-align:center;
+  color:var(--text-2); font-variant-numeric:tabular-nums; padding-left:12px;
+}
+.combatant.is-active .init{ color:var(--accent-text); }
+.token{
+  width:34px; height:34px; border-radius:var(--r-sm); background:var(--surface-3);
+  border:1px solid var(--border-strong); display:grid; place-items:center;
+  font-family:var(--font-ui); font-size:13px; font-weight:600; color:var(--text-2);
+}
+.c-body{ min-width:0; }
+.c-name{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+.c-name b{ font-family:var(--font-ui); font-size:14.5px; font-weight:600; letter-spacing:-.01em; }
+.c-meta{ display:flex; align-items:center; gap:8px; margin-top:3px; flex-wrap:wrap; font-size:12px; color:var(--text-3); }
+
+.hpbar{ height:4px; border-radius:2px; background:var(--surface-3); overflow:hidden; margin-top:7px; max-width:220px; }
+.hpbar i{ display:block; height:100%; border-radius:2px; background:var(--heal); }
+.hpbar.warn i{ background:var(--cond); }
+.hpbar.crit i{ background:var(--dmg); }
+
+.hp{ display:flex; align-items:center; gap:6px; }
+.hp-val{ font-family:var(--font-mono); font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; min-width:56px; text-align:right; }
+.hp-val small{ font-weight:400; color:var(--text-3); font-size:11.5px; }
+.c-actions{ display:flex; align-items:center; gap:5px; }
+
+/* ============================================================ statblock / reference drawer */
+.drawer{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
+  overflow:hidden; box-shadow:var(--shadow-md); display:flex; flex-direction:column;
+}
+.drawer-head{
+  padding:13px 15px; border-bottom:1px solid var(--border); background:var(--surface-2);
+  display:flex; align-items:flex-start; gap:10px;
+}
+.drawer-head h3{ font-size:17px; letter-spacing:-.02em; }
+.drawer-head .sub{ font-size:12.5px; color:var(--text-3); font-style:italic; margin-top:1px; }
+.drawer-body{ padding:15px; display:flex; flex-direction:column; gap:13px; font-size:13.5px; overflow:auto; }
+
+.statrow{ display:grid; grid-template-columns:repeat(6,1fr); gap:6px; }
+.stat{
+  background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-sm);
+  padding:7px 4px; text-align:center;
+}
+.stat .ab{ font-family:var(--font-ui); font-size:10px; font-weight:600; letter-spacing:.07em; color:var(--text-3); }
+.stat .sc{ font-family:var(--font-mono); font-size:15px; font-weight:700; line-height:1.25; }
+.stat .md{ font-family:var(--font-mono); font-size:11px; color:var(--accent-text); font-weight:500; cursor:pointer; }
+
+.defline{ display:flex; gap:16px; flex-wrap:wrap; padding-bottom:12px; border-bottom:1px solid var(--border); }
+.defline > div{ display:flex; align-items:baseline; gap:6px; }
+.defline .eyebrow{ font-size:10px; }
+.defline .v{ font-family:var(--font-mono); font-size:13.5px; font-weight:600; }
+
+.trait{ padding-top:2px; }
+.trait h5{ font-size:13.5px; display:inline; font-style:italic; font-weight:700; }
+.trait p{ display:inline; color:var(--text-2); }
+.sect-rule{
+  font-family:var(--font-ui); font-size:11.5px; font-weight:700; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--accent-text); padding-bottom:5px;
+  border-bottom:1px solid color-mix(in srgb,var(--accent) 28%, transparent); margin-top:4px;
+}
+
+/* ============================================================ command palette / dialog */
+.dialog{
+  background:var(--surface); border:1px solid var(--border-strong);
+  border-radius:var(--r-lg); box-shadow:var(--shadow-lg); overflow:hidden;
+  max-width:600px; margin:0 auto;
+}
+.dialog-search{
+  display:flex; align-items:center; gap:10px; padding:13px 15px;
+  border-bottom:1px solid var(--border);
+}
+.dialog-search svg{ font-size:18px; color:var(--text-3); stroke-width:1.9; }
+.dialog-search .q{ font-size:15px; flex:1; }
+.dialog-search .q .caret{
+  display:inline-block; width:1.5px; height:16px; background:var(--accent);
+  vertical-align:-3px; animation:blink 1.1s step-end infinite;
+}
+@keyframes blink{ 50%{ opacity:0; } }
+
+.filterbar{ display:flex; gap:5px; padding:9px 15px; border-bottom:1px solid var(--border); overflow-x:auto; }
+.chip{
+  padding:3px 10px; border-radius:999px; border:1px solid var(--border);
+  background:var(--surface-2); color:var(--text-2); font-family:var(--font-ui);
+  font-size:11.5px; font-weight:500; cursor:pointer; white-space:nowrap;
+}
+.chip[aria-pressed="true"]{ background:var(--accent-solid); border-color:var(--accent-solid); color:var(--on-accent); font-weight:600; }
+
+.results{ max-height:330px; overflow:auto; padding:6px; }
+.res-group{ padding:9px 9px 4px; }
+.res{
+  display:grid; grid-template-columns:26px 1fr auto; gap:11px; align-items:center;
+  padding:8px 9px; border-radius:var(--r-sm); cursor:pointer; border:1px solid transparent;
+}
+.res:hover{ background:var(--surface-2); }
+.res[aria-selected="true"]{ background:var(--accent-weak); border-color:color-mix(in srgb,var(--accent) 30%,transparent); }
+.res-ico{
+  width:26px; height:26px; border-radius:var(--r-sm); display:grid; place-items:center;
+}
+.res-ico svg{ font-size:15px; stroke-width:2.1; }
+.res-ico.magic{ background:var(--magic-weak); color:var(--magic-text); }
+.res-ico.dmg{ background:var(--dmg-weak); color:var(--dmg-text); }
+.res-ico.item{ background:var(--accent-weak); color:var(--accent-text); }
+.res b{ font-family:var(--font-ui); font-size:13.5px; font-weight:600; display:block; }
+.res .rsub{ font-size:12px; color:var(--text-3); }
+.res .rmeta{ display:flex; align-items:center; gap:7px; }
+.dialog-foot{
+  display:flex; align-items:center; gap:14px; padding:8px 15px;
+  border-top:1px solid var(--border); background:var(--surface-2); font-size:11.5px; color:var(--text-3);
+}
+.dialog-foot span{ display:flex; align-items:center; gap:5px; }
+
+/* the multilingual line — 5eTools cross-referencing across languages */
+.langline{
+  display:flex; align-items:center; gap:7px; padding:7px 15px; font-size:11.5px;
+  background:var(--surface-2); border-top:1px solid var(--border); color:var(--text-3);
+}
+.langline b{ color:var(--text-2); font-family:var(--font-ui); font-weight:600; }
+
+/* ============================================================ wizard */
+.wizard{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-md); }
+.steps{ display:flex; gap:0; padding:0; border-bottom:1px solid var(--border); background:var(--surface-2); overflow-x:auto; }
+.step{
+  display:flex; align-items:center; gap:8px; padding:11px 15px; border:0; background:transparent;
+  cursor:pointer; font-family:var(--font-ui); font-size:12.5px; font-weight:500; color:var(--text-3);
+  white-space:nowrap; border-bottom:2px solid transparent; min-height:var(--tap);
+}
+.step:hover{ color:var(--text); }
+.step .num{
+  width:19px; height:19px; border-radius:50%; display:grid; place-items:center;
+  font-family:var(--font-mono); font-size:10.5px; font-weight:700;
+  background:var(--surface-3); color:var(--text-3); border:1px solid var(--border);
+}
+.step.done{ color:var(--text-2); }
+.step.done .num{ background:var(--heal-weak); color:var(--heal-text); border-color:transparent; }
+.step[aria-current="step"]{ color:var(--text); font-weight:600; border-bottom-color:var(--accent); background:var(--surface); }
+.step[aria-current="step"] .num{ background:var(--accent-solid); color:var(--on-accent); border-color:transparent; }
+
+.wizard-body{ padding:20px; }
+.wizard-foot{
+  display:flex; align-items:center; gap:10px; padding:12px 20px;
+  border-top:1px solid var(--border); background:var(--surface-2);
+}
+.autosave{ margin-left:auto; font-size:11.5px; color:var(--text-3); display:flex; align-items:center; gap:6px; }
+.autosave .dot{ width:6px; height:6px; border-radius:50%; background:var(--heal); }
+
+.cardgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(158px,1fr)); gap:10px; }
+.pick{
+  text-align:left; padding:12px; border-radius:var(--r); border:1px solid var(--border);
+  background:var(--surface); cursor:pointer; display:flex; flex-direction:column; gap:5px;
+  min-height:var(--tap); transition:border-color .12s, background .12s;
+}
+.pick:hover{ border-color:var(--border-strong); background:var(--surface-2); }
+.pick[aria-pressed="true"]{ border-color:var(--accent); background:var(--accent-weak); box-shadow:inset 0 0 0 1px var(--accent); }
+.pick b{ font-family:var(--font-ui); font-size:13.5px; font-weight:600; }
+.pick .pd{ font-size:12px; color:var(--text-3); line-height:1.45; }
+
+/* ============================================================ mobile app */
+.m-top{
+  display:flex; align-items:center; gap:10px; padding:11px 13px;
+  border-bottom:1px solid var(--border); background:var(--surface); flex-shrink:0;
+}
+.m-top h4{ font-size:15px; letter-spacing:-.015em; flex:1; min-width:0; }
+.m-scroll{ flex:1; overflow:auto; padding:13px; display:flex; flex-direction:column; gap:11px; }
+.m-tabs{
+  display:flex; border-top:1px solid var(--border); background:var(--surface);
+  padding:5px 4px 7px; flex-shrink:0;
+}
+.m-tab{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+  border:0; background:transparent; cursor:pointer; padding:5px 2px;
+  font-family:var(--font-ui); font-size:10px; font-weight:500; color:var(--text-3);
+  min-height:var(--tap); border-radius:var(--r-sm);
+}
+.m-tab svg{ font-size:21px; stroke-width:1.8; }
+.m-tab[aria-current="page"]{ color:var(--accent-text); font-weight:600; }
+
+.hpcard{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
+  padding:15px; display:flex; flex-direction:column; gap:12px;
+}
+.hpbig{ display:flex; align-items:baseline; justify-content:center; gap:4px; font-family:var(--font-mono); }
+.hpbig .n{ font-size:44px; font-weight:700; line-height:1; letter-spacing:-.03em; }
+.hpbig .d{ font-size:18px; color:var(--text-3); font-weight:500; }
+.hprow{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.hprow .btn{ min-height:var(--tap); font-size:14px; }
+
+.diceset{ display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
+.die{
+  aspect-ratio:1; border:1px solid var(--border); border-radius:var(--r);
+  background:var(--surface); cursor:pointer; display:grid; place-items:center;
+  font-family:var(--font-mono); font-size:13px; font-weight:700; color:var(--text-2);
+  min-height:var(--tap);
+}
+.die:hover{ border-color:var(--accent); color:var(--accent-text); background:var(--accent-weak); }
+
+.rollout{
+  background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r);
+  padding:11px 13px; display:flex; align-items:center; gap:11px;
+}
+.rollout .tot{ font-family:var(--font-mono); font-size:26px; font-weight:700; letter-spacing:-.02em; }
+.rollout .brk{ font-family:var(--font-mono); font-size:11.5px; color:var(--text-3); }
+
+/* advantage toggle — three-state, the AD&D-correct control */
+.advset{ display:flex; padding:3px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-sm); gap:2px; }
+.advset button{
+  flex:1; border:0; background:transparent; cursor:pointer; padding:7px 4px;
+  border-radius:4px; font-family:var(--font-ui); font-size:11.5px; font-weight:600;
+  color:var(--text-3); min-height:36px;
+}
+.advset button[aria-pressed="true"]{ background:var(--surface); color:var(--text); box-shadow:var(--shadow-sm); }
+.advset button.adv[aria-pressed="true"]{ color:var(--heal-text); }
+.advset button.dis[aria-pressed="true"]{ color:var(--dmg-text); }
+
+.sheetgrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+
+/* ============================================================ spec tables */
+.spec{ width:100%; border-collapse:collapse; font-size:13px; }
+.spec th, .spec td{ text-align:left; padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+.spec th{ font-family:var(--font-ui); font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--text-3); }
+.spec td:first-child{ font-family:var(--font-mono); font-size:12px; color:var(--text); white-space:nowrap; }
+.spec td .sw{ display:inline-block; width:13px; height:13px; border-radius:3px; border:1px solid var(--border-strong); vertical-align:-2px; margin-right:7px; }
+.tablewrap{ overflow-x:auto; border:1px solid var(--border); border-radius:var(--r); background:var(--surface); }
+
+.notes{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); }
+.note{
+  background:var(--surface); border:1px solid var(--border); border-left:2px solid var(--accent);
+  border-radius:var(--r); padding:13px 15px;
+}
+.note h5{ font-size:13.5px; margin-bottom:4px; }
+.note p{ font-size:13px; color:var(--text-2); }
+.note.warn{ border-left-color:var(--cond); }
+
+.caption{ font-size:12.5px; color:var(--text-3); margin-top:9px; }
+
+
+/* ── design-reference chrome (not part of the app) ── */
+.dr-nav{
+  position:sticky; top:0; z-index:50; background:var(--surface);
+  border-bottom:1px solid var(--border); padding:9px 24px;
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  box-shadow:var(--shadow-sm);
+}
+.dr-home{
+  font-family:var(--font-ui); font-size:13px; font-weight:600; color:var(--text);
+  text-decoration:none; white-space:nowrap;
+}
+.dr-links{ display:flex; gap:3px; overflow-x:auto; scrollbar-width:none; }
+.dr-links::-webkit-scrollbar{ height:0; }
+.dr-links a{
+  font-family:var(--font-ui); font-size:12.5px; font-weight:500; color:var(--text-2);
+  text-decoration:none; padding:5px 9px; border-radius:var(--r-sm); white-space:nowrap;
+}
+.dr-links a:hover{ background:var(--surface-3); color:var(--text); }
+.dr-links a.here{ background:var(--accent-weak); color:var(--accent-text); font-weight:600; }
+.dr-foot{
+  max-width:1180px; margin:0 auto; padding:60px 24px 40px;
+  border-top:1px solid var(--border); display:flex; justify-content:space-between;
+  gap:16px; flex-wrap:wrap; font-size:12.5px; color:var(--text-3);
+}
+.dr-foot a{ color:var(--accent-text); }
+
+</style>
+</head>
+<body>
+<svg style="display:none" aria-hidden="true">
+  <!-- Lucide 1.39.0 — ISC. Canonical names only, no deprecated aliases. -->
+  <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
+  <symbol id="i-map" viewBox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15M9 3.236v15"/></symbol>
+  <symbol id="i-swords" viewBox="0 0 24 24"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6M16 16l4 4M19 21l2-2"/><path d="M9.5 6.5 21 18v3h-3L6.5 9.5"/><path d="M5 13 3 15l2 2M3 21l2-2"/></symbol>
+  <symbol id="i-users" viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+  <symbol id="i-users-round" viewBox="0 0 24 24"><path d="M18 21a8 8 0 0 0-16 0"/><circle cx="10" cy="8" r="5"/><path d="M22 20c0-3.37-2-6.5-4-8a5 5 0 0 0-.45-8.3"/></symbol>
+  <symbol id="i-vault" viewBox="0 0 24 24"><rect width="18" height="18" x="3" y="3" rx="2"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/><path d="m7.9 7.9 2.7 2.7"/><circle cx="16.5" cy="7.5" r=".5" fill="currentColor"/><path d="m13.4 10.6 2.7-2.7"/><circle cx="7.5" cy="16.5" r=".5" fill="currentColor"/><path d="m7.9 16.1 2.7-2.7"/><circle cx="16.5" cy="16.5" r=".5" fill="currentColor"/><path d="m13.4 13.4 2.7 2.7"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-book-open" viewBox="0 0 24 24"><path d="M12 7v14"/><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/></symbol>
+  <symbol id="i-scroll" viewBox="0 0 24 24"><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/></symbol>
+  <symbol id="i-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+  <symbol id="i-shield-check" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12 2 2 4-4"/></symbol>
+  <symbol id="i-backpack" viewBox="0 0 24 24"><path d="M4 10a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M8 10h8M8 18h8"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M18 15h-2a2 2 0 0 1 0-4h2"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path d="M5 12h14M12 5v14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+  <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></symbol>
+  <symbol id="i-chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+  <symbol id="i-arrow-left" viewBox="0 0 24 24"><path d="m12 19-7-7 7-7M19 12H5"/></symbol>
+  <symbol id="i-arrow-right" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></symbol>
+  <symbol id="i-play" viewBox="0 0 24 24"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></symbol>
+  <symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/></symbol>
+  <symbol id="i-heart-crack" viewBox="0 0 24 24"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7z"/><path d="m12 13-1-1 2-2-3-3 2-2"/></symbol>
+  <symbol id="i-dices" viewBox="0 0 24 24"><rect width="12" height="12" x="2" y="10" rx="2"/><path d="m17.92 14 3.5-3.5a2.24 2.24 0 0 0 0-3l-5-4.92a2.24 2.24 0 0 0-3 0L10 6"/><path d="M6 18h.01M10 14h.01M15 6h.01M18 9h.01"/></symbol>
+  <symbol id="i-sparkles" viewBox="0 0 24 24"><path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/><path d="M20 2v4M22 4h-4"/><circle cx="4" cy="20" r="2"/></symbol>
+  <symbol id="i-wand-sparkles" viewBox="0 0 24 24"><path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72"/><path d="m14 7 3 3M5 6v4M19 14v4M10 2v2M7 8H3M21 16h-4M11 3H9"/></symbol>
+  <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 3q1 4 4 6.5t3 5.5a1 1 0 0 1-14 0 5 5 0 0 1 1-3 1 1 0 0 0 5 0c0-2-1.5-3-1.5-5q0-2 2.5-4"/></symbol>
+  <symbol id="i-snowflake" viewBox="0 0 24 24"><path d="m10 20-1.25-2.5L6 18"/><path d="M10 4 8.75 6.5 6 6M10.585 15H10"/><path d="M2 12h6.5L10 9.5M2.143 6.667 4 8l.669-1.95M2.143 17.333 4 16l.669 1.95M14 20l1.25-2.5L18 18M14 4l1.25 2.5L18 6M17 12h-5.5"/><path d="m21.858 6.667-1.858 1.333-.669-1.95M21.858 17.333 20 16l-.669 1.95M22 12h-4.5L16 14.5"/><path d="m5 12 1.5 2.5M12 2v20"/></symbol>
+  <symbol id="i-zap" viewBox="0 0 24 24"><path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/></symbol>
+  <symbol id="i-skull" viewBox="0 0 24 24"><path d="m12.5 17-.5-1-.5 1z"/><path d="M15 22a1 1 0 0 0 1-1v-1a2 2 0 0 0 1.56-3.25 8 8 0 1 0-11.12 0A2 2 0 0 0 8 20v1a1 1 0 0 0 1 1z"/><circle cx="15" cy="12" r="1"/><circle cx="9" cy="12" r="1"/></symbol>
+  <symbol id="i-footprints" viewBox="0 0 24 24"><path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0M16 17h4M4 13h4"/></symbol>
+  <symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M5 22h14M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></symbol>
+  <symbol id="i-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="i-gem" viewBox="0 0 24 24"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6M2 9h20"/></symbol>
+  <symbol id="i-coins" viewBox="0 0 24 24"><circle cx="8" cy="8" r="6"/><path d="M18.09 10.37A6 6 0 1 1 10.34 18M7 6h1v4"/><path d="m16.71 13.88.7.71-2.82 2.82"/></symbol>
+  <symbol id="i-languages" viewBox="0 0 24 24"><path d="m5 8 6 6M4 14l6-6 2-3M2 5h12M7 2h1M22 22l-5-10-5 10M14 18h6"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></symbol>
+  <symbol id="i-triangle-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4M12 17h.01"/></symbol>
+  <symbol id="i-refresh-cw" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></symbol>
+  <symbol id="i-pencil" viewBox="0 0 24 24"><path d="M21.174 6.812a1 1 0 0 0-3.986-3.987L3.842 16.174a2 2 0 0 0-.5.83l-1.321 4.352a.5.5 0 0 0 .623.622l4.353-1.32a2 2 0 0 0 .83-.497z"/><path d="m15 5 4 4"/></symbol>
+  <symbol id="i-log-out" viewBox="0 0 24 24"><path d="m16 17 5-5-5-5M21 12H9M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/></symbol>
+  <symbol id="i-filter" viewBox="0 0 24 24"><path d="M3 6h18M7 12h10M10 18h4"/></symbol>
+  <symbol id="i-upload" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></symbol>
+  <symbol id="i-bell" viewBox="0 0 24 24"><path d="M10.268 21a2 2 0 0 0 3.464 0"/><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326"/></symbol>
+</svg>
+<nav class="dr-nav" aria-label="Design reference">
+  <a class="dr-home" href="index.html">Paravent design reference</a>
+  <div class="dr-links"><a href="01-principles.html">Principles</a><a href="02-combat-tracker.html" class="here" aria-current="page">Combat Tracker</a><a href="03-command-palette.html">Command Palette</a><a href="04-player-mobile.html">Player on Mobile</a><a href="05-wizard.html">Wizard</a><a href="06-tag-renderer.html">Tag Renderer</a><a href="07-icons.html">Icons</a><a href="08-tokens.html">Tokens</a><a href="09-scrollbars.html">Scrollbars</a><a href="10-responsive.html">Responsive</a><a href="11-implementation.html">Implementation</a><a href="12-tooltips.html">Tooltips</a><a href="13-chargen-wizard.html">Character Generation</a><a href="14-chargen-demo-desktop.html">Demo · Desktop</a><a href="15-chargen-demo-mobile.html">Demo · Mobile</a><a href="16-character-sheet.html">Character Sheet</a></div>
+</nav>
+<div class="doc">
+<header class="masthead" style="padding:34px 0 26px;">
+  <div class="mast-row">
+    <span class="eyebrow">02 · Design reference</span>
+    <div class="themetoggle" role="group" aria-label="Theme">
+      <button type="button" data-set="light" aria-pressed="false">Light</button>
+      <button type="button" data-set="system" aria-pressed="true">System</button>
+      <button type="button" data-set="dark" aria-pressed="false">Dark</button>
+    </div>
+  </div>
+  <h1 style="font-size:clamp(26px,4vw,34px); margin:8px 0 10px;">Combat Tracker</h1>
+  <p class="lede" style="font-size:15.5px;">The gamemaster's live encounter screen, with the reference drawer.</p>
+</header>
+<section class="block">
+  <div class="frames split">
+    <div class="frame">
+      <div class="frame-bar">
+        <div class="frame-dots"><i></i><i></i><i></i></div>
+        <span class="frame-label">Gamemaster · desktop &amp; iPad landscape</span>
+      </div>
+      <div class="frame-body">
+        <div class="app">
+          <nav class="rail">
+            <div class="rail-brand">
+              <span class="mark"><svg class="ic" style="color:var(--on-accent)"><use href="#i-shield"/></svg></span>
+              <b>Paravent</b>
+            </div>
+            <button class="navitem"><svg class="ic"><use href="#i-globe"/></svg>Worlds<span class="count">3</span></button>
+            <button class="navitem"><svg class="ic"><use href="#i-map"/></svg>Adventures<span class="count">7</span></button>
+            <button class="navitem" aria-current="page"><svg class="ic"><use href="#i-swords"/></svg>Combat<span class="count">live</span></button>
+            <button class="navitem"><svg class="ic"><use href="#i-users"/></svg>NPCs<span class="count">41</span></button>
+            <button class="navitem"><svg class="ic"><use href="#i-vault"/></svg>Treasure<span class="count">18</span></button>
+
+            <div class="rail-group">
+              <span class="eyebrow">Compendium</span>
+              <button class="navitem"><svg class="ic"><use href="#i-book-open"/></svg>Bestiary<span class="count">2.4k</span></button>
+              <button class="navitem"><svg class="ic"><use href="#i-scroll"/></svg>Spells<span class="count">877</span></button>
+              <button class="navitem"><svg class="ic"><use href="#i-gem"/></svg>Items<span class="count">3.1k</span></button>
+            </div>
+
+            <div class="rail-foot">
+              <div class="userchip">
+                <span class="avatar">TS</span>
+                <div>
+                  <b>Thorsten</b>
+                  <span>Gamemaster</span>
+                </div>
+              </div>
+            </div>
+          </nav>
+
+          <div class="main">
+            <div class="topbar">
+              <div class="crumbs">
+                Sunken Marches <span class="sep">/</span> Grey Reed <span class="sep">/</span> <b>Ambush at the Ferry</b>
+              </div>
+              <button class="search" type="button" data-open="palette">
+                <svg class="ic"><use href="#i-search"/></svg>
+                Search everything
+                <span class="kbd">⌘K</span>
+              </button>
+            </div>
+
+            <div class="tracker">
+              <div class="round-head">
+                <div class="round-n">
+                  <span class="eyebrow">Round</span>
+                  <span class="big">3</span>
+                </div>
+                <span class="pill accent"><span class="dot"></span>Maren's turn</span>
+                <div style="margin-left:auto; display:flex; gap:7px;">
+                  <button class="btn btn-sm"><svg class="ic"><use href="#i-plus"/></svg>Add</button>
+                  <button class="btn btn-sm btn-primary"><svg class="ic"><use href="#i-play"/></svg>Next turn</button>
+                </div>
+              </div>
+
+              <div class="combatant is-active">
+                <span class="init">21</span>
+                <span class="token">MH</span>
+                <div class="c-body">
+                  <div class="c-name">
+                    <b>Maren Holt</b>
+                    <span class="pill neutral">PC</span>
+                    <span class="pill cond"><svg class="ic"><use href="#i-sparkles"/></svg>Inspired</span>
+                  </div>
+                  <div class="c-meta">
+                    <span class="mono">AC 16</span> · <span>Human Knight</span> · <span>Speed 30 ft.</span>
+                  </div>
+                  <div class="hpbar"><i style="width:74%"></i></div>
+                </div>
+                <div class="c-actions">
+                  <span class="hp-val">20<small>/27</small></span>
+                  <button class="btn btn-sm btn-dmg">−</button>
+                  <button class="btn btn-sm btn-heal">+</button>
+                </div>
+              </div>
+
+              <div class="combatant is-critical">
+                <span class="init">18</span>
+                <span class="token">G1</span>
+                <div class="c-body">
+                  <div class="c-name">
+                    <b>Goblin</b>
+                    <span class="pill neutral">1</span>
+                    <span class="pill cond"><svg class="ic"><use href="#i-footprints"/></svg>Prone</span>
+                    <span class="pill dmg"><svg class="ic"><use href="#i-heart-crack"/></svg>Bloodied</span>
+                  </div>
+                  <div class="c-meta">
+                    <span class="mono">AC 15</span> · <button class="ref creature"><svg class="ic"><use href="#i-skull"/></svg>Goblin</button> · <span class="mono">CR 1/4</span>
+                  </div>
+                  <div class="hpbar crit"><i style="width:14%"></i></div>
+                </div>
+                <div class="c-actions">
+                  <span class="hp-val">1<small>/7</small></span>
+                  <button class="btn btn-sm btn-dmg">−</button>
+                  <button class="btn btn-sm btn-heal">+</button>
+                </div>
+              </div>
+
+              <div class="combatant is-bloodied">
+                <span class="init">18</span>
+                <span class="token">G2</span>
+                <div class="c-body">
+                  <div class="c-name">
+                    <b>Goblin</b>
+                    <span class="pill neutral">2</span>
+                  </div>
+                  <div class="c-meta">
+                    <span class="mono">AC 15</span> · <button class="ref creature"><svg class="ic"><use href="#i-skull"/></svg>Goblin</button> · <span class="mono">CR 1/4</span>
+                  </div>
+                  <div class="hpbar warn"><i style="width:43%"></i></div>
+                </div>
+                <div class="c-actions">
+                  <span class="hp-val">3<small>/7</small></span>
+                  <button class="btn btn-sm btn-dmg">−</button>
+                  <button class="btn btn-sm btn-heal">+</button>
+                </div>
+              </div>
+
+              <div class="combatant">
+                <span class="init">14</span>
+                <span class="token">OG</span>
+                <div class="c-body">
+                  <div class="c-name">
+                    <b>Old Gnasher</b>
+                    <span class="pill neutral">Boss</span>
+                    <span class="pill magic"><svg class="ic"><use href="#i-hourglass"/></svg>Concentrating</span>
+                  </div>
+                  <div class="c-meta">
+                    <span class="mono">AC 15</span> · <button class="ref creature"><svg class="ic"><use href="#i-skull"/></svg>Bugbear</button> · <span class="mono">CR 1</span>
+                  </div>
+                  <div class="hpbar"><i style="width:100%"></i></div>
+                </div>
+                <div class="c-actions">
+                  <span class="hp-val">27<small>/27</small></span>
+                  <button class="btn btn-sm btn-dmg">−</button>
+                  <button class="btn btn-sm btn-heal">+</button>
+                </div>
+              </div>
+
+              <div class="combatant is-down">
+                <span class="init">9</span>
+                <span class="token">G3</span>
+                <div class="c-body">
+                  <div class="c-name">
+                    <b>Goblin</b>
+                    <span class="pill neutral">3</span>
+                    <span class="pill dmg"><svg class="ic"><use href="#i-skull"/></svg>Unconscious</span>
+                  </div>
+                  <div class="c-meta">
+                    <span class="mono">AC 15</span> · <span>Death saves <span class="mono">✓ ✓ ✗</span></span>
+                  </div>
+                  <div class="hpbar crit"><i style="width:0%"></i></div>
+                </div>
+                <div class="c-actions">
+                  <span class="hp-val">0<small>/7</small></span>
+                  <button class="btn btn-sm btn-dmg">−</button>
+                  <button class="btn btn-sm btn-heal">+</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <aside class="drawer">
+      <div class="drawer-head">
+        <div style="flex:1">
+          <h3>Goblin</h3>
+          <div class="sub">Small humanoid (goblinoid), neutral evil</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" aria-label="Close reference"><svg class="ic"><use href="#i-x"/></svg></button>
+      </div>
+      <div class="drawer-body">
+        <div class="defline">
+          <div><span class="eyebrow">AC</span><span class="v">15</span></div>
+          <div><span class="eyebrow">HP</span><span class="v">7</span><span style="font-size:11.5px;color:var(--text-3)">(<button class="ref dice"><svg class="ic"><use href="#i-dices"/></svg>2d6</button>)</span></div>
+          <div><span class="eyebrow">Speed</span><span class="v">30 ft.</span></div>
+          <div><span class="eyebrow">CR</span><span class="v">1/4</span></div>
+        </div>
+
+        <div class="statrow">
+          <div class="stat"><div class="ab">STR</div><div class="sc">8</div><button class="md">−1</button></div>
+          <div class="stat"><div class="ab">DEX</div><div class="sc">14</div><button class="md">+2</button></div>
+          <div class="stat"><div class="ab">CON</div><div class="sc">10</div><button class="md">+0</button></div>
+          <div class="stat"><div class="ab">INT</div><div class="sc">10</div><button class="md">+0</button></div>
+          <div class="stat"><div class="ab">WIS</div><div class="sc">8</div><button class="md">−1</button></div>
+          <div class="stat"><div class="ab">CHA</div><div class="sc">8</div><button class="md">−1</button></div>
+        </div>
+
+        <div class="trait">
+          <h5>Nimble Escape.</h5>
+          <p> The goblin can take the <button class="ref"><svg class="ic"><use href="#i-footprints"/></svg>Disengage</button> or <button class="ref"><svg class="ic"><use href="#i-eye"/></svg>Hide</button> action as a bonus action on each of its turns.</p>
+        </div>
+
+        <div class="sect-rule">Actions</div>
+        <div class="trait">
+          <h5>Scimitar.</h5>
+          <p> <em>Melee Weapon Attack:</em> <button class="ref dice">+4</button> to hit, reach 5 ft., one target. <em>Hit:</em> 5 (<button class="ref dice">1d6+2</button>) slashing damage.</p>
+        </div>
+        <div class="trait">
+          <h5>Shortbow.</h5>
+          <p> <em>Ranged Weapon Attack:</em> <button class="ref dice">+4</button> to hit, range 80/320 ft., one target. <em>Hit:</em> 5 (<button class="ref dice">1d6+2</button>) piercing damage.</p>
+        </div>
+
+        <div class="sect-rule">Cross-references</div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          <span class="pill neutral">Monster Manual p. 166</span>
+          <span class="pill neutral">de: Goblin</span>
+          <span class="pill accent">3 in this encounter</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+  <p class="caption">Left-edge stripe encodes HP state — indigo (active turn), amber (bloodied, under 50%), red (critical, under 25%), grey (down). The stripe is redundant with the bar and the number, deliberately: three encodings so it reads correctly at a glance, at an angle, and to a colorblind reader.</p>
+</section>
+</div>
+<footer class="dr-foot">
+  <span>Paravent design reference · see <a href="../documentation/DESIGN.md">DESIGN.md</a> for the written spec</span>
+  <span><a href="index.html">All sections</a></span>
+</footer>
+<script>
+(function(){
+  var root=document.documentElement, b=document.querySelectorAll('.themetoggle button');
+  b.forEach(function(x){ x.addEventListener('click',function(){
+    var v=x.dataset.set;
+    if(v==='system') root.removeAttribute('data-theme'); else root.setAttribute('data-theme',v);
+    b.forEach(function(o){ o.setAttribute('aria-pressed',String(o===x)); });
+    try{ localStorage.setItem('pv-theme',v); }catch(e){}
+  });});
+  try{ var s=localStorage.getItem('pv-theme');
+    if(s){ var t=document.querySelector('.themetoggle button[data-set="'+s+'"]'); if(t) t.click(); }
+  }catch(e){}
+  document.querySelectorAll('.chip, .pick, .advset button').forEach(function(el){
+    el.addEventListener('click',function(){
+      var g=el.closest('.filterbar, .cardgrid, .advset'); if(!g) return;
+      g.querySelectorAll('[aria-pressed]').forEach(function(o){ o.setAttribute('aria-pressed','false'); });
+      el.setAttribute('aria-pressed','true');
+    });
+  });
+  document.querySelectorAll('.res').forEach(function(el){
+    el.addEventListener('click',function(){
+      document.querySelectorAll('.res').forEach(function(o){ o.setAttribute('aria-selected','false'); });
+      el.setAttribute('aria-selected','true');
+    });
+  });
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,897 @@
+{
+  "$defs": {
+    "Abilities": {
+      "additionalProperties": false,
+      "description": "The six base scores, before any species, background or improvement increase.\n\nSerialises under the **upstream** keys (``str``, ``int``), not the aliased field\nnames, so a hand-edited file reads the way the corpus does.\n\nBase only, deliberately. Increases are themselves stored choices, so the total is\nderived and the player can always be shown base, bonus and total separately.",
+      "properties": {
+        "str": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Str"
+        },
+        "dex": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dex"
+        },
+        "con": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Con"
+        },
+        "int": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Int"
+        },
+        "wis": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Wis"
+        },
+        "cha": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cha"
+        }
+      },
+      "title": "Abilities",
+      "type": "object"
+    },
+    "AbilityMethod": {
+      "description": "How the player generated their ability scores.\n\nKept on the record because it changes what the wizard may still edit: a rolled score\nis a commitment, a point-buy score can be respent while the budget allows.",
+      "enum": [
+        "standard",
+        "pointbuy",
+        "roll",
+        "manual"
+      ],
+      "title": "AbilityMethod",
+      "type": "string"
+    },
+    "ChosenOption": {
+      "description": "A reference: 'Name|SOURCE', or 'Name' alone.",
+      "examples": [
+        "Fireball|PHB",
+        "Arcana"
+      ],
+      "type": "string"
+    },
+    "ClassLevel": {
+      "additionalProperties": false,
+      "properties": {
+        "class": {
+          "examples": [
+            "Wizard|PHB"
+          ],
+          "type": "string"
+        },
+        "level": {
+          "default": 1,
+          "maximum": 20,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "subclass": {
+          "examples": [
+            "Evocation|PHB"
+          ],
+          "type": "string"
+        },
+        "options": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "examples": [
+            {
+              "Hunter's Prey": "Colossus Slayer",
+              "spells": "Coast"
+            }
+          ],
+          "type": "object"
+        }
+      },
+      "required": [
+        "class"
+      ],
+      "type": "object"
+    },
+    "Currency": {
+      "additionalProperties": false,
+      "description": "Coins, by denomination, as a character sheet lists them.",
+      "properties": {
+        "cp": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Cp",
+          "type": "integer"
+        },
+        "sp": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Sp",
+          "type": "integer"
+        },
+        "ep": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Ep",
+          "type": "integer"
+        },
+        "gp": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Gp",
+          "type": "integer"
+        },
+        "pp": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Pp",
+          "type": "integer"
+        }
+      },
+      "title": "Currency",
+      "type": "object"
+    },
+    "DeathSaves": {
+      "additionalProperties": false,
+      "description": "Successes and failures while at 0 HP.",
+      "properties": {
+        "successes": {
+          "default": 0,
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Successes",
+          "type": "integer"
+        },
+        "failures": {
+          "default": 0,
+          "maximum": 3,
+          "minimum": 0,
+          "title": "Failures",
+          "type": "integer"
+        }
+      },
+      "title": "DeathSaves",
+      "type": "object"
+    },
+    "DraftStatus": {
+      "description": "How far along a character is.\n\nA partly built character is a real, saved thing \u2014 it has a name in the list and it\nresumes (documentation/CHARGEN-WIZARD.md \u00a71). ``DRAFT`` is therefore an ordinary\nstate, not an error.",
+      "enum": [
+        "draft",
+        "ready",
+        "retired"
+      ],
+      "title": "DraftStatus",
+      "type": "string"
+    },
+    "GivenName": {
+      "additionalProperties": false,
+      "description": "The parts a person's name was built from (documentation/NAMES.md \u00a73), which a\nchild's ``kin`` part reads. Worth something only while ``text`` is still their name.",
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "parts": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Parts",
+          "type": "object"
+        }
+      },
+      "required": [
+        "text"
+      ],
+      "title": "GivenName",
+      "type": "object"
+    },
+    "GrantedSpells": {
+      "additionalProperties": false,
+      "description": "Spells a feat, species or background grants, as chosen (``additionalSpells``).\n\n``source`` names the grant: ``\"feat:Magic Initiate|XPHB\"``, ``\"species\"``,\n``\"subspecies\"`` or ``\"background\"``. ``list`` (``from_list``) is the block chosen\nwhere the record offers several (\"Cleric Spells\"), ``ability`` the spellcasting\nability where the player picks it, ``spells`` the spells picked. Spells the grant\ngives outright (a tiefling's Thaumaturgy) are not listed: the sheet adds them, like\na domain's spells.",
+      "properties": {
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "list": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "List"
+        },
+        "ability": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ability"
+        },
+        "spells": {
+          "items": {
+            "$ref": "#/$defs/ChosenOption"
+          },
+          "title": "Spells",
+          "type": "array"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "GrantedSpells",
+      "type": "object"
+    },
+    "HitPointMethod": {
+      "description": "How a character gains hit points per level after the first.",
+      "enum": [
+        "average",
+        "rolled"
+      ],
+      "title": "HitPointMethod",
+      "type": "string"
+    },
+    "HitPoints": {
+      "additionalProperties": false,
+      "description": "How the character's hit points were gained \u2014 a choice, like the ability method.\n\n``average``: the first level takes the full hit die, every later level its average\n(``die / 2 + 1``) \u2014 what most tables use, and computable from the class alone.\n\n``rolled``: ``per_level`` holds the hit-die result for each character level in the\norder taken, the first normally the full die. CON is **not** included: it is added\nfor every level when the maximum is computed, so a CON change applies retroactively,\nas the rules require. A level without an entry yet counts as the average.\n\nThe maximum itself is derived (and written to ``state.hp_max`` for readability).",
+      "properties": {
+        "method": {
+          "$ref": "#/$defs/HitPointMethod",
+          "default": "average"
+        },
+        "per_level": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 20,
+          "title": "Per Level",
+          "type": "array"
+        }
+      },
+      "title": "HitPoints",
+      "type": "object"
+    },
+    "InventoryItem": {
+      "additionalProperties": false,
+      "description": "Something the character carries. ``item`` may be a corpus reference or free text.\n\n``equipped`` matters to the rules: equipped armour and shields set AC, and equipped\nweapons appear as attacks.",
+      "properties": {
+        "item": {
+          "$ref": "#/$defs/ChosenOption"
+        },
+        "quantity": {
+          "default": 1,
+          "minimum": 0,
+          "title": "Quantity",
+          "type": "integer"
+        },
+        "equipped": {
+          "default": false,
+          "title": "Equipped",
+          "type": "boolean"
+        },
+        "attuned": {
+          "default": false,
+          "title": "Attuned",
+          "type": "boolean"
+        },
+        "notes": {
+          "default": "",
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "required": [
+        "item"
+      ],
+      "title": "InventoryItem",
+      "type": "object"
+    },
+    "Override": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "additionalProperties": false,
+          "description": "A hand-stated value, with the reason. ``15`` alone is accepted as shorthand.",
+          "properties": {
+            "value": {
+              "title": "Value",
+              "type": "integer"
+            },
+            "note": {
+              "default": "",
+              "title": "Note",
+              "type": "string"
+            }
+          },
+          "required": [
+            "value"
+          ],
+          "title": "Override",
+          "type": "object"
+        }
+      ],
+      "examples": [
+        15,
+        {
+          "note": "Ring of Protection",
+          "value": 15
+        }
+      ]
+    },
+    "PlayState": {
+      "additionalProperties": false,
+      "description": "What changes at the table. Everything here is reset or spent by play.\n\n``hp`` absent means \"at full health\", so a new or hand-written character needs no\nknowledge of its own maximum; the server writes the number on the next change.",
+      "properties": {
+        "hp": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hp"
+        },
+        "hp_max": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hp Max"
+        },
+        "temp_hp": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Temp Hp",
+          "type": "integer"
+        },
+        "hit_dice_used": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Hit Dice Used",
+          "type": "object"
+        },
+        "slots_used": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Slots Used",
+          "type": "object"
+        },
+        "pact_slots_used": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Pact Slots Used",
+          "type": "integer"
+        },
+        "resources_used": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Resources Used",
+          "type": "object"
+        },
+        "conditions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Conditions",
+          "type": "array"
+        },
+        "exhaustion": {
+          "default": 0,
+          "maximum": 6,
+          "minimum": 0,
+          "title": "Exhaustion",
+          "type": "integer"
+        },
+        "concentration": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ChosenOption"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "inspiration": {
+          "default": false,
+          "title": "Inspiration",
+          "type": "boolean"
+        },
+        "raging": {
+          "default": false,
+          "title": "Raging",
+          "type": "boolean"
+        },
+        "mastery_kind": {
+          "default": "",
+          "title": "Mastery Kind",
+          "type": "string"
+        },
+        "mastery_set": {
+          "default": false,
+          "title": "Mastery Set",
+          "type": "boolean"
+        },
+        "death_saves": {
+          "$ref": "#/$defs/DeathSaves"
+        }
+      },
+      "title": "PlayState",
+      "type": "object"
+    },
+    "Recharge": {
+      "description": "When a limited-use resource comes back.",
+      "enum": [
+        "short",
+        "long",
+        "none"
+      ],
+      "title": "Recharge",
+      "type": "string"
+    },
+    "Resource": {
+      "additionalProperties": false,
+      "description": "A limited-use feature: Arcane Recovery, Channel Divinity, Rage, Ki points\u2026\n\nDeclared on the character rather than derived, because the corpus states most of\nthese maxima only in prose. Usage is play state and lives in ``state``.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "max": {
+          "minimum": 0,
+          "title": "Max",
+          "type": "integer"
+        },
+        "recharge": {
+          "$ref": "#/$defs/Recharge",
+          "default": "long"
+        }
+      },
+      "required": [
+        "name",
+        "max"
+      ],
+      "title": "Resource",
+      "type": "object"
+    },
+    "SpellSelection": {
+      "additionalProperties": false,
+      "description": "A character's spells, split the way the rules split them.\n\nCantrips are always available. For a spellbook caster (a wizard), ``known`` is the\nbook and ``prepared`` the subset usable today \u2014 24 in the book, 13 prepared.\nA known-spells caster (a sorcerer) lists ``known`` only; a caster who prepares from\nthe whole class list (a cleric) lists ``prepared`` only.",
+      "properties": {
+        "cantrips": {
+          "items": {
+            "$ref": "#/$defs/ChosenOption"
+          },
+          "title": "Cantrips",
+          "type": "array"
+        },
+        "known": {
+          "items": {
+            "$ref": "#/$defs/ChosenOption"
+          },
+          "title": "Known",
+          "type": "array"
+        },
+        "prepared": {
+          "items": {
+            "$ref": "#/$defs/ChosenOption"
+          },
+          "title": "Prepared",
+          "type": "array"
+        },
+        "granted": {
+          "items": {
+            "$ref": "#/$defs/GrantedSpells"
+          },
+          "title": "Granted",
+          "type": "array"
+        }
+      },
+      "title": "SpellSelection",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "One player character. Choices and play state are stored; AC, HP maximum, bonuses and spell slots are derived unless stated in 'overrides'. See documentation/CHARACTER-FORMAT.md.",
+  "properties": {
+    "id": {
+      "title": "Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    },
+    "$schema": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "$Schema"
+    },
+    "format": {
+      "const": 1,
+      "default": 1,
+      "title": "Format",
+      "type": "integer"
+    },
+    "name": {
+      "default": "",
+      "title": "Name",
+      "type": "string"
+    },
+    "given_name": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/GivenName"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "player": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Player"
+    },
+    "world_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "World Id"
+    },
+    "status": {
+      "$ref": "#/$defs/DraftStatus",
+      "default": "draft"
+    },
+    "pending_levels": {
+      "default": 0,
+      "maximum": 19,
+      "minimum": 0,
+      "title": "Pending Levels",
+      "type": "integer"
+    },
+    "experience": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Experience"
+    },
+    "wizard_step": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Wizard Step"
+    },
+    "choices": {
+      "additionalProperties": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "title": "Choices",
+      "type": "object"
+    },
+    "species": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ChosenOption"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "subspecies": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ChosenOption"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "background": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ChosenOption"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "classes": {
+      "items": {
+        "$ref": "#/$defs/ClassLevel"
+      },
+      "title": "Classes",
+      "type": "array"
+    },
+    "hit_points": {
+      "$ref": "#/$defs/HitPoints"
+    },
+    "ability_method": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/AbilityMethod"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "abilities": {
+      "$ref": "#/$defs/Abilities"
+    },
+    "ability_rolls": {
+      "items": {
+        "type": "integer"
+      },
+      "title": "Ability Rolls",
+      "type": "array"
+    },
+    "ability_improvements": {
+      "items": {
+        "additionalProperties": {
+          "type": "integer"
+        },
+        "type": "object"
+      },
+      "title": "Ability Improvements",
+      "type": "array"
+    },
+    "skills": {
+      "items": {
+        "$ref": "#/$defs/ChosenOption"
+      },
+      "title": "Skills",
+      "type": "array"
+    },
+    "saving_throws": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Saving Throws",
+      "type": "array"
+    },
+    "resistances": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Resistances",
+      "type": "array"
+    },
+    "expertise": {
+      "items": {
+        "$ref": "#/$defs/ChosenOption"
+      },
+      "title": "Expertise",
+      "type": "array"
+    },
+    "tools": {
+      "items": {
+        "$ref": "#/$defs/ChosenOption"
+      },
+      "title": "Tools",
+      "type": "array"
+    },
+    "languages": {
+      "items": {
+        "$ref": "#/$defs/ChosenOption"
+      },
+      "title": "Languages",
+      "type": "array"
+    },
+    "weapons": {
+      "items": {
+        "$ref": "#/$defs/ChosenOption"
+      },
+      "title": "Weapons",
+      "type": "array"
+    },
+    "feats": {
+      "items": {
+        "$ref": "#/$defs/ChosenOption"
+      },
+      "title": "Feats",
+      "type": "array"
+    },
+    "optional_features": {
+      "items": {
+        "$ref": "#/$defs/ChosenOption"
+      },
+      "title": "Optional Features",
+      "type": "array"
+    },
+    "spells": {
+      "$ref": "#/$defs/SpellSelection"
+    },
+    "inventory": {
+      "items": {
+        "$ref": "#/$defs/InventoryItem"
+      },
+      "title": "Inventory",
+      "type": "array"
+    },
+    "currency": {
+      "$ref": "#/$defs/Currency"
+    },
+    "resources": {
+      "items": {
+        "$ref": "#/$defs/Resource"
+      },
+      "title": "Resources",
+      "type": "array"
+    },
+    "confirmed_prerequisites": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Confirmed Prerequisites",
+      "type": "array"
+    },
+    "pronouns": {
+      "default": "",
+      "title": "Pronouns",
+      "type": "string"
+    },
+    "appearance": {
+      "default": "",
+      "title": "Appearance",
+      "type": "string"
+    },
+    "backstory": {
+      "default": "",
+      "title": "Backstory",
+      "type": "string"
+    },
+    "deity": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ChosenOption"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "notes": {
+      "default": "",
+      "title": "Notes",
+      "type": "string"
+    },
+    "state": {
+      "$ref": "#/$defs/PlayState"
+    },
+    "overrides": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Override"
+      },
+      "propertyNames": {
+        "pattern": "^(ac|hp_max|speed|initiative|spell_save_dc|spell_attack|passive_perception|proficiency_bonus|pact_slots|pact_slot_level|(ability|save)\\.(str|dex|con|int|wis|cha)|skill\\.[a-z][a-z ']*|slots\\.[1-9])$"
+      },
+      "title": "Overrides",
+      "type": "object"
+    }
+  },
+  "title": "Paravent character",
+  "type": "object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema"
+}

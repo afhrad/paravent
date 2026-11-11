@@ -1,0 +1,16 @@
+# Only what the image needs: app/, static/, data/rules, the tag catalogue, the schema,
+# the dependency lock, Paravent's licence (LICENSE) and the notices for what the image
+# carries from others (NOTICE.md). User content and secrets never go into an image.
+*
+!pyproject.toml
+!LICENSE
+!NOTICE.md
+!uv.lock
+!app/
+!static/
+!data/rules/
+!data/library/tags/5etools_tags.json
+!documentation/character.schema.json
+**/__pycache__
+**/*.py[cod]
+**/.DS_Store

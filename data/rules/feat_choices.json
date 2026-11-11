@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "note": "Hand-authored. Choices a feat asks for in prose only, which the corpus carries in no structured field ('choose one of the following damage types'). Structured choices are read from the corpus directly: optionalfeatureProgression (Martial Adept's maneuvers), weaponProficiencies with choose (Weapon Master's weapons), additionalSpells, proficiencies, expertise, savingThrowProficiencies. A test checks every row names a feat the corpus has. See documentation/CHARGEN-WIZARD.md §8.",
+    "fields": {
+      "feat": "the feat, as 'Name|SOURCE'",
+      "id": "the question's key under the feat: choices['feat.<name|source>.choice.<id>']",
+      "label": "what is chosen, shown with the question",
+      "options": "the values; damage types by their lower-case key, shown in the reader's language",
+      "repeatable": "the feat may be taken again, each time with another value — where only its text says so (the 2024 record carries 'repeatable')"
+    }
+  },
+  "choices": [
+    {"feat": "Elemental Adept|PHB", "id": "damage", "label": "Damage type", "repeatable": true,
+     "options": ["acid", "cold", "fire", "lightning", "thunder"]},
+    {"feat": "Elemental Adept|XPHB", "id": "damage", "label": "Damage type",
+     "options": ["acid", "cold", "fire", "lightning", "thunder"]},
+    {"feat": "Strike of the Giants|BGG", "id": "strike", "label": "Giant",
+     "options": ["Cloud Strike", "Fire Strike", "Frost Strike", "Hill Strike", "Stone Strike", "Storm Strike"]}
+  ]
+}

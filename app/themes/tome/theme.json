@@ -1,0 +1,10 @@
+{
+  "name": "Tome",
+  "version": "1.0",
+  "author": "Paravent",
+  "description": "An old book on the table: parchment by day, leather by candlelight, set like the published rulebooks. Statblocks, read-aloud text and chapters as the books print them.",
+  "paravent": "0.1.109",
+  "modes": ["light", "dark"],
+  "theme_color": {"light": "#58180D", "dark": "#1C150F"},
+  "license": "Theme MIT; fonts SIL OFL 1.1 (fonts/OFL-*.txt)"
+}

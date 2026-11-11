@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""Raise the patch version (0.1.4 → 0.1.5) with every commit.
+
+The version is set once, in pyproject.toml (app/__init__.py reads it); uv.lock records
+it too. Only the version line changes, in the staged files and the working copies alike,
+so nothing else unstaged slips into the commit.
+
+Skipped when the commit already changes the version itself (raising minor or major by
+hand), or with PARAVENT_NO_BUMP=1.
+
+Enable once per clone:  git config core.hooksPath scripts/hooks
+"""
+
+from __future__ import annotations
+
+import os
+import re
+import subprocess
+import sys
+from pathlib import Path
+
+PROJECT = "pyproject.toml"
+LOCK = "uv.lock"
+PROJECT_LINE = re.compile(r'^(version = ")(\d+)\.(\d+)\.(\d+)(")', re.MULTILINE)
+LOCK_LINE = re.compile(r'(^name = "paravent"\nversion = ")[^"]+(")', re.MULTILINE)
+
+
+def git(*args: str, data: bytes | None = None) -> str:
+    return subprocess.run(
+        ["git", *args], input=data, capture_output=True, check=True
+    ).stdout.decode()
+
+
+def staged(path: str) -> str | None:
+    try:
+        return git("show", f":{path}")
+    except subprocess.CalledProcessError:
+        return None
+
+
+def stage(path: str, text: str) -> None:
+    """Put ``text`` into the index for ``path`` without touching anything else staged."""
+    blob = git("hash-object", "-w", "--stdin", data=text.encode()).strip()
+    git("update-index", "--cacheinfo", f"100644,{blob},{path}")
+
+
+def main() -> int:
+    if os.environ.get("PARAVENT_NO_BUMP"):
+        return 0
+    if re.search(r"^[+-]version = ", git("diff", "--cached", "-U0", "--", PROJECT), re.MULTILINE):
+        return 0  # the commit sets the version itself
+    project = staged(PROJECT)
+    found = PROJECT_LINE.search(project or "")
+    if project is None or found is None:
+        return 0
+    major, minor, patch = (int(found.group(n)) for n in (2, 3, 4))
+    new = f"{major}.{minor}.{patch + 1}"
+
+    def bump(text: str) -> str:
+        return PROJECT_LINE.sub(rf"\g<1>{new}\g<5>", text, count=1)
+
+    def bump_lock(text: str) -> str:
+        return LOCK_LINE.sub(rf"\g<1>{new}\g<2>", text, count=1)
+
+    stage(PROJECT, bump(project))
+    Path(PROJECT).write_text(bump(Path(PROJECT).read_text("utf-8")), "utf-8")
+    lock = staged(LOCK)
+    if lock is not None and LOCK_LINE.search(lock):
+        stage(LOCK, bump_lock(lock))
+        Path(LOCK).write_text(bump_lock(Path(LOCK).read_text("utf-8")), "utf-8")
+    print(f"version {major}.{minor}.{patch} → {new}", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

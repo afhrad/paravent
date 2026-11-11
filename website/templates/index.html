@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="{{meta.lang|attr}}">
+<!--
+  Written by website/build.py from templates/index.html and content/<lang>.md.
+  Edit those, never this page: the next build replaces it.
+-->
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{meta.title|attr}}</title>
+<meta name="description" content="{{meta.description|attr}}">
+<meta name="theme-color" content="#58180D" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#1C150F" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Paravent">
+<meta property="og:description" content="{{meta.og_description|attr}}">
+<meta property="og:type" content="website">
+<meta property="og:locale" content="{{meta.locale|attr}}">
+<meta property="og:url" content="{{url_here|raw}}">
+<meta property="og:site_name" content="Paravent">
+<meta property="og:image" content="https://paravent.org/assets/img/share-{{meta.lang|attr}}.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="{{meta.share_alt|attr}}">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="alternate" hreflang="en" href="{{url_en|raw}}">
+<link rel="alternate" hreflang="de" href="{{url_de|raw}}">
+<link rel="alternate" hreflang="x-default" href="{{url_en|raw}}">
+<link rel="icon" href="{{root|raw}}favicon.svg" type="image/svg+xml">
+<link rel="icon" href="{{root|raw}}favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="{{root|raw}}apple-touch-icon.png">
+<link rel="stylesheet" href="{{root|raw}}assets/css/paravent/tokens.css">
+<link rel="stylesheet" href="{{root|raw}}assets/css/tome/tokens.css">
+<link rel="stylesheet" href="{{root|raw}}assets/css/paravent/components.css">
+<link rel="stylesheet" href="{{root|raw}}assets/css/site.css">
+<script>
+  /* The theme before the first paint, so a dark reader never sees a white flash. */
+  try { var t = localStorage.getItem("paravent-site-theme"); if (t) document.documentElement.dataset.theme = t; } catch (e) {}
+  /* The folding screen starts closed; site.js opens it (with no script it stands open). */
+  if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    document.documentElement.style.setProperty("--open", "0");
+    document.documentElement.style.setProperty("--hinge", "176deg");
+  }
+{{?meta.lang=en}}
+  /* A first visit from a German browser goes to the German page; a language once
+     chosen with the flags is kept. */
+  try {
+    var lang = localStorage.getItem("paravent-site-lang");
+    var wanted = (navigator.languages && navigator.languages[0]) || navigator.language || "";
+    if (!lang && /^de\b/i.test(wanted)) location.replace("de/" + location.hash);
+  } catch (e) {}
+{{/meta.lang=en}}
+</script>
+<script src="{{root|raw}}assets/js/site.js" defer></script>
+</head>
+<body>
+<!-- icons:start -->
+<!-- icons:end -->
+
+<div class="progress" aria-hidden="true"><i></i></div>
+
+<header class="site-top">
+  <a class="brand" href="#top" aria-label="{{ui.home|attr}}">
+    <svg class="ic brand-mark" aria-hidden="true" style="font-size:28px"><use href="#i-paravent"/></svg>
+    <span>Paravent</span>
+  </a>
+  <nav class="site-nav" aria-label="{{ui.sections|attr}}">
+    <a href="#why">{{nav.why}}</a>
+    <a href="#features">{{nav.features}}</a>
+    <a href="#evening">{{nav.evening}}</a>
+    <a href="#philosophy">{{nav.philosophy}}</a>
+    <a href="#screens">{{nav.screens}}</a>
+    <a href="#stack">{{nav.stack}}</a>
+    <a href="#updates">{{nav.updates}}</a>
+    <a href="#faq">{{nav.faq}}</a>
+    <a href="#legal">{{nav.legal}}</a>
+  </nav>
+  <div class="site-top-end">
+    <div class="lang-switch" role="group" aria-label="{{ui.language|attr}}">
+      <a href="{{href_en|raw}}" hreflang="en" lang="en" title="English" data-lang="en"{{current_en|raw}}><img src="{{root|raw}}assets/img/flags/gb.svg" alt="English" width="24" height="16"></a>
+      <a href="{{href_de|raw}}" hreflang="de" lang="de" title="Deutsch" data-lang="de"{{current_de|raw}}><img src="{{root|raw}}assets/img/flags/de.svg" alt="Deutsch" width="24" height="16"></a>
+    </div>
+    <button class="icon-btn" type="button" data-theme-toggle aria-label="{{ui.theme|attr}}">
+      <svg class="ic ic-sun" aria-hidden="true"><use href="#i-sun"/></svg>
+      <svg class="ic ic-moon" aria-hidden="true"><use href="#i-moon"/></svg>
+    </button>
+    <button class="icon-btn menu-btn" type="button" data-menu aria-expanded="false" aria-label="{{ui.menu|attr}}">
+      <svg class="ic" aria-hidden="true"><use href="#i-menu"/></svg>
+    </button>
+  </div>
+</header>
+
+<main id="top">
+
+  <!-- ============================================================ hero -->
+  <section class="hero" aria-labelledby="hero-title">
+    <div class="hero-glow" aria-hidden="true"><i></i><i></i><i></i></div>
+    <div class="hero-text">
+      <p class="eyebrow">{{hero.eyebrow}}</p>
+      <h1 id="hero-title">{{hero.title}}<br><span class="ink">{{?hero.title_prefix}}{{hero.title_prefix}} {{/hero.title_prefix}}<span class="sr-only">{{hero.title_words|last}}</span><span class="rot-end"><span class="rot" aria-hidden="true" data-words="{{hero.title_words|lines}}">{{hero.title_words|last}}</span><span class="rot-dot">.</span></span></span></h1>
+      <p class="lede">{{hero.lede}}</p>
+      <div class="hero-actions">
+        <a class="btn btn-primary btn-lg" href="#features">
+          <svg class="ic" aria-hidden="true"><use href="#i-sparkles"/></svg><span>{{hero.primary}}</span>
+        </a>
+        <a class="btn btn-lg" href="#philosophy">{{hero.secondary}}</a>
+      </div>
+    </div>
+
+    <div class="screen3d" aria-hidden="true">
+      <div class="screen3d-stage">
+        <div class="leaf leaf-left"><div class="face">
+          <div class="mini-head"><b></b><i></i></div>
+          <div class="mini-stat"><span>{{hero.mini_ac}}</span><span>{{hero.mini_hp}}</span><span>{{hero.mini_cr}}</span></div>
+          <div class="mini-lines"><i></i><i></i><i style="width:62%"></i><i></i><i style="width:48%"></i></div>
+        </div><div class="face back"><svg class="ic" aria-hidden="true"><use href="#i-paravent"/></svg></div></div>
+        <div class="leaf leaf-mid"><div class="face">
+          <div class="mini-round">{{hero.mini_round}}</div>
+          <div class="mini-row is-turn"><span class="tok"></span><b></b><em style="--hp:82%"></em></div>
+          <div class="mini-row"><span class="tok foe"></span><b></b><em style="--hp:40%"></em></div>
+          <div class="mini-row"><span class="tok"></span><b></b><em style="--hp:100%"></em></div>
+          <div class="mini-row"><span class="tok foe"></span><b></b><em style="--hp:12%"></em></div>
+          <div class="mini-row"><span class="tok"></span><b></b><em style="--hp:66%"></em></div>
+        </div></div>
+        <div class="leaf leaf-right"><div class="face">
+          <div class="mini-dice"><span>20</span></div>
+          <div class="mini-lines"><i></i><i style="width:70%"></i><i></i><i style="width:54%"></i></div>
+          <div class="mini-chip">{{hero.mini_spell}}</div>
+        </div><div class="face back"><svg class="ic" aria-hidden="true"><use href="#i-paravent"/></svg></div></div>
+      </div>
+      <div class="screen3d-floor"></div>
+      <div class="screen3d-gleam"></div>
+    </div>
+
+    <a class="scroll-cue" href="#why" aria-label="{{ui.scroll|attr}}"><span></span></a>
+  </section>
+
+  <!-- ============================================================ facts -->
+  <section class="facts" aria-label="{{ui.numbers|attr}}">
+    <div class="fact reveal"><b><!-- fact-version:start -->
+<!-- fact-version:end --></b><span>{{facts.version}}</span></div>
+    <div class="fact reveal"><b><!-- fact-tests:start -->
+<!-- fact-tests:end --></b><span>{{facts.tests}}</span></div>
+    <div class="fact reveal"><b><!-- fact-commits:start -->
+<!-- fact-commits:end --></b><span>{{facts.commits}}</span></div>
+    <div class="fact reveal"><b>0</b><span>{{facts.content}}</span></div>
+    <div class="fact reveal"><b>2</b><span>{{facts.languages}}</span></div>
+  </section>
+
+  <!-- ============================================================ why -->
+  <section id="why" class="band" aria-labelledby="why-title">
+    <div class="wrap two-col">
+      <div class="reveal">
+        <p class="eyebrow">{{why.eyebrow}}</p>
+        <h2 id="why-title">{{why.title}}</h2>
+      </div>
+      <div class="prose reveal">
+{{why.text|p}}
+      </div>
+    </div>
+
+    <div class="wrap intents">
+{{#why.intents}}
+      <article class="intent reveal">
+        <svg class="ic" aria-hidden="true"><use href="#i-{{icon|attr}}"/></svg>
+        <h3>{{title}}</h3>
+{{text|p}}
+      </article>
+{{/why.intents}}
+    </div>
+  </section>
+
+  <!-- ============================================================ features -->
+  <section id="features" class="band band-sunken" aria-labelledby="features-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">{{features.eyebrow}}</p>
+        <h2 id="features-title">{{features.title}}</h2>
+        <p class="intro">{{features.intro}}</p>
+      </div>
+
+      <div class="feature-grid">
+{{#features.items}}
+        <article class="feature reveal">
+          <svg class="ic" aria-hidden="true"><use href="#i-{{icon|attr}}"/></svg>
+          <h3>{{title}}</h3>
+{{text|p}}
+        </article>
+{{/features.items}}
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ evening -->
+  <section id="evening" class="band" aria-labelledby="evening-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">{{evening.eyebrow}}</p>
+        <h2 id="evening-title">{{evening.title}}</h2>
+        <p class="intro">{{evening.intro}}</p>
+      </div>
+
+      <ol class="evening">
+{{#evening.steps}}
+        <li class="ev-step reveal">
+          <span class="ev-dot" aria-hidden="true">{{n|raw}}</span>
+          <div class="ev-text">
+            <p class="ev-time">{{time}}</p>
+            <h3>{{title}}</h3>
+{{text|p}}
+            <p class="ev-table"><svg class="ic" aria-hidden="true"><use href="#i-dices"/></svg><span><b>{{evening.table}}</b> {{table}}</span></p>
+          </div>
+          <figure class="ev-shot{{?kind=phone}} ev-phone{{/kind=phone}}{{?align=right}} ev-right{{/align=right}}">
+{{?kind=phone}}
+            <div class="phone"><div class="phone-screen shot-body">
+              <img src="{{root|raw}}assets/img/screens/{{meta.lang|attr}}/{{file|attr}}" data-dark="{{root|raw}}assets/img/screens/{{meta.lang|attr}}/dark/{{file|attr}}" alt="{{alt|attr}}" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-{{icon|attr}}"/></svg></div>
+            </div></div>
+{{/kind=phone}}
+{{^kind=phone}}
+            <div class="frame"><div class="shot-body">
+              <img src="{{root|raw}}assets/img/screens/{{meta.lang|attr}}/{{file|attr}}" data-dark="{{root|raw}}assets/img/screens/{{meta.lang|attr}}/dark/{{file|attr}}" alt="{{alt|attr}}" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-{{icon|attr}}"/></svg></div>
+            </div></div>
+{{/kind=phone}}
+            <figcaption class="sr-only">{{title}}</figcaption>
+          </figure>
+        </li>
+{{/evening.steps}}
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============================================================ philosophy -->
+  <section id="philosophy" class="band band-sunken philosophy" aria-labelledby="philosophy-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">{{philosophy.eyebrow}}</p>
+        <h2 id="philosophy-title">{{philosophy.title}}</h2>
+      </div>
+
+      <ol class="principles">
+{{#philosophy.items}}
+        <li class="principle reveal">
+          <span class="num">{{n|raw}}</span>
+          <div>
+            <h3>{{title}}</h3>
+{{text|p}}
+          </div>
+        </li>
+{{/philosophy.items}}
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============================================================ screens -->
+  <section id="screens" class="band" aria-labelledby="screens-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">{{screens.eyebrow}}</p>
+        <h2 id="screens-title">{{screens.title}}</h2>
+        <p class="intro">{{screens.intro}}</p>
+      </div>
+
+      <div class="shots">
+{{#screens.items}}
+{{?kind=phone}}
+        <figure class="shot shot-phone reveal">
+          <div class="phone">
+            <div class="phone-screen shot-body">
+              <img src="{{root|raw}}assets/img/screens/{{meta.lang|attr}}/{{file|attr}}" data-dark="{{root|raw}}assets/img/screens/{{meta.lang|attr}}/dark/{{file|attr}}" alt="{{alt|attr}}" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-{{icon|attr}}"/></svg></div>
+            </div>
+          </div>
+          <figcaption>{{text}}</figcaption>
+        </figure>
+{{/kind=phone}}
+{{^kind=phone}}
+        <figure class="shot{{?kind=wide}} shot-wide{{/kind=wide}} reveal">
+          <div class="frame">
+            <div class="frame-bar"><span class="frame-dots"><i></i><i></i><i></i></span><span class="frame-label">{{title}}</span></div>
+            <div class="shot-body">
+              <img src="{{root|raw}}assets/img/screens/{{meta.lang|attr}}/{{file|attr}}" data-dark="{{root|raw}}assets/img/screens/{{meta.lang|attr}}/dark/{{file|attr}}" alt="{{alt|attr}}" loading="lazy">
+              <div class="shot-ph" aria-hidden="true"><svg class="ic"><use href="#i-{{icon|attr}}"/></svg></div>
+            </div>
+          </div>
+          <figcaption>{{text}}</figcaption>
+        </figure>
+{{/kind=phone}}
+{{/screens.items}}
+      </div>
+      <p class="shots-note muted">{{screens.srd}}</p>
+    </div>
+  </section>
+
+  <!-- ============================================================ stack -->
+  <section id="stack" class="band band-sunken" aria-labelledby="stack-title">
+    <div class="wrap two-col">
+      <div class="reveal">
+        <p class="eyebrow">{{stack.eyebrow}}</p>
+        <h2 id="stack-title">{{stack.title}}</h2>
+        <p class="intro">{{stack.intro}}</p>
+      </div>
+      <dl class="stack reveal">
+{{#stack.items}}
+        <div><dt>{{title}}</dt><dd>{{text}}</dd></div>
+{{/stack.items}}
+      </dl>
+    </div>
+  </section>
+
+  <!-- ============================================================ updates -->
+  <section id="updates" class="band" aria-labelledby="updates-title">
+    <div class="wrap">
+      <div class="section-head reveal">
+        <p class="eyebrow">{{updates.eyebrow}}</p>
+        <h2 id="updates-title">{{updates.title}}</h2>
+        <p class="intro">{{updates.intro}} <!-- fact-updated:start -->
+<!-- fact-updated:end -->.</p>
+      </div>
+      <ol class="updates" lang="en">
+<!-- updates:start -->
+<!-- updates:end -->
+      </ol>
+    </div>
+  </section>
+
+  <!-- ============================================================ faq -->
+  <section id="faq" class="band band-sunken" aria-labelledby="faq-title">
+    <div class="wrap two-col">
+      <div class="reveal">
+        <p class="eyebrow">{{faq.eyebrow}}</p>
+        <h2 id="faq-title">{{faq.title}}</h2>
+        <p class="intro">{{faq.intro}}</p>
+      </div>
+      <div class="faq reveal">
+{{#faq.items}}
+        <details class="qa">
+          <summary><span>{{q}}</span><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></summary>
+          <div class="qa-a">
+{{a|p}}
+          </div>
+        </details>
+{{/faq.items}}
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================================ legal -->
+  <section id="legal" class="band" aria-labelledby="legal-title">
+    <div class="wrap two-col">
+      <div class="reveal">
+        <p class="eyebrow">{{legal.eyebrow}}</p>
+        <h2 id="legal-title">{{legal.title}}</h2>
+      </div>
+      <div class="prose reveal">
+{{legal.text|p}}
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog class="lightbox" aria-label="{{ui.enlarged|attr}}" data-enlarge="{{ui.enlarge|attr}}">
+  <figure class="lightbox-figure">
+    <img alt="">
+    <figcaption class="lightbox-caption"></figcaption>
+  </figure>
+  <button class="icon-btn lightbox-close" type="button" aria-label="{{ui.close|attr}}" autofocus>
+    <svg class="ic" aria-hidden="true"><use href="#i-x"/></svg>
+  </button>
+</dialog>
+
+<footer class="footer">
+  <div class="wrap footer-row">
+    <a class="brand" href="#top">
+      <svg class="ic brand-mark" aria-hidden="true" style="font-size:24px"><use href="#i-paravent"/></svg><span>Paravent</span>
+    </a>
+    <p class="muted">{{footer.line}} · <a href="legal.html">{{legal.link}}</a></p>
+  </div>
+</footer>
+</body>
+</html>

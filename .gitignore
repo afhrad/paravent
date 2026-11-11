@@ -1,0 +1,46 @@
+__pycache__/
+*.py[cod]
+.venv/
+.env
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.DS_Store
+.claude/
+
+# The user's own content: worlds, adventures, characters, combat, homebrew, media
+# and translations. Never committed — it is the operator's game, not the project's.
+# (The reference corpus needs no rule: it lives outside the repository entirely,
+# wherever PARAVENT_REFERENCE_DIR points. See TECHSTACK.md section 3.)
+data/5etools*/
+data/library/*
+!data/library/.gitkeep
+!data/library/homebrew/
+data/library/homebrew/*
+!data/library/homebrew/.gitkeep
+!data/library/media/
+data/library/media/*
+!data/library/media/.gitkeep
+!data/library/i18n/
+data/library/i18n/*
+!data/library/i18n/.gitkeep
+!data/library/i18n/ui/
+data/library/i18n/ui/*
+!data/library/i18n/ui/.gitkeep
+# The tag catalogue and its scanner ship with the project.
+!data/library/tags/
+
+# Derived from the corpus and rebuilt on demand.
+data/reference-cache/*
+!data/reference-cache/.gitkeep
+
+# A 5eTools corpus placed here (PARAVENT_REFERENCE_DIR=data/reference) is the user's
+# data and never committed.
+data/reference/*
+# The 5eTools images beside the corpus (PARAVENT_IMAGE_DIR's default): the user's, never committed.
+data/img/
+
+# Where sync-server.sh sends Paravent (host and folder): this machine's, not the project's
+sync.env

@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+"""Keep the tools out of the commit message.
+
+A commit says what changed and why, not what it was written with. Assistants add lines
+of their own to the messages they write: a ``Co-Authored-By`` trailer naming the model,
+a link to the session, a "generated with" line. This hook removes them from every
+commit, whoever wrote the message, and leaves everything else as it is, a
+``Co-Authored-By`` for a person included.
+
+Enable once per clone:  git config core.hooksPath scripts/hooks
+"""
+
+from __future__ import annotations
+
+import re
+import sys
+from pathlib import Path
+
+ASSISTANT = r"(claude|anthropic|chatgpt|openai|copilot|gemini|cursor|codex)"
+# Only the lines an assistant signs with. A sentence of the message that happens to name
+# one ("Claude drafts the naming styles") is the author's and stays.
+UNWANTED = (
+    re.compile(rf"^\s*co-authored-by:.*{ASSISTANT}", re.IGNORECASE),
+    re.compile(r"^\s*claude-session:", re.IGNORECASE),
+    re.compile(r"^\W*generated with \[?claude code\]?", re.IGNORECASE),
+    re.compile(r"^\s*https://claude\.ai/code/session_\S+\s*$", re.IGNORECASE),
+)
+
+
+def clean(message: str) -> str:
+    """The message without the lines an assistant signs with, and without the blank
+    lines their removal leaves at the end."""
+    kept = [
+        line
+        for line in message.splitlines()
+        if line.startswith("#") or not any(rule.search(line) for rule in UNWANTED)
+    ]
+    while kept and not kept[-1].strip():
+        kept.pop()
+    return "\n".join(kept) + "\n"
+
+
+def main(argv: list[str]) -> int:
+    if len(argv) < 2:
+        return 0
+    path = Path(argv[1])
+    before = path.read_text(encoding="utf-8")
+    after = clean(before)
+    if after != before:
+        path.write_text(after, encoding="utf-8")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))

@@ -1,0 +1,398 @@
+/* ============================================================
+   TOME — skin
+   The published books' page on Paravent's screens: parchment, framed panels, gilt
+   rules, statblocks and read-aloud boxes as the books print them, drop caps on
+   chapters. Made for Paravent 0.1.109; class names are not a stable contract.
+   ============================================================ */
+
+:root{
+  --sidebar-bg: #E4E3C4;
+  --sidebar-rule: #3E3420;
+  --sidebar-side: #BDB9AE;
+  --sidebar-shadow: 4px 5px 8px -2px rgba(50,32,12,.38);
+  --read-bg: #F9F2DF;
+  --sb-bar: #C9862B;
+  --rule-fade: color-mix(in srgb, var(--accent) 0%, transparent);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --sidebar-bg: #2A2A1B; --sidebar-rule: #8A7A4E; --sidebar-side: #837E72; --sidebar-shadow: 4px 5px 9px -2px rgba(0,0,0,.65); --read-bg: #2E2319; --sb-bar: #A87532;
+  }
+}
+:root[data-theme="dark"]{
+  --sidebar-bg: #2A2A1B; --sidebar-rule: #8A7A4E; --sidebar-side: #837E72; --sidebar-shadow: 4px 5px 9px -2px rgba(0,0,0,.65); --read-bg: #2E2319; --sb-bar: #A87532;
+}
+
+/* ---------------------------------------------------------- the page */
+body{
+  background-color:var(--bg);
+  background-image:
+    radial-gradient(ellipse 120% 90% at 50% 40%, transparent 55%, color-mix(in srgb, var(--text) 14%, transparent) 100%),
+    var(--texture);
+  font-size:15px; line-height:1.6;
+}
+h1, h2, h3, h4, h5{ letter-spacing:.01em; }
+h1, h2, .page-head h1, .sb-name{ color:var(--accent-text); font-weight:700; }
+h3{ color:var(--accent-text); }
+.eyebrow{ font-size:12px; letter-spacing:.14em; color:var(--text-3); }
+.page-lede{ font-family:var(--font-body); font-style:italic; color:var(--text-2); }
+
+/* A tapered rule under a page's title, as the books draw beneath a heading. */
+.page-head h1::after{
+  content:""; display:block; height:5px; margin-top:8px; width:min(100%, 440px);
+  background:linear-gradient(90deg, var(--gilt), color-mix(in srgb, var(--gilt) 0%, transparent));
+  clip-path:polygon(0 0, 100% 50%, 0 100%);
+}
+
+/* ---------------------------------------------------------- the bar */
+.topbar{
+  background-color:var(--bg-sunken);
+  background-image:var(--texture);
+  border-bottom:1px solid var(--border-strong);
+  box-shadow:0 1px 0 var(--surface), 0 2px 0 var(--border), var(--shadow-sm);
+}
+.brand{ font-family:var(--font-display); letter-spacing:.06em; }
+.shell-nav a[aria-current="page"]{ color:var(--accent-text); }
+
+/* ---------------------------------------------------------- panels: parchment leaves in a thin frame */
+.panel, .drawer, .dialog, .usermenu-panel, .tip, dialog{
+  background-image:var(--texture);
+}
+.panel{
+  border-color:var(--border-strong);
+  box-shadow:var(--shadow-sm), inset 0 0 0 3px var(--surface), inset 0 0 0 4px var(--border);
+}
+.panel-head b{ color:var(--accent-text); font-weight:700; letter-spacing:.02em; }
+
+/* ---------------------------------------------------------- controls */
+.btn{ font-family:var(--font-ui); letter-spacing:.01em; }
+.btn-primary{
+  background-image:linear-gradient(180deg, color-mix(in srgb, #fff 10%, transparent), transparent 60%);
+  border-color:color-mix(in srgb, var(--accent-solid) 70%, #000);
+  box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--gilt) 45%, transparent), var(--shadow-sm);
+}
+.chip[aria-pressed="true"]{ box-shadow:inset 0 0 0 1px color-mix(in srgb, var(--gilt) 50%, transparent); }
+.field label{ font-size:14px; }
+select{
+  font-family:var(--font-ui); color:var(--text); background-color:var(--surface);
+  border:1px solid var(--border-strong); border-radius:var(--r-sm);
+}
+
+/* ---------------------------------------------------------- statblocks as the books print them */
+.panel.statblock{
+  background-color:var(--read-bg);
+  border:1px solid var(--border-strong);
+  border-top:6px solid var(--sb-bar);
+  border-bottom:6px solid var(--sb-bar);
+  box-shadow:var(--shadow-md), inset 0 0 0 1px color-mix(in srgb, var(--text) 8%, transparent);
+}
+.sb-name{ font-size:26px; font-variant:small-caps; letter-spacing:.03em; }
+.sb-type{ font-family:var(--font-body); }
+.sb-core{
+  border:0; padding:10px 0;
+  background:
+    linear-gradient(90deg, var(--accent), var(--rule-fade)) top / 100% 2px no-repeat,
+    linear-gradient(90deg, var(--accent), var(--rule-fade)) bottom / 100% 2px no-repeat;
+}
+.ref-spell .sb-core, .ref-item .sb-core, .ref-baseitem .sb-core{
+  background:
+    linear-gradient(90deg, var(--gilt), var(--rule-fade)) top / 100% 2px no-repeat,
+    linear-gradient(90deg, var(--gilt), var(--rule-fade)) bottom / 100% 2px no-repeat;
+}
+.sb-line b, .sb-ability .k{ color:var(--accent-text); }
+.sb-heading, .panel .sb-heading{
+  font-family:var(--font-display); font-size:18px; font-variant:normal; letter-spacing:.04em;
+  color:var(--accent-text); border-bottom:1px solid var(--accent);
+}
+
+/* ---------------------------------------------------------- the books' boxes */
+/* Read-aloud text is a sheet torn from a book the gamemaster reads from: flat parchment,
+   its top and bottom edges ripped and browned along the tear, a soft shadow beneath.
+   The paper is the ::before layer, cut to the torn outline; the box's drop shadow
+   follows that outline. It stays parchment by candlelight too, in dark ink. */
+.md-read, .entry-inset.readaloud, .book-text .entry-inset.readaloud{
+  --scroll-paper:#F4E8CA;
+  position:relative; isolation:isolate;
+  margin-block:1.6em; padding:24px 28px 22px;
+  background:none; border:0; border-radius:0; box-shadow:none;
+  filter:drop-shadow(0 2px 3px rgba(50,32,12,.3));
+  font-family:var(--font-body); font-style:italic; color:var(--text);
+}
+.md-read::before, .entry-inset.readaloud::before{
+  content:""; position:absolute; inset:0; z-index:-1; pointer-events:none;
+  background-color:var(--scroll-paper);
+  background-image:
+    linear-gradient(180deg, rgba(120,80,30,.24), transparent 12px, transparent calc(100% - 12px), rgba(120,80,30,.24)),
+    var(--texture);
+  clip-path:polygon(
+    0.0% 5px, 2.08% 6px, 4.17% 1px, 6.25% 5px, 8.33% 3px,
+    10.42% 1px, 12.5% 6px, 14.58% 3px, 16.67% 6px, 18.75% 1px,
+    20.83% 0px, 22.92% 0px, 25.0% 0px, 27.08% 4px, 29.17% 2px,
+    31.25% 4px, 33.33% 1px, 35.42% 5px, 37.5% 1px, 39.58% 3px,
+    41.67% 6px, 43.75% 7px, 45.83% 5px, 47.92% 3px, 50.0% 3px,
+    52.08% 4px, 54.17% 5px, 56.25% 4px, 58.33% 1px, 60.42% 2px,
+    62.5% 2px, 64.58% 6px, 66.67% 1px, 68.75% 5px, 70.83% 7px,
+    72.92% 1px, 75.0% 4px, 77.08% 1px, 79.17% 4px, 81.25% 4px,
+    83.33% 5px, 85.42% 7px, 87.5% 2px, 89.58% 7px, 91.67% 3px,
+    93.75% 2px, 95.83% 6px, 97.92% 7px, 100.0% 2px, 100.0% calc(100% - 7px),
+    97.92% calc(100% - 1px), 95.83% calc(100% - 6px), 93.75% calc(100% - 3px), 91.67% calc(100% - 4px), 89.58% calc(100% - 0px),
+    87.5% calc(100% - 1px), 85.42% calc(100% - 5px), 83.33% calc(100% - 0px), 81.25% calc(100% - 6px), 79.17% calc(100% - 7px),
+    77.08% calc(100% - 0px), 75.0% calc(100% - 7px), 72.92% calc(100% - 1px), 70.83% calc(100% - 7px), 68.75% calc(100% - 5px),
+    66.67% calc(100% - 5px), 64.58% calc(100% - 0px), 62.5% calc(100% - 7px), 60.42% calc(100% - 5px), 58.33% calc(100% - 6px),
+    56.25% calc(100% - 1px), 54.17% calc(100% - 7px), 52.08% calc(100% - 7px), 50.0% calc(100% - 1px), 47.92% calc(100% - 2px),
+    45.83% calc(100% - 4px), 43.75% calc(100% - 7px), 41.67% calc(100% - 5px), 39.58% calc(100% - 7px), 37.5% calc(100% - 0px),
+    35.42% calc(100% - 1px), 33.33% calc(100% - 3px), 31.25% calc(100% - 2px), 29.17% calc(100% - 1px), 27.08% calc(100% - 6px),
+    25.0% calc(100% - 2px), 22.92% calc(100% - 3px), 20.83% calc(100% - 6px), 18.75% calc(100% - 3px), 16.67% calc(100% - 0px),
+    14.58% calc(100% - 1px), 12.5% calc(100% - 1px), 10.42% calc(100% - 6px), 8.33% calc(100% - 0px), 6.25% calc(100% - 0px),
+    4.17% calc(100% - 1px), 2.08% calc(100% - 0px), 0.0% calc(100% - 2px)
+  );
+}
+.md-read .md-callout-title, .entry-inset.readaloud h4{
+  justify-content:center; text-align:center; font-style:normal; color:var(--accent-text);
+}
+details.md-read > summary{ list-style:none; }
+/* By candlelight the sheet keeps its paper and ink. */
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) :is(.md-read, .entry-inset.readaloud){
+    --scroll-paper:#DCCBA4;
+    --text:#2A1C0E; --text-2:#4E3C26; --text-3:#6A5537;
+    --accent:#8A2A14; --accent-text:#74200F; --texture:none;
+  }
+}
+:root[data-theme="dark"] :is(.md-read, .entry-inset.readaloud){
+  --scroll-paper:#DCCBA4;
+  --text:#2A1C0E; --text-2:#4E3C26; --text-3:#6A5537;
+  --accent:#8A2A14; --accent-text:#74200F; --texture:none;
+}
+.md-sidebar, .md-variant, .entry-inset:not(.readaloud){
+  background-color:var(--sidebar-bg);
+  border:1px solid var(--sidebar-side);
+  border-top:2px solid var(--sidebar-rule); border-bottom:2px solid var(--sidebar-rule);
+  border-radius:0; margin-block:1.4em;
+  box-shadow:var(--sidebar-shadow);
+}
+/* The books' folded ends: at each corner a wedge above the top rule and below the
+   bottom one, flush with the box's sides, as if the sheet bent backwards.
+   One pseudo-element per rule draws both ends; the path between them has no height. */
+.md-sidebar, .md-variant, .entry-inset:not(.readaloud){ position:relative; overflow:visible; }
+.md-sidebar::before, .md-variant::before, .entry-inset:not(.readaloud)::before,
+.md-sidebar::after, .md-variant::after, .entry-inset:not(.readaloud)::after{
+  content:""; position:absolute; left:-1px; right:-1px; height:12px; pointer-events:none;
+  background:var(--sidebar-rule);
+}
+.md-sidebar::before, .md-variant::before, .entry-inset:not(.readaloud)::before{
+  top:-12px;
+  clip-path:polygon(
+    0 100%, 100% 100%, 100% calc(100% - 2px), calc(100% - 9px) 0, calc(100% - 9px) 100%,
+    9px 100%, 9px 0, 0 calc(100% - 2px)
+  );
+}
+.md-sidebar::after, .md-variant::after, .entry-inset:not(.readaloud)::after{
+  bottom:-12px;
+  clip-path:polygon(
+    0 0, 100% 0, 100% 2px, calc(100% - 9px) 100%, calc(100% - 9px) 0,
+    9px 0, 9px 100%, 0 2px
+  );
+}
+.md-callout-title, .entry-inset h4, .entry-flowblock h4{ font-family:var(--font-display); letter-spacing:.03em; }
+.md-variant .md-callout-title, .md-sidebar .md-callout-title, .entry-inset h4{ color:var(--accent-text); }
+
+/* Epigraphs as the books set them: no box, italic, the speaker beneath on the right. */
+.md-callout.md-quote, .entry-quote{
+  background:none; border:0; padding:4px 6%; font-family:var(--font-body); font-style:italic;
+}
+.md-quote-by, .entry-by{ font-family:var(--font-body); color:var(--text-2); }
+
+/* A pull quote between gilt rules. */
+.md-pullquote, .entry-quote.pull{
+  font-family:var(--font-body); color:var(--accent-text); font-size:1.3em;
+  border-color:var(--gilt); background:none;
+}
+
+/* Flowcharts: parchment steps, red-brown arrows. */
+.md-flowchart > ul > li, .md-flowchart > ol > li, .entry-flowblock{
+  background-color:var(--read-bg); border-color:var(--border-strong); box-shadow:var(--shadow-sm);
+}
+.md-flowchart > ul > li:not(:last-child)::after, .md-flowchart > ol > li:not(:last-child)::after,
+.entry-flowblock:not(:last-child)::after{ border-top-color:var(--accent); }
+
+/* A handout is a leaf of its own: a letter or note the party finds. */
+.md-handout{
+  background-color:var(--read-bg); background-image:var(--texture);
+  border:1px solid var(--border-strong); border-radius:2px;
+  box-shadow:var(--shadow-md), inset 0 0 0 4px var(--read-bg), inset 0 0 0 5px var(--border);
+  font-family:var(--font-body); font-size:1.05em; line-height:1.75;
+}
+.md-handout .md-callout-title{ font-family:var(--font-display); color:var(--accent-text); font-size:15px; }
+.md-gallery img{ border:1px solid var(--border-strong); box-shadow:var(--shadow-sm); }
+
+/* ---------------------------------------------------------- reading */
+.md-body, .book-text{ font-family:var(--font-body); font-size:15px; line-height:1.7; }
+.md-body h2, .md-body h3, .md-body h4, .book-text h2, .book-text h3, .book-text h4{
+  font-family:var(--font-display); color:var(--accent-text);
+}
+.md-body h2, .book-text h2{
+  padding-bottom:4px;
+  background:linear-gradient(90deg, var(--gilt), color-mix(in srgb, var(--gilt) 0%, transparent)) bottom / 100% 2px no-repeat;
+}
+.md-body a, .book-text a{ color:var(--accent-text); text-decoration-color:color-mix(in srgb, var(--gilt) 70%, transparent); text-underline-offset:2px; }
+/* A button set in the text (an encounter card's Run) keeps its own colours. */
+.md-body a.btn, .book-text a.btn{ color:var(--text); text-decoration:none; }
+.md-body a.btn-primary, .book-text a.btn-primary{ color:var(--on-accent); }
+.entry-hr{
+  height:4px; background:linear-gradient(90deg, var(--gilt), var(--rule-fade));
+  clip-path:polygon(0 0, 100% 50%, 0 100%);
+}
+
+/* A chapter that opens with prose opens with a drop cap. */
+.chapter-text > p:first-child::first-letter{
+  float:left; font-family:var(--font-display); font-weight:700; color:var(--accent-text);
+  font-size:3.4em; line-height:.9; margin:.06em .08em 0 0;
+}
+
+/* Tables striped like the books'. */
+.entry-table, .md-body table{ border-collapse:collapse; }
+.entry-table caption, .md-body table caption{ font-family:var(--font-display); color:var(--accent-text); }
+.entry-table th, .md-body th{ font-family:var(--font-ui); font-weight:700; font-size:13px; color:var(--text); }
+.entry-table tbody tr:nth-child(odd), .md-body tbody tr:nth-child(odd){
+  background:color-mix(in srgb, var(--sidebar-bg) 70%, transparent);
+}
+.entry-table th, .entry-table td{ border-bottom:0; }
+
+/* ---------------------------------------------------------- the character sheet
+   The reading pages' framed parchment, kept quiet: the sheet is used at the table.
+   Numbers set in the display face, as a printed character sheet has them. */
+.cs-head, .cs-main, .cs-block, .cs-hpbox{
+  background-color:var(--surface); background-image:var(--texture);
+  border-color:var(--border-strong);
+  box-shadow:var(--shadow-sm), inset 0 0 0 3px var(--surface), inset 0 0 0 4px var(--border);
+}
+.cs-name{ font-family:var(--font-display); font-size:22px; font-weight:700; letter-spacing:.02em; color:var(--accent-text); }
+.cs-summary{ font-family:var(--font-body); font-style:italic; }
+
+/* Section titles as the books' subheadings: small capitals over a gilt rule. */
+.cs h2.eyebrow, .cs h3.eyebrow{
+  font-family:var(--font-display); font-size:12px; font-weight:700; letter-spacing:.08em;
+  color:var(--accent-text); padding-bottom:4px;
+  background:linear-gradient(90deg, var(--gilt), color-mix(in srgb, var(--gilt) 0%, transparent)) bottom / 100% 1px no-repeat;
+}
+
+/* Ability scores and the combat numbers. */
+.cs-stat, .cs-ab{
+  background-color:var(--read-bg); border-color:var(--border-strong);
+  box-shadow:inset 0 0 0 2px var(--read-bg), inset 0 0 0 3px color-mix(in srgb, var(--border) 70%, transparent);
+}
+.cs-stat .k, .cs-ab .k{ font-family:var(--font-display); font-size:10px; letter-spacing:.08em; color:var(--text-2); }
+.cs-stat .v, .cs-ab .m, .cs-hpnow{ font-family:var(--font-display); font-variant-numeric:lining-nums; }
+.cs-ab .s{
+  margin-top:3px; padding:0 9px; min-width:2.6em; text-align:center;
+  border:1px solid var(--border-strong); border-radius:999px; background:var(--surface);
+  font-family:var(--font-display); font-size:11px; color:var(--text);
+}
+.cs-ab:hover{ background-color:var(--accent-weak); border-color:var(--accent); }
+
+/* Tabs: the open one in ink, underlined in gilt. */
+.cs-tabs{ border-bottom-color:var(--border-strong); }
+.cs-tabs a{ font-family:var(--font-ui); font-size:15px; }
+.cs-tabs a[aria-current="page"]{ color:var(--accent-text); border-bottom-color:var(--gilt); }
+
+/* Rows: attacks, spells, items, features. */
+.cs-item, .cs-spell > summary, .cs-feature > summary, .cs-spell.missing{
+  background-color:var(--read-bg); border-color:var(--border);
+}
+.cs-spell > summary:hover, .cs-feature > summary:hover{ background-color:var(--surface-2); }
+
+/* The phone's views: a pane per view, and the bar beneath like the top bar. */
+@media (max-width: 767px){
+  .cs-pane{
+    background-color:var(--surface); background-image:var(--texture); border-color:var(--border-strong);
+    box-shadow:var(--shadow-sm), inset 0 0 0 3px var(--surface), inset 0 0 0 4px var(--border);
+  }
+  .cs-main{ background:none; box-shadow:none; }
+  .cs-mtabs{ background-color:var(--bg-sunken); background-image:var(--texture); border-top-color:var(--border-strong); }
+}
+
+/* ---------------------------------------------------------- the combat tracker
+   The board on framed parchment, its round in the display face; rows, buttons and
+   health bars stay as they are, so nothing slows a round down. The statblock beside
+   it is the books' already. */
+.tracker{
+  background-color:var(--surface); background-image:var(--texture);
+  border-color:var(--border-strong);
+  box-shadow:var(--shadow-sm), inset 0 0 0 3px var(--surface), inset 0 0 0 4px var(--border);
+}
+.round-head{
+  border-bottom:0; padding-bottom:10px;
+  background:linear-gradient(90deg, var(--gilt), color-mix(in srgb, var(--gilt) 0%, transparent)) bottom / 100% 1px no-repeat;
+}
+.round-n .big, .init{ font-family:var(--font-display); font-variant-numeric:lining-nums; }
+.round-n .big{ color:var(--accent-text); font-size:22px; }
+.cb-pending{ background-color:var(--read-bg); border-color:var(--border-strong); }
+.cb-side-hint{ border-color:var(--border-strong); background-color:color-mix(in srgb, var(--surface) 60%, transparent); }
+
+/* ---------------------------------------------------------- the character wizard
+   Framed parchment; the step bar like the sheet's tabs; species, classes and
+   backgrounds offered as the books' entries, their name in the display face, what
+   the books say in italic. */
+.wizard{
+  background-color:var(--surface); background-image:var(--texture);
+  border-color:var(--border-strong);
+  box-shadow:var(--shadow-md), inset 0 0 0 3px var(--surface), inset 0 0 0 4px var(--border);
+}
+.steps{
+  background-color:var(--bg-sunken); background-image:var(--texture);
+  border-bottom:1px solid var(--border-strong);
+}
+.step{ font-size:13.5px; }
+.step .num{ font-family:var(--font-display); background:var(--surface); border-color:var(--border-strong); }
+.step[aria-current="step"]{ color:var(--accent-text); border-bottom-color:var(--gilt); background:transparent; }
+.cg-step-title{ font-family:var(--font-display); color:var(--accent-text); font-weight:700; letter-spacing:.02em; }
+.cg-step-lede{ font-family:var(--font-body); font-style:italic; color:var(--text-2); }
+.derived{ background-color:var(--read-bg); border-left-color:var(--border-strong); }
+.dv-name{ font-family:var(--font-display); color:var(--accent-text); font-weight:700; }
+.dv-v, .abil .ab-v{ font-family:var(--font-display); font-variant-numeric:lining-nums; }
+.abil{ background-color:var(--surface); border-color:var(--border-strong); }
+.cg-card, .cg-option{ background-color:var(--read-bg); border-color:var(--border-strong); }
+.cg-card-head b{
+  font-family:var(--font-display); font-size:15px; color:var(--accent-text); letter-spacing:.02em;
+  min-width:0; hyphens:auto; overflow-wrap:break-word;
+}
+.cg-card-about{ font-family:var(--font-body); font-style:italic; color:var(--text-2); }
+.cg-card:has(.cg-input:checked), .cg-option:has(.cg-input:checked){
+  background-color:var(--accent-weak);
+  box-shadow:inset 0 0 0 1px var(--accent), inset 0 0 0 3px color-mix(in srgb, var(--gilt) 45%, transparent);
+}
+.cg-about{ background-color:var(--read-bg); border-color:var(--border-strong); }
+
+/* ---------------------------------------------------------- logging in
+   A book's cover: dark leather in a gilt frame in either mode, the form a leaf of
+   parchment laid on it, "Paravent" in large capitals above. What sits on the leather
+   itself (language, light and dark, the version) reads in the colours of candlelight. */
+.auth-body{
+  background-color:#2A1C12;
+  background-image:radial-gradient(ellipse 90% 80% at 50% 40%, transparent 50%, rgba(0,0,0,.45) 100%), url(images/leather.svg);
+}
+.auth{ position:relative; }
+.auth::before{
+  content:""; position:fixed; inset:14px; pointer-events:none;
+  border:2px solid #A8803A; outline:1px solid #A8803A; outline-offset:-8px; border-radius:2px;
+  opacity:.75;
+}
+.auth-top, .auth > .app-version{
+  --text:#EDE0C4; --text-2:#CBB894; --text-3:#AE9B78;
+  --surface:#2E2219; --surface-2:#3A2B1F; --surface-3:#46352A;
+  --border:#654D34; --border-strong:#7D6243;
+  --accent:#D9A35E; --accent-solid:#C98D45; --accent-weak:#3A2816; --accent-text:#E9BC7F; --on-accent:#1B140E;
+  color:var(--text); position:relative; z-index:1;
+}
+.auth-card{
+  position:relative; z-index:1; max-width:400px;
+  background-color:var(--surface); background-image:var(--texture);
+  border-color:var(--border-strong); border-radius:2px;
+  box-shadow:0 18px 50px rgba(0,0,0,.55), inset 0 0 0 4px var(--surface), inset 0 0 0 5px var(--border);
+}
+.auth-head{ text-align:center; justify-items:center; }
+.auth-head .brand{ font-size:30px; gap:12px; letter-spacing:.08em; margin-bottom:4px; }
+.auth-head .brand svg{ font-size:32px; }
+.auth-head h1{ font-size:17px; color:var(--text-2); font-weight:600; letter-spacing:.06em; }
+.auth-lede{ font-family:var(--font-body); font-style:italic; }

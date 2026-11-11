@@ -1,0 +1,352 @@
+/* ============================================================
+   PARAVENT — character sheet (design-reference/16-character-sheet.html)
+   Tokens only. Three columns on desktop, two on iPad, one column
+   with a five-view bottom bar on a phone.
+   ============================================================ */
+
+.shell-wide{ max-width:1320px; }
+
+.cs{ display:grid; gap:14px; --tap:44px; }
+.cs .eyebrow{ display:block; margin:0 0 7px; }
+.cs h2.eyebrow, .cs h3.eyebrow{ font-size:10.5px; }
+.cs .mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+.cs-act{ display:contents; margin:0; }
+.cs-empty{ color:var(--text-3); font-size:13px; padding:10px 2px; }
+.cs-flash{ margin:0; }
+.cs .alert{ margin:0; }
+
+/* -- head --------------------------------------------------- */
+.cs-head{
+  display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  padding:14px 16px; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r-lg);
+}
+.cs-avatar{ width:42px; height:42px; font-size:15px; background:var(--magic-weak); color:var(--magic-text); border-color:color-mix(in srgb,var(--magic) 30%,transparent); }
+.cs-who{ display:grid; min-width:0; flex:1; }
+.cs-name{ font-size:19px; letter-spacing:-.015em; }
+.cs-summary{ font-size:13px; color:var(--text-2); }
+.cs-head-meta{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.cs-file{ flex-basis:100%; margin:0; font-size:11px; color:var(--text-3); }
+.cs-note{ margin:0 0 8px; font-size:13px; color:var(--text-2); }
+/* Weapon Master (2024): which weapon kind's mastery, chosen until a long rest. */
+.cs-mastery-pick{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 8px; font-size:13px; color:var(--text-2); }
+.cs-mastery-pick select{ min-height:32px; }
+.cs .btn.is-on{ background:var(--accent-weak); border-color:var(--accent); color:var(--accent-text); font-weight:600; }
+.cs-live{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--text-3); font-family:var(--font-ui); }
+.cs-live .dot{ width:8px; height:8px; border-radius:50%; background:var(--border-strong); }
+.cs-live.on .dot{ background:var(--heal); box-shadow:0 0 0 3px var(--heal-weak); }
+.cs-live.off .dot{ background:var(--cond); }
+
+/* -- grid --------------------------------------------------- */
+.cs-grid{ display:grid; grid-template-columns:260px minmax(0,1fr) 270px; gap:14px; align-items:start; }
+.cs-left, .cs-right{ display:grid; gap:14px; }
+.cs-main{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
+  padding:12px 14px 16px; min-width:0;
+}
+.cs-block{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
+  padding:12px;
+}
+
+/* -- stats -------------------------------------------------- */
+.cs-stats{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.cs-stat{
+  display:grid; justify-items:center; gap:2px; padding:9px 6px;
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
+}
+.cs-stat .k{ font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-3); font-family:var(--font-ui); font-weight:600; text-align:center; }
+.cs-stat .v{ font-weight:700; font-size:21px; line-height:1.15; }
+.cs-stat.accent .v{ color:var(--accent-text); }
+.cs-stat.magic .v{ color:var(--magic-text); }
+.is-override{ position:relative; }
+.is-override::after{
+  content:""; position:absolute; top:5px; right:5px; width:6px; height:6px; border-radius:50%;
+  background:var(--cond);
+}
+
+/* -- hit points --------------------------------------------- */
+.cs-hpbox{
+  display:grid; gap:9px; padding:12px; background:var(--surface);
+  border:1px solid var(--border); border-radius:var(--r-lg);
+}
+.cs-hprow{ display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
+.cs-hpnow{ font-weight:700; font-size:30px; line-height:1; }
+.cs-hpnow.hurt{ color:var(--cond-text); }
+.cs-hpnow.crit{ color:var(--dmg-text); }
+.cs-hpmax{ font-size:14px; color:var(--text-3); }
+.cs .hpbar{ height:7px; border-radius:999px; background:var(--surface-3); overflow:hidden; }
+.hpfill{ display:block; height:100%; border-radius:999px; background:var(--heal); transition:width .3s, background .3s; }
+.hpfill.hurt{ background:var(--cond); }
+.hpfill.crit{ background:var(--dmg); }
+.cs-hpbtns{ display:grid; grid-template-columns:repeat(4,1fr); gap:5px; }
+.cs-hpbtns .btn{ min-height:40px; padding:0; font-family:var(--font-mono); font-weight:700; }
+.cs-amount{ display:grid; grid-template-columns:minmax(52px,1fr) auto auto auto; gap:5px; margin:0; }
+.cs-amount input, .cs-custom input{
+  min-width:0; min-height:34px; padding:0 9px; font-size:15px;
+  color:var(--text); background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-sm);
+}
+.cs-amount input:focus, .cs-custom input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 22%,transparent); }
+.cs-amount .btn{ min-height:34px; padding:0 8px; }
+.cs-hd-line{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.cs-hd-line .eyebrow{ margin:0; }
+.cs-hitdice{ display:flex; gap:5px; flex-wrap:wrap; }
+.cs-hitdice .btn{ gap:6px; }
+.cs-death{ display:grid; gap:6px; padding:9px; border-radius:var(--r); background:var(--dmg-weak); }
+.cs-death-row{ display:flex; align-items:center; justify-content:space-between; font-size:12.5px; }
+.cs-pips{ display:flex; gap:4px; flex-wrap:wrap; }
+.cs .pip{
+  width:20px; height:20px; padding:0; border-radius:5px; cursor:pointer;
+  border:1.5px solid var(--magic); background:var(--magic-weak);
+}
+.cs .pip.used{ background:transparent; border-color:var(--border-strong); opacity:.55; }
+.cs .pip:hover{ transform:scale(1.12); }
+.cs .pip.ok, .cs .pip.bad{ cursor:default; width:14px; height:14px; border-radius:50%; background:transparent; }
+.cs .pip.ok{ border-color:var(--heal); }
+.cs .pip.bad{ border-color:var(--dmg); }
+.cs .pip.ok.on{ background:var(--heal); }
+.cs .pip.bad.on{ background:var(--dmg); }
+.cs .pip.ok:hover, .cs .pip.bad:hover{ transform:none; }
+
+/* -- abilities, saves, skills -------------------------------- */
+.cs-ab6{ display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+.cs-ab{
+  display:grid; justify-items:center; gap:1px; padding:7px 4px; cursor:pointer;
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
+  color:var(--text); font:inherit;
+}
+.cs-ab:hover{ border-color:var(--accent); background:var(--accent-weak); }
+.cs-ab .k{ font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-3); font-family:var(--font-ui); font-weight:600; }
+.cs-ab .m{ font-weight:700; font-size:19px; font-family:var(--font-mono); }
+.cs-ab .s{ font-size:10.5px; color:var(--text-3); font-family:var(--font-mono); }
+.cs-rows{ display:grid; gap:1px; }
+.cs-rows-2{ grid-template-columns:repeat(2, minmax(0,1fr)); column-gap:10px; }
+.cs-row{
+  display:flex; align-items:center; gap:9px; width:100%; min-height:36px; padding:5px 9px;
+  border:0; border-radius:var(--r-sm); background:transparent; color:var(--text);
+  font:inherit; font-size:13px; text-align:left; cursor:pointer;
+}
+.cs-row:hover{ background:var(--surface-2); }
+.cs-row .nm{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.cs-row .ab{ font-size:10px; color:var(--text-3); font-family:var(--font-ui); }
+.cs-row .md{ margin-left:auto; font-weight:700; }
+.cs .dot{ width:8px; height:8px; border-radius:50%; border:1.5px solid var(--border-strong); flex:0 0 8px; }
+.cs .dot.prof{ background:var(--accent); border-color:var(--accent); }
+.cs .dot.exp{ background:var(--magic); border-color:var(--magic); box-shadow:0 0 0 2px var(--magic-weak); }
+.cs-kvs{ display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:7px; margin-top:14px; }
+.cs-kv{ display:grid; justify-items:center; padding:8px; border:1px solid var(--border); border-radius:var(--r); }
+.cs-kv .k{ font-size:9.5px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-3); font-family:var(--font-ui); text-align:center; }
+.cs-kv .v{ font-weight:700; font-size:17px; }
+.cs-prof{ margin-top:14px; }
+.cs-prof p{ font-size:13.5px; color:var(--text-2); }
+
+/* -- middle tabs -------------------------------------------- */
+.cs-tabs{ display:flex; gap:2px; border-bottom:1px solid var(--border); margin:0 0 12px; overflow-x:auto; scrollbar-width:none; }
+.cs-tabs a{
+  padding:9px 12px; font-family:var(--font-ui); font-size:13.5px; font-weight:500;
+  color:var(--text-2); text-decoration:none; border-bottom:2px solid transparent; white-space:nowrap;
+}
+.cs-tabs a:hover{ color:var(--text); }
+.cs-tabs a[aria-current="page"]{ color:var(--text); border-bottom-color:var(--accent); font-weight:600; }
+.cs-pane-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
+.cs-pane-head .eyebrow{ margin:0; }
+.cs-sub{ margin-top:16px !important; }
+
+.cs[data-tab="actions"]  .cs-pane:not([data-tab="actions"]),
+.cs[data-tab="spells"]   .cs-pane:not([data-tab="spells"]),
+.cs[data-tab="skills"]   .cs-pane:not([data-tab="skills"]),
+.cs[data-tab="gear"]     .cs-pane:not([data-tab="gear"]),
+.cs[data-tab="features"] .cs-pane:not([data-tab="features"]){ display:none; }
+
+/* -- lists: attacks, spells, items, features ----------------- */
+.cs-list{ display:grid; gap:6px; }
+.cs-item, .cs-spell > summary, .cs-feature > summary, .cs-spell.missing{
+  display:flex; align-items:center; gap:10px; padding:8px 11px; min-height:var(--tap);
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
+}
+.cs-item.on{ border-left:2px solid var(--accent); }
+.cs-spell, .cs-feature{ border-radius:var(--r); }
+.cs-spell > summary, .cs-feature > summary{ list-style:none; cursor:pointer; border-left:2px solid var(--magic); }
+.cs-feature > summary{ border-left-color:var(--border-strong); }
+.cs-spell > summary::-webkit-details-marker, .cs-feature > summary::-webkit-details-marker{ display:none; }
+.cs-spell > summary:hover, .cs-feature > summary:hover{ border-color:var(--border-strong); background:var(--surface-2); }
+.cs-spell[open] > summary, .cs-feature[open] > summary{ border-bottom-left-radius:0; border-bottom-right-radius:0; }
+.cs-spell.held > summary{ box-shadow:inset 0 0 0 1px var(--cond); }
+.cs-spell.missing{ border-left:2px dashed var(--border-strong); color:var(--text-3); }
+.cs-spell[hidden]{ display:none; }
+.cs-item-main{ display:grid; min-width:0; flex:1; }
+.cs-item-main .nm, .cs-feature .nm{ font-family:var(--font-ui); font-weight:600; font-size:13.5px; }
+.cs .meta{ display:flex; flex-wrap:wrap; gap:4px 7px; font-size:11.5px; color:var(--text-3); margin-top:1px; align-items:center; }
+.cs-feature > summary{ justify-content:space-between; }
+.cs-item-act{ display:flex; gap:5px; flex:0 0 auto; flex-wrap:wrap; justify-content:flex-end; }
+.cs-spell-body{
+  padding:10px 12px; border:1px solid var(--border); border-top:0;
+  border-radius:0 0 var(--r) var(--r); background:var(--surface-2); display:grid; gap:7px;
+  font-size:13.5px; color:var(--text-2); line-height:1.5;
+}
+.cs-spell-facts{ font-size:12px; color:var(--text-3); }
+
+.cs .tag{ font-size:10px; padding:1px 6px; border-radius:4px; background:var(--surface-3); color:var(--text-2); white-space:nowrap; font-family:var(--font-ui); }
+.cs .tag.cond{ background:var(--cond-weak); color:var(--cond-text); }
+.cs .tag.dmg{ background:var(--dmg-weak); color:var(--dmg-text); }
+.cs .tag.heal{ background:var(--heal-weak); color:var(--heal-text); }
+.cs .tag.magic{ background:var(--magic-weak); color:var(--magic-text); }
+.cs .tag.warn{ background:var(--cond-weak); color:var(--cond-text); }
+
+.cs .roll{
+  font-family:var(--font-mono); font-weight:700; font-size:12px; padding:0 9px; min-height:32px;
+  display:inline-flex; align-items:center; gap:5px; border-radius:var(--r-sm); cursor:pointer;
+  border:1px solid var(--accent); background:var(--accent-weak); color:var(--accent-text);
+}
+.cs .roll:hover{ background:var(--accent-solid); color:var(--on-accent); border-color:var(--accent-solid); }
+.cs .roll.magic{ border-color:var(--magic); background:var(--magic-weak); color:var(--magic-text); }
+.cs .roll.magic:hover{ background:var(--magic); color:var(--on-accent); }
+.cs .roll svg{ font-size:13px; }
+
+.cs-filter{ display:flex; gap:5px; flex-wrap:wrap; }
+.fchip{
+  font-size:12px; padding:0 11px; min-height:32px; display:inline-flex; align-items:center;
+  border-radius:4px; border:1px solid var(--border); background:var(--surface); cursor:pointer; color:var(--text);
+}
+.fchip[aria-pressed="true"]{ background:var(--accent-weak); border-color:var(--accent); color:var(--accent-text); font-weight:600; }
+.cs-adv{ display:flex; align-items:center; gap:7px; }
+.cs-adv-label{ font-size:11.5px; color:var(--text-3); }
+.cs .advset{ display:inline-flex; border:1px solid var(--border); border-radius:var(--r-sm); overflow:hidden; }
+.cs .advset button{ border:0; background:transparent; font-size:11.5px; padding:0 9px; min-height:32px; cursor:pointer; color:var(--text-2); font-family:var(--font-ui); }
+.cs .advset button[aria-pressed="true"]{ background:var(--accent-solid); color:var(--on-accent); font-weight:600; }
+.cs-private{
+  display:inline-flex; align-items:center; gap:4px; min-height:32px; padding:0 9px; cursor:pointer;
+  border:1px solid var(--border); border-radius:var(--r-sm); background:transparent;
+  font-size:11.5px; font-family:var(--font-ui); color:var(--text-2);
+}
+.cs-private[aria-pressed="true"]{ background:var(--cond-weak); border-color:var(--cond); color:var(--cond-text); font-weight:600; }
+@media (max-width: 767px){ .cs-private{ min-height:40px; } }
+.cs .advset button.dis[aria-pressed="true"]{ background:var(--dmg); color:var(--on-accent); }
+.cs .advset button.advn[aria-pressed="true"]{ background:var(--heal); color:var(--on-accent); }
+
+.cs-custom{ display:flex; gap:6px; margin:0; }
+.cs-custom input{ flex:1; max-width:220px; }
+.cs-coins{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-bottom:12px; }
+.cs-coin{ display:grid; justify-items:center; padding:7px 4px; border:1px solid var(--border); border-radius:var(--r); }
+.cs-coin .v{ font-weight:700; font-size:16px; }
+.cs-coin .k{ font-size:10px; color:var(--text-3); font-family:var(--font-ui); }
+
+/* -- right column ------------------------------------------- */
+.cs-conc{
+  display:flex; align-items:center; gap:8px; padding:9px 11px; border-radius:var(--r-lg);
+  background:var(--cond-weak); color:var(--cond-text); border:1px solid color-mix(in srgb,var(--cond) 30%,transparent);
+  font-size:13px; font-weight:600;
+}
+.cs-conc .btn{ margin-left:auto; }
+.cs-slots{ display:grid; gap:7px; }
+.cs-slotrow{ display:flex; align-items:center; gap:8px; }
+.cs-slotrow .lv{ font-size:11px; color:var(--text-3); width:30px; flex:0 0 30px; }
+.cs-slotrow .cnt{ margin-left:auto; font-size:11px; color:var(--text-3); }
+.cs-res{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:5px 0; font-size:13px; }
+.cs-res .nm{ display:grid; }
+.cs-res-act{ display:flex; align-items:center; gap:5px; }
+.cs-res .cnt, .cs-exh .cnt{ min-width:30px; text-align:center; font-weight:700; }
+.cs-conds{ display:flex; flex-wrap:wrap; gap:5px; }
+.cbtn{
+  font-size:11.5px; padding:0 10px; min-height:32px; display:inline-flex; align-items:center;
+  border-radius:4px; border:1px solid var(--border); background:var(--surface); cursor:pointer; color:var(--text-2);
+  font-family:var(--font-ui);
+}
+.cbtn:hover{ border-color:var(--border-strong); color:var(--text); }
+.cbtn.on{ background:var(--cond-weak); border-color:var(--cond); color:var(--cond-text); font-weight:600; }
+.cs-exh{ display:flex; align-items:center; gap:6px; margin-top:10px; font-size:13px; }
+.cs-exh > span:first-child{ margin-right:auto; }
+.cs-exh .cnt.on{ color:var(--cond-text); }
+.cs-restrow{ display:flex; gap:6px; flex-wrap:wrap; }
+
+.cs-log{ list-style:none; margin:0; padding:0; max-height:340px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--r); background:var(--surface-2); }
+.cs-logrow{ display:flex; align-items:center; gap:8px; padding:7px 10px; border-bottom:1px solid var(--border); font-size:12.5px; flex-wrap:wrap; }
+.cs-logrow:last-child{ border-bottom:0; }
+.cs-log-main{ display:grid; min-width:0; flex:1; }
+.cs-log-main .nm{ font-weight:600; font-family:var(--font-ui); }
+.cs-log-main .det{ font-size:10.5px; color:var(--text-3); overflow-wrap:anywhere; }
+.cs-log-main .by{ font-size:10.5px; color:var(--text-3); }
+.cs-logrow .res{ font-weight:700; font-size:16px; }
+.cs-logrow.crit .res, .cs-logrow.success .res{ color:var(--heal-text); }
+.cs-logrow.fumble .res, .cs-logrow.failure .res{ color:var(--dmg-text); }
+.cs-outcome{ flex-basis:100%; font-size:10.5px; font-weight:600; color:var(--text-3); text-transform:uppercase; letter-spacing:.04em; }
+.cs-logrow.crit .cs-outcome, .cs-logrow.success .cs-outcome{ color:var(--heal-text); }
+.cs-logrow.fumble .cs-outcome, .cs-logrow.failure .cs-outcome{ color:var(--dmg-text); }
+/* A natural 20 or 1: the row lights up in its colour, with a mark before it. */
+.cs-logrow.crit{ background:linear-gradient(90deg, var(--heal-weak), color-mix(in srgb, var(--heal-weak) 25%, transparent)); box-shadow:inset 3px 0 0 var(--heal); }
+.cs-logrow.fumble{ background:linear-gradient(90deg, var(--dmg-weak), color-mix(in srgb, var(--dmg-weak) 25%, transparent)); box-shadow:inset 3px 0 0 var(--dmg); }
+.cs-logrow.crit .res, .cs-logrow.fumble .res{ font-size:19px; }
+.cs-log-mark{ display:grid; place-items:center; width:26px; height:26px; border-radius:4px; flex-shrink:0; }
+.cs-logrow.crit .cs-log-mark{ background:var(--heal); color:var(--surface); }
+.cs-logrow.fumble .cs-log-mark{ background:var(--dmg); color:var(--surface); }
+
+/* phone bottom bar: hidden until it is needed */
+.cs-mtabs{ display:none; }
+
+/* -- iPad: two columns, right column under the left ---------- */
+@media (max-width: 1180px){
+  .cs-grid{ grid-template-columns:250px minmax(0,1fr); }
+  .cs-right{ grid-column:1 / -1; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); align-items:start; }
+  .cs-right .cs-conc{ grid-column:1 / -1; }
+}
+
+/* -- phone: one column, four views below and the log above ------ */
+@media (max-width: 767px){
+  .cs{ padding-bottom:76px; }
+  .cs-grid{ grid-template-columns:minmax(0,1fr); }
+  .cs-left, .cs-right, .cs-main{ display:contents; }
+  .cs-main{ padding:0; border:0; background:none; }
+  .cs-tabs{ display:none; }
+  .cs-pane{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); padding:12px; }
+  .cs .cs-pane{ display:block !important; }
+  .cs-head{ padding:10px 12px; }
+  /* The name gets the row; passive Perception, Inspiration and Live go below it. */
+  .cs-head-meta{ flex-basis:100%; }
+  .cs-name{ overflow-wrap:anywhere; }
+  .cs-file{ display:none; }
+  .cs-rows-2{ grid-template-columns:minmax(0,1fr); }
+  .cs .roll, .cs .btn, .cbtn, .fchip, .cs .advset button{ min-height:40px; }
+  .cs .pip{ width:26px; height:26px; }
+  .cs-item, .cs-spell > summary{ flex-wrap:wrap; }
+  .cs-item-act{ flex-basis:100%; justify-content:flex-start; }
+  /* Columns dissolve on a phone; concentration is what a caster must see first. */
+  .cs-conc{ order:-1; }
+
+  .cs[data-m="play"]  [data-m]:not([data-m~="play"]),
+  .cs[data-m="stats"] [data-m]:not([data-m~="stats"]),
+  .cs[data-m="track"] [data-m]:not([data-m~="track"]),
+  .cs[data-m="gear"]  [data-m]:not([data-m~="gear"]),
+  .cs[data-m="log"]   [data-m]:not([data-m~="log"]){ display:none !important; }
+
+  .cs-mtabs{
+    display:grid; grid-template-columns:repeat(4,1fr);
+    position:fixed; left:0; right:0; bottom:0; z-index:20;
+    padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+    background:var(--surface); border-top:1px solid var(--border); box-shadow:var(--shadow-md);
+  }
+  .cs-mtabs a{
+    display:grid; justify-items:center; gap:2px; min-height:48px; padding:5px 2px;
+    border-radius:var(--r); color:var(--text-3); text-decoration:none;
+    font-family:var(--font-ui); font-size:11px; font-weight:500;
+  }
+  .cs-mtabs a[aria-current="page"]{ color:var(--accent-text); background:var(--accent-weak); font-weight:600; }
+  .cs-mtabs svg{ font-size:20px; }
+}
+
+/* Resilient's save, asked once for a file that lacks it */
+.cs-open-saves{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; }
+.cs-open-saves > span{ flex:1 1 12rem; min-width:0; }
+.cs-open-saves > form{ flex-basis:100%; }
+.cs-save-choice{ display:flex; flex-wrap:wrap; gap:6px; }
+.cs .cbtn.cs-rage.on{ background:var(--dmg-weak); border-color:var(--dmg); color:var(--dmg-text); font-weight:600; }
+.cs-cast{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.cs-slot-pick{ min-height:32px; }
+@media (pointer: coarse){ .cs-slot-pick{ min-height:44px; } }
+.cs .roll.heal{ color:var(--heal-text); border-color:color-mix(in srgb, var(--heal) 40%, var(--border)); }
+.cs-heal-group{ border:0; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:4px 10px; flex-basis:100%; }
+.cs-heal-group legend{ font-size:11.5px; padding:0; }
+.cs-heal-pick{ display:inline-flex; align-items:center; gap:5px; font-size:13px; min-height:32px; }
+@media (pointer: coarse){ .cs-heal-pick{ min-height:44px; } }
+.cs-bent{ display:flex; gap:6px; align-items:flex-start; margin:0 0 8px; font-size:12.5px; color:var(--cond-text); }
+.cs-bent svg{ flex-shrink:0; margin-top:2px; }
+#sheet-log{ scroll-margin-top:72px; }

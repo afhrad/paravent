@@ -1,0 +1,140 @@
+{
+  "_meta": {
+    "note": "Paravent's starter naming styles (documentation/NAMES.md). Hand-written from public naming customs, not from any 5e book. The word lists have not been checked name by name against an onomastic source."
+  },
+  "styles": [
+    {
+      "id": "old-norse",
+      "race": "Human",
+      "culture": "Old Norse",
+      "name": "Old Norse (saga age)",
+      "summary": "Two elements, then the father's name in the genitive with son or daughter. Spellings are simplified from the sagas.",
+      "pattern": "{given} {father}{suffix}",
+      "parts": {
+        "given": {
+          "kind": "elements",
+          "first": ["Thor", "Arn", "As", "Gud", "Hall", "Sig", "Vig"],
+          "second_male": ["bjorn", "stein", "geir", "vald", "mund"],
+          "second_female": ["dis", "gerd", "hild", "laug", "run"]
+        },
+        "father": {
+          "kind": "elements",
+          "first": ["Thor", "Arn", "As", "Gud", "Hall", "Sig", "Vig"],
+          "second": ["bjorn", "stein", "geir", "vald", "mund"]
+        },
+        "suffix": {"kind": "by_gender", "male": "sson", "female": "sdottir"}
+      },
+      "rewrites": {"bjornsson": "bjarnarson", "bjornsdottir": "bjarnardottir"}
+    },
+    {
+      "id": "old-english",
+      "race": "Human",
+      "culture": "Old English",
+      "name": "Old English",
+      "summary": "One name of two elements, with no family name.",
+      "pattern": "{given}",
+      "parts": {
+        "given": {
+          "kind": "elements",
+          "first": ["Æthel", "Ead", "Os", "Wulf", "Cyne", "Beorht", "Ælf", "Sige", "Here"],
+          "second_male": ["red", "ric", "mund", "stan", "wine", "gar", "wulf", "weard", "helm"],
+          "second_female": ["flæd", "gifu", "thryth", "burh", "wynn", "swith"]
+        }
+      },
+      "rewrites": {}
+    },
+    {
+      "id": "castilian",
+      "race": "Human",
+      "culture": "Castilian",
+      "name": "Castilian",
+      "summary": "A given name, the father's surname, then the mother's.",
+      "pattern": "{given} {paternal} {maternal}",
+      "parts": {
+        "given": {
+          "kind": "list",
+          "female": ["Jimena", "Urraca", "Sancha", "Elvira", "Teresa", "Isabel", "Leonor", "Mencía", "Inés", "Constanza", "Juana", "Beatriz"],
+          "male": ["Rodrigo", "Diego", "Alfonso", "Sancho", "Fernando", "García", "Gonzalo", "Pedro", "Álvaro", "Martín", "Nuño", "Lope"]
+        },
+        "paternal": {
+          "kind": "list",
+          "names": ["Fernández", "González", "Rodríguez", "Sánchez", "Díaz", "Pérez", "Martínez", "Gómez", "Ruiz", "Álvarez", "Núñez", "Ortiz"]
+        },
+        "maternal": {
+          "kind": "list",
+          "names": ["Fernández", "González", "Rodríguez", "Sánchez", "Díaz", "Pérez", "Martínez", "Gómez", "Ruiz", "Álvarez", "Núñez", "Ortiz"]
+        }
+      },
+      "rewrites": {}
+    },
+    {
+      "id": "nahua-calendar",
+      "race": "Human",
+      "culture": "Nahua",
+      "name": "Nahua calendar names",
+      "summary": "A number and a day sign of the 260-day calendar, as in Ce Acatl, One Reed.",
+      "pattern": "{number} {sign}",
+      "parts": {
+        "number": {
+          "kind": "list",
+          "names": ["Ce", "Ome", "Yei", "Nahui", "Macuilli", "Chicuace", "Chicome", "Chicuei", "Chiconahui", "Matlactli", "Matlactli once", "Matlactli omome", "Matlactli omei"]
+        },
+        "sign": {
+          "kind": "list",
+          "names": ["Cipactli", "Ehecatl", "Calli", "Cuetzpalin", "Coatl", "Miquiztli", "Mazatl", "Tochtli", "Atl", "Itzcuintli", "Ozomatli", "Malinalli", "Acatl", "Ocelotl", "Cuauhtli", "Cozcacuauhtli", "Ollin", "Tecpatl", "Quiahuitl", "Xochitl"]
+        }
+      },
+      "rewrites": {}
+    },
+    {
+      "id": "tamil",
+      "race": "Human",
+      "culture": "Tamil",
+      "name": "Tamil",
+      "summary": "A given name led by an initial from the father's name, with no family name.",
+      "pattern": "{father:initial}. {given}",
+      "parts": {
+        "given": {
+          "kind": "list",
+          "female": ["Kavitha", "Meena", "Lakshmi", "Selvi", "Valli", "Kannagi", "Malar", "Thenmozhi", "Yazhini", "Poongodi", "Ilakkiya", "Nila"],
+          "male": ["Arul", "Kannan", "Murugan", "Selvam", "Senthil", "Karthik", "Velan", "Ilango", "Anbu", "Kumaran", "Mani", "Tamilarasan"]
+        },
+        "father": {
+          "kind": "list",
+          "names": ["Arul", "Kannan", "Murugan", "Selvam", "Senthil", "Karthik", "Velan", "Ilango", "Anbu", "Kumaran", "Mani", "Tamilarasan"]
+        }
+      },
+      "rewrites": {}
+    },
+    {
+      "id": "arabic-nasab",
+      "race": "Human",
+      "culture": "Classical Arabic",
+      "name": "Classical Arabic",
+      "summary": "A given name, then ibn or bint and the father's name.",
+      "pattern": "{given} {link} {father}",
+      "parts": {
+        "given": {
+          "kind": "list",
+          "female": ["Aisha", "Fatima", "Khadija", "Zaynab", "Maryam", "Layla", "Salma", "Hind", "Ruqayya", "Sumayya", "Asma", "Hafsa"],
+          "male": ["Harun", "Yusuf", "Ali", "Hasan", "Umar", "Khalid", "Ibrahim", "Tariq", "Salim", "Ziyad", "Hamza", "Mansur"]
+        },
+        "link": {"kind": "by_gender", "male": "ibn", "female": "bint"},
+        "father": {
+          "kind": "list",
+          "names": ["Harun", "Yusuf", "Ali", "Hasan", "Umar", "Khalid", "Ibrahim", "Tariq", "Salim", "Ziyad", "Hamza", "Mansur"]
+        }
+      },
+      "rewrites": {}
+    },
+    {"id": "english-settlements", "subject": "settlement", "culture": "English", "name": "English towns and villages", "summary": "A first element and a common ending: -ton, -ford, -bury, -ley.", "pattern": "{name}", "parts": {"name": {"kind": "elements", "first": ["Ash", "Brad", "Brom", "Chester", "Dun", "Elm", "Fair", "Gold", "Hart", "Kings", "Lang", "Mid", "New", "Oak", "Red", "Shep", "Stan", "Thorn", "West", "Wood", "Ald", "Wolver"], "second": ["ton", "ford", "bury", "ham", "ley", "wick", "by", "worth", "field", "stead", "combe", "borough", "well", "minster", "hurst"]}}},
+    {"id": "german-settlements", "subject": "settlement", "language": "de", "culture": "German", "name": "German towns and villages", "summary": "A first element and a common ending: -dorf, -hausen, -heim, -bach.", "pattern": "{name}", "parts": {"name": {"kind": "elements", "first": ["Alten", "Neu", "Eichen", "Linden", "Wald", "Buchen", "Hohen", "Kirch", "Stein", "Rosen", "Mühl", "Fried", "Tann", "Wolfs", "Schön", "Lauter", "Bären", "Hasel", "Erlen", "Rot"], "second": ["dorf", "hausen", "heim", "bach", "berg", "burg", "feld", "au", "stadt", "tal", "hagen", "rode", "weiler", "brück", "furt", "born"]}}},
+    {"id": "norse-settlements", "subject": "settlement", "culture": "Norse", "name": "Norse settlements", "summary": "A first element and a Scandinavian ending: -vik, -heim, -by, -stad.", "pattern": "{name}", "parts": {"name": {"kind": "elements", "first": ["Ros", "Hval", "Sand", "Skog", "Lang", "Breid", "Ulf", "Hrafn", "Kald", "Stor", "Bjorn", "Grim", "Ask", "Lund", "Fjall"], "second": ["vik", "heim", "by", "stad", "fjord", "nes", "dal", "strand", "holm", "berg", "vag", "thorp"]}}},
+    {"id": "english-waters", "subject": "water", "culture": "English", "name": "English rivers and lakes", "summary": "A first element and a word for water: -brook, -burn, -mere, -water.", "pattern": "{name}", "parts": {"name": {"kind": "elements", "first": ["Ash", "Black", "Mill", "Cold", "Red", "Wil", "Elder", "Silver", "Hollow", "Swan", "Willow", "Stone", "Clear", "Dark", "Fen"], "second": ["brook", "water", "burn", "beck", "mere", "bourne", "well", "wash", "rill", "pool"]}}},
+    {"id": "german-waters", "subject": "water", "language": "de", "culture": "German", "name": "German rivers and lakes", "summary": "A first element and a word for water: -bach, -ach, -see, -born.", "pattern": "{name}", "parts": {"name": {"kind": "elements", "first": ["Schwarz", "Weiß", "Erlen", "Mühl", "Kalt", "Wild", "Lauter", "Silber", "Weiden", "Klar", "Stein", "Moos", "Fisch", "Biber", "Otter"], "second": ["bach", "ach", "au", "see", "weiher", "born", "wasser", "graben", "quell", "strom"]}}},
+    {"id": "english-landscape", "subject": "landscape", "culture": "English", "name": "English hills, forests and moors", "summary": "A first element and a word for the land: -wood, -fell, -moor, -crag.", "pattern": "{name}", "parts": {"name": {"kind": "elements", "first": ["Grey", "Raven", "Thorn", "Wolf", "Iron", "Storm", "Elder", "Hollow", "Black", "Mist", "Frost", "Dragon", "Bramble", "Cinder", "Stag"], "second": ["wood", "fell", "moor", "peak", "crag", "hills", "vale", "downs", "heath", "ridge", "weald", "tor", "spire", "marsh", "reach"]}}},
+    {"id": "german-landscape", "subject": "landscape", "language": "de", "culture": "German", "name": "German mountains, forests and moors", "summary": "A first element and a word for the land: -wald, -berg, -heide, -klamm.", "pattern": "{name}", "parts": {"name": {"kind": "elements", "first": ["Schwarz", "Raben", "Dorn", "Wolfs", "Eisen", "Sturm", "Nebel", "Hoch", "Frost", "Drachen", "Kiefern", "Asch", "Hirsch", "Grau", "Teufels"], "second": ["wald", "berg", "horn", "heide", "moor", "tal", "kamm", "forst", "spitze", "gebirge", "höhe", "klamm", "grat", "fels", "hang"]}}},
+    {"id": "english-taverns", "subject": "building", "culture": "English", "name": "English inns and taverns", "summary": "The, an adjective and a creature or thing on the sign.", "pattern": "The {adjective} {sign}", "parts": {"adjective": {"kind": "list", "names": ["Prancing", "Golden", "Rusty", "Drunken", "Sleeping", "Laughing", "Crooked", "Silver", "Black", "Merry", "Jolly", "Wandering", "Green", "Salty", "Hungry"]}, "sign": {"kind": "list", "names": ["Pony", "Goose", "Dragon", "Tankard", "Anchor", "Stag", "Boar", "Lantern", "Barrel", "Griffin", "Mermaid", "Kettle", "Fox", "Crown", "Hound"]}}},
+    {"id": "german-taverns", "subject": "building", "language": "de", "culture": "German", "name": "German inns and taverns", "summary": "Zum or Zur, an adjective and what hangs on the sign, in agreement.", "pattern": "{article} {adjective} {sign}", "parts": {"article": {"kind": "by_gender", "male": "Zum", "female": "Zur"}, "adjective": {"kind": "list", "names": ["Goldenen", "Schwarzen", "Roten", "Grünen", "Wilden", "Lustigen", "Alten", "Durstigen", "Tanzenden", "Silbernen", "Krummen", "Blauen", "Fröhlichen", "Schlafenden", "Weißen"]}, "sign": {"kind": "list", "male": ["Hirsch", "Bären", "Krug", "Drachen", "Ochsen", "Eber", "Anker", "Keiler", "Raben", "Hahn", "Löwen", "Adler", "Kessel", "Greif", "Fuchs"], "female": ["Gans", "Krone", "Laterne", "Linde", "Sonne", "Eule", "Mühle", "Tanne", "Kanne", "Rose", "Glocke", "Ziege", "Taube", "Henne", "Harfe"]}}}
+  ]
+}

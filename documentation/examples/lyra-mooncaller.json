@@ -1,0 +1,90 @@
+{
+  "$schema": "../character.schema.json",
+  "format": 1,
+  "id": "lyra-example",
+  "created_at": "2026-10-01T18:00:00Z",
+  "updated_at": "2026-10-15T20:00:00Z",
+  "name": "Lyra Mooncaller",
+  "given_name": null,
+  "player": null,
+  "world_id": null,
+  "status": "ready",
+  "pending_levels": 0,
+  "experience": null,
+  "wizard_step": null,
+  "choices": {},
+  "species": "Elf|PHB",
+  "subspecies": "High|PHB",
+  "background": "Sage|PHB",
+  "classes": [
+    {"class": "Wizard|PHB", "level": 10, "subclass": "Evocation|PHB"}
+  ],
+  "hit_points": {"method": "average", "per_level": []},
+  "ability_method": "manual",
+  "abilities": {"str": 8, "dex": 14, "con": 14, "int": 15, "wis": 12, "cha": 10},
+  "ability_rolls": [],
+  "ability_improvements": [{"int": 2}, {"int": 2}],
+  "skills": ["Arcana", "History", "Insight", "Investigation"],
+  "saving_throws": [],
+  "resistances": [],
+  "expertise": [],
+  "tools": [],
+  "languages": ["Common", "Elvish", "Draconic", "Dwarvish"],
+  "weapons": [],
+  "feats": [],
+  "optional_features": [],
+  "spells": {
+    "cantrips": ["Fire Bolt|PHB", "Light|PHB", "Mage Hand|PHB", "Minor Illusion|PHB", "Prestidigitation|PHB"],
+    "known": [
+      "Detect Magic|PHB", "Feather Fall|PHB", "Mage Armor|PHB", "Magic Missile|PHB", "Shield|PHB",
+      "Invisibility|PHB", "Misty Step|PHB", "Scorching Ray|PHB", "Web|PHB",
+      "Counterspell|PHB", "Fireball|PHB", "Fly|PHB", "Haste|PHB",
+      "Greater Invisibility|PHB", "Polymorph|PHB", "Wall of Fire|PHB",
+      "Cone of Cold|PHB"
+    ],
+    "prepared": [
+      "Mage Armor|PHB", "Magic Missile|PHB", "Shield|PHB",
+      "Misty Step|PHB", "Scorching Ray|PHB", "Web|PHB",
+      "Counterspell|PHB", "Fireball|PHB", "Haste|PHB",
+      "Greater Invisibility|PHB", "Wall of Fire|PHB",
+      "Cone of Cold|PHB"
+    ]
+  },
+  "inventory": [
+    {"item": "Quarterstaff|PHB", "quantity": 1, "equipped": true, "attuned": false, "notes": ""},
+    {"item": "Dagger|PHB", "quantity": 2, "equipped": false, "attuned": false, "notes": ""},
+    {"item": "Ring of Protection|DMG", "quantity": 1, "equipped": true, "attuned": true, "notes": "From the vault under the old mill"},
+    {"item": "Spellbook|PHB", "quantity": 1, "equipped": false, "attuned": false, "notes": "17 spells, bound in blue leather"},
+    {"item": "Component Pouch|PHB", "quantity": 1, "equipped": false, "attuned": false, "notes": ""},
+    {"item": "Ink (1-ounce bottle)|PHB", "quantity": 1, "equipped": false, "attuned": false, "notes": ""},
+    {"item": "Letter from a dead colleague", "quantity": 1, "equipped": false, "attuned": false, "notes": "Unanswered question about where spent magic goes"}
+  ],
+  "currency": {"cp": 0, "sp": 14, "ep": 0, "gp": 230, "pp": 2},
+  "resources": [
+    {"name": "Arcane Recovery", "max": 1, "recharge": "long"}
+  ],
+  "confirmed_prerequisites": [],
+  "pronouns": "she/her",
+  "appearance": "Silver hair, ink-stained fingers, a moonstone at her throat.",
+  "backstory": "Former archivist of the Lantern Library at Greywater.",
+  "deity": null,
+  "notes": "",
+  "state": {
+    "hp": 41,
+    "hp_max": 62,
+    "temp_hp": 0,
+    "hit_dice_used": {"d6": 2},
+    "slots_used": {"1": 1, "3": 1},
+    "pact_slots_used": 0,
+    "resources_used": {},
+    "conditions": [],
+    "exhaustion": 0,
+    "concentration": "Haste|PHB",
+    "inspiration": false,
+    "raging": false,
+    "mastery_kind": "",
+    "mastery_set": false,
+    "death_saves": {"successes": 0, "failures": 0}
+  },
+  "overrides": {}
+}

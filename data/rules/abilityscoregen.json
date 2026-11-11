@@ -1,0 +1,65 @@
+{
+  "_meta": {
+    "note": "Hand-authored. These constants exist nowhere in the 5eTools corpus as data: the standard array and the point-buy budget are numbers inside English sentences, and the cost table is a rendered table inside a prose entry. 5eTools hardcodes them in its own builder too. See documentation/CHARGEN.md G1.",
+    "sources": [
+      {
+        "source": "PHB",
+        "page": 13,
+        "rule": "Customizing Ability Scores",
+        "verified": "The cost table was read from variantrules.json -> 'Customizing Ability Scores' -> a type:table entry with colLabels [Score, Cost]. The 27-point budget is prose in the same entry."
+      },
+      {
+        "source": "XPHB",
+        "note": "The 2024 rules keep the same point-buy costs and budget. What changes is where the increases come from: the background carries them, not the species (documentation/CHARGEN.md step 5)."
+      }
+    ]
+  },
+
+  "methods": [
+    {
+      "id": "standard",
+      "name": "Standard array",
+      "summary": "Assign the six fixed values. Fast, balanced, no luck.",
+      "values": [15, 14, 13, 12, 10, 8]
+    },
+    {
+      "id": "pointbuy",
+      "name": "Point buy",
+      "summary": "Spend a budget across the six scores.",
+      "budget": 27,
+      "min": 8,
+      "max": 15,
+      "cost": {
+        "8": 0,
+        "9": 1,
+        "10": 2,
+        "11": 3,
+        "12": 4,
+        "13": 5,
+        "14": 7,
+        "15": 9
+      }
+    },
+    {
+      "id": "roll",
+      "name": "Roll 4d6",
+      "summary": "Six rolls, discard the lowest die each time. Swingy.",
+      "dice": "4d6",
+      "drop_lowest": 1,
+      "rolls": 6
+    },
+    {
+      "id": "manual",
+      "name": "Enter manually",
+      "summary": "Type the numbers directly. For imported or homebrew characters.",
+      "min": 1,
+      "max": 30
+    }
+  ],
+
+  "limits": {
+    "default_max": 20,
+    "hard_max": 30,
+    "note": "20 is the cap for player characters without magic; 30 is the absolute ceiling the rules allow (documentation/CHARGEN.md step 1)."
+  }
+}
