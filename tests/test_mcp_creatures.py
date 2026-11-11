@@ -207,3 +207,47 @@ class TestItsPicture:
         assert registry.creature_pictures.find(facts["world"].id, design_ref("Bog Wolf"))
         await raw.post(f"{url}/picture", data={"do": "remove"})
         assert (await raw.get(f"{url}/picture")).status_code == 404
+
+
+class TestInAnAdventure:
+    async def test_claudes_creature_fights_in_its_draft_and_is_accepted_with_it(
+        self,
+        table: tuple[httpx.AsyncClient, Any],  # noqa: F811
+    ) -> None:
+        raw, facts = table
+        registry: StoreRegistry = facts["app"].state.stores
+        world_id = facts["world"].id
+        async with session(table) as mcp:
+            hulk = await call(mcp, "create_creature", world_id=world_id, name="Moorhulk", cr="3")
+            draft = await call(
+                mcp,
+                "create_adventure",
+                world_id=world_id,
+                name="Bog",
+                summary="",
+                character_ids=[facts["ids"][1]],
+            )
+            fight = await call(
+                mcp,
+                "create_encounter",
+                adventure_id=draft["id"],
+                name="Mire",
+                monsters=[{"name": "moorhulk"}, {"name": "Zombie", "count": 2}],
+            )
+            rated = {m["name"]: m for m in fight["rating"]["monsters"]}
+            assert rated["Moorhulk"]["source"] == "Homebrew" and rated["Moorhulk"]["xp_each"] == 700
+            assert "Not in this world's books: Bogwight" in await _refused(
+                mcp,
+                "create_encounter",
+                adventure_id=draft["id"],
+                name="X",
+                monsters=[{"name": "Bogwight"}],
+            )
+        assert registry.compendium.find("monster", "Moorhulk", "Homebrew") is None
+        await raw.post("/login", data={"username": "dm", "password": PASSWORD})
+        page = (await raw.get(f"/gm/adventures/{draft['id']}")).text
+        assert "Claude&#39;s creatures, accepted" in page and f"/gm/creatures/{hulk['id']}" in page
+        await raw.post(f"/gm/adventures/{draft['id']}/accept")
+        assert registry.creatures.get(hulk["id"]).drafted_by is None
+        assert registry.compendium.find("monster", "Moorhulk", "Homebrew") is not None
+        assert registry.worlds.find(world_id).source_set.allows("Homebrew")

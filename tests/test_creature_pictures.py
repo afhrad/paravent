@@ -74,8 +74,15 @@ class TestFetch:
         return httpx.MockTransport(lambda request: httpx.Response(status, content=body))
 
     async def test_an_image_is_fetched_by_its_bytes(self) -> None:
-        name, data = await fetch("https://example.org/lich", self._transport(200, WEBP))
+        agents: list[str] = []
+
+        def answer(request: httpx.Request) -> httpx.Response:
+            agents.append(request.headers["user-agent"])
+            return httpx.Response(200, content=WEBP)
+
+        name, data = await fetch("https://example.org/lich", httpx.MockTransport(answer))
         assert name == "picture.webp" and data == WEBP
+        assert agents[0].startswith("Paravent/")  # hosts refuse an anonymous client
 
     async def test_what_is_not_an_image_is_refused(self) -> None:
         with pytest.raises(MediaError, match="content"):

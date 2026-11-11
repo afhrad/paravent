@@ -32,6 +32,7 @@ from app.models.gamestate import Adventure, Scope, SourceSet
 from app.routes.auth import html, redirect, safe_next
 from app.services import image_effects, scope
 from app.services.adventures import AdventureError, ChapterView, EditConflict, text_version
+from app.services.creature_builder import HOMEBREW_SOURCE
 from app.services.creature_sight import image_file
 from app.services.difficulty import rules_for
 from app.services.encounters import EncounterError
@@ -279,6 +280,17 @@ def _adventure(
     )
 
 
+def _own_creatures(registry: StoreRegistry, adventure: Adventure) -> list[str]:
+    """The creature-builder creatures its encounters plan, by name (MCP.md §10)."""
+    here = Scope(world_id=adventure.world_id, adventure_id=adventure.id)
+    return [
+        m.name
+        for e in registry.encounters.within(here)
+        for m in e.monsters
+        if m.source == HOMEBREW_SOURCE
+    ]
+
+
 def _draft_review(
     page: Page, registry: StoreRegistry, adventure: Adventure, here: Scope
 ) -> DraftReview:
@@ -304,6 +316,11 @@ def _draft_review(
         npcs=len(registry.npcs.list(here.world_id, here)),
         treasures=len(registry.treasure.list(here.world_id, here)),
         fight_xp=sum(r.adjusted_xp for _e, r in rated),
+        creatures=tuple(
+            d
+            for n in dict.fromkeys(_own_creatures(registry, adventure))
+            if (d := registry.creatures.named(n, adventure.world_id)) and d.drafted_by
+        ),
         day_xp=registry.encounters.difficulty.day_budget(rules, [pc.total_level for pc in members]),
     )
 
@@ -312,6 +329,8 @@ def _draft_review(
 async def accept_draft(_gm: GamemasterDep, registry: RegistryDep, adventure_id: str) -> Response:
     """Take a draft over: planned from now on, and Claude reads it only (MCP.md §6)."""
     adventure = registry.adventures.get(adventure_id)
+    # Claude's creatures its fights plan are accepted and published with it.
+    registry.creatures.accept_named(adventure.world_id, _own_creatures(registry, adventure))
     if adventure.revision_of:
         changes = registry.revisions.accept(adventure_id)
         kept = sum(1 for c in changes if c.conflict or c.held)

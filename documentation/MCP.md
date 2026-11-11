@@ -321,6 +321,14 @@ builder (`app/services/creature_builder.py`).
   world keeps it in the library's folder, serving every world. The answer's `picture` is
   where the gamemaster sees it. The builder shows it beside the estimate, to upload or
   remove by hand too.
+- **In a draft adventure** (2026-11-11): an encounter's creature may be one of the world's
+  own designs not yet published — Claude's draft above all — named as it is
+  (`{"name": "Moorhulk"}`, source empty or `Homebrew`), after the world's books. It is
+  planned as `Moorhulk|Homebrew` and rated from the statblock the design will publish
+  (`EncounterService` asks `CreatureService.statblock_named` for what the compendium lacks).
+  The draft's review lists those creatures, and **accepting the adventure accepts them and
+  publishes** (`CreatureService.accept_named`), so its fights can run; a revision accepted
+  does the same.
 - **`creature_guide`** (`app/mcp/creature_guide.md`) holds the rules Claude follows: start
   from a close book creature, the placeholders, a Spellcasting trait with spells of the
   world's books at a caster level of about the CR plus two to four, equipment in the armour

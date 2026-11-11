@@ -74,6 +74,8 @@ Use these tools to write adventures that fit the table exactly:
   creatures — and each kind (`npc`, `encounter`, …) how those should be made.
 - A creature of the setting that 5e lacks is a reskin: a creature from the books that
   fits, under the setting's name (`label` on an encounter's monster).
+- A creature no book has a fitting stand-in for is designed with `create_creature`
+  (`creature_guide` first) and can then fight in the draft's encounters by its name.
 - Creatures, spells and items come only from the world's books: find them with
   `find_monsters`, `search_reference` and `get_reference`, and refer to them by tag
   (`markdown_guide` explains the chapter Markdown).

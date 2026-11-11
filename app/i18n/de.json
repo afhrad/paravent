@@ -818,6 +818,7 @@
   "draft.fight_xp_day": "Zusammen {xp} EP angepasst; der Abenteuertag der Gruppe sind {day} EP.",
   "draft.npcs": {"one": "{count} NSC", "other": "{count} NSC"},
   "draft.treasures": {"one": "{count} Schatz", "other": "{count} Schätze"},
+  "draft.creatures": "Claudes Kreaturen, mit dem Entwurf angenommen und veröffentlicht:",
   "draft.over_day": "Mehr als ein Abenteuertag: Plane eine lange Rast zwischen den Kämpfen ein oder mache einige leichter.",
   "draft.accept": "Entwurf annehmen",
   "draft.discard": "Entwurf verwerfen",

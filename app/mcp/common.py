@@ -13,6 +13,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from app.mcp.models import MonsterInput, RatedMonster, RatingAnswer
 from app.models.gamestate import EncounterMonster, World
 from app.services.adventures import AdventureNotFound, EditConflict
+from app.services.creature_builder import HOMEBREW_SOURCE
 from app.services.difficulty import Rating
 from app.services.encounters import EncounterNotFound, PlannedMonster
 from app.services.i18n import Translatable
@@ -57,6 +58,22 @@ def resolve_monsters(
     planned, unresolved = [], []
     for wanted in monsters:
         found = resolver.resolve_parts("monster", wanted.name, wanted.source, world.source_set)
+        design = (
+            registry.creatures.named(wanted.name, world.id)
+            if found.entry is None and (wanted.source or HOMEBREW_SOURCE) == HOMEBREW_SOURCE
+            else None
+        )
+        if design is not None:  # the world's own creature, not yet published (MCP.md §10)
+            planned.append(
+                EncounterMonster(
+                    name=design.name,
+                    source=HOMEBREW_SOURCE,
+                    count=wanted.count,
+                    ally=wanted.ally,
+                    label=" ".join((wanted.label or "").split()) or None,
+                )
+            )
+            continue
         if found.entry is None:
             unresolved.append(
                 wanted.name if not wanted.source else f"{wanted.name}|{wanted.source}"

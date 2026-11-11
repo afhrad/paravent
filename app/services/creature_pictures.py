@@ -23,6 +23,7 @@ from urllib.parse import urlsplit
 
 import httpx
 
+from app import __version__
 from app.services.creature_builder import HOMEBREW_SOURCE
 from app.services.media import (
     IMAGE_TYPES,
@@ -36,6 +37,8 @@ from app.store.prose import MEDIA_DIR, ProseStore
 
 FOLDER = "creatures"
 FETCH_TIMEOUT = 20.0
+# Image hosts such as Wikimedia refuse a client that does not say who it is.
+USER_AGENT = f"Paravent/{__version__} (+https://paravent.org)"
 _SLUG = re.compile(r"[^a-z0-9]+")
 
 
@@ -67,7 +70,10 @@ async def fetch(url: str, transport: httpx.AsyncBaseTransport | None = None) -> 
     try:
         async with (
             httpx.AsyncClient(
-                follow_redirects=True, timeout=FETCH_TIMEOUT, transport=transport
+                follow_redirects=True,
+                timeout=FETCH_TIMEOUT,
+                transport=transport,
+                headers={"User-Agent": USER_AGENT},
             ) as client,
             client.stream("GET", url.strip()) as response,
         ):

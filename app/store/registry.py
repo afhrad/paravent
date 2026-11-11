@@ -30,7 +30,7 @@ from app.services.chargen.prepare import Preparations
 from app.services.combat import CombatService, SheetCharacters
 from app.services.corpus_check import CorpusHealth, corpus_version
 from app.services.corpus_import import CorpusImport, CorpusImports
-from app.services.creature_builder import CreatureMath, CreatureService
+from app.services.creature_builder import HOMEBREW_SOURCE, CreatureMath, CreatureService
 from app.services.creature_pictures import CreaturePictures
 from app.services.creature_sight import Sight, fluff_image, sight
 from app.services.difficulty import DifficultyRules
@@ -554,6 +554,9 @@ class StoreRegistry:
             DifficultyRules(reference=reference),
             renamed=lambda world_id, old, new, within: self.adventures.rewrite_references(
                 world_id, "encounter", old, new, within
+            ),
+            unpublished=lambda name, source: (
+                self.creatures.statblock_named(name) if source == HOMEBREW_SOURCE else None
             ),
         )
 

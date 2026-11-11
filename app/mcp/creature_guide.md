@@ -111,7 +111,16 @@ online that they may use, pass it as `image_url` (PNG, JPEG, WebP, GIF or AVIF, 
 20 MB). Paravent fetches it once and shows it to the players in a fight's Details; an empty
 `image_url` removes it. A refused address changes nothing: say why and ask for another.
 
-## 8. Check, then hand over
+## 8. In an adventure
+
+A creature you drafted for a world can fight in a draft adventure of that world: name it in
+`create_encounter` as you named it (`{"name": "Moorhulk"}`), and the fight is rated from its
+statblock. It is accepted and published together with the adventure, so make the creature
+first and the encounter after, and hand them over together. In a chapter show it through
+its encounter (`{@encounter Mire}`): a `{@creature Moorhulk}` tag finds it only once it is
+published, and the chapter check reports it until then.
+
+## 9. Check, then hand over
 
 Every answer gives the CR it **plays at** by the guide's method, beside the target, with
 its defensive and offensive CR and an `advice` when they are more than a step apart; the

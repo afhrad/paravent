@@ -818,6 +818,7 @@
   "draft.fight_xp_day": "Together {xp} XP adjusted; the party's adventuring day is {day} XP.",
   "draft.npcs": {"one": "{count} NPC", "other": "{count} NPCs"},
   "draft.treasures": {"one": "{count} treasure", "other": "{count} treasures"},
+  "draft.creatures": "Claude's creatures, accepted and published with the draft:",
   "draft.over_day": "More than one adventuring day: plan a long rest between the fights, or make some easier.",
   "draft.accept": "Accept draft",
   "draft.discard": "Discard draft",

@@ -22,7 +22,7 @@ from app.services.difficulty import DifficultyRules, Rating, rules_for
 from app.services.i18n import Translatable
 from app.services.naming import Naming, NamingError, creature_races
 from app.store.gamestate import GameStateStore
-from app.store.projections import MonsterProjection
+from app.store.projections import MonsterProjection, project_monster
 
 MAX_COUNT = 99
 NAME_LIMIT = 120
@@ -98,15 +98,20 @@ class EncounterService:
         compendium: Any,
         rules: DifficultyRules | None = None,
         renamed: Callable[[str, str, str, str | None], object] | None = None,
+        unpublished: Callable[[str, str], dict[str, Any] | None] | None = None,
     ) -> None:
         """Bind to the library, the loaded compendium and the difficulty tables.
 
-        ``renamed(world_id, old, new, adventure_id)`` is told about a rename, so references follow.
+        ``renamed(world_id, old, new, adventure_id)`` is told about a rename, so references
+        follow. ``unpublished(name, source)`` is the statblock of a creature-builder design
+        not yet in the compendium (Claude's draft, planned in a draft adventure), so its
+        fight is rated before the gamemaster accepts it.
         """
         self._store = store
         self._compendium = compendium
         self._rules = rules or DifficultyRules()
         self._renamed = renamed
+        self._unpublished = unpublished
         self._index_for: object | None = None
         self._index: dict[str, MonsterProjection] = {}
 
@@ -137,7 +142,11 @@ class EncounterService:
         if projections is not self._index_for:
             self._index = {f"{m.name}|{m.source}".lower(): m for m in projections.monsters}
             self._index_for = projections
-        return self._index.get(f"{name}|{source}".lower())
+        found = self._index.get(f"{name}|{source}".lower())
+        if found is None and self._unpublished is not None:
+            statblock = self._unpublished(name, source)
+            return project_monster(statblock) if statblock is not None else None
+        return found
 
     def view(self, encounter: Encounter) -> EncounterView:
         """The plan, its party and its rating."""

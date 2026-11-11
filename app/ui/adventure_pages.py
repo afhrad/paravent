@@ -49,7 +49,16 @@ from htpy import (
 from htpy import input as input_el
 from markupsafe import Markup
 
-from app.models.gamestate import Adventure, Chapter, Encounter, Npc, Scope, SourceSet, World
+from app.models.gamestate import (
+    Adventure,
+    Chapter,
+    CreatureDesign,
+    Encounter,
+    Npc,
+    Scope,
+    SourceSet,
+    World,
+)
 from app.services import image_effects
 from app.services.adventures import STATUSES, AdventureService, AdventureView, ChapterView
 from app.services.characters import CharacterService
@@ -67,6 +76,7 @@ from app.ui.auth_pages import message_panel
 from app.ui.cast_pages import npc_card, treasure_card
 from app.ui.combat_pages import combat_url
 from app.ui.context import Page
+from app.ui.creature_pages import creature_url
 from app.ui.encounter_pages import encounter_url, level_pill
 from app.ui.forms import alert, hidden, notice, select_field, text_field
 from app.ui.gm_pages import party_card
@@ -665,6 +675,8 @@ class DraftReview:
     treasures: int
     fight_xp: int  # the adjusted XP of all its fights together
     day_xp: int | None  # the party's adventuring day (2014), None under 2024 rules
+    # Claude's creature drafts its fights plan, accepted and published with it.
+    creatures: tuple[CreatureDesign, ...] = ()
 
 
 def _change_row(page: Page, change: Change) -> Element:
@@ -782,6 +794,16 @@ def draft_review_panel(
             " · ",
             t.plural("draft.treasures", review.treasures),
         ],
+        p(class_="muted")[
+            t("draft.creatures"),
+            " ",
+            [
+                (", " if i else "", a(href=creature_url(d.id))[d.name])
+                for i, d in enumerate(review.creatures)
+            ],
+        ]
+        if review.creatures
+        else None,
         div(class_="form-actions")[
             form(method="post", action=f"{url}/accept")[
                 button(type="submit", class_="btn btn-primary")[

@@ -917,6 +917,37 @@ class CreatureService:
         """True when its statblock differs from the one last published."""
         return design.published_hash != self._hash(design)
 
+    def named(self, name: str, world_id: str | None = None) -> CreatureDesign | None:
+        """The design called ``name`` (names are unique), in ``world_id`` when given."""
+        wanted = " ".join(name.split()).casefold()
+        return next(
+            (
+                d
+                for d in self._store.creatures.list()
+                if d.name.casefold() == wanted and (world_id is None or d.world_id == world_id)
+            ),
+            None,
+        )
+
+    def statblock_named(self, name: str) -> dict[str, Any] | None:
+        """The statblock a design will publish, for an encounter of a draft adventure
+        that plans Claude's creature before it is published (documentation/MCP.md §10)."""
+        design = self.named(name)
+        return self.math.statblock(design) if design is not None else None
+
+    def accept_named(
+        self, world_id: str | None, names: Sequence[str]
+    ) -> builtins.list[CreatureDesign]:
+        """The world's designs among ``names`` (an accepted adventure's creatures):
+        Claude's drafts accepted, and published when any is not yet; the drafts accepted."""
+        designs = [d for n in dict.fromkeys(names) if (d := self.named(n, world_id))]
+        drafts = [d for d in designs if d.drafted_by]
+        for design in drafts:
+            self.accept(design.id)
+        if drafts or any(self.unpublished(d) for d in designs):
+            self.publish()
+        return drafts
+
     def accept(self, design_id: str) -> CreatureDesign:
         """Make Claude's draft one of the gamemaster's designs, published from now on."""
         return self._store.creatures.update(design_id, drafted_by=None)
