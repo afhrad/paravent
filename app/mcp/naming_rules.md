@@ -7,7 +7,7 @@ style is researched before it is drafted. Your draft reaches the gamemaster's wo
 makes no names until they accept it.
 
 The gamemaster may ask in plain words ("German names for the dwarven holds of the
-Alliance", "taverns of a pirate harbour"). Read from it what the style names, whose names
+north", "taverns of a pirate harbour"). Read from it what the style names, whose names
 they are and in which language they should sound; ask when it does not say and it matters.
 
 ## 1. Look first
@@ -43,12 +43,12 @@ period or region rather than a whole culture, and do not caricature.
 
 ## 3. Build the style
 
-- `race` as the setting says it ("Tauren", "Blood Elf"), `culture` the group within it
-  ("Sin'dorei", "Shu'halo"); leave `culture` empty only if the race has one custom. A
+- `race` as the setting says it ("Reedfolk", "Hill Dwarf"), `culture` the group within it
+  ("Mirehands", "Ironhall"); leave `culture` empty only if the race has one custom. A
   style of places may leave `race` empty and name its `culture` (German, Norse), or
   name the race whose places they are (Dwarf for dwarven holds).
 - `aliases`: other names of the race, above all the books' species name ("Dwarf" for
-  "Zwerg", "Elf" for "Blood Elf" only if every elf at this table is one). An alias makes
+  "Zwerg", "Elf" for "Dusk Elf" only if every elf at this table is one). An alias makes
   this style serve that species ahead of the books' tables, in every world that uses it.
 - `world_id`: the world it is for. A world may limit its names to some styles; once
   accepted, the style joins that world's.

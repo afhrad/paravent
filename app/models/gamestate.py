@@ -514,7 +514,7 @@ class EncounterMonster(GameStateModel):
     # On the characters' side (COMBAT.md §3): rated with the party, and starting the
     # fight as allies.
     ally: bool = False
-    # A reskin: the name the table sees ("Murloc") for a creature from the books whose
+    # A reskin: the name the table sees ("Mire Lurker") for a creature from the books whose
     # numbers it keeps (a Kuo-toa) — rated, run and statted as that creature (MCP.md §5).
     # A group's label may instead list a name for each, comma-separated ("Gruk, Ugrash").
     label: str | None = None

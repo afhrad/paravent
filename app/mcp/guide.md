@@ -60,7 +60,7 @@ What else the books print:
 
 > [!quote]
 > Who enters the forest leaves it as someone else.
-> — Marshal Dughan
+> — Hob Wade, ferryman
 
 > [!pullquote]
 > The banner is not lost. It waits.

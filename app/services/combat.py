@@ -2614,7 +2614,7 @@ class CombatService:
         taken = [c.label for c in combat.combatants]
         hp = monster.hp or 0
         # Members with their own names take them in order; the rest, or a reskinned
-        # line ("Murloc" for a Kuo-toa), are numbered.
+        # line ("Mire Lurker" for a Kuo-toa), are numbered.
         own = [_clean_label(n) for n in (names or [])][:count]
         rest = _numbered(label or monster.name, taken, count - len(own)) if count > len(own) else []
         for numbered in [*own, *rest]:

@@ -130,7 +130,7 @@ Am einfachsten beginnst du mit Paravents Vorlage **new_adventure**:
 
 Eine selbst geschriebene Bitte funktioniert genauso:
 
-> Schreib ein Abenteuer für zwei Abende in Azeroth für Tenewaja und Varis Thornwood:
+> Schreib ein Abenteuer für zwei Abende in den Versunkenen Marschen für Tenewaja und Varis Thornwood:
 > Folk-Horror im Moor, eine unschuldig Angeklagte, eine Vettel dahinter. Knüpf an den
 > letzten Spielabend an.
 
@@ -156,14 +156,15 @@ Auf der Seite der Welt hält **Anweisungen für Claude** fest, was Claude liest,
 schreibt:
 
 - **Das Setting** — welche Welt das ist und wann: Länder, Städte, Völker, Fraktionen und
-  wie ihre Völker und Kreaturen auf 5e übertragen werden. „Diese Welt ist Azeroth aus
-  World of Warcraft, zur Zeit des ursprünglichen Spiels …" genügt, damit Claude nutzt, was
-  es darüber weiß.
+  wie ihre Völker und Kreaturen auf 5e übertragen werden. „Diese Welt sind die Versunkenen
+  Marschen, Flussland, in dem der alte Damm brach; die Städte leben von ihren Fähren …"
+  gibt Claude, was es braucht, und bei einem veröffentlichten Setting genügt sein Name,
+  damit Claude nutzt, was es darüber weiß.
 - **Ein Text pro Art** — Abenteuer, Kapitel, NSC, Begegnungen, Schätze, Orte: wie lang,
   wie schwer, wie benannt, was vermieden werden soll.
 
 Kreaturen, die das Setting hat, aber 5e nicht, werden zu **Reskins**: eine Buchkreatur
-unter dem Namen des Settings — „Murloc" mit den Werten eines Kuo-toa. Du kannst das auch
+unter dem Namen des Settings — ein „Moorlauerer" mit den Werten eines Kuo-toa. Du kannst das auch
 selbst auf jeder Zeile einer Begegnung setzen (*Angezeigt als*).
 
 ## 6. Den Entwurf prüfen

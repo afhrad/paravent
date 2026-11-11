@@ -134,11 +134,11 @@ class TestWorlds:
     ) -> None:
         new = (await gm.get("/gm/worlds/new")).text
         assert 'name="language"' in new and 'value="de"' in new
-        await gm.post("/gm/worlds", data={"name": "Azeroth", "language": "de"})
+        await gm.post("/gm/worlds", data={"name": "Ashen Vale", "language": "de"})
         (world,) = registry.gamestate.worlds.list()
         assert world.language == "de"
         assert '<option value="de" selected>' in (await gm.get(f"/gm/worlds/{world.id}/edit")).text
-        await gm.post(f"/gm/worlds/{world.id}", data={"name": "Azeroth", "language": "xx"})
+        await gm.post(f"/gm/worlds/{world.id}", data={"name": "Ashen Vale", "language": "xx"})
         assert registry.gamestate.worlds.find(world.id).language == "en"  # type: ignore[union-attr]
 
     async def test_a_name_is_required(self, gm: AsyncClient) -> None:
@@ -158,7 +158,7 @@ class TestWorlds:
 
     async def test_delete_keeps_characters(self, gm: AsyncClient, registry: StoreRegistry) -> None:
         world = registry.gamestate.worlds.create(World(name="W"))
-        pc = _character(registry, "Thorin", world_id=world.id)
+        pc = _character(registry, "Torvald", world_id=world.id)
         confirm = await gm.get(f"/gm/worlds/{world.id}/delete")
         assert "Its character is kept" in confirm.text
         await gm.post(f"/gm/worlds/{world.id}/delete")
@@ -179,7 +179,7 @@ class TestWorlds:
 
     async def test_place_a_character(self, gm: AsyncClient, registry: StoreRegistry) -> None:
         world = registry.gamestate.worlds.create(World(name="W"))
-        pc = _character(registry, "Thorin")
+        pc = _character(registry, "Torvald")
         assert "Move" in (await gm.get("/gm/characters")).text
         await gm.post(f"/gm/characters/{pc.id}/world", data={"world": world.id})
         assert registry.gamestate.characters.get(pc.id).world_id == world.id
@@ -202,12 +202,12 @@ class TestParty:
     ) -> None:
         _character(
             registry,
-            "Thorin",
+            "Torvald",
             player="alice",
             state={"hp": 12, "conditions": ["prone"], "inspiration": True},
         )
         text = (await gm.get("/gm")).text
-        assert "Thorin" in text and "Alice" in text
+        assert "Torvald" in text and "Alice" in text
         assert ">12<" in text and "/ 30" in text
         assert "Prone" in text and "Inspiration" in text
         assert "/static/js/party.js" in text
@@ -269,7 +269,7 @@ class TestParty:
         dm = registry.auth.find_user("dm")
         assert dm is not None
         registry.auth.set_language(dm.id, "de")
-        _character(registry, "Thorin", state={"conditions": ["prone"]})
+        _character(registry, "Torvald", state={"conditions": ["prone"]})
         text = (await gm.get("/gm")).text
         assert "Liegend" in text and "RK" in text and "Alle Welten" in text
 
@@ -279,7 +279,7 @@ class TestLive:
         self, registry: StoreRegistry
     ) -> None:
         queue = registry.events.subscribe(PARTY)
-        pc = _character(registry, "Thorin")
+        pc = _character(registry, "Torvald")
         created = await asyncio.wait_for(queue.get(), 1)
         assert created == f"{pc.id} {registry.gamestate.characters.revision(pc.id)}"
         registry.gamestate.characters.update(pc.id, notes="changed")
@@ -327,7 +327,7 @@ class TestCardActions:
     async def test_damage_returns_the_new_card(
         self, gm: AsyncClient, registry: StoreRegistry
     ) -> None:
-        pc = _character(registry, "Thorin", state={"temp_hp": 3})
+        pc = _character(registry, "Torvald", state={"temp_hp": 3})
         response = await gm.post(
             f"/gm/party/{pc.id}/act/hp", data={"mode": "damage", "amount": "8"}, headers=HX
         )
@@ -338,14 +338,14 @@ class TestCardActions:
         assert ">25<" in response.text
 
     async def test_heal_and_temp(self, gm: AsyncClient, registry: StoreRegistry) -> None:
-        pc = _character(registry, "Thorin", state={"hp": 10})
+        pc = _character(registry, "Torvald", state={"hp": 10})
         await gm.post(f"/gm/party/{pc.id}/act/hp", data={"mode": "heal", "amount": "5"}, headers=HX)
         await gm.post(f"/gm/party/{pc.id}/act/hp", data={"mode": "temp", "amount": "4"}, headers=HX)
         state = registry.gamestate.characters.get(pc.id).state
         assert (state.hp, state.temp_hp) == (15, 4)
 
     async def test_conditions_toggle(self, gm: AsyncClient, registry: StoreRegistry) -> None:
-        pc = _character(registry, "Thorin")
+        pc = _character(registry, "Torvald")
         card = (
             await gm.post(f"/gm/party/{pc.id}/act/condition", data={"key": "prone"}, headers=HX)
         ).text
@@ -357,7 +357,7 @@ class TestCardActions:
     async def test_the_gamemaster_is_named_in_the_log(
         self, gm: AsyncClient, registry: StoreRegistry
     ) -> None:
-        pc = _character(registry, "Thorin", state={"concentration": "Bless|PHB"})
+        pc = _character(registry, "Torvald", state={"concentration": "Bless|PHB"})
         await gm.post(
             f"/gm/party/{pc.id}/act/hp", data={"mode": "damage", "amount": "4"}, headers=HX
         )
@@ -367,7 +367,7 @@ class TestCardActions:
     async def test_a_refusal_is_explained_on_the_card(
         self, gm: AsyncClient, registry: StoreRegistry
     ) -> None:
-        pc = _character(registry, "Thorin")
+        pc = _character(registry, "Torvald")
         response = await gm.post(
             f"/gm/party/{pc.id}/act/hp", data={"mode": "damage", "amount": "x"}, headers=HX
         )
@@ -378,7 +378,7 @@ class TestCardActions:
         self, gm: AsyncClient, registry: StoreRegistry
     ) -> None:
         world = registry.gamestate.worlds.create(World(name="W"))
-        pc = _character(registry, "Thorin", world_id=world.id)
+        pc = _character(registry, "Torvald", world_id=world.id)
         response = await gm.post(
             f"/gm/party/{pc.id}/act/hp", data={"mode": "damage", "amount": "1", "world": world.id}
         )
@@ -390,7 +390,7 @@ class TestCardActions:
         self, gm: AsyncClient, registry: StoreRegistry
     ) -> None:
         world = registry.gamestate.worlds.create(World(name="W"))
-        _character(registry, "Thorin", world_id=world.id)
+        _character(registry, "Torvald", world_id=world.id)
         page = (await gm.get(f"/gm?world={world.id}")).text
         assert f'name="world" value="{world.id}"' in page
 
@@ -401,7 +401,7 @@ class TestCardActions:
         assert response.status_code == 404
 
     async def test_players_cannot_use_it(self, registry: StoreRegistry) -> None:
-        pc = _character(registry, "Thorin", player="alice")
+        pc = _character(registry, "Torvald", player="alice")
         app = create_app()
         app.state.stores = registry
         async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

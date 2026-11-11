@@ -97,11 +97,11 @@ class TestStarters:
 
 def test_the_tables_own_styles_are_offered(tmp_path: Path) -> None:
     own = NamingStyle(
-        id="x", name="Murloc", pattern="{given}", parts={"given": ListPart(names=["Mrgl"])}
+        id="x", name="Mire Lurker", pattern="{given}", parts={"given": ListPart(names=["Glub"])}
     )
     naming = Naming(NpcTables(None), lambda: [own])
     assert "own:x" in [e.key for e in naming.entries()]
-    assert naming.name("own:x") == "Mrgl"
+    assert naming.name("own:x") == "Glub"
 
 
 class TestBooks:

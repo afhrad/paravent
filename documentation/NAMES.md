@@ -52,7 +52,7 @@ and a Tamil name may lead with an initial from the father's name.
   dwarves as its German translation names them sound right only at a German table, so
   that style is marked `de`. How the mark is used: §5.
 - **`race`, `culture`:** who it names, free text, either may be empty: how a style is
-  found (§5). A setting's own words are fine: Tauren, Shu'halo. A place needs no race;
+  found (§5). A setting's own words are fine: Reedfolk, Mirehands. A place needs no race;
   its culture says whose places they are (German, Norse).
 - **`aliases`:** other names of the race ("Dwarf" for a style of "Zwerg"), so a species
   named otherwise finds it.
@@ -137,7 +137,7 @@ then lets them repeat: Claude's `generate_names` uses it, so a cast reads apart.
 and so does a person. `Naming.find(race, culture, edition)` answers, in order:
 
 1. a style of that race **and** culture;
-2. a style of the race, any culture (`race:Tauren` rolls among them); a culture asked for
+2. a style of the race, any culture (`race:Reedfolk` rolls among them); a culture asked for
    and not found marks this a fallback;
 3. a style of that culture, any race, a fallback if a race was asked for;
 4. the books' default for the edition, then the starters, a fallback if anything was
@@ -156,11 +156,11 @@ A race matches a style's `race` or its `aliases`, and **the table's own styles a
 first at each step**: otherwise the books' Dwarf tables, whose race is exactly "Dwarf",
 would always beat a Zwerg style with that alias. As styles belong to no world, an alias
 applies in every world. Everything case-insensitive. `FoundStyle.fallback` lets the page and Claude say so instead
-of quietly giving a Tauren a Celtic name.
+of quietly giving one of the Reedfolk a Celtic name.
 
 **A creature in an encounter** finds its style by itself, nothing stored per monster
 (`Naming.for_creature`, `creature_races`): the name it is shown under (a reskin as
-"Murloc"), its subtype tags ("orc" of *humanoid (orc)*), its own name, then each word of
+"Mire Lurker"), its subtype tags ("orc" of *humanoid (orc)*), its own name, then each word of
 the name, the first that a style serves as race or alias wins; else the default, marked as
 a fallback. So an Orc War Chief finds an Orc style through its tag, a Goblin Boss a Goblin
 style through its first word, and a style's aliases can take creature names ("Flind" on a
@@ -207,8 +207,8 @@ when 40% or more start with one letter.
 ### 5b. A world's styles
 
 **Decided with the user 2026-11-09**, reversing the 11-01 "no choice per world": a world
-may name the styles its names come from, so a World of Warcraft campaign rolls only its
-WoW styles and never a Tolkien elf. Race and culture still find the style (§5); the
+may name the styles its names come from, so a campaign in its own setting rolls only that
+setting's styles and never an elf from another world. Race and culture still find the style (§5); the
 world's choice only narrows what they find among.
 
 - `World.naming_styles`: keys of styles (`own:…`, `starter:…`, a book's table or
@@ -281,7 +281,7 @@ save.
 
 **From a description** (2026-11-09): the prompt `new_naming_style(description?, category?,
 race?, culture?, setting?, language?)` takes the gamemaster's own words ("German names for
-the dwarven holds of the Alliance", "harbour taverns of a pirate coast") and a category —
+the dwarven holds of the north", "harbour taverns of a pirate coast") and a category —
 `person` or a kind of place — and opens with that request, then the research rules. With
 no category Claude reads it from the description and asks when it cannot tell. It drafts
 through `draft_naming_style` with `subject` and `language`; the workshop lists the draft

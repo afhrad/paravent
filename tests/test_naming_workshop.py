@@ -135,41 +135,41 @@ class TestNaming:
         assert (entry.race, entry.culture) == ("Human", "Old Norse")
 
     def test_a_world_file_from_before_still_loads(self) -> None:
-        assert World.model_validate({"name": "Azeroth", "naming": {"default": "x"}})
+        assert World.model_validate({"name": "Ashen Vale", "naming": {"default": "x"}})
 
 
 def _people() -> Naming:
     styles = [
-        _style("Mu", id="t1", race="Tauren", culture="Shu'halo"),
-        _style("Ba", id="t2", race="Tauren", culture="Grimtotem"),
-        _style("Sa", id="e1", race="Blood Elf", culture="Sin'dorei"),
-        _style("Dr", id="draft", race="Draenei", draft=True),
+        _style("Mu", id="t1", race="Reedfolk", culture="Mirehands"),
+        _style("Ba", id="t2", race="Reedfolk", culture="Stonewaders"),
+        _style("Sa", id="e1", race="Dusk Elf", culture="Duskborn"),
+        _style("Dr", id="draft", race="Lumari", draft=True),
     ]
     return Naming(NpcTables(None), lambda: styles)
 
 
 class TestFinding:
     def test_race_and_culture(self) -> None:
-        assert _people().find("tauren", "grimtotem") == FoundStyle("own:t2")
+        assert _people().find("reedfolk", "stonewaders") == FoundStyle("own:t2")
 
     def test_a_race_rolls_among_its_cultures(self) -> None:
         naming = _people()
-        found = naming.find("Tauren")
-        assert found == FoundStyle("race:Tauren")
+        found = naming.find("Reedfolk")
+        assert found == FoundStyle("race:Reedfolk")
         assert set(naming.names(found.key, count=2)) == {"Mu", "Ba"}
 
     def test_a_culture_alone(self) -> None:
-        assert _people().find("", "Sin'dorei") == FoundStyle("own:e1")
+        assert _people().find("", "Duskborn") == FoundStyle("own:e1")
 
     def test_an_unknown_culture_falls_back_to_the_race(self) -> None:
-        assert _people().find("Tauren", "Nobody") == FoundStyle("race:Tauren", fallback=True)
+        assert _people().find("Reedfolk", "Nobody") == FoundStyle("race:Reedfolk", fallback=True)
 
     def test_a_race_with_another_races_culture_is_marked(self) -> None:
-        assert _people().find("Orc", "Sin'dorei") == FoundStyle("own:e1", fallback=True)
+        assert _people().find("Orc", "Duskborn") == FoundStyle("own:e1", fallback=True)
 
     def test_nothing_defined_falls_back_to_the_default(self) -> None:
         naming = _people()
-        found = naming.find("Murloc")
+        found = naming.find("Mire Lurker")
         assert found.fallback and found.key == naming.default_key("2014")
         assert naming.names(found.key)
 
@@ -177,7 +177,7 @@ class TestFinding:
         assert not _people().find().fallback
 
     def test_a_draft_serves_nobody(self) -> None:
-        assert _people().find("Draenei").fallback
+        assert _people().find("Lumari").fallback
 
     def test_an_alias_serves_a_species(self) -> None:
         own = _style("Murga", id="z", race="Zwerg", culture="Eisenschmiede", aliases=["Dwarf"])
@@ -200,10 +200,10 @@ class TestFinding:
 
     def test_search_and_the_index(self) -> None:
         entries = _people().entries()
-        assert [e.key for e in search(entries, "grim tauren")] == ["own:t2"]
-        assert [e.key for e in search(entries, race="blood elf")] == ["own:e1"]
-        tauren = next(g for g in races(entries) if g.race == "Tauren")
-        assert tauren.styles == 2 and set(tauren.cultures) == {"Shu'halo", "Grimtotem"}
+        assert [e.key for e in search(entries, "stone reedfolk")] == ["own:t2"]
+        assert [e.key for e in search(entries, race="dusk elf")] == ["own:e1"]
+        reedfolk = next(g for g in races(entries) if g.race == "Reedfolk")
+        assert reedfolk.styles == 2 and set(reedfolk.cultures) == {"Mirehands", "Stonewaders"}
 
 
 def _sounds(**extra: Any) -> NamingStyle:
@@ -454,20 +454,20 @@ class TestPages:
         registry = facts["app"].state.stores
         for index in range(120):
             registry.naming_workshop.create(
-                _style(f"Mu{index}", race="Tauren", culture=f"Tribe {index}", id=f"t{index}")
+                _style(f"Mu{index}", race="Reedfolk", culture=f"Tribe {index}", id=f"t{index}")
             )
         await _login(raw)
         index_page = (await raw.get("/gm/names")).text
-        assert "Tauren" in index_page and "Tribe 7" not in index_page.split("Tauren")[0]
+        assert "Reedfolk" in index_page and "Tribe 7" not in index_page.split("Reedfolk")[0]
         assert "Mu7" not in index_page  # the index samples nothing
-        listed = await raw.get("/gm/names", params={"race": "Tauren"})
+        listed = await raw.get("/gm/names", params={"race": "Reedfolk"})
         assert "120 styles" in listed.text and "Showing 100 of 120" in listed.text
         found = await raw.get("/gm/names", params={"q": "tribe 119"})
         assert "Tribe 119" in found.text and "Tribe 7<" not in found.text
         loose = await raw.get("/gm/names", params={"race": "-"})
         assert "Tribe 7" not in loose.text
-        new = await raw.get("/gm/names/new", params={"race": "Tauren"})
-        assert 'value="Tauren"' in new.text
+        new = await raw.get("/gm/names/new", params={"race": "Reedfolk"})
+        assert 'value="Reedfolk"' in new.text
 
     async def test_a_style_shows_where_it_came_from(self, table: Table) -> None:  # noqa: F811
         raw, facts = table
@@ -484,7 +484,7 @@ class TestPages:
         raw, facts = table
         registry = facts["app"].state.stores
         world_id = facts["world"].id
-        registry.naming_workshop.create(_style("Mu", id="t", race="Tauren", culture="Shu'halo"))
+        registry.naming_workshop.create(_style("Mu", id="t", race="Reedfolk", culture="Mirehands"))
         npc = registry.gamestate.npcs.create(Npc(scope=Scope(world_id=world_id), name="New"))
         await _login(raw)
         url = f"/gm/npcs/{npc.id}"
@@ -495,29 +495,29 @@ class TestPages:
             data={
                 "name": "New",
                 "place": f"w:{world_id}",
-                "race": " Tauren ",
-                "culture": "Shu'halo",
+                "race": " Reedfolk ",
+                "culture": "Mirehands",
             },
         )
         kept = registry.gamestate.npcs.get(npc.id)
-        assert (kept.race, kept.culture) == ("Tauren", "Shu'halo")
+        assert (kept.race, kept.culture) == ("Reedfolk", "Mirehands")
         shown = (await raw.get(f"{url}/generate")).text
         assert 'value="own:t" selected' in shown and "No style for" not in shown
         await raw.post(
-            f"{url}/edit", data={"name": "New", "place": f"w:{world_id}", "race": "Murloc"}
+            f"{url}/edit", data={"name": "New", "place": f"w:{world_id}", "race": "Mire Lurker"}
         )
-        assert "No style for Murloc" in (await raw.get(f"{url}/generate")).text
+        assert "No style for Mire Lurker" in (await raw.get(f"{url}/generate")).text
         async with session(table) as mcp:
-            good = await call(mcp, "generate_names", world_id=world_id, race="Tauren", count=1)
+            good = await call(mcp, "generate_names", world_id=world_id, race="Reedfolk", count=1)
             assert (good["names"], good["fallback"]) == (["Mu"], False)
-            none = await call(mcp, "generate_names", world_id=world_id, race="Murloc", count=1)
+            none = await call(mcp, "generate_names", world_id=world_id, race="Mire Lurker", count=1)
             assert none["fallback"] and none["names"]
-            only = await call(mcp, "list_naming_styles", race="tauren")
-            assert {s["key"] for s in only} == {"own:t", "race:Tauren"}
+            only = await call(mcp, "list_naming_styles", race="reedfolk")
+            assert {s["key"] for s in only} == {"own:t", "race:Reedfolk"}
             rules = await call(mcp, "naming_style_rules")
             assert "actually read" in rules
-            prompt = await mcp.get_prompt("new_naming_style", {"race": "Tauren"})
-            assert "Tauren" in prompt.messages[0].content.text  # type: ignore[union-attr]
+            prompt = await mcp.get_prompt("new_naming_style", {"race": "Reedfolk"})
+            assert "Reedfolk" in prompt.messages[0].content.text  # type: ignore[union-attr]
             asked = await mcp.get_prompt(
                 "new_naming_style",
                 {"description": "harbour taverns of a pirate coast", "category": "building"},

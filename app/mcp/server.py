@@ -115,8 +115,8 @@ Work in this order:
    world's instructions give their names. If it answers `fallback`, no style serves that
    people: follow `naming_style_rules` to draft one for the world (`world_id`) and tell
    the gamemaster; it works once they accept it, and joins the world's styles then. A
-   world whose names keep coming from styles that do not fit it (orcs named like Tolkien's
-   in Azeroth) may be given its own with `set_world_naming_styles`; say so.
+   world whose names keep coming from styles that do not fit it (orcs named
+   like another setting's) may be given its own with `set_world_naming_styles`; say so.
    Keep the race and culture on each NPC in `create_npc`.
    Create the places with `create_place` — each with what it looks like, who is there
    and what happens there, naming its NPCs and fights — and the cast with `create_npc`:
@@ -750,7 +750,7 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
             str,
             Field(
                 description='What the names are for, in your own words: "German dwarven '
-                'holds of the Alliance", "harbour taverns of a pirate coast"'
+                'holds of the north", "harbour taverns of a pirate coast"'
             ),
         ] = "",
         category: Annotated[

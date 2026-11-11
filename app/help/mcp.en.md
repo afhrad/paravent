@@ -124,7 +124,7 @@ The easiest start is Paravent's prompt **new_adventure**:
 
 A request written yourself works just as well:
 
-> Write a two-session adventure in Azeroth for Tenewaja and Varis Thornwood: folk horror
+> Write a two-session adventure in the Sunken Marches for Tenewaja and Varis Thornwood: folk horror
 > in the fens, an innocent accused, a hag behind it. Pick up what happened last session.
 
 What Claude does, in order: it reads the world, the characters and what happened at the
@@ -148,13 +148,14 @@ its chapters appear and update live.
 On the world's page, **Instructions for Claude** holds what Claude reads before it writes:
 
 - **The setting** — which world this is and when: lands, cities, peoples, factions, and
-  how its races and creatures map onto 5e. "This world is Azeroth from World of Warcraft,
-  at the time of the original game …" is enough for Claude to use what it knows of it.
+  how its races and creatures map onto 5e. "This world is the Sunken Marches, river country
+  where the old dam broke; the towns live on ferries …" gives Claude what it needs, and for
+  a published setting its name alone lets Claude use what it knows of it.
 - **One text per kind** — adventures, chapters, NPCs, encounters, treasure, places: how
   long, how hard, what to name, what to avoid.
 
 Creatures the setting has but 5e lacks become **reskins**: a book creature under the
-setting's name — "Murloc" running a Kuo-toa's numbers. You can set one yourself on any
+setting's name — a "Mire Lurker" running a Kuo-toa's numbers. You can set one yourself on any
 encounter line (*Shown as*).
 
 ## 6. Reviewing the draft

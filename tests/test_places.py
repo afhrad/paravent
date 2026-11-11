@@ -32,11 +32,11 @@ def alice(registry: StoreRegistry) -> User:
 
 
 @pytest.fixture
-def thorin(registry: StoreRegistry, alice: User) -> PlayerCharacter:
+def torvald(registry: StoreRegistry, alice: User) -> PlayerCharacter:
     return registry.gamestate.characters.create(
         PlayerCharacter.model_validate(
             {
-                "name": "Thorin",
+                "name": "Torvald",
                 "player": "alice",
                 "classes": [{"class": "Homebrew Fighter", "level": 3}],
                 "abilities": {"str": 16, "con": 14},
@@ -68,53 +68,53 @@ async def login(client: AsyncClient, username: str = "alice", **data: str) -> st
 
 class TestResume:
     async def test_a_new_login_lands_on_the_page_left(
-        self, client: AsyncClient, thorin: PlayerCharacter
+        self, client: AsyncClient, torvald: PlayerCharacter
     ) -> None:
         assert await login(client) == "/play"
-        assert (await client.get(f"/characters/{thorin.id}")).status_code == 200
+        assert (await client.get(f"/characters/{torvald.id}")).status_code == 200
         await client.post("/logout")
-        assert await login(client) == f"/characters/{thorin.id}"
+        assert await login(client) == f"/characters/{torvald.id}"
         assert client.cookies.get(RESUME_COOKIE) == "1"
 
     async def test_another_device_carries_on_too(
-        self, client: AsyncClient, registry: StoreRegistry, thorin: PlayerCharacter
+        self, client: AsyncClient, registry: StoreRegistry, torvald: PlayerCharacter
     ) -> None:
         await login(client)
         await client.get("/books")
         async with client_for(registry) as phone:
             assert await login(phone) == "/books"
             # The nav on the new device knows where each section was left.
-            assert f'href="/characters/{thorin.id}"' not in (await phone.get("/books")).text
-            await phone.get(f"/characters/{thorin.id}")
+            assert f'href="/characters/{torvald.id}"' not in (await phone.get("/books")).text
+            await phone.get(f"/characters/{torvald.id}")
         await client.post("/logout")
-        assert await login(client) == f"/characters/{thorin.id}"
+        assert await login(client) == f"/characters/{torvald.id}"
 
     async def test_the_installed_app_starts_where_it_was_left(
-        self, client: AsyncClient, thorin: PlayerCharacter
+        self, client: AsyncClient, torvald: PlayerCharacter
     ) -> None:
         await login(client)
-        await client.get(f"/characters/{thorin.id}")
+        await client.get(f"/characters/{torvald.id}")
         response = await client.get("/")
-        assert response.headers["location"] == f"/characters/{thorin.id}"
+        assert response.headers["location"] == f"/characters/{torvald.id}"
 
     async def test_a_page_asked_for_wins_over_the_page_left(
-        self, client: AsyncClient, thorin: PlayerCharacter
+        self, client: AsyncClient, torvald: PlayerCharacter
     ) -> None:
         await login(client)
-        await client.get(f"/characters/{thorin.id}")
+        await client.get(f"/characters/{torvald.id}")
         await client.post("/logout")
         assert await login(client, next="/books") == "/books"
 
     async def test_forms_and_pages_that_have_gone_are_not_returned_to(
-        self, client: AsyncClient, registry: StoreRegistry, thorin: PlayerCharacter
+        self, client: AsyncClient, registry: StoreRegistry, torvald: PlayerCharacter
     ) -> None:
         await login(client)
-        await client.get(f"/characters/{thorin.id}")
-        await client.get(f"/characters/{thorin.id}/delete")
+        await client.get(f"/characters/{torvald.id}")
+        await client.get(f"/characters/{torvald.id}/delete")
         await client.post("/logout")
-        assert await login(client) == f"/characters/{thorin.id}"
-        registry.gamestate.characters.delete(thorin.id)
-        assert (await client.get(f"/characters/{thorin.id}")).status_code == 404
+        assert await login(client) == f"/characters/{torvald.id}"
+        registry.gamestate.characters.delete(torvald.id)
+        assert (await client.get(f"/characters/{torvald.id}")).status_code == 404
         await client.post("/logout")
         client.cookies.delete(RESUME_COOKIE)  # ui.js clears it on the page it marks
         assert await login(client) == "/play"
@@ -127,18 +127,18 @@ class TestResume:
 
 class TestSheetView:
     async def test_the_sheet_opens_on_the_view_it_was_left_on(
-        self, client: AsyncClient, thorin: PlayerCharacter
+        self, client: AsyncClient, torvald: PlayerCharacter
     ) -> None:
         await login(client)
         response = await client.post(
-            f"/characters/{thorin.id}/view", data={"tab": "skills", "view": "gear", "filter": "2"}
+            f"/characters/{torvald.id}/view", data={"tab": "skills", "view": "gear", "filter": "2"}
         )
         assert response.status_code == 204
-        html = (await client.get(f"/characters/{thorin.id}")).text
+        html = (await client.get(f"/characters/{torvald.id}")).text
         assert 'data-tab="skills"' in html and 'data-m="gear"' in html
         assert 'data-filter="2"' in html
         # An address that names a view still wins.
-        html = (await client.get(f"/characters/{thorin.id}?view=log")).text
+        html = (await client.get(f"/characters/{torvald.id}?view=log")).text
         assert 'data-m="log"' in html
         # the log is the top bar's (the log panel, PROTOCOL.md §5), not a bottom tab
         bar = html[html.index("<header") : html.index("</header>")]
@@ -147,22 +147,22 @@ class TestSheetView:
         assert 'data-view-link="log"' not in tabs
 
     async def test_only_the_owner_keeps_a_view(
-        self, client: AsyncClient, registry: StoreRegistry, thorin: PlayerCharacter
+        self, client: AsyncClient, registry: StoreRegistry, torvald: PlayerCharacter
     ) -> None:
         registry.auth.create_user("bob", PASSWORD, Role.PLAYER, "Bob")
         await login(client, "bob")
-        response = await client.post(f"/characters/{thorin.id}/view", data={"tab": "skills"})
+        response = await client.post(f"/characters/{torvald.id}/view", data={"tab": "skills"})
         assert response.status_code == 404
 
 
 class TestStorage:
     async def test_kept_in_the_library_and_dropped_with_the_player(
-        self, client: AsyncClient, registry: StoreRegistry, alice: User, thorin: PlayerCharacter
+        self, client: AsyncClient, registry: StoreRegistry, alice: User, torvald: PlayerCharacter
     ) -> None:
         await login(client)
-        await client.get(f"/characters/{thorin.id}")
+        await client.get(f"/characters/{torvald.id}")
         assert (registry.settings.library_dir / "places.json").exists()
-        assert registry.places.get(alice.id).last == f"/characters/{thorin.id}"
+        assert registry.places.get(alice.id).last == f"/characters/{torvald.id}"
         registry.players.delete(alice.id)
         assert registry.gamestate.places.find(alice.id) is None
 

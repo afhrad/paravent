@@ -19,8 +19,8 @@ if the gamemaster had made them, ready to review, edit and run.
 | --- | --- |
 | Where Claude connects | **HTTP inside Paravent**: streamable HTTP at `/mcp` on Paravent's own port, a bearer token the gamemaster creates. Claude Code on any machine of the network connects to the deployed server. Not claude.ai in the browser (it needs a public HTTPS address); not stdio |
 | What Claude may write | **A draft adventure only.** Claude creates a new adventure with status *draft* and may change only what lies in it — its chapters, NPCs, encounters, treasure. It never edits or deletes anything else. The gamemaster reviews and sets it *planned*, which ends Claude's write access |
-| Where monsters come from | **The world's books only.** Every creature is a reference into the declared books (TECHSTACK.md §6c), rated by Paravent's own difficulty maths for the chosen party. No homebrew designs. **Revised 2026-10-28: reskins allowed** — a line keeps a book creature's numbers under the setting's name ("Murloc" running a Kuo-toa) |
-| Instructions for Claude (2026-10-28) | **Per world, the setting plus one text per kind** (adventure, chapter, NPC, encounter, treasure, place); not per object, no global defaults. The gamemaster's own setting is World of Warcraft |
+| Where monsters come from | **The world's books only.** Every creature is a reference into the declared books (TECHSTACK.md §6c), rated by Paravent's own difficulty maths for the chosen party. No homebrew designs. **Revised 2026-10-28: reskins allowed** — a line keeps a book creature's numbers under the setting's name ("Mire Lurker" running a Kuo-toa) |
+| Instructions for Claude (2026-10-28) | **Per world, the setting plus one text per kind** (adventure, chapter, NPC, encounter, treasure, place); not per object, no global defaults. The setting may be the gamemaster's own or a published one |
 
 ---
 
@@ -146,12 +146,12 @@ Stated in the server's instructions and the prompt — Paravent enforces what it
   this is, its era, lands, cities, peoples, factions, how its races and creatures map onto
   5e — and one text per kind. `world_overview` hands over the fields that say something;
   the server instructions and the prompt tell Claude to follow them and to draw on what it
-  knows of the named setting. Claude knows a published setting such as Azeroth well; the
+  knows of the named setting. Claude knows a well-known published setting; the
   brief is what tells it that *this* world is that one, and which part of it.
 - **Reskins** (2026-10-28): a creature the setting has and 5e lacks is a book creature
   under the setting's name — `label` on an encounter's monster (`EncounterMonster.label`).
   It is rated, run and statted as the book creature; the builder shows *Shown as* on each
-  line, a fight numbers the label ("Murloc 1"), cards and the players see it. What players
+  line, a fight numbers the label ("Mire Lurker 1"), cards and the players see it. What players
   learn in a creature's Details is still the book creature's description.
 
 - **Language:** everything the players or gamemaster read is written in the **world's
@@ -250,7 +250,7 @@ planned) or **Discard draft** (the delete page).
    `random_encounter` (any environment's table; its creatures must be in the world's
    books) and `roll_treasure` (the world's edition's tables, into a draft's treasure).
    **A run on a copy of the real library** (scripted through the SDK client, as Claude
-   would call it): Azeroth's party read correctly, a draft for Tenewaja and Varis with
+   would call it): the world's party read correctly, a draft for Tenewaja and Varis with
    two NPCs, two encounters rated for those two, a rolled CR 5 hoard and a chapter whose
    check came back clean; the chapter page shows every card, callout and folded
    statblock. Not yet: Claude Code itself writing one.

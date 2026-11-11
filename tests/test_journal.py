@@ -97,15 +97,15 @@ async def setup(tmp_path: Path) -> AsyncIterator[tuple[AsyncClient, StoreRegistr
     chapter = registry.adventures.create_chapter(adventure.id, "The Mill")
     registry.adventures.upload(chapter.id, "map.png", _png(), as_cover=False)
     registry.adventures.update_chapter(chapter.id, title="The Mill", status="planned", body=BODY)
-    thorin = registry.gamestate.characters.create(
-        PlayerCharacter(name="Thorin", player="alice", world_id=world.id, status=DraftStatus.READY)
+    torvald = registry.gamestate.characters.create(
+        PlayerCharacter(name="Torvald", player="alice", world_id=world.id, status=DraftStatus.READY)
     )
     mira = registry.gamestate.characters.create(
         PlayerCharacter(name="Mira", player="bob", world_id=world.id, status=DraftStatus.READY)
     )
     app = create_app()
     app.state.stores = registry
-    ids = {"world": world.id, "chapter": chapter.id, "thorin": thorin.id, "mira": mira.id}
+    ids = {"world": world.id, "chapter": chapter.id, "torvald": torvald.id, "mira": mira.id}
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac, registry, ids
 
@@ -125,7 +125,7 @@ class TestSharing:
         share = re.search(r'href="(/gm/share\?[^"]*box=[^"]*)"', page)
         assert share is not None
         form = await ac.get(share.group(1).replace("&amp;", "&"))
-        assert "Thorin" in form.text and "Mira" in form.text and "Meet me at the mill" in form.text
+        assert "Torvald" in form.text and "Mira" in form.text and "Meet me at the mill" in form.text
         key = callouts(BODY)[0].key
         done = await ac.post(
             "/gm/share",
@@ -133,19 +133,19 @@ class TestSharing:
                 "chapter": ids["chapter"],
                 "box": key,
                 "title": "A torn letter",
-                "characters": [ids["thorin"]],
+                "characters": [ids["torvald"]],
             },
         )
         assert done.status_code == 303 and done.headers["location"].endswith("?shared=1")
         handout = registry.gamestate.handouts.list()[0]
-        assert handout.characters == [ids["thorin"]] and handout.callout == "handout"
+        assert handout.characters == [ids["torvald"]] and handout.callout == "handout"
         assert (Path(registry.settings.library_dir) / "handouts" / handout.id / "map.png").is_file()
-        # The log tells Thorin's player, privately.
+        # The log tells Torvald's player, privately.
         entries = [
             e for e in registry.protocol.store.entries(ids["world"]) if e.kind is EntryKind.HANDOUT
         ]
         assert [(e.subject, e.visibility) for e in entries] == [
-            (f"character:{ids['thorin']}", Visibility.PRIVATE)
+            (f"character:{ids['torvald']}", Visibility.PRIVATE)
         ]
         # A later edit of the chapter does not reach the copy.
         registry.adventures.update_chapter(
@@ -185,7 +185,7 @@ class TestSharing:
                 "chapter": ids["chapter"],
                 "image": "map.png|torn",
                 "title": "The map",
-                "characters": [ids["thorin"], ids["mira"]],
+                "characters": [ids["torvald"], ids["mira"]],
             },
         )
         handout = registry.gamestate.handouts.list()[0]
@@ -198,7 +198,7 @@ class TestSharing:
         assert (await ac.post(f"/journal/{handout.id}/delete")).status_code == 403
         await _login(ac, "dm")
         gm_view = (await ac.get(f"/journal/{handout.id}")).text
-        assert "Thorin" in gm_view and "Mira" in gm_view and "Withdraw" in gm_view
+        assert "Torvald" in gm_view and "Mira" in gm_view and "Withdraw" in gm_view
         await ac.post(f"/journal/{handout.id}/delete")
         assert registry.gamestate.handouts.list() == []
         assert not (Path(registry.settings.library_dir) / "handouts" / handout.id).exists()
@@ -212,7 +212,7 @@ class TestSharing:
         )
         assert [name for _, name in registry.handouts.recipients(ids["world"])] == [
             "Mira",
-            "Thorin",
+            "Torvald",
         ]
 
     async def test_players_may_not_share(
@@ -242,13 +242,13 @@ async def book_setup(
     world = registry.gamestate.worlds.create(World(name="W"))
     adventure = registry.adventures.create_from_book(world.id, "LMoP")
     chapter = registry.adventures.chapters(adventure.id)[1]
-    thorin = registry.gamestate.characters.create(
-        PlayerCharacter(name="Thorin", player="alice", world_id=world.id, status=DraftStatus.READY)
+    torvald = registry.gamestate.characters.create(
+        PlayerCharacter(name="Torvald", player="alice", world_id=world.id, status=DraftStatus.READY)
     )
     app = create_app()
     app.state.stores = registry
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
-        yield ac, registry, {"chapter": chapter.id, "thorin": thorin.id}
+        yield ac, registry, {"chapter": chapter.id, "torvald": torvald.id}
 
 
 class TestTheBooksBoxes:
@@ -261,12 +261,12 @@ class TestTheBooksBoxes:
         links = re.findall(r'href="(/gm/share\?[^"]*book=[^"]*)"', page)
         assert links, "the book's boxes carry share buttons"
         form = await ac.get(links[0].replace("&amp;", "&"))
-        assert form.status_code == 200 and "Thorin" in form.text
+        assert form.status_code == 200 and "Torvald" in form.text
         key = re.search(r'name="book" value="([^"]+)"', form.text)
         assert key is not None
         await ac.post(
             "/gm/share",
-            data={"chapter": ids["chapter"], "book": key.group(1), "characters": [ids["thorin"]]},
+            data={"chapter": ids["chapter"], "book": key.group(1), "characters": [ids["torvald"]]},
         )
         (handout,) = registry.gamestate.handouts.list()
         assert handout.entry is not None and handout.entry["type"] in (

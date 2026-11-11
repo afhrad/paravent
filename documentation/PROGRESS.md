@@ -535,7 +535,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       in a chapter carry their notes folded. **Instructions for Claude** (2026-10-28,
       MCP.md §5): per world the setting plus one text per kind, handed over in
       `world_overview`; **reskins** — an encounter line shown under the setting's name
-      ("Murloc" for a Kuo-toa), rated and run as the book creature. **Deleting with
+      ("Mire Lurker" for a Kuo-toa), rated and run as the book creature. **Deleting with
       contents** (2026-10-29): an adventure's or chapter's delete page offers to remove
       its NPCs, places, encounters and treasure too, with their counts; Claude's own
       draft delete always does. **First full run** (2026-11-02): `new_adventure` over a live

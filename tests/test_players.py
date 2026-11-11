@@ -258,7 +258,7 @@ class TestPlayerRoutes:
     async def test_delete_flow(
         self, as_gm: AsyncClient, registry: StoreRegistry, alice: User
     ) -> None:
-        registry.gamestate.characters.create(PlayerCharacter(name="Thorin", player="alice"))
+        registry.gamestate.characters.create(PlayerCharacter(name="Torvald", player="alice"))
         confirm = await as_gm.get(f"/gm/players/{alice.id}/delete")
         assert "Delete Alice?" in confirm.text
         assert "Their character is kept and becomes unassigned." in confirm.text

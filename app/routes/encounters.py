@@ -391,7 +391,7 @@ async def set_label(
     index: int,
     label: Annotated[str, Form()] = "",
 ) -> Response:
-    """Show a planned creature under another name — a reskin ("Murloc" for a Kuo-toa)."""
+    """Show a planned creature under another name — a reskin ("Mire Lurker" for a Kuo-toa)."""
     try:
         registry.encounters.set_label(encounter_id, index, label)
     except EncounterError as exc:

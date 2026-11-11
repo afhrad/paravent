@@ -196,7 +196,7 @@ class MonsterInput(BaseModel):
     label: str | None = Field(
         default=None,
         description="A reskin: the name the table sees for this book creature, e.g. "
-        '"Murloc" for a Kuo-toa; its numbers stay the book\'s',
+        '"Mire Lurker" for a Kuo-toa; its numbers stay the book\'s',
     )
 
 

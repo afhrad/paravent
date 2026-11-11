@@ -12,7 +12,7 @@ from app.models.gamestate import Scope
 from tests.test_mcp import PASSWORD, call, session, table  # noqa: F401 - the fixture
 
 Table = tuple[httpx.AsyncClient, Any]
-SETTING = "This world is Azeroth from World of Warcraft. Murlocs are Kuo-toa."
+SETTING = "This world is the Sunken Marches. Mire Lurkers are Kuo-toa."
 
 
 async def _login(raw: httpx.AsyncClient) -> None:
@@ -53,22 +53,22 @@ class TestReskins:
         registry = facts["app"].state.stores
         world_id = facts["world"].id
         here = Scope(world_id=world_id)
-        encounter = registry.encounters.create("Murloc camp", world_id, here)
+        encounter = registry.encounters.create("Mire Lurker camp", world_id, here)
         registry.encounters.add_monster(encounter.id, "Kuo-toa|MM", 3)
         before = registry.encounters.view(registry.encounters.get(encounter.id)).rating
         await _login(raw)
         await raw.post(
-            f"/gm/encounters/{encounter.id}/monsters/0/label", data={"label": "  Murloc "}
+            f"/gm/encounters/{encounter.id}/monsters/0/label", data={"label": "  Mire Lurker "}
         )
         planned = registry.encounters.get(encounter.id).monsters[0]
-        assert planned.label == "Murloc" and planned.name == "Kuo-toa"
+        assert planned.label == "Mire Lurker" and planned.name == "Kuo-toa"
         after = registry.encounters.view(registry.encounters.get(encounter.id)).rating
         assert after.adjusted_xp == before.adjusted_xp  # the numbers stay the book's
         builder = (await raw.get(f"/gm/encounters/{encounter.id}")).text
-        assert 'value="Murloc"' in builder and "Kuo-toa" in builder
+        assert 'value="Mire Lurker"' in builder and "Kuo-toa" in builder
         fight = registry.combats.start(registry.encounters.get(encounter.id), by="dm")
         labels = sorted(c.label for c in fight.combatants if c.ref)
-        assert labels == ["Murloc 1", "Murloc 2", "Murloc 3"]
+        assert labels == ["Mire Lurker 1", "Mire Lurker 2", "Mire Lurker 3"]
         assert all(c.ref == "Kuo-toa|MM" for c in fight.combatants if c.ref)
         # Emptying it shows the book's name again.
         await raw.post(f"/gm/encounters/{encounter.id}/monsters/0/label", data={"label": ""})
@@ -91,18 +91,18 @@ class TestReskins:
                 mcp,
                 "create_encounter",
                 adventure_id=draft["id"],
-                name="Murlocs",
-                monsters=[{"name": "Kuo-toa", "count": 4, "label": "Murloc"}],
+                name="Mire Lurkers",
+                monsters=[{"name": "Kuo-toa", "count": 4, "label": "Mire Lurker"}],
             )
             chapter = await call(
                 mcp,
                 "write_chapter",
                 adventure_id=draft["id"],
                 title="Shore",
-                body="{@encounter Murlocs}\n",
+                body="{@encounter Mire Lurkers}\n",
             )
         (line,) = fight["rating"]["monsters"]
-        assert line["label"] == "Murloc" and line["name"] == "Kuo-toa"
+        assert line["label"] == "Mire Lurker" and line["name"] == "Kuo-toa"
         await _login(raw)
         page = (await raw.get(f"/gm/chapters/{chapter['id']}")).text
-        assert "4× Murloc" in page
+        assert "4× Mire Lurker" in page

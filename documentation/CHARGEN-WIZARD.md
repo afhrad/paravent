@@ -81,7 +81,7 @@ the class asks nothing and Spells for a non-caster, rather than shown as empty s
 ┌──────────────────────────────────────────────────────────┐
 │ ① Race ✓   ② Class ✓   ③ Abilities   ④ Background   …    │  step rail
 ├────────────────────────────────────┬─────────────────────┤
-│                                    │  Thorin              │
+│                                    │  Torvald             │
 │   step content                     │  Dwarf Fighter 1     │
 │   (pickers, tables, inputs)        │  ───────────────     │
 │                                    │  HP    12            │  derived panel

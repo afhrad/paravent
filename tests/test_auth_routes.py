@@ -249,7 +249,7 @@ class TestScreens:
         assert alice is not None
         registry.gamestate.characters.create(
             PlayerCharacter(
-                name="Thorin",
+                name="Torvald",
                 player="alice",
                 species=ChosenOption(name="Dwarf", source="PHB"),
                 classes=[ClassLevel(name="Fighter", source="PHB", level=3)],
@@ -258,7 +258,7 @@ class TestScreens:
         registry.gamestate.characters.create(PlayerCharacter(name="Somebody Else"))
         await login(client, player)
         text = (await client.get("/play")).text
-        assert "Thorin" in text and "Dwarf · Fighter 3" in text
+        assert "Torvald" in text and "Dwarf · Fighter 3" in text
         assert "Somebody Else" not in text
 
     async def test_pages_carry_theme_and_assets(self, client: AsyncClient, gm: str) -> None:

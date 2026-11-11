@@ -279,7 +279,7 @@ files) and galleries (1,180). Each has its callout, and the books' own render th
 
 > [!quote]                          ← an epigraph: untitled unless a title is written;
 > Who enters the forest…              its last line starting with — (or --) names the
-> — Marshal Dughan                    speaker, on its own line or paragraph
+> — Hob Wade, ferryman               speaker, on its own line or paragraph
 
 > [!pullquote]                      ← large, between rules
 > [!flowchart]                      ← its list items are the steps, an arrow between each

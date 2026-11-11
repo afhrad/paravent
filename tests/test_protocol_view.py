@@ -222,12 +222,12 @@ async def _login(client: AsyncClient, username: str) -> None:
     await client.post("/login", data={"username": username, "password": PASSWORD})
 
 
-def _thorin(registry: StoreRegistry) -> PlayerCharacter:
+def _torvald(registry: StoreRegistry) -> PlayerCharacter:
     world = registry.gamestate.worlds.create(World(name="Grey Reed"))
     return registry.gamestate.characters.create(
         PlayerCharacter.model_validate(
             {
-                "name": "Thorin",
+                "name": "Torvald",
                 "player": "alice",
                 "world_id": world.id,
                 "classes": [{"class": "Homebrew Fighter", "level": 5}],
@@ -243,21 +243,21 @@ class TestThePanel:
     async def test_every_page_has_the_button_and_the_sheet_opens_on_its_character(
         self, client: AsyncClient, registry: StoreRegistry
     ) -> None:
-        thorin = _thorin(registry)
+        torvald = _torvald(registry)
         await _login(client, "alice")
         home = (await client.get("/play")).text
         assert 'class="btn btn-ghost shell-log"' in home and 'id="log-panel"' in home
         assert "/static/js/protocol.js" in home
-        sheet = (await client.get(f"/characters/{thorin.id}")).text
-        assert f'data-query="filter=character&amp;character={thorin.id}"' in sheet
+        sheet = (await client.get(f"/characters/{torvald.id}")).text
+        assert f'data-query="filter=character&amp;character={torvald.id}"' in sheet
 
     async def test_a_roll_reads_back_in_german(
         self, client: AsyncClient, registry: StoreRegistry
     ) -> None:
-        thorin = _thorin(registry)
+        torvald = _torvald(registry)
         await _login(client, "alice")
         await client.post(
-            f"/characters/{thorin.id}/act/roll",
+            f"/characters/{torvald.id}/act/roll",
             data={"kind": "skill", "subject": "athletics", "adv": "1"},
         )
         panel = (await client.get("/log/panel")).text
@@ -273,7 +273,7 @@ class TestThePanel:
     async def test_a_dice_chip_is_logged_privately(
         self, client: AsyncClient, registry: StoreRegistry
     ) -> None:
-        thorin = _thorin(registry)
+        torvald = _torvald(registry)
         await _login(client, "alice")
         rolled = await client.post(
             "/log/roll",
@@ -285,9 +285,9 @@ class TestThePanel:
         assert entry.visibility == Visibility.PRIVATE and entry.actor == "alice"
         assert entry.subject_name == "Goblin · Scimitar" and entry.what == "custom:1d20+4"
         assert (await client.post("/log/roll", data={"expr": "rm -rf"})).status_code == 422
-        assert thorin.world_id is not None
-        await client.post("/log/roll", data={"expr": "2d6", "world": thorin.world_id})
-        assert registry.protocol.store.newest(thorin.world_id)[0].what == "custom:2d6"
+        assert torvald.world_id is not None
+        await client.post("/log/roll", data={"expr": "2d6", "world": torvald.world_id})
+        assert registry.protocol.store.newest(torvald.world_id)[0].what == "custom:2d6"
 
     async def test_signed_out_gets_nothing(self, client: AsyncClient) -> None:
         response = await client.get("/log/panel")

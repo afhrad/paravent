@@ -36,8 +36,8 @@ def _style(name: str, **fields: object) -> NamingStyle:
 
 def _naming() -> Naming:
     styles = [
-        _style("Thalassian", id="wow", race="Elf", culture="Blood Elf"),
-        _style("Elrond", id="tolkien", race="Elf", culture="Noldor"),
+        _style("Duskspeech", id="own_style", race="Elf", culture="Dusk Elf"),
+        _style("Aelar", id="elvish", race="Elf", culture="Silverbough"),
         _style("Gruk", id="orc", race="Orc"),
     ]
     return Naming(NpcTables(None), lambda: styles)
@@ -45,21 +45,21 @@ def _naming() -> Naming:
 
 class TestWithin:
     def test_only_the_chosen_styles_are_offered_and_pooled(self) -> None:
-        naming = _naming().within(["own:wow", "own:orc"])
+        naming = _naming().within(["own:own_style", "own:orc"])
         keys = {e.key for e in naming.entries()}
-        assert {"own:wow", "own:orc", "race:Elf", "race:Orc"} <= keys
-        assert "own:tolkien" not in keys
+        assert {"own:own_style", "own:orc", "race:Elf", "race:Orc"} <= keys
+        assert "own:elvish" not in keys
         assert not any(k.startswith("starter:") for k in keys)
         assert naming.restricted
         # An elf rolls from the world's elves only.
-        assert set(naming.names("race:Elf", count=5)) == {"Thalassian"}
+        assert set(naming.names("race:Elf", count=5)) == {"Duskspeech"}
 
     def test_a_race_the_world_has_no_style_for_falls_back_within_it(self) -> None:
-        naming = _naming().within(["own:wow"])
+        naming = _naming().within(["own:own_style"])
         found = naming.find("Dwarf")
-        assert found.fallback and found.key == "own:wow"
+        assert found.fallback and found.key == "own:own_style"
         with pytest.raises(NamingError):
-            naming.names("own:tolkien")
+            naming.names("own:elvish")
 
     def test_the_default_is_the_worlds_humans_found_by_alias(self) -> None:
         styles = [
@@ -90,9 +90,9 @@ async def table(tmp_path: Path) -> AsyncIterator[tuple[AsyncClient, StoreRegistr
     )
     registry.load()
     registry.auth.create_user("dm", PASSWORD, Role.GAMEMASTER)
-    world = registry.gamestate.worlds.create(World(name="Azeroth"))
-    wow = registry.naming_workshop.create(_style("Thrall", race="Orc", culture="Horde"))
-    registry.naming_workshop.create(_style("Gorbag", race="Orc", culture="Mordor"))
+    world = registry.gamestate.worlds.create(World(name="Ashen Vale"))
+    own_style = registry.naming_workshop.create(_style("Grukk", race="Orc", culture="Ironhowl"))
+    registry.naming_workshop.create(_style("Vurg", race="Orc", culture="Ashpeak"))
     encounter = registry.encounters.create("Ambush", world.id)
     registry.gamestate.encounters.mutate(
         encounter.id,
@@ -102,7 +102,7 @@ async def table(tmp_path: Path) -> AsyncIterator[tuple[AsyncClient, StoreRegistr
     app.state.stores = registry
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         await ac.post("/login", data={"username": "dm", "password": PASSWORD})
-        yield ac, registry, world, f"own:{wow.id}|{encounter.id}"
+        yield ac, registry, world, f"own:{own_style.id}|{encounter.id}"
 
 
 class TestTheWorldsChoice:
@@ -125,9 +125,9 @@ class TestTheWorldsChoice:
             registry.encounters.set_label(encounter_id, 0, "")
             await ac.post(f"/gm/encounters/{encounter_id}/monsters/0/label/roll", data={})
             label = registry.gamestate.encounters.get(encounter_id).monsters[0].label
-            assert label == "Thrall"
+            assert label == "Grukk"
         builder = (await ac.get(f"/gm/encounters/{encounter_id}")).text
-        assert "Mordor" not in builder and "starter:" not in builder
+        assert "Ashpeak" not in builder and "starter:" not in builder
         # A style outside the world is refused, not rolled.
         refused = await ac.post(
             f"/gm/encounters/{encounter_id}/monsters/0/label/roll",
@@ -157,7 +157,7 @@ class TestTheWorldsChoice:
         )
         naming = registry.drafts._naming_of(pc)
         assert naming is not None and naming.restricted
-        assert naming.names(naming.find("Orc").key) == ["Thrall"]
+        assert naming.names(naming.find("Orc").key) == ["Grukk"]
 
 
 class TestClaudesStylesForAWorld:
@@ -181,20 +181,20 @@ class TestClaudesStylesForAWorld:
             drafted = await call(
                 mcp,
                 "draft_naming_style",
-                name="Tauren",
-                race="Tauren",
+                name="Reedfolk",
+                race="Reedfolk",
                 pattern="{given}",
-                parts={"given": {"kind": "list", "names": ["Cairne", "Baine"]}},
+                parts={"given": {"kind": "list", "names": ["Cael", "Bram"]}},
                 world_id=world.id,
             )
             # A replacement keeps the world it was made for.
             await call(
                 mcp,
                 "draft_naming_style",
-                name="Tauren",
-                race="Tauren",
+                name="Reedfolk",
+                race="Reedfolk",
                 pattern="{given}",
-                parts={"given": {"kind": "list", "names": ["Hamuul", "Baine"]}},
+                parts={"given": {"kind": "list", "names": ["Hollin", "Bram"]}},
                 style_id=drafted["id"],
             )
         draft = registry.naming_workshop.get(drafted["id"])
@@ -213,28 +213,29 @@ class TestClaudesStylesForAWorld:
         registry: StoreRegistry = facts["app"].state.stores
         world = facts["world"]
         orc = registry.naming_workshop.create(_style("Gruk", race="Orc"))
-        for name, race in (("Baine", "Tauren"), ("Gnash", "Gnoll"), ("Thrall", "Orc")):
+        for name, race in (("Bram", "Reedfolk"), ("Gnash", "Gnoll"), ("Grukk", "Orc")):
             registry.gamestate.npcs.create(
                 Npc(name=name, race=race, scope=Scope(world_id=world.id))
             )
         async with session(mcp_table) as mcp:
             await call(mcp, "set_world_naming_styles", world_id=world.id, keys=[f"own:{orc.id}"])
             peoples = {p["race"]: p for p in await call(mcp, "unserved_peoples", world_id=world.id)}
-            assert {"Tauren", "Gnoll"} <= set(peoples) and "Orc" not in peoples
+            assert {"Reedfolk", "Gnoll"} <= set(peoples) and "Orc" not in peoples
             assert (
-                peoples["Tauren"]["met"] == ["Tauren"] and not peoples["Tauren"]["drafts_waiting"]
+                peoples["Reedfolk"]["met"] == ["Reedfolk"]
+                and not peoples["Reedfolk"]["drafts_waiting"]
             )
             await call(
                 mcp,
                 "draft_naming_style",
-                name="Tauren names",
-                race="Tauren",
+                name="Reedfolk names",
+                race="Reedfolk",
                 pattern="{given}",
-                parts={"given": {"kind": "list", "names": ["Cairne", "Hamuul"]}},
+                parts={"given": {"kind": "list", "names": ["Cael", "Hollin"]}},
                 world_id=world.id,
             )
             peoples = {p["race"]: p for p in await call(mcp, "unserved_peoples", world_id=world.id)}
-            assert peoples["Tauren"]["drafts_waiting"] == ["Tauren names"]  # not yet accepted
+            assert peoples["Reedfolk"]["drafts_waiting"] == ["Reedfolk names"]  # not yet accepted
             assert peoples["Gnoll"]["drafts_waiting"] == []
 
     def test_a_world_using_every_style_stays_so(self, tmp_path: Path) -> None:
@@ -255,18 +256,18 @@ class TestTheWorkshopInAWorld:
         ac, registry, world, ids = table
         key = ids.split("|")[0]
         registry.gamestate.npcs.create(
-            Npc(name="Baine", race="Tauren", scope=Scope(world_id=world.id))
+            Npc(name="Bram", race="Reedfolk", scope=Scope(world_id=world.id))
         )
         registry.gamestate.npcs.create(Npc(name="Gul", race="Orc", scope=Scope(world_id=world.id)))
         await ac.post(f"/gm/worlds/{world.id}/names", data={"style": [key]})
         page = (await ac.get(f"/gm/names?world={world.id}")).text
         assert "1 style chosen" in page and f'href="/gm/worlds/{world.id}/names"' in page
-        assert "/gm/names/new?race=Tauren" in page and "/gm/names/new?race=Orc" not in page
+        assert "/gm/names/new?race=Reedfolk" in page and "/gm/names/new?race=Orc" not in page
         assert f"race=Orc&amp;world={world.id}" in page
         orcs = (await ac.get(f"/gm/names?race=Orc&world={world.id}")).text
-        assert "Thrall" in orcs and "Gorbag" not in orcs
+        assert "Grukk" in orcs and "Vurg" not in orcs
         everywhere = (await ac.get("/gm/names?race=Orc")).text
-        assert "Gorbag" in everywhere and "Tauren" not in everywhere
+        assert "Vurg" in everywhere and "Reedfolk" not in everywhere
 
 
 class TestOnePeopleTwoNames:
@@ -312,7 +313,7 @@ class TestClaudeDraftsFromTheWorkshop:
     ) -> None:
         ac, registry, world, _ids = table
         registry.gamestate.npcs.create(
-            Npc(name="Baine", race="Tauren", scope=Scope(world_id=world.id))
+            Npc(name="Bram", race="Reedfolk", scope=Scope(world_id=world.id))
         )
         asked: list[str] = []
         answers: list[tuple[str, bool]] = []
@@ -322,14 +323,14 @@ class TestClaudeDraftsFromTheWorkshop:
             asked.append(prompt)
             assert "web_search" in system and '"kind": "learned"' in system
             await release.wait()
-            answers.append(submit({"name": "Tauren", "pattern": "{given}", "parts": {}}))
+            answers.append(submit({"name": "Reedfolk", "pattern": "{given}", "parts": {}}))
             answers.append(
                 submit(
                     {
-                        "name": "Tauren",
-                        "race": "Tauren",
+                        "name": "Reedfolk",
+                        "race": "Reedfolk",
                         "pattern": "{given}",
-                        "parts": {"given": {"kind": "list", "names": ["Hamuul", "Cairne"]}},
+                        "parts": {"given": {"kind": "list", "names": ["Hollin", "Cael"]}},
                         "sources": ["general knowledge, not researched"],
                     }
                 )
@@ -340,17 +341,17 @@ class TestClaudeDraftsFromTheWorkshop:
         await ac.post(f"/gm/worlds/{world.id}/names", data={"style": [_ids.split("|")[0]]})
         page = (await ac.get(f"/gm/names?world={world.id}")).text
         assert "Draft with Claude" in page
-        started = await ac.post("/gm/names/claude", data={"world": world.id, "race": "Tauren"})
+        started = await ac.post("/gm/names/claude", data={"world": world.id, "race": "Reedfolk"})
         assert started.headers["location"] == f"/gm/names?world={world.id}"
         page = (await ac.get(f"/gm/names?world={world.id}")).text
         assert "Claude is researching" in page and 'hx-trigger="every 4s"' in page
         release.set()
-        run = drafts.runs(world.id)["tauren"]
+        run = drafts.runs(world.id)["reedfolk"]
         assert run._task is not None
         await run._task
-        assert "'Tauren'" in asked[0] and "Baine" in asked[0] and "Thrall" in asked[0]
+        assert "'Reedfolk'" in asked[0] and "Bram" in asked[0] and "Grukk" in asked[0]
         assert answers[0][1] and answers[0][0].startswith("Not saved")
-        assert not answers[1][1] and "Hamuul" in answers[1][0]
+        assert not answers[1][1] and "Hollin" in answers[1][0]
         assert run.style_id is not None and not run.error
         draft = registry.naming_workshop.get(run.style_id)
         assert draft.draft and draft.for_world == world.id
@@ -364,11 +365,11 @@ class TestClaudeDraftsFromTheWorkshop:
     ) -> None:
         ac, registry, world, _ids = table
         registry.gamestate.npcs.create(
-            Npc(name="Baine", race="Tauren", scope=Scope(world_id=world.id))
+            Npc(name="Bram", race="Reedfolk", scope=Scope(world_id=world.id))
         )
         assert not registry.style_drafts.available
         page = (await ac.get(f"/gm/names?world={world.id}")).text
-        assert "Tauren" in page and "Draft with Claude" not in page
+        assert "Reedfolk" in page and "Draft with Claude" not in page
 
 
 class TestDraftAllFromTheWorkshop:
@@ -376,7 +377,7 @@ class TestDraftAllFromTheWorkshop:
         self, table: tuple[AsyncClient, StoreRegistry, World, str]
     ) -> None:
         ac, registry, world, ids = table
-        peoples = ("Tauren", "Gnoll", "Kobold", "Murloc", "Naga")
+        peoples = ("Reedfolk", "Gnoll", "Kobold", "Mire Lurker", "Naga")
         for n, race in enumerate(peoples):
             registry.gamestate.npcs.create(
                 Npc(name=f"Someone {n}", race=race, scope=Scope(world_id=world.id))

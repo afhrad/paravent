@@ -113,7 +113,7 @@ class TestPlaces:
 class TestCreatures:
     def test_race_names_of_a_creature(self) -> None:
         assert creature_races("Orc War Chief", ("orc",)) == ["orc", "Orc War Chief", "War", "Chief"]
-        assert creature_races("Kuo-toa", (), "Murloc")[0] == "Murloc"
+        assert creature_races("Kuo-toa", (), "Mire Lurker")[0] == "Mire Lurker"
 
     def test_a_creature_finds_its_style_by_tag_or_name(self) -> None:
         naming = _dwarves()
@@ -178,8 +178,8 @@ class TestAtTheTable:
         assert len(group.names) == 3 and len(set(group.names)) == 3 and group.reskin is None
 
     def test_a_label_reads_as_a_reskin_or_a_list(self) -> None:
-        line = EncounterMonster(name="Kuo-toa", source="MM", count=3, label="Murloc")
-        assert (line.names, line.reskin) == ([], "Murloc")
+        line = EncounterMonster(name="Kuo-toa", source="MM", count=3, label="Mire Lurker")
+        assert (line.names, line.reskin) == ([], "Mire Lurker")
         line.label = "Gruk,  Ugrash ,"
         assert (line.names, line.reskin) == (["Gruk", "Ugrash"], None)
 
