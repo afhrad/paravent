@@ -12,8 +12,8 @@ module only plans it.
 from __future__ import annotations
 
 import builtins
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field
 from typing import Any
 
 from app.models.gamestate import Encounter, EncounterMonster, PartySpec, Scope, SourceSet, World
@@ -77,6 +77,9 @@ class EncounterView:
     rules_inferred: str
     # What the fight can start: the sound desk's sounds and scenes, by name.
     sound_names: tuple[str, ...] = ()
+    # The creature-builder designs it plans, by name (casefolded) to design id, so each
+    # line can open its creature in the builder.
+    designs: Mapping[str, str] = field(default_factory=dict)
 
     @property
     def unrated(self) -> int:
@@ -158,7 +161,15 @@ class EncounterService:
         party, stated = self._party(encounter)
         inferred = rules_for(world.source_set if world else None)
         rating = self._rate(encounter.rules or inferred, [m.level for m in party], lines)
-        return EncounterView(encounter, world, lines, party, stated, rating, inferred)
+        planned = {m.name.casefold() for m in encounter.monsters}
+        designs = {
+            d.name.casefold(): d.id
+            for d in self._store.creatures.list()
+            if d.name.casefold() in planned
+        }
+        return EncounterView(
+            encounter, world, lines, party, stated, rating, inferred, designs=designs
+        )
 
     def rate_plan(
         self, world: World | None, monsters: Sequence[EncounterMonster], levels: Sequence[int]

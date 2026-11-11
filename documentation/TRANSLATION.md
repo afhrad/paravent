@@ -357,6 +357,9 @@ every German player expects 18 m.
 > wizard's speed, darkvision. 1 mile = 1.5 km and 1 lb = 0.5 kg, as the German books print
 > them. `UnitFormat.text` converts only values Paravent formats from typed fields
 > ("Self (15 ft cone)", a sense "darkvision 60 ft."), never entry prose.
+> **Typed in, too** (2026-11-11): the creature builder's speeds and senses are shown and
+> entered in the reader's units and kept in feet (`feet_from`, `text_in_feet`: back by the
+> same 0.3, on the 5 ft. grid, so 9 m is 30 ft.).
 
 ### Prose — leave it alone
 

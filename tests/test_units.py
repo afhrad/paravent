@@ -11,7 +11,7 @@ from httpx import ASGITransport, AsyncClient
 from app.config import Settings
 from app.main import create_app
 from app.models.gamestate import Role
-from app.services.units import UnitFormat
+from app.services.units import UnitFormat, feet_from, text_in_feet
 from app.store.registry import StoreRegistry
 
 PASSWORD = "correct horse battery"
@@ -50,6 +50,16 @@ class TestFormat:
             "blindsight 9 m (blind beyond this radius)"
         )
         assert metric.text("") == ""
+
+    def test_typed_back_into_feet(self) -> None:
+        assert feet_from("9", metric=True) == 30 and feet_from("1,5", metric=True) == 5
+        assert feet_from("10.5", metric=True) == 35 and feet_from("1", metric=True) == 3
+        assert feet_from("30", metric=False) == 30 and feet_from("schnell", True) is None
+        assert text_in_feet("darkvision 18 m, blindsight 3 m") == (
+            "darkvision 60 ft., blindsight 10 ft."
+        )
+        assert text_in_feet("tremorsense 1,5 km") == "tremorsense 1 mi."
+        assert text_in_feet("darkvision 60 ft.") == "darkvision 60 ft."
 
 
 @pytest.fixture

@@ -45,7 +45,11 @@ armour class and hit dice to the CR table's after everything else.
 
 Traits, actions, bonus actions, reactions and legendary actions are blocks of a `name` and
 a `text`. The text is 5eTools text; write it in the world's language (tag targets stay
-English, with a label for the shown word: `{@spell fireball||Feuerball}`). Numbers that
+English, with a label for the shown word: `{@spell fireball||Feuerball}`). Distances and
+weights in the text are in the world's units too: in a German world metres and kilograms
+by the books' conversion (5 ft. = 1,5 m, 30 ft. = 9 m, 1 lb. = 0,5 kg). The fields `speed`
+and `senses` stay in feet, as the data keeps them; Paravent shows them in each reader's
+units. Numbers that
 depend on the creature are placeholders, filled from its scores and CR, so they stay right
 when either changes:
 

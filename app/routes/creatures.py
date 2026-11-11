@@ -37,6 +37,7 @@ from app.services.creature_builder import (
 from app.services.creature_pictures import design_ref
 from app.services.media import MediaError, media_type
 from app.services.references import ReferenceEntry
+from app.services.units import feet_from, text_in_feet
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
 from app.ui.creature_pages import (
@@ -72,8 +73,17 @@ def _list(raw: object) -> list[str]:
     return seen
 
 
-def _read_form(design: CreatureDesign, form: FormData, registry: StoreRegistry) -> CreatureDesign:
-    """The design as the form has it; values out of range are brought into it."""
+def _speed(raw: object, metric: bool) -> int:
+    """A speed as typed, in the reader's units, in feet (0 to 200)."""
+    feet = feet_from(str(raw or ""), metric)
+    return max(0, min(200, feet)) if feet is not None else 0
+
+
+def _read_form(
+    design: CreatureDesign, form: FormData, registry: StoreRegistry, metric: bool = False
+) -> CreatureDesign:
+    """The design as the form has it; values out of range are brought into it. With
+    ``metric`` the reader typed distances in metres, which the design keeps in feet."""
     worlds = {w.id for w in registry.worlds.list()}
     crs = {r.cr for r in registry.creature_tables.rows()}
     changes: dict[str, object] = {
@@ -90,16 +100,14 @@ def _read_form(design: CreatureDesign, form: FormData, registry: StoreRegistry) 
         "ac_from": str(form.get("ac_from", ""))[:120].strip(),
         "hit_dice": _int(form.get("hit_dice"), design.hit_dice, 1, 200),
         "speed": {
-            k: v
-            for k in SPEEDS
-            if (v := _int(form.get(f"speed_{k}", ""), 0, 0, 200) or 0) > 0 or k == "walk"
+            k: v for k in SPEEDS if (v := _speed(form.get(f"speed_{k}"), metric)) > 0 or k == "walk"
         },
         "abilities": {
             ab: _int(form.get(f"ab_{ab}"), design.abilities.get(ab, 10), 1, 30) for ab in ABILITIES
         },
         "saves": [ab for ab in ABILITIES if ab in form.getlist("saves")],
         "skills": _list(form.get("skills", "")),
-        "senses": str(form.get("senses", ""))[:200].strip(),
+        "senses": text_in_feet(str(form.get("senses", ""))[:200].strip()),
         "languages": str(form.get("languages", ""))[:200].strip(),
         "resist": _list(form.get("resist", "")),
         "immune": _list(form.get("immune", "")),
@@ -299,7 +307,7 @@ async def change_creature(
     form = await request.form()
     action = str(form.get("action", "save"))
     before = service.get(design_id)
-    design = _read_form(before, form, registry)
+    design = _read_form(before, form, registry, page.u.metric)
     design = _apply(action, design, form, registry)
     if action == "accept":  # Claude's draft becomes the gamemaster's own
         design = design.model_copy(update={"drafted_by": None})

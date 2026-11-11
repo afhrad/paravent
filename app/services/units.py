@@ -31,6 +31,15 @@ _UNIT_TEXT = re.compile(
     r"(?P<u>ft\.?|feet|foot|mi\.?|miles?|lb\.?|lbs\.?|pounds?)(?![A-Za-z])"
 )
 
+# A distance typed in metres or kilometres, for reading a form back into feet.
+_METRIC_TEXT = re.compile(r"(?P<n>\d+(?:[.,]\d+)?)\s?(?P<u>km|m)(?![A-Za-z])")
+
+
+def _feet(metres: Decimal) -> int:
+    """Metres back to feet by the books' 0.3, on a 5 ft. grid where it is that long."""
+    feet = metres / FOOT
+    return int((feet / 5).to_integral_value() * 5) if feet >= 5 else int(feet.to_integral_value())
+
 
 @dataclass(frozen=True)
 class UnitFormat:
@@ -85,9 +94,34 @@ class UnitFormat:
         return _UNIT_TEXT.sub(convert, value)
 
 
+def feet_from(value: str, metric: bool) -> int | None:
+    """A distance typed into a form in the reader's units, in feet: ``"9"`` metres is
+    30; a decimal comma is read; None when it is no number."""
+    try:
+        amount = Decimal(value.strip().replace(",", "."))
+    except ArithmeticError:
+        return None
+    if not amount.is_finite():
+        return None
+    return _feet(amount) if metric else int(amount.to_integral_value())
+
+
+def text_in_feet(value: str) -> str:
+    """A structured value typed in metres ("darkvision 18 m") as the data keeps it, in
+    feet ("darkvision 60 ft."); kilometres become miles. Feet stay as they are."""
+
+    def convert(match: re.Match[str]) -> str:
+        amount = Decimal(match["n"].replace(",", "."))
+        if match["u"] == "km":
+            return f"{(amount / MILE).normalize():f} mi."
+        return f"{_feet(amount)} ft."
+
+    return _METRIC_TEXT.sub(convert, value)
+
+
 def units_for_language(language: str) -> str:
     """The unit system a language reads in: feet for English, metres for the rest."""
     return "feet" if language in IMPERIAL_LANGUAGES else "metres"
 
 
-__all__ = ["UNIT_SYSTEMS", "UnitFormat", "units_for_language"]
+__all__ = ["UNIT_SYSTEMS", "UnitFormat", "feet_from", "text_in_feet", "units_for_language"]

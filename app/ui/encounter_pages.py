@@ -37,12 +37,14 @@ from htpy import input as input_el
 
 from app.models.gamestate import EDITION_CLASSIC, Combat, Encounter, World
 from app.services.combat import Summary
+from app.services.creature_builder import HOMEBREW_SOURCE
 from app.services.difficulty import Rating
 from app.services.encounters import EncounterView, PlannedMonster
 from app.services.naming import StyleEntry
 from app.services.search import SearchResult
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
+from app.ui.creature_links import creature_url
 from app.ui.forms import (
     alert,
     checkbox_field,
@@ -241,6 +243,12 @@ def _line(
         if monster is not None
         else span(class_="ref missing")[planned.name]
     )
+    # A creature of the builder opens there, to change it (its draft included).
+    design_id = (
+        view.designs.get(planned.name.casefold()) if planned.source == HOMEBREW_SOURCE else None
+    )
+    if design_id is not None:
+        name_node = a(href=creature_url(design_id), class_="ref creature")[shown]
     side = "friend" if planned.ally else "foe"
     return li(class_=f"enc-line is-{side}")[
         span(class_="res-ico " + ("heal" if planned.ally else "dmg"), aria_hidden="true")[
@@ -250,7 +258,20 @@ def _line(
             b[planned.label, " ", span(class_="enc-reskin")[t("encounters.as"), " "]]
             if planned.label
             else None,
-            b[name_node, " ", span(class_="res-src mono")[planned.source]],
+            b[
+                name_node,
+                " ",
+                span(class_="res-src mono")[planned.source],
+                " ",
+                a(
+                    href=creature_url(design_id),
+                    class_="btn btn-sm btn-ghost enc-edit",
+                    title=t("encounters.edit_creature"),
+                    aria_label=t("encounters.edit_creature"),
+                )[icon("pencil", "sm")]
+                if design_id is not None
+                else None,
+            ],
             span(class_="list-meta")[
                 meta,
                 " ",

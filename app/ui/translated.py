@@ -14,14 +14,24 @@ from typing import Any
 
 from htpy import Node, p, span
 
+from app.services.creature_builder import HOMEBREW_SOURCE
 from app.services.references import ReferenceEntry
 from app.services.translations import Coverage, record_key, translation_key
 from app.ui.context import Page
 from app.ui.icons import icon
 
 
+def table_written(category: str, source: str) -> bool:
+    """A creature of the creature builder: written by the table in its own language
+    (Claude writes a world's creatures in the world's language), so nothing offers to
+    translate it and no note calls it English."""
+    return category == "monster" and source == HOMEBREW_SOURCE
+
+
 def localized(page: Page, entry: ReferenceEntry) -> tuple[ReferenceEntry, Coverage]:
     """The entry with its text in the page's language where translated."""
+    if table_written(entry.category, entry.source):
+        return entry, Coverage()
     t = page.t
     overlaid = t.overlay(entry.category, translation_key(entry.category, entry.data), entry.data)
     lair = entry.lair

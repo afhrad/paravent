@@ -70,6 +70,7 @@ from app.ui.play_combat_pages import play_image_url, play_picture_url
 from app.ui.recap_pages import recap_page
 from app.ui.tags import RenderContext, localized_context
 from app.ui.translate_pages import translate_url
+from app.ui.translated import table_written
 
 router = APIRouter(tags=["combat"])
 
@@ -137,6 +138,8 @@ def _translation(
     if row is None or row.combatant.ref is None or page.lang == "en":
         return None
     name, _, source = row.combatant.ref.partition("|")
+    if table_written("monster", source):
+        return None
     targets = registry.translation_targets
     try:
         target = targets.entry("monster", source, name)

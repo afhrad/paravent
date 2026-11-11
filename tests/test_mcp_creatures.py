@@ -7,6 +7,7 @@ from typing import Any
 import httpx
 import pytest
 
+from app.models.gamestate import EncounterMonster
 from app.services.creature_pictures import design_ref
 from app.services.media import MediaError
 from app.store.registry import StoreRegistry
@@ -267,3 +268,48 @@ class TestInAnAdventure:
         assert registry.creatures.get(hulk["id"]).drafted_by is None
         assert registry.compendium.find("monster", "Moorhulk", "Homebrew") is not None
         assert registry.worlds.find(world_id).source_set.allows("Homebrew")
+
+
+class TestForAGermanTable:
+    async def test_distances_in_metres_and_no_offer_to_translate(
+        self,
+        table: tuple[httpx.AsyncClient, Any],  # noqa: F811
+    ) -> None:
+        raw, facts = table
+        registry: StoreRegistry = facts["app"].state.stores
+        world_id = facts["world"].id
+        design = registry.creatures.create("Moorhulk", world_id, "3")
+        design = registry.creatures.save(
+            design.model_copy(update={"speed": {"walk": 30}, "senses": "darkvision 60 ft."})
+        )
+        url = f"/gm/creatures/{design.id}"
+        await raw.post("/login", data={"username": "dm", "password": PASSWORD})
+        await raw.post("/language", data={"lang": "de", "next": "/"})
+        page = (await raw.get(url)).text
+        assert 'name="speed_walk"' in page and 'step="1.5" value="9"' in page
+        assert 'value="darkvision 18 m"' in page
+        form = {
+            "action": "save",
+            "name": "Moorhulk",
+            "world": world_id,
+            "cr": "3",
+            "speed_walk": "12",
+            "speed_swim": "4,5",
+            "senses": "darkvision 36 m",
+        }
+        await raw.post(url, data=form)
+        saved = registry.creatures.get(design.id)
+        assert saved.speed == {"walk": 40, "swim": 15} and saved.senses == "darkvision 120 ft."
+
+        # In an encounter, the creature opens in the builder, draft or published.
+        encounter = registry.encounters.create("Mire", world_id)
+        registry.encounters.set_monsters(
+            encounter.id, [EncounterMonster(name="Moorhulk", source="Homebrew")]
+        )
+        plan = (await raw.get(f"/gm/encounters/{encounter.id}")).text
+        assert f'href="{url}"' in plan and "Kreaturenbaukasten" in plan
+
+        # Written in the table's language: no name to give, nothing to translate.
+        registry.creatures.publish()
+        entry = (await raw.get("/ref/monster/Homebrew/Moorhulk")).text
+        assert "Moorhulk" in entry and "ref-names" not in entry and "tr-note" not in entry

@@ -329,6 +329,14 @@ builder (`app/services/creature_builder.py`).
   The draft's review lists those creatures, and **accepting the adventure accepts them and
   publishes** (`CreatureService.accept_named`), so its fights can run; a revision accepted
   does the same.
+- **Units and language** (2026-11-11): `speed` and `senses` are structured, in feet and
+  English as the data keeps them; the builder shows and reads them in each reader's units
+  (a German gamemaster types 9 m for 30 ft., `feet_from`/`text_in_feet` in
+  `app/services/units.py`, the books' 0.3 on a 5 ft. grid). The text Claude writes is in
+  the world's language and units. A creature of the builder (source `Homebrew`) is
+  written in the table's own language, so nothing offers to translate it: no name to
+  give on its page, no "not translated" note, no Translate in the tracker
+  (`table_written` in `app/ui/translated.py`). In an encounter it opens in the builder.
 - **`creature_guide`** (`app/mcp/creature_guide.md`) holds the rules Claude follows: start
   from a close book creature, the placeholders, a Spellcasting trait with spells of the
   world's books at a caster level of about the CR plus two to four, equipment in the armour

@@ -741,6 +741,7 @@
   "encounters.party_level": "Level",
   "encounters.as": "as",
   "encounters.shown_as": "Shown as",
+  "encounters.edit_creature": "Change this creature in the creature builder",
   "encounters.shown_as_hint": "Another name for this creature — a reskin, or a name the dice roll in its kind's style: its numbers stay the book's (Enter saves). A group's label may list a name for each, separated by commas; the dice roll them.",
   "encounters.notes": "Notes",
   "encounters.notes_hint": "Paravent Markdown, as in chapters: setup, terrain, tactics, how it ends; {@creature …} and {@npc …} link.",

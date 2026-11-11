@@ -57,7 +57,7 @@ from app.ui.names import name_text
 from app.ui.player_view import view_switch
 from app.ui.tags import RenderContext, card_anchor, plain, ref_url, render, render_entries
 from app.ui.translate_pages import translate_url
-from app.ui.translated import coverage_note, localized
+from app.ui.translated import coverage_note, localized, table_written
 
 SIZES = {"T": "Tiny", "S": "Small", "M": "Medium", "L": "Large", "H": "Huge", "G": "Gargantuan"}
 ABILITIES = ("str", "dex", "con", "int", "wis", "cha")
@@ -1231,6 +1231,8 @@ def _names_form(page: Page, entry: ReferenceEntry) -> Node:
     """The gamemaster names the entry in each other language (TRANSLATION.md §4)."""
     t = page.t
     if page.identity is None or not page.identity.is_gamemaster:
+        return None
+    if table_written(entry.category, entry.source):
         return None
     others = [lang for lang in t.languages if lang.code != "en"]
     if not others:

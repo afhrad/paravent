@@ -236,13 +236,19 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
             str | None, Field(description="What gives the AC, as tags: {@item chain mail|phb}")
         ] = None,
         hit_dice: Annotated[int | None, Field(ge=1, le=200)] = None,
-        speed: Annotated[dict[str, int] | None, Field(description="walk, fly, swim, …")] = None,
+        speed: Annotated[
+            dict[str, int] | None,
+            Field(description="walk, fly, swim, … in feet, whatever the world's units"),
+        ] = None,
         abilities: Annotated[dict[str, int] | None, Field(description="str … cha")] = None,
         saves: Annotated[
             list[str] | None, Field(description="Abilities it is proficient in")
         ] = None,
         skills: Annotated[list[str] | None, Field(description='"arcana", "perception", …')] = None,
-        senses: str | None = None,
+        senses: Annotated[
+            str | None,
+            Field(description='In English and feet, as 5eTools writes them: "darkvision 60 ft."'),
+        ] = None,
         languages: str | None = None,
         resist: list[str] | None = None,
         immune: list[str] | None = None,

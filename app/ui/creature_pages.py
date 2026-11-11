@@ -55,6 +55,7 @@ from app.services.references import ReferenceEntry
 from app.store.creature_tables import BlockTemplate, CrRow, MonsterFeature
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
+from app.ui.creature_links import CREATURES_URL, creature_url
 from app.ui.forms import alert, hidden, notice, select_field, text_field
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
@@ -62,13 +63,6 @@ from app.ui.layout import app_shell
 from app.ui.library_links import delete_link
 from app.ui.ref_pages import statblock
 from app.ui.tags import RenderContext, ref_url
-
-CREATURES_URL = "/gm/creatures"
-
-
-def creature_url(design_id: str) -> str:
-    """One design's builder."""
-    return f"{CREATURES_URL}/{design_id}"
 
 
 def _cr_choices(rows: Sequence[CrRow]) -> list[tuple[str, str]]:
@@ -262,6 +256,28 @@ def _number(
     ]
 
 
+def _distance(page: Page, name: str, kind: str, feet: int | None) -> Element:
+    """A speed in the reader's units: metres on the books' 1.5 m grid, else feet; the
+    design keeps feet."""
+    t = page.t
+    metric = page.u.metric
+    field_id = f"f-{name}"
+    shown = "" if feet is None else f"{(feet * 3 / 10):g}" if metric else str(feet)
+    return div(class_="field")[
+        label(for_=field_id)[t(f"creatures.speed.{kind}"), " (", "m" if metric else "ft.", ")"],
+        input_el(
+            id=field_id,
+            name=name,
+            type="number",
+            inputmode="decimal" if metric else "numeric",
+            min="0",
+            max="60" if metric else "200",
+            step="1.5" if metric else "5",
+            value=shown,
+        ),
+    ]
+
+
 def _select(name: str, caption: str, choices: Sequence[tuple[str, str]], selected: str) -> Element:
     return select_field(name, caption, choices, selected=selected)
 
@@ -346,12 +362,7 @@ def _defence(page: Page, view: BuilderView) -> Element:
                 hint=t("creatures.hp_is", hp=hp, formula=formula),
             ),
         ],
-        div(class_="cb-speeds")[
-            [
-                _number(f"speed_{k}", t(f"creatures.speed.{k}"), d.speed.get(k), low=0, high=200)
-                for k in SPEEDS
-            ]
-        ],
+        div(class_="cb-speeds")[[_distance(page, f"speed_{k}", k, d.speed.get(k)) for k in SPEEDS]],
         div(class_="field")[
             span(class_="field-label")[t("creatures.saves")],
             div(class_="role-choices")[
@@ -385,7 +396,7 @@ def _defence(page: Page, view: BuilderView) -> Element:
             text_field(
                 "senses",
                 t("creatures.senses"),
-                value=d.senses,
+                value=page.u.text(d.senses),
                 autocomplete="off",
                 required=False,
                 optional_text=optional,
