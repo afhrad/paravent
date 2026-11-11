@@ -71,5 +71,8 @@ echo
 # macOS ships Bash 3.2, where `set -u` treats an empty array's expansion as an
 # unbound variable. `${EXTRA[@]+"${EXTRA[@]}"}` expands to nothing when the array
 # is empty and to the quoted elements otherwise.
+# Live pages (sheets, the table, the log) hold a stream open; without a limit a reload
+# would wait for every open tab to close before the new server starts.
 exec .venv/bin/uvicorn app.main:app \
-  --host "$HOST" --port "$PORT" --log-config app/log_config.json $RELOAD ${EXTRA[@]+"${EXTRA[@]}"}
+  --host "$HOST" --port "$PORT" --log-config app/log_config.json \
+  --timeout-graceful-shutdown 3 $RELOAD ${EXTRA[@]+"${EXTRA[@]}"}

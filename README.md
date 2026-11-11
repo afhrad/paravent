@@ -199,7 +199,9 @@ tell at a glance which build a device is talking to.
 
 Any other argument is passed through to uvicorn (`./run.sh --log-level warning`).
 The script uses the venv's uvicorn, warns when `.env` is missing, and reports the
-owning PID if the port is already taken instead of failing on the bind.
+owning PID if the port is already taken instead of failing on the bind. A reload waits at
+most 3 seconds for open live pages (`--timeout-graceful-shutdown`); they reconnect by
+themselves.
 
 Every log line has the same layout, Paravent's and uvicorn's alike: time, level, source,
 message (`app/logs.py`, `app/log_config.json`, which `run.sh` and the Docker image pass to
