@@ -53,15 +53,20 @@ def store(tmp_path: Path) -> ProseStore:
 
 
 def world_adventure_chapter(store: ProseStore) -> tuple[World, Adventure, Chapter]:
-    world = store.create("world", World(name="Sword Coast", source_set=SourceSet(sources=["PHB"])))
+    world = store.create(
+        "world", World(name="Sunken Marches", source_set=SourceSet(sources=["PHB"]))
+    )
     adventure = store.create(
         "adventure",
-        Adventure(world_id=world.id, name="Lost Mine", level=LevelRange(start=1, end=5)),
+        Adventure(world_id=world.id, name="The Drowned Bell", level=LevelRange(start=1, end=5)),
     )
     chapter = store.create(
         "chapter",
         Chapter(
-            world_id=world.id, adventure_id=adventure.id, title="Goblin Arrows", body="# Ambush\n"
+            world_id=world.id,
+            adventure_id=adventure.id,
+            title="Fog on the River",
+            body="# Ambush\n",
         ),
     )
     assert isinstance(world, World)
@@ -116,12 +121,15 @@ class TestWriting:
     def test_files_land_where_the_hierarchy_says(self, store: ProseStore) -> None:
         world, adventure, chapter = world_adventure_chapter(store)
         root = store.root
-        assert store.path(world.id) == root / "sword-coast" / "world.md"
-        assert store.path(adventure.id) == root / "sword-coast/adventures/lost-mine/adventure.md"
-        assert store.path(chapter.id) == (
-            root / "sword-coast/adventures/lost-mine/chapters/goblin-arrows.md"
+        assert store.path(world.id) == root / "sunken-marches" / "world.md"
+        assert (
+            store.path(adventure.id)
+            == root / "sunken-marches/adventures/the-drowned-bell/adventure.md"
         )
-        text = (root / "sword-coast" / "world.md").read_text()
+        assert store.path(chapter.id) == (
+            root / "sunken-marches/adventures/the-drowned-bell/chapters/fog-on-the-river.md"
+        )
+        text = (root / "sunken-marches" / "world.md").read_text()
         assert text.startswith("---\nid: ") and "books: [PHB]" in text
 
     def test_a_new_store_reads_it_all_back(self, store: ProseStore, tmp_path: Path) -> None:
@@ -130,7 +138,7 @@ class TestWriting:
         found = again.find("chapter", chapter.id)
         assert isinstance(found, Chapter)
         assert (found.title, found.body, found.adventure_id, found.world_id) == (
-            "Goblin Arrows",
+            "Fog on the River",
             "# Ambush",  # surrounding whitespace is not kept in memory
             adventure.id,
             world.id,
@@ -185,7 +193,7 @@ class TestWriting:
         target = store.delete("world", world.id)
         assert not folder.exists()
         assert (target / "media" / "cover.png").exists()
-        assert (target / "adventures/lost-mine/chapters/goblin-arrows.md").exists()
+        assert (target / "adventures/the-drowned-bell/chapters/fog-on-the-river.md").exists()
         assert store.records("adventure") == [] and store.records("chapter") == []
         gone = {rid for _, rid, rev in events.events if rev is None}
         assert gone == {world.id, adventure.id, chapter.id}
@@ -200,16 +208,16 @@ class TestWriting:
 
 class TestHandEdits:
     def test_a_dropped_in_world_gets_an_id_written_back(self, store: ProseStore) -> None:
-        path = write(store.root / "eberron" / "world.md", "Khorvaire, after the war.\n")
+        path = write(store.root / "kestria" / "world.md", "Kestria, after the war.\n")
         store.reload_paths([path])
         (world,) = store.records("world")
         assert isinstance(world, World)
-        assert world.name == "Eberron" and world.description == "Khorvaire, after the war."
+        assert world.name == "Kestria" and world.description == "Kestria, after the war."
         fields, body = split_front_matter(path.read_text())
-        assert fields["id"] == world.id and body == "Khorvaire, after the war.\n"
+        assert fields["id"] == world.id and body == "Kestria, after the war.\n"
 
     def test_writing_back_does_not_notify_twice(self, store: ProseStore) -> None:
-        path = write(store.root / "eberron" / "world.md", "Text\n")
+        path = write(store.root / "kestria" / "world.md", "Text\n")
         events = Recorder(store)
         store.reload_paths([path])
         store.reload_paths([path])  # the watcher seeing our own write-back
@@ -231,12 +239,12 @@ class TestHandEdits:
         assert path is not None
         good = path.read_text()
         events = Recorder(store)
-        write(path, good.replace("title: Goblin Arrows", "title: [unclosed"))
+        write(path, good.replace("title: Fog on the River", "title: [unclosed"))
         store.reload_paths([path])
-        assert store.find("chapter", chapter.id).title == "Goblin Arrows"  # type: ignore[union-attr]
+        assert store.find("chapter", chapter.id).title == "Fog on the River"  # type: ignore[union-attr]
         assert "YAML" in (store.error(chapter.id) or "")
         assert events.events == [("chapter", chapter.id, store.revision(chapter.id))]
-        write(path, good.replace("title: Goblin Arrows", "title: Fixed"))
+        write(path, good.replace("title: Fog on the River", "title: Fixed"))
         store.reload_paths([path])
         assert store.find("chapter", chapter.id).title == "Fixed"  # type: ignore[union-attr]
         assert store.error(chapter.id) is None
@@ -261,7 +269,7 @@ class TestHandEdits:
         world, adventure, chapter = world_adventure_chapter(store)
         old = store.folder(world.id)
         assert old is not None
-        new = old.with_name("faerun")
+        new = old.with_name("aldmere")
         old_files = list(old.rglob("*.md"))
         os.rename(old, new)
         store.reload_paths([*old_files, *new.rglob("*.md")])
@@ -321,7 +329,7 @@ class TestMigration:
                 {
                     "w1": {
                         "id": "w1",
-                        "name": "Sword Coast",
+                        "name": "Sunken Marches",
                         "description": "North.",
                         "owner_id": "u1",
                         "language": "de",
@@ -345,13 +353,13 @@ class TestMigration:
         )
         registry.load()
         world = registry.gamestate.worlds.get("w1")
-        assert (world.name, world.description, world.language) == ("Sword Coast", "North.", "de")
+        assert (world.name, world.description, world.language) == ("Sunken Marches", "North.", "de")
         assert world.source_set.sources == ["PHB", "MM"]
         assert registry.gamestate.adventures.get("a1").world_id == "w1"
         assert "a2" not in registry.gamestate.adventures
         assert not (library / "worlds.json").exists()
         assert (library / ".worlds.json.migrated").exists()
-        assert (library / "worlds" / "sword-coast" / "world.md").exists()
+        assert (library / "worlds" / "sunken-marches" / "world.md").exists()
         # A second start finds nothing left to move.
         assert registry.gamestate.prose.adopt_json(library) == 0
 
@@ -359,9 +367,9 @@ class TestMigration:
 class TestMedia:
     def test_upload_and_resolve(self, store: ProseStore) -> None:
         _, adventure, _ = world_adventure_chapter(store)
-        first = media.store_upload(store, adventure.id, "Cragmaw Map.PNG", PNG)
-        second = media.store_upload(store, adventure.id, "cragmaw map.png", PNG)
-        assert (first, second) == ("media/cragmaw-map.png", "media/cragmaw-map-2.png")
+        first = media.store_upload(store, adventure.id, "Rotfang Map.PNG", PNG)
+        second = media.store_upload(store, adventure.id, "rotfang map.png", PNG)
+        assert (first, second) == ("media/rotfang-map.png", "media/rotfang-map-2.png")
         path = media.resolve(store, adventure.id, first)
         assert path is not None and path.read_bytes() == PNG
 
@@ -409,7 +417,7 @@ class TestMedia:
         world, adventure, chapter = world_adventure_chapter(store)
         world_folder, chapter_folder = store.folder(world.id), store.folder(chapter.id)
         assert world_folder is not None and chapter_folder is not None
-        write(world_folder / "maps" / "cragmaw.png", "x")
+        write(world_folder / "maps" / "rotfang.png", "x")
         write(world_folder / "maps" / "town.png", "x")
         write(chapter_folder / "media" / "town.png", "x")
         # As written, then in media/, then by name: the chapter's own before the world's.
@@ -418,9 +426,9 @@ class TestMedia:
             "media/town.png",
         )
         assert media.find(store, chapter.id, world.id, "town.png") == (chapter.id, "media/town.png")
-        assert media.find(store, chapter.id, world.id, "cragmaw.png") == (
+        assert media.find(store, chapter.id, world.id, "rotfang.png") == (
             world.id,
-            "maps/cragmaw.png",
+            "maps/rotfang.png",
         )
         assert media.find(store, adventure.id, world.id, "nowhere.png") is None
         assert media.find(store, chapter.id, world.id, "../secret.png") is None

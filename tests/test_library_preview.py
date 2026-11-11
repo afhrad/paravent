@@ -21,7 +21,7 @@ async def _card(raw: httpx.AsyncClient, href: str) -> httpx.Response:
 
 def test_an_excerpt_is_plain_text() -> None:
     text = (
-        "> [!read]\n> Rain falls.\n\n{@npc Sildar}\n\n## Head\n\n"
+        "> [!read]\n> Rain falls.\n\n{@npc Hob}\n\n## Head\n\n"
         "**Bold** {@spell Fireball||Feuerball}"
     )
     assert excerpt(text) == "Rain falls. Head Bold Feuerball"

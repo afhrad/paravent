@@ -130,7 +130,7 @@ class TestRoutes:
     ) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.create(
-            World(name="Phandalin", source_set=SourceSet(sources=["PHB", "MM"]))
+            World(name="Grey Reed", source_set=SourceSet(sources=["PHB", "MM"]))
         )
 
         page = await ac.get("/search", params={"q": "goblin", "world": world.id})

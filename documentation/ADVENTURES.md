@@ -442,7 +442,7 @@ preview follows; ⌘↵ opens the entry in a new tab instead.
   quote, tip, warning, danger…). Choosing one
   writes it and goes on to its names (`/search/kinds`).
 - **Creating in place**: an NPC, encounter or treasure that nothing has the name of yet is
-  offered — "Create NPC “Garaele”, new, in this chapter" — and created where the editor's
+  offered — "Create NPC “Mira Fenn”, new, in this chapter" — and created where the editor's
   record is (a chapter, an adventure, an NPC's or treasure's own scope;
   `POST /gm/editor/create`), then named in the text. A name already there is not made twice.
 - **A toolbar** above each editor (2026-10-26): heading (cycling `#`, `##`, `###`, none),

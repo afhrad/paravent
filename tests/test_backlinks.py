@@ -100,21 +100,23 @@ async def client(
     registry.auth.create_user("dm", PASSWORD, Role.GAMEMASTER)
     registry.auth.create_user("alice", PASSWORD, Role.PLAYER)
     world = registry.gamestate.worlds.create(
-        World(name="Phandalin", source_set=SourceSet(sources=BOOKS_2014))
+        World(name="Grey Reed", source_set=SourceSet(sources=BOOKS_2014))
     )
-    adventure = registry.adventures.create(world.id, "Lost Mine")
-    chapter = registry.adventures.create_chapter(adventure.id, "Cragmaw Hideout")
+    adventure = registry.adventures.create(world.id, "The Drowned Bell")
+    chapter = registry.adventures.create_chapter(adventure.id, "Rotfang Den")
     registry.adventures.update_chapter(
         chapter.id,
-        title="Cragmaw Hideout",
+        title="Rotfang Den",
         status="planned",
         body="A shaman casts {@spell fireball} at the party; {@creature goblin|MM}s flee.",
     )
     where = Scope(world_id=world.id)
-    registry.gamestate.npcs.create(Npc(scope=where, name="Klarg", statblock="Goblin|MM"))
+    registry.gamestate.npcs.create(Npc(scope=where, name="Gnasher", statblock="Goblin|MM"))
     registry.gamestate.treasures.create(
         Treasure(
-            scope=where, name="Klarg's chest", items=[TreasureItem(name="Longsword", source="PHB")]
+            scope=where,
+            name="Gnasher's chest",
+            items=[TreasureItem(name="Longsword", source="PHB")],
         )
     )
     registry.gamestate.encounters.create(
@@ -148,19 +150,19 @@ class TestCampaign:
         )
         kinds = {(link.kind, link.name) for link in goblin.library}
         assert {
-            ("chapter", "Cragmaw Hideout"),
-            ("npc", "Klarg"),
+            ("chapter", "Rotfang Den"),
+            ("npc", "Gnasher"),
             ("encounter", "Cave mouth"),
         } <= kinds
         sword = registry.backlinks.links_to("baseitem", "Longsword", "PHB", world_id=world_id)
-        assert ("treasure", "Klarg's chest") in {(x.kind, x.name) for x in sword.library}
+        assert ("treasure", "Gnasher's chest") in {(x.kind, x.name) for x in sword.library}
         assert not registry.backlinks.links_to(
             "monster", "Goblin", "MM", world_id="another-world"
         ).library
 
         await _login(ac, "dm")
         page = (await ac.get("/ref/spell/PHB/Fireball", params={"world": world_id})).text
-        assert "Referenced by" in page and "In your campaign" in page and "Cragmaw Hideout" in page
+        assert "Referenced by" in page and "In your campaign" in page and "Rotfang Den" in page
         assert ">Mage<" in page
 
     async def test_players_see_the_books_not_the_campaign(
@@ -170,4 +172,4 @@ class TestCampaign:
         await _login(ac, "alice")
         page = (await ac.get("/ref/spell/PHB/Fireball", params={"world": world_id})).text
         assert "Referenced by" in page and ">Mage<" not in page  # a creature: not theirs
-        assert "In your campaign" not in page and "Cragmaw Hideout" not in page
+        assert "In your campaign" not in page and "Rotfang Den" not in page

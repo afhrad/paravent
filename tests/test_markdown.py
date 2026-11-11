@@ -18,7 +18,7 @@ def html(text: str, ctx: MarkdownContext | None = None) -> str:
     return str(render_markdown(text, ctx).html)
 
 
-NPCS = {"Sildar Hallwinter": "/npc/1"}
+NPCS = {"Hob Wade": "/npc/1"}
 
 
 def library(kind: str, name: str) -> LibraryLink | None:
@@ -62,13 +62,13 @@ class TestTags:
         assert "{@spell fireball" in html("{@spell fireball and more")
 
     def test_a_library_tag_links(self) -> None:
-        out = html("Meet {@npc Sildar Hallwinter|Sildar}.", MarkdownContext(link=library))
-        assert '<a href="/npc/1" class="ref lib npc" title="npc: Sildar Hallwinter">' in out
-        assert ">Sildar</a>" in out
+        out = html("Meet {@npc Hob Wade|Hob}.", MarkdownContext(link=library))
+        assert '<a href="/npc/1" class="ref lib npc" title="npc: Hob Wade">' in out
+        assert ">Hob</a>" in out
 
     def test_a_library_tag_label_may_hold_tags(self) -> None:
-        out = html("{@npc Sildar Hallwinter|{@b Sildar}}", MarkdownContext(link=library))
-        assert "<b>Sildar</b>" in out or "<strong>Sildar</strong>" in out
+        out = html("{@npc Hob Wade|{@b Hob}}", MarkdownContext(link=library))
+        assert "<b>Hob</b>" in out or "<strong>Hob</strong>" in out
 
     def test_an_unknown_name_is_inert_not_an_error(self) -> None:
         for ctx in (MarkdownContext(link=library), MarkdownContext()):
@@ -81,7 +81,7 @@ class TestTags:
         def spy(kind: str, name: str) -> None:
             calls.append((kind, name))
 
-        html("{@adventure Lost Mine|LMoP|1}", MarkdownContext(link=spy))  # type: ignore[arg-type]
+        html("{@adventure The Drowned Bell|LMoP|1}", MarkdownContext(link=spy))  # type: ignore[arg-type]
         assert calls == []
 
 
@@ -106,13 +106,13 @@ class TestCallouts:
         assert "[!read]" not in out
 
     def test_sidebar_title(self) -> None:
-        out = html("> [!SIDEBAR] Running Klarg\n> Klarg is a coward.\n")
+        out = html("> [!SIDEBAR] Running Gnasher\n> Gnasher is a coward.\n")
         assert 'class="md-callout md-sidebar"' in out
-        assert '<div class="md-callout-title">Running Klarg</div>' in out
+        assert '<div class="md-callout-title">Running Gnasher</div>' in out
 
     def test_a_marker_on_its_own_paragraph_leaves_no_empty_paragraph(self) -> None:
-        out = html("> [!secret]\n>\n> The Black Spider is Nezznar.\n")
-        assert "<p></p>" not in out and "Nezznar" in out and "md-secret" in out
+        out = html("> [!secret]\n>\n> The Pale Weaver is Vessk.\n")
+        assert "<p></p>" not in out and "Vessk" in out and "md-secret" in out
 
     def test_other_quotes_stay_quotes(self) -> None:
         assert html("> just a quote\n").startswith("<blockquote>")
@@ -176,9 +176,9 @@ class TestBookCallouts:
         assert out.count("<li>") == 2 and "<ul>" in out
 
     def test_a_quotes_last_line_names_who_said_it(self) -> None:
-        out = html("> [!quote]\n> Magic is a river.\n> — Elminster\n")
+        out = html("> [!quote]\n> Magic is a river.\n> — Orrin the Grey\n")
         assert "<p>Magic is a river.</p>" in out
-        assert '<p class="md-quote-by">— Elminster</p>' in out
+        assert '<p class="md-quote-by">— Orrin the Grey</p>' in out
         apart = html("> [!pullquote]\n> Run.\n>\n> -- Volo\n")
         assert '<p class="md-quote-by">— Volo</p>' in apart and "<p>Run.</p>" in apart
 
@@ -202,14 +202,14 @@ class TestTagAloneOnItsLine:
     def test_the_campaigns_objects_show_as_their_card(self) -> None:
         seen: list[tuple[str, str]] = []
         out = html(
-            "Before.\n\n{@encounter Goblin Ambush}\n\n{@npc Sildar Hallwinter|Sildar}\n\n"
-            "{@treasure Klarg's chest}\n\n{@character Brunhild}\n",
+            "Before.\n\n{@encounter Goblin Ambush}\n\n{@npc Hob Wade|Hob}\n\n"
+            "{@treasure Gnasher's chest}\n\n{@character Brunhild}\n",
             self.ctx(seen),
         )
         assert seen == [
             ("encounter", "Goblin Ambush"),
-            ("npc", "Sildar Hallwinter"),  # the label is a link's, not the card's
-            ("treasure", "Klarg's chest"),
+            ("npc", "Hob Wade"),  # the label is a link's, not the card's
+            ("treasure", "Gnasher's chest"),
             ("character", "Brunhild"),
         ]
         assert '<div class="md-embed md-embed-encounter"><div class="card">Goblin Ambush' in out
@@ -223,8 +223,7 @@ class TestTagAloneOnItsLine:
     def test_inside_a_sentence_a_list_or_a_table_it_is_a_link(self) -> None:
         seen: list[tuple[str, str]] = []
         out = html(
-            "Meet {@npc Sildar Hallwinter}.\n\n- {@npc Sildar Hallwinter}\n\n"
-            "| who |\n|---|\n| {@npc Sildar Hallwinter} |\n",
+            "Meet {@npc Hob Wade}.\n\n- {@npc Hob Wade}\n\n| who |\n|---|\n| {@npc Hob Wade} |\n",
             self.ctx(seen),
         )
         assert seen == []
@@ -232,13 +231,13 @@ class TestTagAloneOnItsLine:
 
     def test_two_tags_or_a_chapter_or_a_roll_stay_inline(self) -> None:
         seen: list[tuple[str, str]] = []
-        out = html("{@npc A} {@npc B}\n\n{@chapter Phandalin}\n\n{@dice 2d6}\n", self.ctx(seen))
+        out = html("{@npc A} {@npc B}\n\n{@chapter Grey Reed}\n\n{@dice 2d6}\n", self.ctx(seen))
         assert seen == [] and 'data-roll="2d6"' in out
 
     def test_nothing_to_show_is_the_link_in_its_inert_state(self) -> None:
-        out = html("{@npc Garaele}\n", MarkdownContext(embed=lambda _k, _a: None))
+        out = html("{@npc Mira Fenn}\n", MarkdownContext(embed=lambda _k, _a: None))
         assert out.startswith('<p><span class="ref missing"') and "md-embed" not in out
-        assert "“Garaele” is not in this world." in out
+        assert "“Mira Fenn” is not in this world." in out
 
 
 class TestEmbedsToTags:
@@ -249,21 +248,21 @@ class TestEmbedsToTags:
         )
 
     def test_statblock_is_a_creature_and_open_is_dropped(self) -> None:
-        text = "::: statblock Klarg|LMoP\n:::\n\n::: item Potion of Healing open\n:::"
-        assert embeds_to_tags(text) == ("{@creature Klarg|LMoP}\n\n{@item Potion of Healing}")
+        text = "::: statblock Gnasher|LMoP\n:::\n\n::: item Potion of Healing open\n:::"
+        assert embeds_to_tags(text) == ("{@creature Gnasher|LMoP}\n\n{@item Potion of Healing}")
 
     def test_anchors_unknown_blocks_and_code_stay(self) -> None:
         text = (
-            ":::: at 00e\n::: npc Sildar\n:::\nNotes.\n::::\n\n::: bogus x\n:::\n\n"
+            ":::: at 00e\n::: npc Hob\n:::\nNotes.\n::::\n\n::: bogus x\n:::\n\n"
             "```\n::: npc X\n:::\n```\n"
         )
         assert embeds_to_tags(text) == (
-            ":::: at 00e\n\n{@npc Sildar}\n\nNotes.\n::::\n\n::: bogus x\n:::\n\n"
+            ":::: at 00e\n\n{@npc Hob}\n\nNotes.\n::::\n\n::: bogus x\n:::\n\n"
             "```\n::: npc X\n:::\n```\n"
         )
 
     def test_a_text_without_blocks_is_unchanged(self) -> None:
-        text = "# Title\n\n{@npc Sildar}\n\n> [!read]\n> Hi.\n"
+        text = "# Title\n\n{@npc Hob}\n\n> [!read]\n> Hi.\n"
         assert embeds_to_tags(text) == text
 
 
@@ -287,11 +286,13 @@ class TestEmbeds:
 
     def test_a_statblock_reference_passes_through_whole(self) -> None:
         seen: list[str] = []
-        html("::: statblock Klarg|LMoP\n:::\n", MarkdownContext(embed=lambda k, a: seen.append(a)))  # type: ignore[func-returns-value]
-        assert seen == ["Klarg|LMoP"]
+        html(
+            "::: statblock Gnasher|LMoP\n:::\n", MarkdownContext(embed=lambda k, a: seen.append(a))
+        )  # type: ignore[func-returns-value]
+        assert seen == ["Gnasher|LMoP"]
 
     def test_an_unresolved_embed_says_so(self) -> None:
-        out = html("::: treasure Klarg's chest\n:::\n")
+        out = html("::: treasure Gnasher's chest\n:::\n")
         assert "md-embed-treasure" in out and "is not in this world" in out
 
     def test_an_unknown_block_is_visible(self) -> None:
@@ -321,9 +322,9 @@ class TestImages:
             return f"/media/a1/{path}" if path == "media/map.webp" else None
 
         out = html(
-            "![Cragmaw](media/map.webp) ![gone](media/nope.png)", MarkdownContext(media=media)
+            "![Rotfang](media/map.webp) ![gone](media/nope.png)", MarkdownContext(media=media)
         )
-        assert '<img src="/media/a1/media/map.webp" alt="Cragmaw" loading="lazy">' in out
+        assert '<img src="/media/a1/media/map.webp" alt="Rotfang" loading="lazy">' in out
         assert "Image not found: media/nope.png" in out
         assert asked == ["media/map.webp", "media/nope.png"]
 
@@ -340,13 +341,15 @@ class TestImages:
 
 class TestHeadings:
     def test_shifted_below_the_page_title_and_anchored(self) -> None:
-        rendered = render_markdown("# Goblin *Ambush*\n## Klarg's {@creature cave}\n###### Deep\n")
+        rendered = render_markdown(
+            "# Goblin *Ambush*\n## Gnasher's {@creature cave}\n###### Deep\n"
+        )
         out = str(rendered.html)
         assert '<h2 id="goblin-ambush">Goblin <em>Ambush</em></h2>' in out
-        assert '<h3 id="klarg-s-cave">' in out and "<h6" in out and "<h7" not in out
+        assert '<h3 id="gnasher-s-cave">' in out and "<h6" in out and "<h7" not in out
         assert [(h.level, h.text) for h in rendered.toc] == [
             (1, "Goblin Ambush"),
-            (2, "Klarg's cave"),
+            (2, "Gnasher's cave"),
             (6, "Deep"),
         ]
 
@@ -363,7 +366,7 @@ class TestLanguage:
 
 
 class TestHeadingLinks:
-    CHAPTERS = {"Phandalin": "/gm/chapters/2"}
+    CHAPTERS = {"Grey Reed": "/gm/chapters/2"}
 
     def ctx(self) -> MarkdownContext:
         def link(kind: str, name: str) -> LibraryLink | None:
@@ -390,12 +393,10 @@ class TestHeadingLinks:
         assert 'class="ref missing"' in out and "Nowhere" in out
 
     def test_another_chapter(self) -> None:
-        out = html(
-            "[[Phandalin#The Inn]] and [[Phandalin|the town]] and [[Neverwinter]]\n", self.ctx()
-        )
-        assert 'href="/gm/chapters/2#the-inn"' in out and "Phandalin › The Inn" in out
+        out = html("[[Grey Reed#The Inn]] and [[Grey Reed|the town]] and [[Lowmere]]\n", self.ctx())
+        assert 'href="/gm/chapters/2#the-inn"' in out and "Grey Reed › The Inn" in out
         assert 'href="/gm/chapters/2"' in out and "the town</a>" in out
-        assert 'class="ref missing"' in out and "Neverwinter" in out
+        assert 'class="ref missing"' in out and "Lowmere" in out
 
 
 class TestLineBreaks:
@@ -404,7 +405,7 @@ class TestLineBreaks:
         assert "<strong>AC</strong> 17<br />" in out
 
     def test_a_tag_alone_still_ignores_the_break(self) -> None:
-        assert "<br" not in html("{@npc Sildar Hallwinter}\n", MarkdownContext(link=library))
+        assert "<br" not in html("{@npc Hob Wade}\n", MarkdownContext(link=library))
 
     def test_off_for_hard_wrapped_text(self) -> None:
         assert "<br" not in html("one\ntwo\n", MarkdownContext(breaks=False))

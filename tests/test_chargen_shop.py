@@ -172,7 +172,7 @@ async def _fighter_at_equipment(
     ac: AsyncClient,
     registry: StoreRegistry,
 ) -> str:
-    world = World(name="Sword Coast", source_set=SourceSet(sources=BOOKS_2014))
+    world = World(name="Sunken Marches", source_set=SourceSet(sources=BOOKS_2014))
     created = registry.gamestate.worlds.create(world)
     started = await ac.post("/chargen", data={"world": created.id})
     url = started.headers["location"]

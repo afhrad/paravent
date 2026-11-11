@@ -50,7 +50,7 @@ class Problem:
 
     line: int  # from 1
     kind: str  # reference, excluded, library, empty, block, image, unclosed, callout, heading
-    text: str  # what was written: "{@spell Firebal}", "::: npc Garaele"
+    text: str  # what was written: "{@spell Firebal}", "::: npc Mira Fenn"
     name: str = ""
     # Replacements for ``text`` on the line ("{@spell Fireball}"), best first.
     instead: tuple[str, ...] = ()

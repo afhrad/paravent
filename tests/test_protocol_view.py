@@ -223,7 +223,7 @@ async def _login(client: AsyncClient, username: str) -> None:
 
 
 def _thorin(registry: StoreRegistry) -> PlayerCharacter:
-    world = registry.gamestate.worlds.create(World(name="Phandalin"))
+    world = registry.gamestate.worlds.create(World(name="Grey Reed"))
     return registry.gamestate.characters.create(
         PlayerCharacter.model_validate(
             {

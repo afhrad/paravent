@@ -29,7 +29,7 @@ PNG = b"\x89PNG\r\n\x1a\n" + b"\0" * 32
 @pytest.fixture
 def setup(gamestate: GameStateStore) -> tuple[AdventureService, World]:
     gamestate.prose.load()
-    world = gamestate.worlds.create(World(name="Sword Coast"))
+    world = gamestate.worlds.create(World(name="Sunken Marches"))
     return AdventureService(gamestate), world
 
 
@@ -38,14 +38,14 @@ class TestService:
         self, setup: tuple[AdventureService, World]
     ) -> None:
         service, world = setup
-        first = service.create(world.id, "Lost Mine")
+        first = service.create(world.id, "The Drowned Bell")
         second = service.create(world.id, "  Dragon   of Icespire  ")
         assert [a.name for a in service.adventures(world.id)] == [
-            "Lost Mine",
+            "The Drowned Bell",
             "Dragon of Icespire",
         ]
         assert (first.order, second.order) == (1, 2)
-        for title in ("Goblin Arrows", "Phandalin", "Spider's Web"):
+        for title in ("Fog on the River", "Grey Reed", "The Reed Maze"):
             service.create_chapter(first.id, title)
         assert [c.order for c in service.chapters(first.id)] == [1, 2, 3]
 
@@ -79,9 +79,9 @@ class TestService:
     ) -> None:
         service, world = setup
         one, two = service.create(world.id, "One"), service.create(world.id, "Two")
-        mine = service.create_chapter(two.id, "Phandalin")
-        service.create_chapter(one.id, "Phandalin")
-        assert service.find_chapter(world.id, "phandalin", prefer=two.id) == mine
+        mine = service.create_chapter(two.id, "Grey Reed")
+        service.create_chapter(one.id, "Grey Reed")
+        assert service.find_chapter(world.id, "grey reed", prefer=two.id) == mine
         assert service.find_chapter(world.id, "Nowhere") is None
 
     def test_update_keeps_levels_sane(self, setup: tuple[AdventureService, World]) -> None:
@@ -134,7 +134,7 @@ async def client(tmp_path: Path, corpus: Path) -> AsyncIterator[tuple[AsyncClien
         yield ac, registry
 
 
-CHAPTER = """Go to {@chapter Phandalin}. Meet {@npc Sildar}.
+CHAPTER = """Go to {@chapter Grey Reed}. Meet {@npc Hob}.
 
 # Goblin Ambush
 
@@ -143,7 +143,7 @@ CHAPTER = """Go to {@chapter Phandalin}. Meet {@npc Sildar}.
 
 Four {@creature goblin}s.
 
-::: encounter Cragmaw ambush
+::: encounter Rotfang ambush
 They flee.
 :::
 
@@ -162,34 +162,34 @@ class TestPages:
     async def test_world_adventure_chapter(self, client: tuple[AsyncClient, StoreRegistry]) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.create(
-            World(name="Sword Coast", source_set=SourceSet(sources=["PHB", "MM"]))
+            World(name="Sunken Marches", source_set=SourceSet(sources=["PHB", "MM"]))
         )
-        made = await ac.post(f"/gm/worlds/{world.id}/adventures", data={"name": "Lost Mine"})
+        made = await ac.post(f"/gm/worlds/{world.id}/adventures", data={"name": "The Drowned Bell"})
         assert made.status_code == 303
         adventure = registry.adventures.adventures(world.id)[0]
         assert made.headers["location"] == f"/gm/adventures/{adventure.id}"
-        assert "Lost Mine" in (await ac.get(f"/gm/worlds/{world.id}")).text
+        assert "The Drowned Bell" in (await ac.get(f"/gm/worlds/{world.id}")).text
 
         made = await ac.post(
-            f"/gm/adventures/{adventure.id}/chapters", data={"title": "Goblin Arrows"}
+            f"/gm/adventures/{adventure.id}/chapters", data={"title": "Fog on the River"}
         )
         chapter = registry.adventures.chapters(adventure.id)[0]
         assert made.headers["location"] == f"/gm/chapters/{chapter.id}/edit"
-        registry.adventures.create_chapter(adventure.id, "Phandalin")
-        encounter = registry.encounters.create("Cragmaw ambush", world.id)
+        registry.adventures.create_chapter(adventure.id, "Grey Reed")
+        encounter = registry.encounters.create("Rotfang ambush", world.id)
         registry.encounters.add_monster(encounter.id, "Goblin|MM", 4)
         registry.adventures.upload(chapter.id, "map.png", PNG, as_cover=False)
 
         saved = await ac.post(
             f"/gm/chapters/{chapter.id}/edit",
-            data={"title": "Goblin Arrows", "status": "running", "body": CHAPTER},
+            data={"title": "Fog on the River", "status": "running", "body": CHAPTER},
         )
         assert saved.headers["location"] == f"/gm/chapters/{chapter.id}?saved=1"
         page = (await ac.get(saved.headers["location"])).text
         assert "Chapter saved." in page
         assert 'class="md-callout md-read"' in page
-        assert 'class="ref lib chapter"' in page  # {@chapter Phandalin}
-        assert "“Sildar” is not in this world." in page  # NPCs arrive in step 4
+        assert 'class="ref lib chapter"' in page  # {@chapter Grey Reed}
+        assert "“Hob” is not in this world." in page  # NPCs arrive in step 4
         assert f'href="/gm/encounters/{encounter.id}"' in page and "4× Goblin" in page
         assert 'class="md-fold md-fold-monster"' in page and "Goblin" in page
         assert ">Three wolves</a></td>" in page

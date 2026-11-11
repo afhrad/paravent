@@ -165,7 +165,7 @@ class TestDesigns:
 
     def test_publish_makes_it_a_creature_of_the_world(self, registry: StoreRegistry) -> None:
         world = registry.gamestate.worlds.create(
-            World(name="Barovia", source_set=SourceSet(sources=["PHB", "MM"]))
+            World(name="Mirefall", source_set=SourceSet(sources=["PHB", "MM"]))
         )
         service = registry.creatures
         design = service.create("Ash Wight", world.id, "3")
@@ -174,7 +174,7 @@ class TestDesigns:
         service.save(design)
         assert service.unpublished(service.get(design.id))
         done = service.publish()
-        assert done.count == 1 and done.worlds == ["Barovia"]
+        assert done.count == 1 and done.worlds == ["Mirefall"]
         data = json.loads(service.homebrew_file.read_text())
         assert data["_meta"]["sources"][0]["json"] == HOMEBREW_SOURCE
         assert [m["name"] for m in data["monster"]] == ["Ash Wight"]

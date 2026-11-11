@@ -254,15 +254,15 @@ class TestSourceSetOnRecords:
     """Where the declaration lives: the world, with an adventure override."""
 
     def test_a_world_defaults_to_unrestricted(self) -> None:
-        assert World(name="Faerûn").source_set.is_unrestricted
+        assert World(name="Aldmere").source_set.is_unrestricted
 
     def test_an_adventure_inherits_the_world(self) -> None:
-        world = World(name="Faerûn", source_set=SourceSet(sources=["PHB", "MM"]))
+        world = World(name="Aldmere", source_set=SourceSet(sources=["PHB", "MM"]))
         adventure = Adventure(world_id=world.id, name="LMoP")
         assert adventure.effective_source_set(world).sources == ["PHB", "MM"]
 
     def test_an_adventure_can_narrow(self) -> None:
-        world = World(name="Faerûn", source_set=SourceSet(sources=["PHB", "MM", "VGM"]))
+        world = World(name="Aldmere", source_set=SourceSet(sources=["PHB", "MM", "VGM"]))
         adventure = Adventure(
             world_id=world.id, name="LMoP", source_set=SourceSet(sources=["PHB"])
         )

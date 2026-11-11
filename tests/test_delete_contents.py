@@ -59,7 +59,7 @@ class TestDeleting:
         raw, facts = table
         registry = facts["app"].state.stores
         world_id = facts["world"].id
-        before = _counts(registry, world_id)  # Sildar, the fixture's NPC, stays
+        before = _counts(registry, world_id)  # Hob, the fixture's NPC, stays
         adventure, chapter = _fill(registry, world_id)
         await raw.post("/login", data={"username": "dm", "password": PASSWORD})
         await raw.post(f"/gm/chapters/{chapter.id}/delete", data={"contents": "all"})

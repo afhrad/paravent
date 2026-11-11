@@ -98,7 +98,7 @@ async def client(
     registry.load()
     registry.auth.create_user("dm", PASSWORD, Role.GAMEMASTER)
     world = registry.gamestate.worlds.create(
-        World(name="Phandalin", source_set=SourceSet(sources=BOOKS_2014))
+        World(name="Grey Reed", source_set=SourceSet(sources=BOOKS_2014))
     )
     app = create_app()
     app.state.stores = registry

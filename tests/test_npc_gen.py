@@ -132,16 +132,16 @@ class TestPages:
     ) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.create(
-            World(name="Phandalin", source_set=SourceSet(sources=["PHB", "MM", "DMG", "XGE"]))
+            World(name="Grey Reed", source_set=SourceSet(sources=["PHB", "MM", "DMG", "XGE"]))
         )
-        made = await ac.post(f"/gm/worlds/{world.id}/npcs/generate", data={"name": "Toblen"})
+        made = await ac.post(f"/gm/worlds/{world.id}/npcs/generate", data={"name": "Tam"})
         assert made.status_code == 303
         npc = registry.npcs.list(world.id)[0]
-        assert npc.name == "Toblen" and made.headers["location"].endswith("keep_name=1")
+        assert npc.name == "Tam" and made.headers["location"].endswith("keep_name=1")
         page = (await ac.get(made.headers["location"])).text
-        assert "Toblen" in page and "Talent" in page and "Bandit Captain (MM)" in page
+        assert "Tam" in page and "Talent" in page and "Bandit Captain (MM)" in page
         carried = _carried(page)
-        assert carried["v_name"] == "Toblen" and carried["v_talent"]
+        assert carried["v_name"] == "Tam" and carried["v_talent"]
         rerolled = await ac.post(
             f"/gm/npcs/{npc.id}/generate",
             data={**carried, "action": "reroll:name", "names": "Dwarf|XGE"},
@@ -158,7 +158,7 @@ class TestPages:
         )
         assert applied.status_code == 303
         after = registry.npcs.get(npc.id)
-        assert after.name == "Toblen"  # the name was not ticked
+        assert after.name == "Tam"  # the name was not ticked
         assert after.statblock == "Bandit Captain|MM"
         assert f"- **Talent:** {carried['v_talent']}" in after.notes
         assert "**Mannerism:**" not in after.notes
@@ -168,7 +168,7 @@ class TestPages:
     ) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.create(World(name="W"))
-        npc = registry.npcs.create("Sildar", f"w:{world.id}", world.id)
+        npc = registry.npcs.create("Hob", f"w:{world.id}", world.id)
         page = (await ac.get(f"/gm/npcs/{npc.id}/generate")).text
         assert 'value="starter:old-norse"' in page and "Old Norse (saga age)" in page
         rolled = (

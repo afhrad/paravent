@@ -106,7 +106,7 @@ class TestWorlds:
         response = await gm.post(
             "/gm/worlds",
             data={
-                "name": "Barovia",
+                "name": "Mirefall",
                 "description": "Mists.",
                 "sources": ["PHB", "MM", "CoS", "phb"],
             },
@@ -115,8 +115,8 @@ class TestWorlds:
         world = registry.worlds.list()[0]
         assert world.source_set.sources == ["PHB", "MM", "CoS"]  # duplicates dropped
         listing = await gm.get(response.headers["location"])
-        assert "World Barovia created." in listing.text and "3 books" in listing.text
-        await gm.post(f"/gm/worlds/{world.id}", data={"name": "Barovia", "sources": []})
+        assert "World Mirefall created." in listing.text and "3 books" in listing.text
+        await gm.post(f"/gm/worlds/{world.id}", data={"name": "Mirefall", "sources": []})
         assert registry.worlds.get(world.id).source_set.is_unrestricted
         assert "all imported books" in (await gm.get("/gm/worlds")).text
 
@@ -239,15 +239,15 @@ class TestParty:
 
     async def test_filter_by_world(self, gm: AsyncClient, registry: StoreRegistry) -> None:
         world = registry.gamestate.worlds.create(
-            World(name="Barovia", source_set=SourceSet(sources=["CoS"]))
+            World(name="Mirefall", source_set=SourceSet(sources=["CoS"]))
         )
-        _character(registry, "Ireena", world_id=world.id)
+        _character(registry, "Isolde", world_id=world.id)
         _character(registry, "Elsewhere")
         everyone = (await gm.get("/gm")).text
-        assert "Ireena" in everyone and "Elsewhere" in everyone and "Barovia" in everyone
+        assert "Isolde" in everyone and "Elsewhere" in everyone and "Mirefall" in everyone
         only = (await gm.get(f"/gm?world={world.id}")).text
-        assert "Ireena" in only and "Elsewhere" not in only
-        assert "Barovia · books: CoS" in only
+        assert "Isolde" in only and "Elsewhere" not in only
+        assert "Mirefall · books: CoS" in only
         grid = (await gm.get(f"/gm/party?world={world.id}")).text
         assert grid.startswith('<div id="party"') and f"world={world.id}" in grid
 

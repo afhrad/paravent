@@ -26,7 +26,7 @@ class TestRelevanceFilter:
 
     def test_markdown_is_watched(self) -> None:
         """Worlds, adventures and chapters are Markdown files (ADVENTURES.md §3)."""
-        assert _is_relevant("/data/library/worlds/eberron/world.md")
+        assert _is_relevant("/data/library/worlds/kestria/world.md")
 
     def test_other_files_are_ignored(self) -> None:
         assert not _is_relevant("/data/media/token.png")

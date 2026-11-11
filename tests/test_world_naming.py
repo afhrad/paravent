@@ -242,7 +242,7 @@ class TestClaudesStylesForAWorld:
             Settings(library_dir=tmp_path / "lib", reference_cache_dir=tmp_path / "c")
         )
         registry.load()
-        world = registry.gamestate.worlds.create(World(name="Faerûn"))
+        world = registry.gamestate.worlds.create(World(name="Aldmere"))
         draft = registry.naming_workshop.propose(_style("Ana"), world_id=world.id)
         registry.naming_workshop.accept(draft.id)
         assert registry.worlds.get(world.id).naming_styles == []

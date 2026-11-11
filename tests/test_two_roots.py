@@ -146,9 +146,9 @@ class TestReferenceIsNeverWritten:
         registry = StoreRegistry(settings)
         registry.load()
 
-        registry.gamestate.worlds.create(World(name="Faerûn"))
+        registry.gamestate.worlds.create(World(name="Aldmere"))
 
-        assert (library / "worlds" / "faer-n" / "world.md").exists()
+        assert (library / "worlds" / "aldmere" / "world.md").exists()
         assert not list(reference.rglob("*"))
 
 
@@ -184,10 +184,10 @@ class TestChangeRouting:
         registry.load()
 
         users = library / "users.json"
-        users.write_text(json.dumps({"u1": {"id": "u1", "username": "eberron"}}))
+        users.write_text(json.dumps({"u1": {"id": "u1", "username": "kestria"}}))
         registry._on_change({users})
 
-        assert registry.gamestate.users.get("u1").username == "eberron"
+        assert registry.gamestate.users.get("u1").username == "kestria"
 
     def test_world_file_change_reloads_the_world(self, tmp_path: Path) -> None:
         reference = tmp_path / "reference"
@@ -197,9 +197,9 @@ class TestChangeRouting:
         registry = StoreRegistry(settings)
         registry.load()
 
-        world = library / "worlds" / "eberron" / "world.md"
+        world = library / "worlds" / "kestria" / "world.md"
         world.parent.mkdir(parents=True)
-        world.write_text("---\nid: w1\nname: Eberron\n---\nKhorvaire.\n")
+        world.write_text("---\nid: w1\nname: Kestria\n---\nKestria.\n")
         registry._on_change({world})
 
-        assert registry.gamestate.worlds.get("w1").description == "Khorvaire."
+        assert registry.gamestate.worlds.get("w1").description == "Kestria."

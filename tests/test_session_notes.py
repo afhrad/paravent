@@ -44,9 +44,9 @@ class TestNotes:
         raw, facts = table
         registry = facts["app"].state.stores
         world_id = facts["world"].id
-        adventure = registry.adventures.create(world_id, "Goblin Arrows")
+        adventure = registry.adventures.create(world_id, "Fog on the River")
         registry.gamestate.npcs.create(
-            Npc(scope=Scope(world_id=world_id, adventure_id=adventure.id), name="Klarg")
+            Npc(scope=Scope(world_id=world_id, adventure_id=adventure.id), name="Gnasher")
         )
         await _login(raw)
         await raw.post(
@@ -55,7 +55,7 @@ class TestNotes:
         )
         (note,) = registry.session_notes.list(world_id)
         assert note.text == "" and note.adventure_id == adventure.id
-        text = "## What happened\n\nThe party spared {@npc Klarg}.\n"
+        text = "## What happened\n\nThe party spared {@npc Gnasher}.\n"
         saved = await raw.post(
             f"/gm/sessions/{note.id}",
             data={
@@ -68,7 +68,7 @@ class TestNotes:
         assert saved.status_code == 303
         listing = (await raw.get(f"/gm/worlds/{world_id}/sessions")).text
         # Rendered in the adventure's context: its own NPC resolves.
-        assert "Klarg</a>" in listing and "Goblin Arrows" in listing
+        assert "Gnasher</a>" in listing and "Fog on the River" in listing
         assert (
             "25.10.2026"
             in (

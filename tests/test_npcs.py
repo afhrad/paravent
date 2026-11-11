@@ -49,20 +49,20 @@ class World3:
         store.prose.load()
         self.store = store
         self.adventures = AdventureService(store)
-        self.world = store.worlds.create(World(name="Sword Coast"))
-        self.lmop = self.adventures.create(self.world.id, "Lost Mine")
+        self.world = store.worlds.create(World(name="Sunken Marches"))
+        self.bell = self.adventures.create(self.world.id, "The Drowned Bell")
         self.other = self.adventures.create(self.world.id, "Icespire")
-        self.ch1 = self.adventures.create_chapter(self.lmop.id, "Goblin Arrows")
-        self.ch2 = self.adventures.create_chapter(self.lmop.id, "Phandalin")
+        self.ch1 = self.adventures.create_chapter(self.bell.id, "Fog on the River")
+        self.ch2 = self.adventures.create_chapter(self.bell.id, "Grey Reed")
         self.npcs = NpcService(store, self.adventures, creature)
         self.treasure = TreasureService(store, self.adventures, item)
 
     def at(self, record: str) -> Scope:
         return {
             "world": Scope(world_id=self.world.id),
-            "lmop": Scope(world_id=self.world.id, adventure_id=self.lmop.id),
-            "ch1": Scope(world_id=self.world.id, adventure_id=self.lmop.id, chapter_id=self.ch1.id),
-            "ch2": Scope(world_id=self.world.id, adventure_id=self.lmop.id, chapter_id=self.ch2.id),
+            "bell": Scope(world_id=self.world.id, adventure_id=self.bell.id),
+            "ch1": Scope(world_id=self.world.id, adventure_id=self.bell.id, chapter_id=self.ch1.id),
+            "ch2": Scope(world_id=self.world.id, adventure_id=self.bell.id, chapter_id=self.ch2.id),
             "other": Scope(world_id=self.world.id, adventure_id=self.other.id),
         }[record]
 
@@ -81,26 +81,26 @@ class TestScope:
         assert w.npcs.find("Guard Captain", w.at("other")) == world_captain
 
     def test_a_chapters_npc_is_still_found_from_elsewhere(self, w: World3) -> None:
-        klarg = w.npcs.create("Klarg", f"c:{w.ch1.id}", w.world.id)
-        assert w.npcs.find("Klarg", w.at("ch2")) == klarg
-        assert w.npcs.find("Klarg", w.at("other")) == klarg
+        gnasher = w.npcs.create("Gnasher", f"c:{w.ch1.id}", w.world.id)
+        assert w.npcs.find("Gnasher", w.at("ch2")) == gnasher
+        assert w.npcs.find("Gnasher", w.at("other")) == gnasher
         assert w.npcs.find("Nobody", w.at("ch1")) is None
 
     def test_another_worlds_npc_is_never_found(self, w: World3) -> None:
-        elsewhere = w.store.worlds.create(World(name="Eberron"))
-        w.npcs.create("Klarg", f"w:{elsewhere.id}", elsewhere.id)
-        assert w.npcs.find("Klarg", w.at("ch1")) is None
+        elsewhere = w.store.worlds.create(World(name="Kestria"))
+        w.npcs.create("Gnasher", f"w:{elsewhere.id}", elsewhere.id)
+        assert w.npcs.find("Gnasher", w.at("ch1")) is None
 
     def test_decode_fills_in_parents(self, w: World3) -> None:
         assert scope.decode(f"c:{w.ch1.id}", w.adventures) == w.at("ch1")
-        assert scope.decode(f"a:{w.lmop.id}", w.adventures) == w.at("lmop")
+        assert scope.decode(f"a:{w.bell.id}", w.adventures) == w.at("bell")
         assert scope.decode(w.world.id, w.adventures) == w.at("world")  # a bare world id
         for bad in ("c:nope", "a:", "x:y"):
             with pytest.raises(ScopeError):
                 scope.decode(bad, w.adventures)
 
     def test_decode_keeps_to_its_world(self, w: World3) -> None:
-        elsewhere = w.store.worlds.create(World(name="Eberron"))
+        elsewhere = w.store.worlds.create(World(name="Kestria"))
         with pytest.raises(ScopeError):
             scope.decode(f"c:{w.ch1.id}", w.adventures, elsewhere.id)
 
@@ -110,33 +110,33 @@ class TestScope:
             for v, label, depth in scope.choices(w.adventures, w.world.id)
         ]
         assert values == [
-            ("w", "Sword Coast", 0),
-            ("a", "Lost Mine", 1),
-            ("c", "Lost Mine › Goblin Arrows", 2),
-            ("c", "Lost Mine › Phandalin", 2),
+            ("w", "Sunken Marches", 0),
+            ("a", "The Drowned Bell", 1),
+            ("c", "The Drowned Bell › Fog on the River", 2),
+            ("c", "The Drowned Bell › Grey Reed", 2),
             ("a", "Icespire", 1),
         ]
 
     def test_within(self, w: World3) -> None:
-        assert scope.within(w.at("ch1"), w.at("lmop"))
-        assert not scope.within(w.at("other"), w.at("lmop"))
-        assert scope.within(w.at("lmop"), w.at("world"))
-        assert not scope.within(w.at("lmop"), w.at("ch1"))
+        assert scope.within(w.at("ch1"), w.at("bell"))
+        assert not scope.within(w.at("other"), w.at("bell"))
+        assert scope.within(w.at("bell"), w.at("world"))
+        assert not scope.within(w.at("bell"), w.at("ch1"))
 
 
 class TestNpcs:
     def test_roles_are_cleaned(self) -> None:
-        assert clean_roles(["ally", " Black  Spider, BOSS", "boss", ""]) == [
+        assert clean_roles(["ally", " Pale  Weaver, BOSS", "boss", ""]) == [
             "boss",
             "ally",
-            "black spider",
+            "pale weaver",
         ]
 
     def test_update_checks_the_statblock(self, w: World3) -> None:
-        npc = w.npcs.create("Nezznar", f"w:{w.world.id}", w.world.id)
+        npc = w.npcs.create("Vessk", f"w:{w.world.id}", w.world.id)
         saved = w.npcs.update(
             npc.id,
-            name="Nezznar",
+            name="Vessk",
             scope_value=f"w:{w.world.id}",
             roles=["boss"],
             statblock="drow mage|mm",
@@ -146,7 +146,7 @@ class TestNpcs:
         with pytest.raises(ObjectError):
             w.npcs.update(
                 npc.id,
-                name="Nezznar",
+                name="Vessk",
                 scope_value=f"w:{w.world.id}",
                 roles=[],
                 statblock="Tarrasque|XX",
@@ -155,32 +155,33 @@ class TestNpcs:
         assert w.npcs.bosses(w.world.id) == [saved]
 
     def test_a_rename_follows_into_the_texts(self, w: World3) -> None:
-        npc = w.npcs.create("Klarg", f"c:{w.ch1.id}", w.world.id)
+        npc = w.npcs.create("Gnasher", f"c:{w.ch1.id}", w.world.id)
         w.store.chapters.update(
-            w.ch2.id, body="{@npc Klarg} and {@npc Klarg|the bugbear}.\n\n::: npc Klarg\n:::\n"
+            w.ch2.id,
+            body="{@npc Gnasher} and {@npc Gnasher|the bugbear}.\n\n::: npc Gnasher\n:::\n",
         )
         w.npcs.update(
             npc.id,
-            name="Klarg the Bugbear",
+            name="Gnasher the Bugbear",
             scope_value=f"c:{w.ch1.id}",
             roles=[],
             statblock="",
             notes="",
         )
         assert w.store.chapters.get(w.ch2.id).body == (
-            "{@npc Klarg the Bugbear} and {@npc Klarg the Bugbear|the bugbear}.\n\n"
-            "::: npc Klarg the Bugbear\n:::"
+            "{@npc Gnasher the Bugbear} and {@npc Gnasher the Bugbear|the bugbear}.\n\n"
+            "::: npc Gnasher the Bugbear\n:::"
         )
 
     def test_portrait_lives_beside_its_scope(self, w: World3) -> None:
-        npc = w.npcs.create("Klarg", f"c:{w.ch1.id}", w.world.id)
-        path = w.npcs.upload_portrait(npc.id, "Klarg.png", PNG)
-        assert path == "media/klarg.png"
+        npc = w.npcs.create("Gnasher", f"c:{w.ch1.id}", w.world.id)
+        path = w.npcs.upload_portrait(npc.id, "Gnasher.png", PNG)
+        assert path == "media/gnasher.png"
         assert w.adventures.media_path(w.ch1.id, path) is not None
         # Moving the NPC elsewhere drops a portrait that would no longer resolve.
         moved = w.npcs.update(
             npc.id,
-            name="Klarg",
+            name="Gnasher",
             scope_value=f"w:{w.world.id}",
             roles=[],
             statblock="",
@@ -191,7 +192,7 @@ class TestNpcs:
 
 class TestTreasure:
     def test_items_merge_count_and_go(self, w: World3) -> None:
-        chest = w.treasure.create("Klarg's chest", f"c:{w.ch1.id}", w.world.id)
+        chest = w.treasure.create("Gnasher's chest", f"c:{w.ch1.id}", w.world.id)
         w.treasure.add_item(chest.id, "potion of healing|dmg")
         chest = w.treasure.add_item(chest.id, "Potion of Healing|DMG", 2)
         assert [(i.name, i.count) for i in chest.items] == [("Potion of Healing", 3)]
@@ -214,16 +215,16 @@ class TestTreasure:
         assert saved.coins.copper == 61_100
 
     def test_deleting_an_adventure_lifts_what_it_held(self, w: World3) -> None:
-        npc = w.npcs.create("Klarg", f"c:{w.ch1.id}", w.world.id)
-        chest = w.treasure.create("Chest", f"a:{w.lmop.id}", w.world.id)
+        npc = w.npcs.create("Gnasher", f"c:{w.ch1.id}", w.world.id)
+        chest = w.treasure.create("Chest", f"a:{w.bell.id}", w.world.id)
         enc = w.store.encounters.create(
             Encounter(
-                name="Ambush", world_id=w.world.id, adventure_id=w.lmop.id, chapter_id=w.ch1.id
+                name="Ambush", world_id=w.world.id, adventure_id=w.bell.id, chapter_id=w.ch1.id
             )
         )
         w.adventures.delete_chapter(w.ch1.id)
-        assert w.npcs.get(npc.id).scope == w.at("lmop")
-        w.adventures.delete(w.lmop.id)
+        assert w.npcs.get(npc.id).scope == w.at("bell")
+        w.adventures.delete(w.bell.id)
         assert w.npcs.get(npc.id).scope == w.at("world")
         assert w.treasure.get(chest.id).scope == w.at("world")
         lifted = w.store.encounters.get(enc.id)
@@ -260,35 +261,37 @@ class TestPages:
     ) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.create(
-            World(name="Sword Coast", source_set=SourceSet(sources=["PHB", "MM", "DMG"]))
+            World(name="Sunken Marches", source_set=SourceSet(sources=["PHB", "MM", "DMG"]))
         )
-        adventure = registry.adventures.create(world.id, "Lost Mine")
-        chapter = registry.adventures.create_chapter(adventure.id, "Goblin Arrows")
+        adventure = registry.adventures.create(world.id, "The Drowned Bell")
+        chapter = registry.adventures.create_chapter(adventure.id, "Fog on the River")
         place = f"c:{chapter.id}"
 
-        made = await ac.post(f"/gm/worlds/{world.id}/npcs", data={"name": "Klarg", "place": place})
+        made = await ac.post(
+            f"/gm/worlds/{world.id}/npcs", data={"name": "Gnasher", "place": place}
+        )
         npc = registry.npcs.list(world.id)[0]
         assert made.headers["location"] == f"/gm/npcs/{npc.id}/edit"
         saved = await ac.post(
             f"/gm/npcs/{npc.id}/edit",
-            data={"name": "Klarg", "place": place, "roles": ["boss"], "statblock": "Bugbear|MM"},
+            data={"name": "Gnasher", "place": place, "roles": ["boss"], "statblock": "Bugbear|MM"},
         )
         assert saved.status_code == 303
         refused = await ac.post(
             f"/gm/npcs/{npc.id}/edit",
-            data={"name": "Klarg", "place": place, "statblock": "Nothing|XX"},
+            data={"name": "Gnasher", "place": place, "statblock": "Nothing|XX"},
         )
         assert refused.status_code == 422 and "is not a creature" in refused.text
 
         made = await ac.post(
-            f"/gm/worlds/{world.id}/treasure", data={"name": "Klarg's chest", "place": place}
+            f"/gm/worlds/{world.id}/treasure", data={"name": "Gnasher's chest", "place": place}
         )
         chest = registry.treasure.list(world.id)[0]
         assert made.headers["location"] == f"/gm/treasure/{chest.id}"
         await ac.post(f"/gm/treasure/{chest.id}/items", data={"ref": "Potion of Healing|DMG"})
         await ac.post(
             f"/gm/treasure/{chest.id}",
-            data={"name": "Klarg's chest", "place": place, "gp": "600", "sp": "x"},
+            data={"name": "Gnasher's chest", "place": place, "gp": "600", "sp": "x"},
         )
         assert registry.treasure.get(chest.id).coins == Coins(gp=600)
 
@@ -303,9 +306,9 @@ class TestPages:
 
         registry.adventures.update_chapter(
             chapter.id,
-            title="Goblin Arrows",
+            title="Fog on the River",
             status="running",
-            body="{@npc Klarg} waits.\n\n{@npc Klarg}\n\n{@treasure Klarg's chest}\n\n"
+            body="{@npc Gnasher} waits.\n\n{@npc Gnasher}\n\n{@treasure Gnasher's chest}\n\n"
             "{@encounter Cave ambush}\n",
         )
         page = (await ac.get(f"/gm/chapters/{chapter.id}")).text
@@ -313,10 +316,10 @@ class TestPages:
         assert 'class="npc-embed"' in page and "Bugbear" in page
         assert "Potion of Healing" in page and "600 gp" in page
         assert "3× Goblin" in page
-        assert "{@npc Klarg}</code>" in page  # the holdings panel offers the line to paste
+        assert "{@npc Gnasher}</code>" in page  # the holdings panel offers the line to paste
 
         world_page = (await ac.get(f"/gm/worlds/{world.id}")).text
-        assert "Bosses" in world_page and "Klarg" in world_page
+        assert "Bosses" in world_page and "Gnasher" in world_page
 
     async def test_a_character_in_the_text(self, client: tuple[AsyncClient, StoreRegistry]) -> None:
         ac, registry = client
@@ -345,7 +348,7 @@ class TestPages:
     ) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.create(World(name="W"))
-        npc = registry.npcs.create("Klarg", f"w:{world.id}", world.id)
+        npc = registry.npcs.create("Gnasher", f"w:{world.id}", world.id)
         chest = registry.treasure.create("Chest", f"w:{world.id}", world.id)
         for url, record in ((f"/gm/npcs/{npc.id}/edit", npc), (f"/gm/treasure/{chest.id}", chest)):
             opened = (await ac.get(url)).text
@@ -392,12 +395,12 @@ class TestPages:
         adventure = registry.adventures.create(world.id, "A")
         chapter = registry.adventures.create_chapter(adventure.id, "C")
         registry.adventures.update_chapter(
-            chapter.id, title="C", status="draft", body="::: npc Klarg\nHe hides.\n:::\n"
+            chapter.id, title="C", status="draft", body="::: npc Gnasher\nHe hides.\n:::\n"
         )
-        npc = registry.npcs.create("Klarg", f"w:{world.id}", world.id)
+        npc = registry.npcs.create("Gnasher", f"w:{world.id}", world.id)
         registry.gamestate.npcs.update(npc.id, notes="::: creature Goblin\n:::")
         assert registry.adventures.rewrite_all_texts(embeds_to_tags) == 2
-        assert registry.adventures.get_chapter(chapter.id).body == "{@npc Klarg}\n\nHe hides."
+        assert registry.adventures.get_chapter(chapter.id).body == "{@npc Gnasher}\n\nHe hides."
         assert registry.gamestate.npcs.get(npc.id).notes == "{@creature Goblin}"
         assert registry.adventures.rewrite_all_texts(embeds_to_tags) == 0
 
@@ -434,7 +437,7 @@ class TestPages:
     async def test_players_may_not(self, client: tuple[AsyncClient, StoreRegistry]) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.create(World(name="W"))
-        npc = registry.npcs.create("Klarg", f"w:{world.id}", world.id)
+        npc = registry.npcs.create("Gnasher", f"w:{world.id}", world.id)
         chest = registry.treasure.create("Chest", f"w:{world.id}", world.id)
         await ac.post("/logout")
         await ac.post("/login", data={"username": "alice", "password": PASSWORD})

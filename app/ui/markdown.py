@@ -494,7 +494,7 @@ def _callouts(state: StateCore) -> None:
 
 def _attribution(tokens: list[Token], start: int, end: int) -> None:
     """Mark a quote's last line starting with a dash as who said it, as the books print
-    "— Elminster": its own paragraph, or the last line of the last one, split off."""
+    "— a sage of old": its own paragraph, or the last line of the last one, split off."""
     last = next(
         (
             i

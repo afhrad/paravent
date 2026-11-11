@@ -213,7 +213,7 @@ class TestService:
     ) -> tuple[EncounterService, GameStateStore, World]:
         store = GameStateStore(tmp_path)
         world = store.worlds.create(
-            World(name="Phandalin", source_set=SourceSet(sources=["PHB", "MM"]))
+            World(name="Grey Reed", source_set=SourceSet(sources=["PHB", "MM"]))
         )
         rules = DifficultyRules(reference=corpus_path())
         return EncounterService(store, loaded_compendium, rules), store, world
@@ -337,11 +337,11 @@ class TestRoutes:
     async def test_plan_a_fight(self, client: tuple[AsyncClient, StoreRegistry]) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.create(
-            World(name="Phandalin", source_set=SourceSet(sources=["PHB", "MM"]))
+            World(name="Grey Reed", source_set=SourceSet(sources=["PHB", "MM"]))
         )
 
         created = await ac.post(
-            "/gm/encounters", data={"name": "Cragmaw ambush", "world": world.id}
+            "/gm/encounters", data={"name": "Rotfang ambush", "world": world.id}
         )
         assert created.status_code == 303
         url = created.headers["location"].split("#")[0]
@@ -364,7 +364,7 @@ class TestRoutes:
         await ac.post(
             f"/gm/encounters/{encounter_id}",
             data={
-                "name": "Cragmaw ambush",
+                "name": "Rotfang ambush",
                 "world": world.id,
                 "use_party": "on",
                 "party_size": "4",
@@ -376,7 +376,7 @@ class TestRoutes:
         assert f'href="/ref/monster/MM/Goblin?world={world.id}"' in text  # previews work
 
         listing = (await ac.get("/gm/encounters")).text
-        assert "Cragmaw ambush" in listing and "Deadly" in listing
+        assert "Rotfang ambush" in listing and "Deadly" in listing
 
     async def test_a_corpus_without_the_2014_guide_says_so(
         self, client: tuple[AsyncClient, StoreRegistry]
@@ -511,24 +511,24 @@ class TestNotesAsParaventMarkdown:
 
         ac, registry = client
         world = registry.gamestate.worlds.create(
-            World(name="Phandalin", source_set=SourceSet(sources=["PHB", "MM"]))
+            World(name="Grey Reed", source_set=SourceSet(sources=["PHB", "MM"]))
         )
-        adventure = registry.adventures.create(world.id, "Goblin Arrows")
+        adventure = registry.adventures.create(world.id, "Fog on the River")
         here = Scope(world_id=world.id, adventure_id=adventure.id)
-        registry.gamestate.npcs.create(Npc(scope=here, name="Klarg"))
-        encounter = registry.encounters.create("Cragmaw Hideout", world.id, here)
+        registry.gamestate.npcs.create(Npc(scope=here, name="Gnasher"))
+        encounter = registry.encounters.create("Rotfang Den", world.id, here)
         registry.encounters.update(
             encounter.id,
-            name="Cragmaw Hideout",
+            name="Rotfang Den",
             scope=here,
-            notes="> [!tip] Tactics\n> {@npc Klarg} hides; the {@creature Goblin}s **flee**.",
+            notes="> [!tip] Tactics\n> {@npc Gnasher} hides; the {@creature Goblin}s **flee**.",
             rules=None,
             party=None,
         )
         page = (await ac.get(f"/gm/encounters/{encounter.id}")).text
         assert 'class="md-body enc-notes"' in page
         assert 'class="md-callout md-tip"' in page and "<strong>flee</strong>" in page
-        assert "Klarg</a>" in page  # the adventure's own NPC resolves
+        assert "Gnasher</a>" in page  # the adventure's own NPC resolves
         assert 'class="prose-editor"' in page and f'data-scope="a:{adventure.id}"' in page
 
     async def test_beside_the_board_in_the_tracker(
@@ -538,7 +538,7 @@ class TestNotesAsParaventMarkdown:
 
         ac, registry = client
         world = registry.gamestate.worlds.create(
-            World(name="Phandalin", source_set=SourceSet(sources=["PHB", "MM"]))
+            World(name="Grey Reed", source_set=SourceSet(sources=["PHB", "MM"]))
         )
         here = Scope(world_id=world.id)
         encounter = registry.encounters.create("Ambush", world.id, here)

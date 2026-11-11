@@ -22,8 +22,8 @@ async def _login(raw: httpx.AsyncClient) -> None:
 
 
 def test_what_a_text_names() -> None:
-    text = "{@npc Sildar}, {@npc Sildar|the knight}, {@encounter Ambush} and {@treasure Chest}"
-    assert named_in(text) == [("npc", "Sildar"), ("encounter", "Ambush"), ("treasure", "Chest")]
+    text = "{@npc Hob}, {@npc Hob|the knight}, {@encounter Ambush} and {@treasure Chest}"
+    assert named_in(text) == [("npc", "Hob"), ("encounter", "Ambush"), ("treasure", "Chest")]
 
 
 class TestService:
@@ -31,26 +31,26 @@ class TestService:
         _raw, facts = table
         registry = facts["app"].state.stores
         world_id = facts["world"].id
-        adventure = registry.adventures.create(world_id, "Goblin Arrows")
+        adventure = registry.adventures.create(world_id, "Fog on the River")
         chapter = registry.adventures.create_chapter(adventure.id, "Arrival")
         registry.adventures.update_chapter(
-            chapter.id, title="Arrival", status="planned", body="We reach {@place Phandalin}."
+            chapter.id, title="Arrival", status="planned", body="We reach {@place Grey Reed}."
         )
-        world_town = registry.locations.create("Phandalin", f"w:{world_id}", world_id)
-        own_town = registry.locations.create("Phandalin", f"a:{adventure.id}", world_id)
+        world_town = registry.locations.create("Grey Reed", f"w:{world_id}", world_id)
+        own_town = registry.locations.create("Grey Reed", f"a:{adventure.id}", world_id)
         here = Scope(world_id=world_id, adventure_id=adventure.id, chapter_id=chapter.id)
-        assert registry.locations.find("phandalin", here).id == own_town.id
-        assert registry.locations.find("Phandalin", Scope(world_id=world_id)).id == world_town.id
+        assert registry.locations.find("grey reed", here).id == own_town.id
+        assert registry.locations.find("Grey Reed", Scope(world_id=world_id)).id == world_town.id
         registry.locations.update(
             own_town.id,
-            name="Phandalin Ruins",
+            name="Grey Reed Ruins",
             scope_value=f"a:{adventure.id}",
             tags=["ruin, Village"],
             notes="",
         )
         saved = registry.locations.get(own_town.id)
         assert saved.tags == ["ruin", "village"]
-        assert "{@place Phandalin Ruins}" in registry.adventures.get_chapter(chapter.id).body
+        assert "{@place Grey Reed Ruins}" in registry.adventures.get_chapter(chapter.id).body
 
 
 class TestPages:
@@ -59,14 +59,14 @@ class TestPages:
         registry = facts["app"].state.stores
         world_id = facts["world"].id
         await _login(raw)
-        made = await raw.post(f"/gm/worlds/{world_id}/places", data={"name": "Phandalin"})
+        made = await raw.post(f"/gm/worlds/{world_id}/places", data={"name": "Grey Reed"})
         assert made.status_code == 303
         (town,) = registry.locations.list(world_id)
-        notes = "A frontier town. {@npc Sildar Hallwinter} waits here; {@encounter Redbrands}."
+        notes = "A frontier town. {@npc Hob Wade} waits here; {@encounter Greycloaks}."
         saved = await raw.post(
             f"/gm/places/{town.id}/edit",
             data={
-                "name": "Phandalin",
+                "name": "Grey Reed",
                 "place": f"w:{world_id}",
                 "tags": "town",
                 "notes": notes,
@@ -75,12 +75,12 @@ class TestPages:
         )
         assert saved.status_code == 303
         page = html.unescape((await raw.get(f"/gm/places/{town.id}")).text)
-        assert "A frontier town." in page and "{@place Phandalin}" in page
+        assert "A frontier town." in page and "{@place Grey Reed}" in page
         # Here: the NPC its notes name links; the encounter nobody made is grey.
-        assert 'class="ref lib npc"' in page and 'class="ref missing">Redbrands' in page
+        assert 'class="ref lib npc"' in page and 'class="ref missing">Greycloaks' in page
         stale = await raw.post(
             f"/gm/places/{town.id}/edit",
-            data={"name": "Phandalin", "notes": "x", "base": text_version("")},
+            data={"name": "Grey Reed", "notes": "x", "base": text_version("")},
         )
         assert stale.status_code == 409
         world_page = (await raw.get(f"/gm/worlds/{world_id}")).text
@@ -96,10 +96,10 @@ class TestPages:
         await _login(raw)
         made = await raw.post(
             "/gm/editor/create",
-            data={"kind": "place", "name": "Tresendar", "scope": f"w:{world_id}"},
+            data={"kind": "place", "name": "Marlow", "scope": f"w:{world_id}"},
         )
         assert made.status_code == 201 and made.headers["location"].startswith("/gm/places/")
-        assert [x.name for x in registry.locations.list(world_id)] == ["Tresendar"]
+        assert [x.name for x in registry.locations.list(world_id)] == ["Marlow"]
 
 
 class TestInAChapter:
@@ -107,29 +107,29 @@ class TestInAChapter:
         raw, facts = table
         registry = facts["app"].state.stores
         world_id = facts["world"].id
-        adventure = registry.adventures.create(world_id, "Goblin Arrows")
-        town = registry.locations.create("Phandalin", f"a:{adventure.id}", world_id)
+        adventure = registry.adventures.create(world_id, "Fog on the River")
+        town = registry.locations.create("Grey Reed", f"a:{adventure.id}", world_id)
         # Its notes name the place itself alone on a line: a link there, never a card again.
         registry.locations.update(
             town.id,
-            name="Phandalin",
+            name="Grey Reed",
             scope_value=f"a:{adventure.id}",
             tags=["town"],
-            notes="**Muddy** streets.\n\n{@place Phandalin}\n",
+            notes="**Muddy** streets.\n\n{@place Grey Reed}\n",
         )
         here = Scope(world_id=world_id, adventure_id=adventure.id)
-        fight = registry.encounters.create("Redbrands", world_id, here)
+        fight = registry.encounters.create("Greycloaks", world_id, here)
         registry.encounters.add_monster(fight.id, "Bandit|MM", 3)
         registry.encounters.update(
             fight.id,
-            name="Redbrands",
+            name="Greycloaks",
             scope=here,
             notes="They **flee** at two.",
             rules=None,
             party=None,
         )
         chapter = registry.adventures.create_chapter(adventure.id, "Arrival")
-        body = "We reach {@place Phandalin}.\n\n{@place Phandalin}\n\n{@encounter Redbrands}\n"
+        body = "We reach {@place Grey Reed}.\n\n{@place Grey Reed}\n\n{@encounter Greycloaks}\n"
         registry.adventures.update_chapter(chapter.id, title="Arrival", status="planned", body=body)
         await _login(raw)
         page = (await raw.get(f"/gm/chapters/{chapter.id}")).text
@@ -140,7 +140,7 @@ class TestInAChapter:
         # The adventure's panel lists the place it holds, with the line to paste.
         overview = (await raw.get(f"/gm/adventures/{adventure.id}")).text
         holdings = overview[overview.index("holdings-grid") :]
-        assert "{@place Phandalin}" in html.unescape(holdings)
+        assert "{@place Grey Reed}" in html.unescape(holdings)
 
 
 class TestClaude:

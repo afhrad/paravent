@@ -16,13 +16,13 @@ from app.store.jsonfile import read_json
 
 class TestCrud:
     def test_create_and_get(self, gamestate: GameStateStore) -> None:
-        world = gamestate.users.create(User(username="Faerûn"))
-        assert gamestate.users.get(world.id).username == "Faerûn"
+        world = gamestate.users.create(User(username="Aldmere"))
+        assert gamestate.users.get(world.id).username == "Aldmere"
 
     def test_create_persists_to_disk(self, gamestate: GameStateStore) -> None:
-        world = gamestate.users.create(User(username="Eberron"))
+        world = gamestate.users.create(User(username="Kestria"))
         raw = read_json(gamestate.users.path)
-        assert raw[world.id]["username"] == "Eberron"
+        assert raw[world.id]["username"] == "Kestria"
 
     def test_create_rejects_duplicate_id(self, gamestate: GameStateStore) -> None:
         world = gamestate.users.create(User(username="A"))

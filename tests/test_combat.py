@@ -68,7 +68,7 @@ class Table:
     def __init__(self, root: Path, compendium: CompendiumStore) -> None:
         self.store = GameStateStore(root)
         self.world = self.store.worlds.create(
-            World(name="Phandalin", source_set=SourceSet(sources=["PHB", "MM"]))
+            World(name="Grey Reed", source_set=SourceSet(sources=["PHB", "MM"]))
         )
         data = json.loads(LYRA.read_text(encoding="utf-8"))
         data["world_id"] = self.world.id
@@ -598,7 +598,7 @@ class TestSheetInitiative:
 
 def _encounter(registry: StoreRegistry) -> Encounter:
     world = registry.gamestate.worlds.create(
-        World(name="Phandalin", source_set=SourceSet(sources=["PHB", "MM"]))
+        World(name="Grey Reed", source_set=SourceSet(sources=["PHB", "MM"]))
     )
     data = json.loads(LYRA.read_text(encoding="utf-8"))
     data["world_id"] = world.id
@@ -694,9 +694,9 @@ class TestPages:
         url = (await ac.post(f"/gm/encounters/{_encounter(registry).id}/run")).headers["location"]
         combat_id = url.rsplit("/", 1)[1]
         await ac.post(f"{url}/monsters", data={"ref": "Wolf|MM"})
-        await ac.post(f"{url}/others", data={"label": "Sildar", "ac": "16", "hp": "27"})
+        await ac.post(f"{url}/others", data={"label": "Hob", "ac": "16", "hp": "27"})
         labels = [c.label for c in registry.combats.get(combat_id).combatants]
-        assert "Wolf" in labels and "Sildar" in labels
+        assert "Wolf" in labels and "Hob" in labels
         bad = await ac.post(f"{url}/monsters", data={"ref": "Nothing|XX"})
         assert "error=combat.error.monster" in bad.headers["location"]
         picker = await ac.get("/search", params={"q": "wolf", "pick": combat_id, "partial": "1"})
@@ -739,8 +739,8 @@ class TestPages:
         ac, registry = client
         encounter = _encounter(registry)
         assert encounter.world_id is not None
-        adventure = registry.adventures.create(encounter.world_id, "Lost Mine")
-        chapter = registry.adventures.create_chapter(adventure.id, "Goblin Arrows")
+        adventure = registry.adventures.create(encounter.world_id, "The Drowned Bell")
+        chapter = registry.adventures.create_chapter(adventure.id, "Fog on the River")
         registry.adventures.update_chapter(
             chapter.id,
             title=chapter.title,
@@ -946,10 +946,10 @@ class TestFriendAndFoe:
     def test_an_ally_added_mid_fight(self, table: Table) -> None:
         combat = table.combats.begin(table.start().id, GM)
         combat = table.roll(10).combats.add_monster(combat.id, "Wolf|MM", 1, GM, ally=True)
-        combat = table.combats.add_other(combat.id, "Sildar", GM, hp=27, ally=True)
+        combat = table.combats.add_other(combat.id, "Hob", GM, hp=27, ally=True)
         assert table.now(combat).combatant(table.named(combat, "Wolf")).ally  # type: ignore[union-attr]
         rating = table.combats.view(combat).rating
-        # the wolf (CR 1/4) counts as a level 1 member; Sildar has no CR and no weight
+        # the wolf (CR 1/4) counts as a level 1 member; Hob has no CR and no weight
         assert rating is not None and rating.party_size == 2
 
     def test_fallen_allies_earn_no_xp(self, table: Table) -> None:

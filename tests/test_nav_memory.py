@@ -115,7 +115,7 @@ class TestInTheApp:
     async def test_coming_back_lands_where_you_left(
         self, gm: AsyncClient, registry: StoreRegistry
     ) -> None:
-        world = registry.worlds.create(WorldInput(name="Barovia"))
+        world = registry.worlds.create(WorldInput(name="Mirefall"))
         assert (await gm.get(f"/gm/worlds/{world.id}")).status_code == 200
         table = (await gm.get("/gm")).text
         assert nav_link(table, "Worlds") == f"/gm/worlds/{world.id}"
@@ -126,7 +126,7 @@ class TestInTheApp:
     async def test_fragments_and_failures_are_not_remembered(
         self, gm: AsyncClient, registry: StoreRegistry
     ) -> None:
-        world = registry.worlds.create(WorldInput(name="Barovia"))
+        world = registry.worlds.create(WorldInput(name="Mirefall"))
         await gm.get(f"/gm/worlds/{world.id}")
         await gm.get("/gm/worlds", headers={"HX-Request": "true"})
         assert read_memory(gm.cookies.get(NAV_COOKIE)) == {"/gm/worlds": f"/gm/worlds/{world.id}"}
@@ -140,8 +140,8 @@ class TestInTheApp:
     ) -> None:
         # The chapter page refetches its text with fetch(), which sends no HX-Request;
         # remembering it sent the Worlds link and the login to a bare fragment.
-        world = registry.worlds.create(WorldInput(name="Barovia"))
-        other = registry.worlds.create(WorldInput(name="Faerûn"))
+        world = registry.worlds.create(WorldInput(name="Mirefall"))
+        other = registry.worlds.create(WorldInput(name="Aldmere"))
         await gm.get(f"/gm/worlds/{world.id}", headers={"Sec-Fetch-Mode": "navigate"})
         await gm.get(f"/gm/worlds/{other.id}", headers={"Sec-Fetch-Mode": "cors"})
         assert read_memory(gm.cookies.get(NAV_COOKIE)) == {"/gm/worlds": f"/gm/worlds/{world.id}"}
@@ -181,7 +181,7 @@ class TestPageChangedInPlace:
     async def test_an_htmx_request_remembers_the_address_shown(
         self, gm: AsyncClient, registry: StoreRegistry
     ) -> None:
-        world = registry.worlds.create(WorldInput(name="Barovia"))
+        world = registry.worlds.create(WorldInput(name="Mirefall"))
         shown = f"http://test/gm/worlds/{world.id}?sel=abc"
         await gm.get("/gm/worlds", headers={"HX-Request": "true", "HX-Current-URL": shown})
         assert read_memory(gm.cookies.get(NAV_COOKIE)) == {
@@ -192,7 +192,7 @@ class TestPageChangedInPlace:
     async def test_a_failing_fragment_forgets_nothing(
         self, gm: AsyncClient, registry: StoreRegistry
     ) -> None:
-        world = registry.worlds.create(WorldInput(name="Barovia"))
+        world = registry.worlds.create(WorldInput(name="Mirefall"))
         await gm.get(f"/gm/worlds/{world.id}")
         await gm.get(
             "/gm/worlds/nope",

@@ -71,10 +71,10 @@ async def table(tmp_path: Path, corpus: Path) -> AsyncIterator[tuple[httpx.Async
     registry.load()
     gm = registry.auth.create_user("dm", PASSWORD, Role.GAMEMASTER)
     world = registry.gamestate.worlds.create(
-        World(name="Phandalin", language="de", source_set=SourceSet(sources=["PHB", "MM", "DMG"]))
+        World(name="Grey Reed", language="de", source_set=SourceSet(sources=["PHB", "MM", "DMG"]))
     )
     registry.gamestate.npcs.create(
-        Npc(scope=Scope(world_id=world.id), name="Sildar Hallwinter", roles=["ally"])
+        Npc(scope=Scope(world_id=world.id), name="Hob Wade", roles=["ally"])
     )
     ids = []
     for file in ("lyra-mooncaller.json", "brunhild-ironvow.json"):
@@ -157,7 +157,7 @@ class TestReading:
         assert world["language"] == "de" and world["characters"] == 2
         assert [b["code"] for b in world["books"]] == ["PHB", "MM", "DMG"]
         assert overview["rules"] == "classic"
-        assert overview["npcs"][0]["name"] == "Sildar Hallwinter"
+        assert overview["npcs"][0]["name"] == "Hob Wade"
         assert len(overview["party"]) == 2
 
     async def test_party(self, table: tuple[httpx.AsyncClient, Any]) -> None:
@@ -382,17 +382,17 @@ class TestDrafts:
         mine = registry.adventures.create(world_id, "Hand-made")
         # Even a draft the gamemaster made by hand stays theirs.
         registry.gamestate.adventures.update(mine.id, status="draft")
-        sildar = registry.npcs.list(world_id)[0]
+        hob = registry.npcs.list(world_id)[0]
         async with session(table) as mcp:
             assert "not a draft" in await refused(
                 mcp, "write_chapter", adventure_id=mine.id, title="X", body="y"
             )
             assert "belongs to the world" in await refused(
-                mcp, "update_npc", npc_id=sildar.id, base="", notes="changed"
+                mcp, "update_npc", npc_id=hob.id, base="", notes="changed"
             )
-            assert "belongs to the world" in await refused(mcp, "delete", kind="npc", id=sildar.id)
+            assert "belongs to the world" in await refused(mcp, "delete", kind="npc", id=hob.id)
             assert "not a draft" in await refused(mcp, "delete", kind="adventure", id=mine.id)
-        assert registry.npcs.get(sildar.id).notes == ""
+        assert registry.npcs.get(hob.id).notes == ""
         assert registry.adventures.chapters(mine.id) == []
 
 
@@ -488,9 +488,9 @@ class TestCraft:
         async with session(table) as mcp:
             prompts = {p.name for p in (await mcp.list_prompts()).prompts}
             assert prompts == {"new_adventure", "new_naming_style"}
-            got = await mcp.get_prompt("new_adventure", {"world": "Phandalin", "idea": "a hag"})
+            got = await mcp.get_prompt("new_adventure", {"world": "Grey Reed", "idea": "a hag"})
         text = got.messages[0].content.text  # type: ignore[union-attr]
-        assert '"Phandalin"' in text and "a hag" in text and "{@creature …}" in text
+        assert '"Grey Reed"' in text and "a hag" in text and "{@creature …}" in text
         assert "world's instructions name" in text
 
     async def test_the_prompt_takes_a_number_of_sessions(
@@ -558,7 +558,7 @@ class TestCampaignHistory:
         registry = facts["app"].state.stores
         world_id = facts["world"].id
         lyra, brunhild = facts["ids"]
-        adventure = registry.adventures.create(world_id, "Goblin Arrows")
+        adventure = registry.adventures.create(world_id, "Fog on the River")
         chapter = registry.adventures.create_chapter(adventure.id, "Ambush")
         registry.adventures.update_chapter(chapter.id, title="Ambush", status="finished", body="")
         encounter = registry.encounters.create(
@@ -571,11 +571,11 @@ class TestCampaignHistory:
         async with session(table) as mcp:
             history = await call(mcp, "campaign_history", world_id=world_id)
         assert any("Brunhild Ironvow, level 8" in c for c in history["characters"])
-        goblins = next(a for a in history["adventures"] if a["name"] == "Goblin Arrows")
+        goblins = next(a for a in history["adventures"] if a["name"] == "Fog on the River")
         assert goblins["chapters"] == [{"title": "Ambush", "status": "finished"}]
         (today,) = history["sessions"]
         (ran,) = today["fights"]
-        assert ran["encounter"] == "Goblin ambush" and ran["adventure"] == "Goblin Arrows"
+        assert ran["encounter"] == "Goblin ambush" and ran["adventure"] == "Fog on the River"
         assert ran["finished"] and ran["party"] == ["Brunhild Ironvow"]
         assert today["progress"] == ["Brunhild Ironvow gained 200 XP (Goblin ambush)"]
         assert lyra and history["older_sessions"] == 0

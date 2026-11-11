@@ -103,7 +103,7 @@ async def client(
     registry.auth.create_user("dm", PASSWORD, Role.GAMEMASTER)
     registry.auth.create_user("alice", PASSWORD, Role.PLAYER)
     world = registry.gamestate.worlds.create(
-        World(name="Phandalin", source_set=SourceSet(sources=["PHB", "MM", "DMG"]))
+        World(name="Grey Reed", source_set=SourceSet(sources=["PHB", "MM", "DMG"]))
     )
     registry.gamestate.characters.create(
         PlayerCharacter(
@@ -179,14 +179,14 @@ class TestRoutes:
         assert 'name="players" value="DMG" checked' not in form
         await ac.post(
             f"/gm/worlds/{world}",
-            data={"name": "Phandalin", "sources": ["PHB", "MM", "DMG"], "players": ["PHB", "DMG"]},
+            data={"name": "Grey Reed", "sources": ["PHB", "MM", "DMG"], "players": ["PHB", "DMG"]},
         )
         saved = registry.gamestate.worlds.find(world)
         assert saved is not None and saved.player_sources == ["PHB", "DMG"]
         # back to the defaults: nothing stored
         await ac.post(
             f"/gm/worlds/{world}",
-            data={"name": "Phandalin", "sources": ["PHB", "MM", "DMG"], "players": ["PHB"]},
+            data={"name": "Grey Reed", "sources": ["PHB", "MM", "DMG"], "players": ["PHB"]},
         )
         saved = registry.gamestate.worlds.find(world)
         assert saved is not None and saved.player_sources is None

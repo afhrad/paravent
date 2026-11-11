@@ -43,7 +43,7 @@ class TestTags:
     def test_codes_deities_and_the_campaigns_own(self, loaded_compendium: CompendiumStore) -> None:
         tag = tag_maker(loaded_compendium.resolver(), SourceSet(sources=["XPHB"]))
         assert tag(_row(loaded_compendium, "itemProperty", "v|xphb")) == "{@itemProperty V}"
-        assert tag(Row("npc", "Sildar Hallwinter", "", None)) == "{@npc Sildar Hallwinter}"
+        assert tag(Row("npc", "Hob Wade", "", None)) == "{@npc Hob Wade}"
         assert tag(Row("book", "Grappling", "XPHB", None, url="/books/XPHB/1")) is None
         deity = next(e for e in loaded_compendium.all("deity") if getattr(e, "pantheon", None))
         row = Row("deity", deity.name, deity.source, deity)
@@ -61,9 +61,9 @@ async def client(tmp_path: Path, corpus: Path) -> AsyncIterator[tuple[AsyncClien
     registry.auth.create_user("dm", PASSWORD, Role.GAMEMASTER)
     registry.auth.create_user("alice", PASSWORD, Role.PLAYER)
     world = registry.gamestate.worlds.create(
-        World(name="Phandalin", source_set=SourceSet(sources=["PHB", "MM", "DMG"]))
+        World(name="Grey Reed", source_set=SourceSet(sources=["PHB", "MM", "DMG"]))
     )
-    registry.gamestate.npcs.create(Npc(scope=Scope(world_id=world.id), name="Sildar Hallwinter"))
+    registry.gamestate.npcs.create(Npc(scope=Scope(world_id=world.id), name="Hob Wade"))
     app = create_app()
     app.state.stores = registry
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
@@ -82,10 +82,10 @@ class TestRoute:
         world = registry.gamestate.worlds.list()[0]
         await ac.post("/login", data={"username": "dm", "password": PASSWORD})
         found = await ac.get(
-            "/search", params={"q": "sil", "insert": "1", "world": world.id, "partial": "1"}
+            "/search", params={"q": "hob", "insert": "1", "world": world.id, "partial": "1"}
         )
         tags = _inserts(found.text)
-        assert tags[0] == "{@npc Sildar Hallwinter}"
+        assert tags[0] == "{@npc Hob Wade}"
         goblin = await ac.get(
             "/search", params={"q": "goblin", "insert": "1", "world": world.id, "partial": "1"}
         )
@@ -94,14 +94,14 @@ class TestRoute:
         only = await ac.get(
             "/search",
             params={
-                "q": "s",
+                "q": "h",
                 "insert": "1",
                 "world": world.id,
                 "group": "campaign",
                 "partial": "1",
             },
         )
-        assert _inserts(only.text) == ["{@npc Sildar Hallwinter}"]
+        assert _inserts(only.text) == ["{@npc Hob Wade}"]
 
     async def test_the_editors_carry_the_pop_up_and_players_get_links(
         self, client: tuple[AsyncClient, StoreRegistry]
@@ -141,7 +141,7 @@ class TestSuggest:
         assert all(not s.endswith("|XPHB") for s in spells)  # the world's books only
         goblins = await complete("statblock", "goblin")
         assert goblins[0] == "Goblin" and "Goblin Boss" in goblins
-        assert await complete("npc", "sil") == ["Sildar Hallwinter"]
+        assert await complete("npc", "hob") == ["Hob Wade"]
         assert await complete("nonsense", "a") == []
         registry.gamestate.worlds.update(
             world.id, source_set=SourceSet(sources=["PHB", "XPHB", "MM", "DMG"])
@@ -168,7 +168,7 @@ class TestSuggest:
         links = registry.link_counts.counts()
         weights = [links.get(("spell", s.split("|")[0].lower()), 0) for s in spells]
         assert weights == sorted(weights, reverse=True) and weights[0] > 0  # most linked first
-        assert "Sildar Hallwinter" in await browse("npc", browse="1")
+        assert "Hob Wade" in await browse("npc", browse="1")
         assert await browse("nonsense", browse="1") == []
 
     async def test_players_get_nothing(self, client: tuple[AsyncClient, StoreRegistry]) -> None:
@@ -184,8 +184,8 @@ class TestFolds:
     ) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.list()[0]
-        adventure = registry.adventures.create(world.id, "Lost Mine")
-        chapter = registry.adventures.create_chapter(adventure.id, "Goblin Arrows")
+        adventure = registry.adventures.create(world.id, "The Drowned Bell")
+        chapter = registry.adventures.create_chapter(adventure.id, "Fog on the River")
         await ac.post("/login", data={"username": "dm", "password": PASSWORD})
         body = (
             "::: spell Fireball\n:::\n\n"
@@ -224,8 +224,8 @@ class TestKindsAndCreating:
     ) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.list()[0]
-        adventure = registry.adventures.create(world.id, "Lost Mine")
-        chapter = registry.adventures.create_chapter(adventure.id, "Phandalin")
+        adventure = registry.adventures.create(world.id, "The Drowned Bell")
+        chapter = registry.adventures.create_chapter(adventure.id, "Grey Reed")
         here = f"c:{chapter.id}"
         await ac.post("/login", data={"username": "dm", "password": PASSWORD})
 
@@ -233,22 +233,22 @@ class TestKindsAndCreating:
             params = {"kind": kind, "q": q, "world": world.id, "scope": here}
             return (await ac.get("/search/suggest", params=params)).text
 
-        offered = await suggest("npc", "Garaele")
+        offered = await suggest("npc", "Mira Fenn")
         assert 'data-create="npc"' in offered and "New, in this chapter" in offered
-        assert "data-create" not in await suggest("npc", "Sildar Hallwinter")  # it exists
+        assert "data-create" not in await suggest("npc", "Hob Wade")  # it exists
 
         made = await ac.post(
-            "/gm/editor/create", data={"kind": "npc", "name": "Garaele", "scope": here}
+            "/gm/editor/create", data={"kind": "npc", "name": "Mira Fenn", "scope": here}
         )
         assert made.status_code == 201 and made.headers["location"].startswith("/gm/npcs/")
-        garaele = [n for n in registry.gamestate.npcs.list() if n.name == "Garaele"]
-        assert len(garaele) == 1 and garaele[0].scope.chapter_id == chapter.id
+        mira = [n for n in registry.gamestate.npcs.list() if n.name == "Mira Fenn"]
+        assert len(mira) == 1 and mira[0].scope.chapter_id == chapter.id
         again = await ac.post(
-            "/gm/editor/create", data={"kind": "npc", "name": "Garaele", "scope": here}
+            "/gm/editor/create", data={"kind": "npc", "name": "Mira Fenn", "scope": here}
         )
         assert again.headers["location"] == made.headers["location"]  # not twice
         encounter = await ac.post(
-            "/gm/editor/create", data={"kind": "encounter", "name": "Redbrands", "scope": here}
+            "/gm/editor/create", data={"kind": "encounter", "name": "Greycloaks", "scope": here}
         )
         assert encounter.status_code == 201
         assert registry.encounters.list(world.id)[0].chapter_id == chapter.id
@@ -265,10 +265,10 @@ class TestKindsAndCreating:
         assert refused.status_code == 403
 
 
-CHECKED = """# Phandalin
+CHECKED = """# Grey Reed
 
 Cast {@spell Firebal} at the door, or {@spell Fireball|XPHB}.
-Meet {@npc Garaele} and {@npc Sildar Hallwinter}.
+Meet {@npc Mira Fenn} and {@npc Hob Wade}.
 
 ```
 {@spell Nope} is code and left alone.
@@ -292,8 +292,8 @@ class TestChapterCheck:
     ) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.list()[0]
-        adventure = registry.adventures.create(world.id, "Lost Mine")
-        chapter = registry.adventures.create_chapter(adventure.id, "Phandalin")
+        adventure = registry.adventures.create(world.id, "The Drowned Bell")
+        chapter = registry.adventures.create_chapter(adventure.id, "Grey Reed")
         registry.encounters.create("Empty camp", world.id)
         await ac.post("/login", data={"username": "dm", "password": PASSWORD})
         panel = html.unescape(
@@ -303,14 +303,14 @@ class TestChapterCheck:
         assert found == [
             ("reference", "3"),  # Firebal
             ("excluded", "3"),  # the 2024 book this world leaves out
-            ("library", "4"),  # Garaele; Sildar is there
+            ("library", "4"),  # Mira Fenn; Hob is there
             ("empty", "10"),
             ("block", "13"),
             ("image", "16"),
             ("unclosed", "18"),
         ]
         assert 'data-to="{@spell Fireball}"' in panel  # the nearest name
-        assert 'data-kind="npc" data-name="Garaele"' in panel
+        assert 'data-kind="npc" data-name="Mira Fenn"' in panel
         assert "Nope" not in panel  # code is left alone
 
     async def test_callouts_and_heading_links(
@@ -318,12 +318,12 @@ class TestChapterCheck:
     ) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.list()[0]
-        adventure = registry.adventures.create(world.id, "Lost Mine")
-        chapter = registry.adventures.create_chapter(adventure.id, "Phandalin")
+        adventure = registry.adventures.create(world.id, "The Drowned Bell")
+        chapter = registry.adventures.create_chapter(adventure.id, "Grey Reed")
         await ac.post("/login", data={"username": "dm", "password": PASSWORD})
         body = (
             "> [!danger]- Hag\n> x\n\n> [!lore]\n> y\n\n"
-            "[[#The Inn]] [[#Nowhere]] [[Phandalin]] [[Neverwinter]]\n\n![[gone.png]]\n\n"
+            "[[#The Inn]] [[#Nowhere]] [[Grey Reed]] [[Lowmere]]\n\n![[gone.png]]\n\n"
             "## The Inn\n"
         )
         panel = html.unescape(
@@ -331,15 +331,15 @@ class TestChapterCheck:
         )
         found = re.findall(r'class="check-item check-(\w+)">.*?data-line="(\d+)"', panel)
         assert found == [("callout", "4"), ("heading", "7"), ("library", "7"), ("image", "9")]
-        assert "[[#Nowhere]]" in panel and "Neverwinter" in panel
+        assert "[[#Nowhere]]" in panel and "Lowmere" in panel
 
     async def test_tags_alone_on_their_line(
         self, client: tuple[AsyncClient, StoreRegistry]
     ) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.list()[0]
-        adventure = registry.adventures.create(world.id, "Lost Mine")
-        chapter = registry.adventures.create_chapter(adventure.id, "Phandalin")
+        adventure = registry.adventures.create(world.id, "The Drowned Bell")
+        chapter = registry.adventures.create_chapter(adventure.id, "Grey Reed")
         registry.encounters.create("Empty camp", world.id)
         await ac.post("/login", data={"username": "dm", "password": PASSWORD})
         body = (
@@ -356,12 +356,12 @@ class TestChapterCheck:
     async def test_a_clean_chapter_says_so(self, client: tuple[AsyncClient, StoreRegistry]) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.list()[0]
-        adventure = registry.adventures.create(world.id, "Lost Mine")
-        chapter = registry.adventures.create_chapter(adventure.id, "Phandalin")
+        adventure = registry.adventures.create(world.id, "The Drowned Bell")
+        chapter = registry.adventures.create_chapter(adventure.id, "Grey Reed")
         await ac.post("/login", data={"username": "dm", "password": PASSWORD})
         await ac.post(
             f"/gm/chapters/{chapter.id}/edit",
-            data={"title": "Phandalin", "status": "draft", "body": "Meet {@creature goblin}."},
+            data={"title": "Grey Reed", "status": "draft", "body": "Meet {@creature goblin}."},
         )
         page = await ac.get(f"/gm/chapters/{chapter.id}/edit")
         assert "Every reference leads somewhere." in page.text
@@ -376,8 +376,8 @@ class TestImagesInTheText:
 
         ac, registry = client
         world = registry.gamestate.worlds.list()[0]
-        adventure = registry.adventures.create(world.id, "Lost Mine")
-        chapter = registry.adventures.create_chapter(adventure.id, "Cragmaw")
+        adventure = registry.adventures.create(world.id, "The Drowned Bell")
+        chapter = registry.adventures.create_chapter(adventure.id, "Rotfang")
         await ac.post("/login", data={"username": "dm", "password": PASSWORD})
         stored = await ac.post(
             f"/gm/media/{chapter.id}/inline", files={"file": ("cave map.png", PNG, "image/png")}

@@ -147,7 +147,7 @@ async def client(tmp_path: Path, corpus: Path) -> AsyncIterator[tuple[AsyncClien
     registry.auth.create_user("dm", PASSWORD, Role.GAMEMASTER)
     registry.auth.create_user("alice", PASSWORD, Role.PLAYER)
     world = registry.gamestate.worlds.create(
-        World(name="Faerûn", source_set=SourceSet(sources=BOOKS_2014))
+        World(name="Aldmere", source_set=SourceSet(sources=BOOKS_2014))
     )
     registry.gamestate.characters.create(
         PlayerCharacter.model_validate(

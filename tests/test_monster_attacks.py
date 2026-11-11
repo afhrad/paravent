@@ -991,7 +991,7 @@ class TestInTheTracker:
 
         ac, registry, _url = tracker
         world = registry.gamestate.worlds.create(
-            World(name="Faerûn", source_set=SourceSet(sources=["PHB", "DMG", "MM"]))
+            World(name="Aldmere", source_set=SourceSet(sources=["PHB", "DMG", "MM"]))
         ).id
         store = registry.gamestate.characters
         cleric = store.create(
