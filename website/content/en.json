@@ -381,7 +381,7 @@
       },
       {
         "title": "Claude",
-        "text": "Optional. An MCP connection for drafting adventures, and the Claude API for translations and names."
+        "text": "Optional. An MCP connection for drafting adventures and creatures, and the Claude API for translations and names."
       },
       {
         "title": "Quality",
