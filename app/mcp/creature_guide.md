@@ -53,6 +53,7 @@ when either changes:
 | --- | --- |
 | `{@hit <$to_hit__str$>}` | the attack bonus with Strength (`dex`, `int`, …) |
 | `<$damage_avg__4.5+str$> ({@damage 1d8<$damage_mod__str$>})` | `7 (1d8 + 3)` with STR +3 |
+| `<$damage_avg__10.5$> ({@damage 3d6})` | `10 (3d6)`: an average that adds no ability |
 | `DC <$dc__int$>` | 8 + proficiency + Intelligence |
 | `<$title_short_name$>`, `<$short_name$>` | "The lich", "the lich" (English: in another language write its name) |
 
@@ -125,7 +126,8 @@ published, and the chapter check reports it until then.
 Every answer gives the CR it **plays at** by the guide's method, beside the target, with
 its defensive and offensive CR and an `advice` when they are more than a step apart; the
 `statblock` as the table will read it; and `problems`, the spells, items or creatures its
-text names that the world's books do not have. Change it with `update_creature` until it
+text names that the world's books do not have, and any placeholder the builder could not
+fill (`kind: placeholder`), which the table would read as written. Change it with `update_creature` until it
 plays within one step of the target and has no problems. Then tell the gamemaster its name,
 the CR it plays at, how it fights, what you assumed that they did not say, and that it
 waits under *Creatures* to be accepted.

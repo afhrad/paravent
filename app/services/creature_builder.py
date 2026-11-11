@@ -285,10 +285,10 @@ class Numbers:
             kind, ability = "dc", key[3:]
         if kind == "damage_avg":
             base, _, ability = ability.partition("+")
-            if ability not in self.mods:
+            if ability and ability not in self.mods:
                 return None
-            try:
-                return str(math.floor(float(base) + self.mods[ability]))
+            try:  # no ability: the dice's own average ("10.5" for 3d6)
+                return str(math.floor(float(base) + self.mods.get(ability, 0)))
             except ValueError:
                 return None
         if ability not in self.mods:

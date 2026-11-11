@@ -619,8 +619,14 @@ class CreatureBlockInput(BaseModel):
 
 
 class CreatureProblem(BaseModel):
-    """A reference in the creature's text that the world's books do not have."""
+    """A reference in the creature's text that the world's books do not have, or a
+    placeholder the builder cannot fill."""
 
+    kind: str = Field(
+        default="reference",
+        description="reference: not in the world's books; placeholder: a <$…$> the builder "
+        "cannot fill, which the table would read as written",
+    )
     text: str
     instead: list[str] = Field(default_factory=list, description="The nearest names, best first")
 

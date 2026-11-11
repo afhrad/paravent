@@ -89,6 +89,22 @@ class TestDraftingACreature:
                 damage_per_round=33,
             )
             assert fixed["problems"] == [] and fixed["damage_per_round"] == 33
+            touch = await call(
+                mcp,
+                "update_creature",
+                design_id=lich["id"],
+                actions=[
+                    {
+                        "name": "Paralyzing Touch",
+                        "text": "{@atk ms} {@hit <$to_hit__int$>} to hit. {@h}<$damage_avg__10.5$>"
+                        " ({@damage 3d6}) cold damage, <$power_level$> times.",
+                    }
+                ],
+            )
+            assert any("10 ({@damage 3d6})" in line for line in touch["statblock"])
+            assert [(p["kind"], p["text"]) for p in touch["problems"]] == [
+                ("placeholder", "<$power_level$>")
+            ]
             design = registry.creatures.get(lich["id"])
             assert [f.name for f in design.features] == ["Magic Resistance"]
             assert design.abilities["wis"] > 0  # scores not given are kept

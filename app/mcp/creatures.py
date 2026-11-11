@@ -11,6 +11,7 @@ once when given and kept as the world's picture of the creature it publishes as.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Sequence
 from importlib.resources import files
 from typing import TYPE_CHECKING, Annotated, Any
@@ -40,6 +41,8 @@ if TYPE_CHECKING:
     from app.store.registry import StoreRegistry
 
 CREATURE_GUIDE = files("app.mcp").joinpath("creature_guide.md")
+# A placeholder the statblock still shows: the builder could not fill it.
+PLACEHOLDER = re.compile(r"<\$[^$]+\$>")
 # Problems of the chapter check that concern a creature's text: references only.
 REFERENCE_KINDS = frozenset({"reference", "excluded"})
 
@@ -116,6 +119,14 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
             for p in notes_problems(english_page(), registry, here, "\n\n".join(texts)):
                 if p.kind in REFERENCE_KINDS:
                     problems.append(CreatureProblem(text=p.text, instead=list(p.instead)))
+        for left in dict.fromkeys(PLACEHOLDER.findall("\n".join(lines))):
+            problems.append(
+                CreatureProblem(
+                    kind="placeholder",
+                    text=left,
+                    instead=["<$to_hit__int$>", "<$dc__int$>", "<$damage_avg__4.5+str$>"],
+                )
+            )
         estimate = math_.estimate(design)
         hp, formula = math_.hp(design)
         advice = ""

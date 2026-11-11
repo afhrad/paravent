@@ -61,6 +61,10 @@ class TestText:
             "The bog hag bites. {@hit 5}, {@h}6 ({@damage 1d8 + 2}), DC 12, "
             "{@damage 1d4}, <$mystery$>"
         )
+        # an average without an ability is the dice's own; an unknown ability stays
+        assert numbers.fill("<$damage_avg__10.5$> <$damage_avg__4.5+foo$>") == (
+            "10 <$damage_avg__4.5+foo$>"
+        )
 
     def test_printed_numbers_are_linked_where_they_match(self) -> None:
         mods = {"str": 2, "dex": 2, "con": 1, "int": -1, "wis": 0, "cha": -1}
