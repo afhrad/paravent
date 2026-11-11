@@ -24,6 +24,7 @@ from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 from app.config import STATIC_DIR, get_settings
 from app.dependencies import LoginRequired, RoleForbidden, build_page
+from app.logs import configure_logging
 from app.mcp.auth import BearerGuard
 from app.mcp.server import build_server
 from app.routes import adventures as adventure_routes
@@ -119,7 +120,7 @@ MANIFEST = {
     ],
 }
 
-logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+configure_logging()  # one layout for Paravent, uvicorn and the libraries (app/logs.py)
 logger = logging.getLogger(__name__)
 
 

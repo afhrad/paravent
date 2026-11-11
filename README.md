@@ -201,6 +201,11 @@ Any other argument is passed through to uvicorn (`./run.sh --log-level warning`)
 The script uses the venv's uvicorn, warns when `.env` is missing, and reports the
 owning PID if the port is already taken instead of failing on the bind.
 
+Every log line has the same layout, Paravent's and uvicorn's alike: time, level, source,
+message (`app/logs.py`, `app/log_config.json`, which `run.sh` and the Docker image pass to
+uvicorn with `--log-config`). In a terminal the level and source are coloured; `NO_COLOR=1`
+turns that off, `FORCE_COLOR=1` on, for example when piping into a pager.
+
 Equivalent by hand:
 
 ```bash

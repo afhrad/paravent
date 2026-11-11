@@ -72,4 +72,4 @@ echo
 # unbound variable. `${EXTRA[@]+"${EXTRA[@]}"}` expands to nothing when the array
 # is empty and to the quoted elements otherwise.
 exec .venv/bin/uvicorn app.main:app \
-  --host "$HOST" --port "$PORT" $RELOAD ${EXTRA[@]+"${EXTRA[@]}"}
+  --host "$HOST" --port "$PORT" --log-config app/log_config.json $RELOAD ${EXTRA[@]+"${EXTRA[@]}"}

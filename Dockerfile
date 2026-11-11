@@ -79,4 +79,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
 
 # --proxy-headers with FORWARDED_ALLOW_IPS (unset: trust nobody) makes a NAS reverse
 # proxy's client address visible to the login rate limiter.
-CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port \"$PARAVENT_PORT\" --proxy-headers --forwarded-allow-ips \"${FORWARDED_ALLOW_IPS:-127.0.0.1}\""]
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port \"$PARAVENT_PORT\" --log-config app/log_config.json --proxy-headers --forwarded-allow-ips \"${FORWARDED_ALLOW_IPS:-127.0.0.1}\""]
