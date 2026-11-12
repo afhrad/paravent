@@ -871,7 +871,12 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2229 tests.
+2229 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+slow, found by profiling: a character sheet dumped every class and subclass feature to
+plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
+5 ms instead of 21, which the tracker and party cards feel too); every test app built the
+MCP server's forty tools (now on first use, `tests/conftest.py`, the `mcp_server` mark for
+tests that talk to `/mcp`); passwords hashed at the app's bcrypt cost (cost 4 in tests).
 
 ---
 

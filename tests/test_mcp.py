@@ -27,6 +27,9 @@ from app.services.mcp_tokens import McpTokenError, McpTokenService
 from app.store.gamestate import GameStateStore
 from app.store.registry import StoreRegistry
 
+# Its app builds the MCP server, which the other tests leave out (tests/conftest.py).
+pytestmark = pytest.mark.mcp_server
+
 PASSWORD = "correct horse battery"
 EXAMPLES = Path(__file__).resolve().parent.parent / "documentation" / "examples"
 

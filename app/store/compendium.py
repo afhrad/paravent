@@ -297,6 +297,7 @@ class CompendiumStore:
         self._sources: dict[str, set[str]] = defaultdict(set)
         self._index = ReferenceIndex()
         self._projections: Projections | None = None
+        self._dumps: dict[str, list[dict[str, Any]]] = {}
         self.report = LoadReport()
 
     # -- loading -----------------------------------------------------------------
@@ -342,6 +343,7 @@ class CompendiumStore:
         self._entries = entries
         self._index.build(entries)
         self._projections = None  # rebuilt on first use, from the entries just loaded
+        self._dumps = {}
         self.report = report
         logger.info("Compendium loaded: %s", report.summary())
         return report
@@ -543,6 +545,20 @@ class CompendiumStore:
             if hits:
                 out[category] = hits
         return out
+
+    def dumps(self, category: str) -> list[dict[str, Any]]:
+        """Every entry of ``category`` as plain 5eTools data (upstream keys, no None),
+        made on first use and kept until the next load. Shared: read them, never change
+        them. A character sheet looks through every class feature; dumping them for each
+        sheet was most of its cost."""
+        found = self._dumps.get(category)
+        if found is None:
+            found = [
+                entry.model_dump(by_alias=True, exclude_none=True)
+                for entry in self._require(category).values()
+            ]
+            self._dumps[category] = found
+        return found
 
     @property
     def projections(self) -> Projections:

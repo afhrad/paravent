@@ -96,11 +96,15 @@ def share_corpus_loads() -> Iterator[None]:
         if loaded is None:
             loaded = CompendiumStore(strict=self._strict)
             original_compendium(loaded, *roots)
+            # Built once from the same entries, which every copy shares anyway.
+            loaded.projections  # noqa: B018 - builds and keeps them
             _LOADED[cache_key] = loaded
         self._entries = loaded._entries
         self._sources = defaultdict(set, {k: set(v) for k, v in loaded._sources.items()})
         self._index = copy.copy(loaded._index)
-        self._projections = None
+        # A copy: a reload still yields projections of its own, as it does in the app.
+        self._projections = copy.copy(loaded._projections)
+        self._dumps = loaded._dumps  # plain copies of the same entries, filled on use
         self.report = loaded.report
         return loaded.report
 
@@ -132,6 +136,59 @@ def share_corpus_loads() -> Iterator[None]:
         patch.setattr(CompendiumStore, "load", compendium_load)
         patch.setattr(FluffStore, "load", fluff_load)
         patch.setattr(LookupTables, "load", lookups_load)
+        yield
+
+
+# The cost tests hash passwords with. The app's bcrypt default (12) takes about a quarter
+# of a second per hash and again per check, and nearly every page test creates a user and
+# logs in: hashing was most of the suite's time. Any cost verifies the same way.
+TEST_BCRYPT_ROUNDS = 4
+
+
+@pytest.fixture(autouse=True, scope="session")
+def cheap_password_hashes() -> Iterator[None]:
+    """Hash test passwords at the lowest bcrypt cost; the code paths are unchanged."""
+    import bcrypt
+
+    from app.services import auth
+
+    original = bcrypt.gensalt
+
+    def gensalt(rounds: int = TEST_BCRYPT_ROUNDS, prefix: bytes = b"2b") -> bytes:
+        return original(min(rounds, TEST_BCRYPT_ROUNDS), prefix)
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(bcrypt, "gensalt", gensalt)
+        # The hash an unknown name is checked against, so it costs what a real one does.
+        patch.setattr(
+            auth, "_DUMMY_HASH", bcrypt.hashpw(b"paravent-timing-equaliser", gensalt()).decode()
+        )
+        yield
+
+
+@pytest.fixture(autouse=True)
+def mcp_server_on_first_use(request: pytest.FixtureRequest) -> Iterator[None]:
+    """An app built in a test builds its MCP server only when the test first reaches for
+    it (``app.state.mcp``): registering its forty tools takes a quarter of a second per
+    app, and most tests never touch it. A test marked ``mcp_server`` talks to ``/mcp``
+    over HTTP and gets it built with the app, as the app always does."""
+    if request.node.get_closest_marker("mcp_server") is not None:
+        yield
+        return
+    import app.main
+
+    mount = app.main.mount_mcp
+
+    def mount_on_first_use(built: Any) -> None:
+        class OnFirstUse:
+            def __getattr__(self, name: str) -> Any:
+                mount(built)  # builds it, adds /mcp, and puts the server here
+                return getattr(built.state.mcp, name)
+
+        built.state.mcp = OnFirstUse()
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(app.main, "mount_mcp", mount_on_first_use)
         yield
 
 

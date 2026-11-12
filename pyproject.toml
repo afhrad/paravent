@@ -1,6 +1,6 @@
 [project]
 name = "paravent"
-version = "0.1.204"
+version = "0.1.205"
 description = "D&D 5e tool for players and dungeon masters"
 license = "MIT"
 license-files = ["LICENSE", "NOTICE.md"]
@@ -66,3 +66,6 @@ testpaths = ["tests"]
 asyncio_mode = "auto"
 # Each test its own event loop, said explicitly: pytest-asyncio warns until it is set.
 asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "mcp_server: the test talks to /mcp, so its app builds the MCP server (tests/conftest.py)",
+]

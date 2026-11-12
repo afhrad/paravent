@@ -656,14 +656,25 @@ class _Corpus:
         except Exception:  # noqa: BLE001 - an unloaded category is simply empty here
             return []
 
+    def all_data(self, category: str) -> list[dict[str, Any]]:
+        """Every entry of a category as plain data, made once per corpus load and shared:
+        read only."""
+        dumps = getattr(self._compendium, "dumps", None)
+        if dumps is None:
+            return [self.data(entry) for entry in self.all(category)]
+        try:
+            found: list[dict[str, Any]] = dumps(category)
+        except Exception:  # noqa: BLE001 - an unloaded category is simply empty here
+            return []
+        return found
+
     def subclass(self, cls: ClassLevel) -> dict[str, Any] | None:
         """A subclass is found through its class — names repeat across classes."""
         wanted = cls.subclass
         if wanted is None:
             return None
         name = wanted.name.lower()
-        for entry in self.all("subclass"):
-            data = self.data(entry)
+        for data in self.all_data("subclass"):
             if str(data.get("className", "")).lower() != cls.name.lower():
                 continue
             if cls.source and str(data.get("classSource", "")).lower() != cls.source.lower():
@@ -777,8 +788,7 @@ def _weapon_master(
     sheet.mastery_kind = character.state.mastery_kind
     sheet.mastery_open = not character.state.mastery_set
     kinds: dict[str, str] = {}
-    for entry in corpus.all("baseitem"):
-        item = corpus.data(entry)
+    for item in corpus.all_data("baseitem"):
         if (
             item.get("mastery")
             and str(item.get("weaponCategory", "")).lower() in ("simple", "martial")
@@ -926,8 +936,7 @@ def _skills(
     sheet: Sheet, character: PlayerCharacter, corpus: _Corpus, mods: dict[str, int], prof: int
 ) -> None:
     table: dict[str, str] = {}
-    for entry in corpus.all("skill"):
-        data = corpus.data(entry)
+    for data in corpus.all_data("skill"):
         ability = data.get("ability")
         if isinstance(ability, str) and ability in ABILITIES:
             table[str(data.get("name", "")).lower()] = ability
@@ -1869,8 +1878,8 @@ def _features(
     subspecies: dict[str, Any] | None,
     background: dict[str, Any] | None,
 ) -> None:
-    class_features = [corpus.data(f) for f in corpus.all("classFeature")]
-    subclass_features = [corpus.data(f) for f in corpus.all("subclassFeature")]
+    class_features = corpus.all_data("classFeature")
+    subclass_features = corpus.all_data("subclassFeature")
     for cls, record in classes:
         if record is None:
             continue
