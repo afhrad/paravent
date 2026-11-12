@@ -51,7 +51,7 @@ IN_PLACE = {"hx_target": "closest .tr-page", "hx_select": ".tr-page", "hx_swap":
 
 def translate_url(kind: str, *where: str, lang: str = "", **query: str) -> str:
     """The editor of one record: ``ref/<category>/<source>/<name>``, ``book/<id>/<n>``,
-    ``screen/<dm|quick>/<n>`` or ``adventure/<id>/<section>``."""
+    ``screen/<dm|quick>/<n>``, ``adventure/<id>/<section>`` or ``builder/<kind>/<name>``."""
     path = "/".join(quote(part, safe="") for part in (kind, *where))
     params = {k: v for k, v in {"lang": lang, **query}.items() if v}
     return f"{TRANSLATE_URL}/{path}" + (f"?{urlencode(params)}" if params else "")
@@ -72,6 +72,8 @@ def source_url(target: Target) -> str:
         return f"/books/{target.where[0]}/{target.where[1]}"
     if target.kind == "screen":
         return f"/screen?ref={target.where[0]}"
+    if target.kind == "builder":
+        return f"{TRANSLATIONS_URL}/builder"
     return ""
 
 

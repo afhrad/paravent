@@ -7,6 +7,8 @@
 * ``GET|POST /gm/translate/book/{book_id}/{index}``        — a rulebook chapter
 * ``GET|POST /gm/translate/adventure/{adventure_id}/{section_id}`` — an adventure section
 * ``GET|POST /gm/translate/screen/{screen}/{index}``        — a reference screen's chapter
+* ``GET|POST /gm/translate/builder/{kind}/{name}``          — a creature builder's text
+  (``feature``, ``trait`` or ``action``); ``GET /gm/translations/builder`` lists them
 * ``GET /gm/translations`` — what a language covers; ``POST /gm/translations/jobs``
   starts machine drafts in bulk, ``GET /gm/translations/jobs`` reports their progress
 
@@ -43,9 +45,11 @@ from app.ui.translate_pages import (
     translate_url,
 )
 from app.ui.translations_pages import (
+    BUILDER_URL,
     DRAFTS_URL,
     IMPORT_URL,
     UNFINISHED_URL,
+    builder_page,
     drafts_page,
     import_fragment,
     jobs_fragment,
@@ -77,6 +81,8 @@ def _target(registry: StoreRegistry, kind: str, parts: tuple[str, ...]) -> Targe
             return targets.chapter(parts[0], int(parts[1]))
         if kind == "screen":
             return targets.screen(parts[0], int(parts[1]))
+        if kind == "builder":
+            return targets.builder(*parts)
         if kind == "adventure":
             return targets.section(*parts)
         if kind == "fluff":
@@ -372,6 +378,19 @@ async def translate_screen(
     return await _editor(request, gm, page, registry, "screen", (screen, index))
 
 
+@router.api_route(f"{TRANSLATE_URL}/builder/{{kind}}/{{name}}", methods=["GET", "POST"])
+async def translate_builder(
+    request: Request,
+    gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    kind: str,
+    name: str,
+) -> Response:
+    """One of the creature builder's ready-made texts."""
+    return await _editor(request, gm, page, registry, "builder", (kind, name))
+
+
 @router.get(TRANSLATIONS_URL, response_class=HTMLResponse)
 async def overview(
     _gm: GamemasterDep,
@@ -429,6 +448,25 @@ async def drafts(
             message=page.t.plural("translations.drafts_confirmed", int(done))
             if done.isdigit()
             else None,
+        )
+    )
+
+
+@router.get(BUILDER_URL, response_class=HTMLResponse)
+async def builder_texts(
+    _gm: GamemasterDep, page: PageDep, registry: RegistryDep, lang: str = ""
+) -> HTMLResponse:
+    """The creature builder's ready-made texts and how far each is translated."""
+    chosen = _language(registry, page, lang)
+    if not chosen:
+        return html(reference_missing_page(page), status_code=404)
+    return html(
+        builder_page(
+            page,
+            lang=chosen,
+            languages=[x for x in registry.ui.languages if x.code != FALLBACK],
+            texts=registry.translation_coverage.builder_texts(chosen),
+            machine=registry.translation_jobs.available,
         )
     )
 

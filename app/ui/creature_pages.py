@@ -52,6 +52,7 @@ from app.services.creature_builder import (
     signed,
 )
 from app.services.references import ReferenceEntry
+from app.services.translation_targets import BUILDER_FIELDS, builder_key
 from app.store.creature_tables import BlockTemplate, CrRow, MonsterFeature
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
@@ -64,6 +65,7 @@ from app.ui.library_links import delete_link
 from app.ui.ref_pages import statblock
 from app.ui.rules_text import senses_shown
 from app.ui.tags import RenderContext, ref_url
+from app.ui.translations_pages import BUILDER_URL
 
 
 def _cr_choices(rows: Sequence[CrRow]) -> list[tuple[str, str]]:
@@ -323,6 +325,19 @@ def _distance(page: Page, name: str, kind: str, feet: int | None) -> Element:
             value=shown,
         ),
     ]
+
+
+def _ready_made_label(page: Page, kind: str, template: BlockTemplate) -> str:
+    """A ready-made text in the picker: its name in the reader's language where the
+    table translated it, with the creature it was taken from ("Biss (Cloaker)")."""
+    data = {"name": template.title, "entries": list(template.entries)}
+    shown = page.t.overlay("builder", builder_key(kind, template.name), data, BUILDER_FIELDS)
+    title = str(shown.data["name"])
+    return (
+        template.name
+        if title == template.title
+        else template.name.replace(template.title, title, 1)
+    )
 
 
 def _select(name: str, caption: str, choices: Sequence[tuple[str, str]], selected: str) -> Element:
@@ -585,11 +600,16 @@ def _add(page: Page, view: BuilderView) -> Element:
         ],
         div(class_="cb-add-group")[
             b[t("creatures.ready_made")],
-            p(class_="field-hint")[t("creatures.ready_made_hint")],
+            p(class_="field-hint")[
+                t("creatures.ready_made_hint"),
+                [" ", a(href=f"{BUILDER_URL}?lang={page.lang}")[t("creatures.translate_texts")]]
+                if page.lang != "en"
+                else None,
+            ],
             div(class_="cb-pick")[
                 label(for_="f-template-trait", class_="sr-only")[t("creatures.kind.traits")],
                 select(id="f-template-trait", name="template_trait")[
-                    [option(value=x.name)[x.name] for x in view.traits]
+                    [option(value=x.name)[_ready_made_label(page, "trait", x)] for x in view.traits]
                 ],
                 button(type="submit", name="action", value="template:trait", class_="btn btn-sm")[
                     t("creatures.add_trait")
@@ -598,7 +618,10 @@ def _add(page: Page, view: BuilderView) -> Element:
             div(class_="cb-pick")[
                 label(for_="f-template-action", class_="sr-only")[t("creatures.kind.actions")],
                 select(id="f-template-action", name="template_action")[
-                    [option(value=x.name)[x.name] for x in view.actions]
+                    [
+                        option(value=x.name)[_ready_made_label(page, "action", x)]
+                        for x in view.actions
+                    ]
                 ],
                 button(type="submit", name="action", value="template:action", class_="btn btn-sm")[
                     t("creatures.add_action")

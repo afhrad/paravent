@@ -183,8 +183,68 @@ class TestDesigns:
             "nekrotischer Schaden."
         )
         # The corpus's ready-made text arrives in the world's units.
-        service.add_template(german, "action", "Bite (Cloaker)", wording.u)
+        service.add_template(german, "action", "Bite (Cloaker)", wording)
         assert " ft." not in german.actions[-1].text and "1,5 m" in german.actions[-1].text
+
+    def test_ready_made_texts_in_the_worlds_language(self, registry: StoreRegistry) -> None:
+        targets = registry.translation_targets
+        bite = targets.builder("action", "Bite (Cloaker)")
+        pack = targets.builder("feature", "Pack Tactics")
+        assert bite.key == "creatures|action|Bite (Cloaker)" and bite.data["name"] == "Bite"
+        assert len(targets.builder_all()) == 25 + 231 + 89
+        store = registry.translations
+        store.save(
+            "de",
+            "builder",
+            bite.key,
+            bite.data,
+            {
+                "name": "Biss",
+                "entries/0": "{@atk mw} {@hit <$to_hit__str$>} zum Treffen, Reichweite 5 ft., "
+                "eine Kreatur. {@h}<$damage_avg__6+str$> ({@damage  2d6<$damage_mod__str$>}) "
+                "Stichschaden. <$title_short_name$> klammert sich an das Ziel (SG <$dc__str$>).",
+            },
+            by="dm",
+            fields=bite.fields,
+        )
+        store.save(
+            "de",
+            "builder",
+            pack.key,
+            pack.data,
+            {"entries/0": "<$title_short_name$> ist im Rudel stark."},
+            by="dm",
+            fields=pack.fields,
+        )
+        world = registry.gamestate.worlds.create(
+            World(name="Moor", language="de", source_set=SourceSet(sources=["MM"]))
+        )
+        service = registry.creatures
+        german = service.create(
+            "Moorhulk", world.id, "4", wording=registry.creature_wording(world.id, "en")
+        )
+        wording = registry.creature_wording(world.id, "en")
+        service.add_template(german, "action", "Bite (Cloaker)", wording)
+        service.add_feature(german, "Pack Tactics", None, wording)
+        biss, rudel = german.actions[-1], german.traits[-1]
+        # Translated, named as the world names the creature, the numbers still placeholders
+        assert biss.name == "Biss" and "Reichweite 1,5 m" in biss.text
+        assert "Moorhulk klammert sich" in biss.text and "<$to_hit__str$>" in biss.text
+        assert (rudel.name, rudel.text) == ("Pack Tactics", "Moorhulk ist im Rudel stark.")
+        made = service.math.statblock(german)
+        assert "<$" not in json.dumps(made["action"])
+        # An English world keeps the corpus's text.
+        english = service.create("Bog Hulk", None, "4")
+        service.add_template(
+            english, "action", "Bite (Cloaker)", registry.creature_wording(None, "en")
+        )
+        assert english.actions[-1].name == "Bite" and "<$short_name$>" in english.actions[-1].text
+        # The coverage counts them as a "book" of their own.
+        texts = registry.translation_coverage.builder_texts("de")
+        done = {x.target.key: (x.translated, x.total) for x in texts if x.translated}
+        assert done == {bite.key: (2, 2), pack.key: (1, 2)}
+        count = next(b for b in registry.translation_coverage.books("de") if b.kind == "builder")
+        assert (count.started, count.chapters) == (2, 345)
 
     def test_a_revision_shares_its_creatures_name(self, registry: StoreRegistry) -> None:
         service = registry.creatures
@@ -339,6 +399,24 @@ class TestPages:
         builder = (await ac.get(f"/gm/creatures/{design.id}")).text
         head = builder[builder.index('class="cb-title"') : builder.index('class="cb-layout"')]
         assert link in head and builder.count(link) == 1  # in the head, not the form
+
+    async def test_translating_the_ready_made_texts(
+        self, client: tuple[AsyncClient, StoreRegistry]
+    ) -> None:
+        ac, registry = client
+        listed = await ac.get("/gm/translations/builder?lang=de")
+        assert listed.status_code == 200 and "Bite (Cloaker)" in listed.text
+        assert "Pack Tactics" in listed.text
+        url = "/gm/translate/builder/action/Bite%20%28Cloaker%29?lang=de"
+        editor = await ac.get(url)
+        # The placeholders are offered for inserting, like tags
+        assert editor.status_code == 200 and "&lt;$to_hit__str$&gt;" in editor.text
+        saved = await ac.post(url, data={"p:name": "Biss", "action": "save"})
+        assert saved.status_code in (200, 303)
+        record = registry.translations.record("de", "builder", "creatures|action|Bite (Cloaker)")
+        assert record is not None and record.passages["name"].text == "Biss"
+        missing = await ac.get("/gm/translate/builder/action/Nothing?lang=de")
+        assert missing.status_code == 404
 
     async def test_unknown_and_forbidden(self, client: tuple[AsyncClient, StoreRegistry]) -> None:
         ac, registry = client

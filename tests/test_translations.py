@@ -20,6 +20,8 @@ from app.services.translations import (
     CHAPTER_FIELDS,
     TranslationStore,
     english_hash,
+    marks_in,
+    missing_tags,
     passages,
     record_key,
 )
@@ -69,6 +71,25 @@ class TestPassages:
     def test_a_chapter_translates_its_own_name(self) -> None:
         chapter = {"type": "section", "name": "Combat", "entries": ["Text"]}
         assert dict(passages(chapter, CHAPTER_FIELDS)) == {"name": "Combat", "entries/0": "Text"}
+
+    def test_placeholders_are_kept_like_tags(self) -> None:
+        from app.services.machine_translation import _accepted
+
+        english = "{@hit <$to_hit__str$>} to hit; <$title_short_name$> bites (DC <$dc__str$>)."
+        assert marks_in(english) == [
+            "{@hit <$to_hit__str$>}",
+            "<$title_short_name$>",
+            "<$dc__str$>",
+        ]
+        kept = "{@hit <$to_hit__str$>} zum Treffen; <$title_short_name$> beißt (SG <$dc__str$>)."
+        lost = "{@hit <$to_hit__str$>} zum Treffen; der Hund beißt (SG <$dc__str$>)."
+        assert missing_tags(english, kept) == [] and missing_tags(english, lost) == [
+            "<$title_short_name$>"
+        ]
+        # A machine draft that drops one stays English.
+        batch = [("a", english), ("b", english)]
+        accepted, rejected, _ = _accepted(batch, [{"id": 0, "text": kept}, {"id": 1, "text": lost}])
+        assert accepted == {"a": kept} and rejected == 1
 
 
 class TestStore:

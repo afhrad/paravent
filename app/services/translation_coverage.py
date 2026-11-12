@@ -27,7 +27,12 @@ from app.services.i18n import Translatable
 from app.services.machine_translation import MachineTranslator
 from app.services.player_view import READABLE, Reader
 from app.services.references import ReferenceNotFound
-from app.services.translation_targets import Target, TargetNotFound, TranslationTargets
+from app.services.translation_targets import (
+    BUILDER_BOOK,
+    Target,
+    TargetNotFound,
+    TranslationTargets,
+)
 from app.services.translations import (
     BOOKISH,
     COMPOSITE,
@@ -49,7 +54,7 @@ logger = logging.getLogger(__name__)
 WANTED_LIMIT = 40
 # What the books say about these, a player reads in the wizard.
 PLAYER_FLUFF = frozenset({"background", "class", "race", "subclass"})
-BookKind = Literal["book", "adventure", "screen"]
+BookKind = Literal["book", "adventure", "screen", "builder"]
 
 
 @dataclass(frozen=True)
@@ -114,6 +119,17 @@ class Unfinished:
     target: Target
     open: int
     total: int
+
+
+@dataclass(frozen=True)
+class BuilderText:
+    """One of the creature builder's texts and how far the language has it."""
+
+    target: Target
+    translated: int
+    total: int
+    drafts: int
+    stale: int
 
 
 @dataclass(frozen=True)
@@ -251,6 +267,9 @@ class TranslationCoverage:
                 out.append(
                     self._book_count(lang, "screen", screen, body.book.name, len(body.sections))
                 )
+        texts = len(self._targets.builder_all())
+        if texts:
+            out.append(self._book_count(lang, "builder", BUILDER_BOOK, BUILDER_BOOK, texts))
         return out
 
     def _book_count(
@@ -273,6 +292,8 @@ class TranslationCoverage:
     def chapters(self, kind: str, ident: str) -> list[Target]:
         """Every chapter of a rulebook or screen, or section of an adventure, as targets."""
         out: list[Target] = []
+        if kind == "builder":
+            return self._targets.builder_all()
         if kind == "screen":
             screen = self._screens.body(ident) if self._screens is not None else None
             return (
@@ -351,6 +372,15 @@ class TranslationCoverage:
             latest = max(drafted, key=lambda p: p.at)
             out.append(Drafted(target, len(drafted), latest.by, latest.at))
         return sorted(out, key=lambda d: (d.target.category, d.target.title.lower()))
+
+    def builder_texts(self, lang: str) -> list[BuilderText]:
+        """Every text of the creature builder with what the language covers of it."""
+        out: list[BuilderText] = []
+        for target in self._targets.builder_all():
+            c = self._store.overlay(lang, "builder", target.key, target.data, target.fields)
+            cov = c.coverage
+            out.append(BuilderText(target, cov.translated, cov.total, cov.drafts, cov.stale))
+        return out
 
     def unfinished(self, lang: str) -> list[Unfinished]:
         """Every record translated in part, by category and title: its passages still
@@ -481,6 +511,9 @@ class TranslationCoverage:
     def _chapter_target(self, kind: str, key: str) -> Target | None:
         ident, _, place = key.partition("|")
         try:
+            if kind == "builder":
+                part, _, name = place.partition("|")
+                return self._targets.builder(part, name)
             if kind == "adventure":
                 return self._targets.section(ident, place)
             find = self._targets.chapter if kind == "book" else self._targets.screen
@@ -554,9 +587,10 @@ class TranslationJobs:
 
     def scope(self, lang: str, scope: str) -> tuple[str, list[Target]]:
         """What a scope names: ``top:<n>``, ``book:<id>``, ``adventure:<id>``,
-        ``screen:<dm|quick>``, ``players``, every record a player reads with English
-        passages, or ``unfinished``, every record translated in part (its passages still
-        English are tried again)."""
+        ``screen:<dm|quick>``, ``builder:creatures`` (the creature builder's texts),
+        ``players``, every record a player reads with English passages, or
+        ``unfinished``, every record translated in part (its passages still English
+        are tried again)."""
         kind, _, value = scope.partition(":")
         if kind == "top":
             limit = max(1, min(int(value or 25), 200))
@@ -569,7 +603,7 @@ class TranslationJobs:
                 except ReferenceNotFound:
                     continue
             return f"top {limit}", targets
-        if kind in ("book", "adventure", "screen"):
+        if kind in ("book", "adventure", "screen", "builder"):
             return value, self._coverage.chapters(kind, value)
         if kind == "players":
             reader = self._players() if self._players is not None else None
@@ -617,6 +651,7 @@ class TranslationJobs:
 __all__ = [
     "Audit",
     "BookCount",
+    "BuilderText",
     "CategoryCount",
     "Drafted",
     "Job",

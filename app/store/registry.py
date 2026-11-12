@@ -369,6 +369,7 @@ class StoreRegistry:
             self.compendium,
             self.fluff,
             self.screens,
+            self.creature_tables,
         )
 
     @cached_property
@@ -725,7 +726,8 @@ class StoreRegistry:
         """The language and units the builder writes a creature's text in: its world's,
         or ``fallback`` (the reader's language) for a creature of no world."""
         world = self.worlds.find(world_id) if world_id else None
-        return Wording(self.ui.translator(world.language if world else fallback))
+        language = world.language if world else fallback
+        return Wording(self.ui.translator(language, self.glossary, self.translations))
 
     @cached_property
     def worlds(self) -> WorldService:

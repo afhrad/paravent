@@ -46,6 +46,7 @@ from app.models.gamestate import (
     SourceSet,
 )
 from app.services.i18n import Translatable, Translator
+from app.services.translation_targets import BUILDER_FIELDS, builder_key
 from app.services.units import UnitFormat, units_for_language
 from app.store.creature_tables import CreatureTables, CrRow, MonsterFeature, cr_value
 from app.store.gamestate import GameStateStore
@@ -124,6 +125,23 @@ class Wording:
     def __call__(self, key: str, /, **params: Any) -> str:
         """The template ``creatures.text.<key>``."""
         return self.t(f"creatures.text.{key}", **params)
+
+    def ready_made(
+        self, design: CreatureDesign, kind: str, name: str, title: str, entries: list[Any]
+    ) -> CreatureBlock:
+        """One of the corpus's ready-made texts (``kind``: trait, action or feature) in
+        this language where the table translated it (TRANSLATION.md §6 note), its
+        distances in these units, and named as :meth:`subject` names the creature."""
+        data = {"name": title, "entries": entries}
+        shown = self.t.overlay("builder", builder_key(kind, name), data, BUILDER_FIELDS).data
+        title, text = str(shown["name"]), entries_text(list(shown["entries"]))
+        if self.t.code != "en":
+            text = _NAME_PLACEHOLDER.sub(lambda _: design.name, text)
+        return CreatureBlock(name=title, text=self.u.text(text))
+
+
+# How the corpus's texts name the creature; another language writes its name instead.
+_NAME_PLACEHOLDER = re.compile(r"<\$(?:title_short_name|short_name|title_name|name)\$>")
 
 
 # What is a design's own and never copied or compared between a creature and its revision.
@@ -1123,10 +1141,11 @@ class CreatureService:
         return Published(len(designs), sorted(worlds))
 
     def add_feature(
-        self, design: CreatureDesign, name: str, value: int | None, units: UnitFormat | None = None
+        self, design: CreatureDesign, name: str, value: int | None, wording: Wording | None = None
     ) -> None:
         """Add a monster feature: it counts towards the CR and its text becomes a trait,
-        its distances in ``units`` (the corpus writes it in English and feet)."""
+        in ``wording``'s language and units where given (the corpus writes it in English
+        and feet)."""
         feature = self._tables.feature(name)
         if feature is None:
             return
@@ -1134,19 +1153,24 @@ class CreatureService:
             CreatureFeature(name=feature.name, value=value if feature.takes_number else None)
         )
         block = feature_block(feature)
-        if units is not None:
-            block.text = units.text(block.text)
+        if wording is not None:
+            block = wording.ready_made(design, "feature", feature.name, block.name, [block.text])
         design.traits.append(block)
 
     def add_template(
-        self, design: CreatureDesign, kind: str, name: str, units: UnitFormat | None = None
+        self, design: CreatureDesign, kind: str, name: str, wording: Wording | None = None
     ) -> None:
-        """Add a ready-made trait or action from the corpus, its distances in ``units``."""
+        """Add a ready-made trait or action from the corpus, in ``wording``'s language and
+        units where given."""
         template = self._tables.template(kind, name)
         if template is None:
             return
-        text = entries_text(list(template.entries))
-        block = CreatureBlock(name=template.title, text=units.text(text) if units else text)
+        entries = list(template.entries)
+        block = (
+            wording.ready_made(design, kind, template.name, template.title, entries)
+            if wording is not None
+            else CreatureBlock(name=template.title, text=entries_text(entries))
+        )
         (design.traits if kind == "trait" else design.actions).append(block)
 
 

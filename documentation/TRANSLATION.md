@@ -363,8 +363,17 @@ every German player expects 18 m.
 > ("Dunkelsicht 18 m", kept as "darkvision 60 ft."). What the builder writes itself (the
 > attack button, a blank creature's slam and Multiattack: `creatures.text.*`) is in the
 > creature's world's language and units, the reader's for a creature of no world
-> (`Wording`); the corpus's ready-made traits and actions stay English, their distances
-> converted.
+> (`Wording`). **The corpus's ready-made texts** (2026-11-12): the builder's 231 traits,
+> 89 actions and 25 monster features translate like a book of their own
+> (`library/i18n/<lang>/builder/creatures.json`, keyed `creatures|<trait|action|feature>|
+> <name>`, the name a passage too), listed on `/gm/translations/builder` (linked from the
+> overview's books and from the builder), in the editor at
+> `/gm/translate/builder/<kind>/<name>`, and drafted by the machine as "The creature
+> builder's texts". The builder's placeholders (`<$to_hit__str$>`, `<$short_name$>`) are
+> held like tags: offered as chips, a lost one reported, a machine draft that changes one
+> thrown away. A creature of a world in that language gets the translation, the name
+> placeholders replaced by its name, distances converted; what is untranslated stays
+> English. The picker shows the reader's names ("Biss (Cloaker)").
 
 ### Prose — leave it alone
 

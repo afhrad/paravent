@@ -18,7 +18,8 @@ A machine-made passage is a **draft** until someone confirms it (§7).
 
 Rulebook and adventure chapters are long, so each book has a file of its own:
 ``library/i18n/de/book/<id>.json``, keyed by chapter index. So does each reference
-screen: ``library/i18n/de/screen/dm.json``.
+screen: ``library/i18n/de/screen/dm.json``. The creature builder's ready-made traits,
+actions and monster features are one such "book" too: ``builder/creatures.json``.
 
 The files are re-read when they change on disk, like the glossary.
 """
@@ -26,6 +27,7 @@ The files are re-read when they change on disk, like the glossary.
 from __future__ import annotations
 
 import hashlib
+import re
 import threading
 from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
@@ -76,8 +78,11 @@ TEXT_KEYS = frozenset(
 )
 # Nodes whose "name" points at an entity rather than naming a section: never text.
 NOT_TEXT = frozenset({"statblock", "statblockInline", "image", "gallery", "link", "dice"})
-# Files holding one book (or published adventure, or reference screen) each.
-BOOKISH = frozenset({"book", "adventure", "screen"})
+# Files holding one book (or published adventure, reference screen, or the creature
+# builder's texts) each.
+BOOKISH = frozenset({"book", "adventure", "screen", "builder"})
+# The creature builder's numbers and names: ``<$to_hit__str$>``, ``<$short_name$>``.
+PLACEHOLDER = re.compile(r"<\$[^$<>]+\$>")
 MAX_PASSAGE = 20000
 
 
@@ -154,12 +159,23 @@ def tags_in(text: str) -> list[str]:
     return found
 
 
+def marks_in(text: str) -> list[str]:
+    """What a translation must keep as it is: the ``{@...}`` tags, and the creature
+    builder's placeholders outside them (``<$title_short_name$>``)."""
+    tags = tags_in(text)
+    rest = text
+    for tag in tags:
+        rest = rest.replace(tag, " ", 1)
+    return [*tags, *PLACEHOLDER.findall(rest)]
+
+
 def missing_tags(english: str, translated: str) -> list[str]:
-    """Tags of the English that the translation lacks (§3: tags come from the source,
-    so a missing one is a lost link or roll — worth saying, not worth refusing)."""
-    have = list(tags_in(translated))
+    """Tags (and placeholders) of the English that the translation lacks (§3: tags come
+    from the source, so a missing one is a lost link or roll — worth saying, not worth
+    refusing)."""
+    have = list(marks_in(translated))
     missing: list[str] = []
-    for tag in tags_in(english):
+    for tag in marks_in(english):
         if tag in have:
             have.remove(tag)
         else:
@@ -180,8 +196,8 @@ class PassageRow:
 
     @property
     def tags(self) -> list[str]:
-        """The English passage's tags, offered for inserting."""
-        return tags_in(self.english)
+        """The English passage's tags and placeholders, offered for inserting."""
+        return marks_in(self.english)
 
 
 @dataclass(frozen=True)
@@ -584,6 +600,7 @@ __all__ = [
     "Record",
     "TranslationStore",
     "english_hash",
+    "marks_in",
     "missing_tags",
     "passages",
     "record_key",

@@ -157,10 +157,10 @@ def _apply(
             del blocks[int(index)]
     elif action in ("template:trait", "template:action"):
         kind = action.removeprefix("template:")
-        service.add_template(design, kind, str(form.get(f"template_{kind}", "")), wording.u)
+        service.add_template(design, kind, str(form.get(f"template_{kind}", "")), wording)
     elif action == "feature":
         value = _int(form.get("feature_value", ""), None, 0, 999)
-        service.add_feature(design, str(form.get("feature", "")), value, wording.u)
+        service.add_feature(design, str(form.get("feature", "")), value, wording)
     elif action.startswith("unfeature:"):
         index = action.removeprefix("unfeature:")
         if index.isdigit() and int(index) < len(design.features):

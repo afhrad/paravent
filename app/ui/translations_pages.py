@@ -44,6 +44,7 @@ from app.services.corpus_import import ImportRun
 from app.services.i18n import Language
 from app.services.translation_coverage import (
     BookCount,
+    BuilderText,
     CategoryCount,
     Drafted,
     Job,
@@ -65,6 +66,7 @@ from app.ui.translate_pages import TRANSLATIONS_URL, translate_url
 DRAFTS_URL = f"{TRANSLATIONS_URL}/drafts"
 IMPORT_URL = f"{TRANSLATIONS_URL}/import"
 UNFINISHED_URL = f"{TRANSLATIONS_URL}/unfinished"
+BUILDER_URL = f"{TRANSLATIONS_URL}/builder"
 # Jobs named by a scope rather than a book: their label's key.
 JOB_LABELS = {"players": "translations.players_job", "unfinished": "translations.unfinished_job"}
 
@@ -282,6 +284,7 @@ def _machine(
                     option(value="top:100")[t("translations.top", count=100)],
                     option(value="players")[t("translations.players_job")],
                     option(value="unfinished")[t("translations.unfinished_job")],
+                    option(value="builder:creatures")[t("translations.builder_job")],
                 ],
                 optgroup(label=t("translations.rulebooks"))[
                     [option(value=f"book:{x.id}")[x.name] for x in rulebooks]
@@ -302,6 +305,8 @@ def _machine(
 
 
 def _book_link(page: Page, count: BookCount) -> Node:
+    if count.kind == "builder":
+        return a(href=BUILDER_URL)[page.t("translations.builder")]
     if count.kind == "screen":
         return a(href=f"/screen?ref={count.id}")[page.t(f"screen.{count.id}")]
     return a(href=f"/books/{count.id}")[count.name] if count.kind == "book" else count.name
@@ -377,7 +382,8 @@ def _categories(page: Page, counts: Sequence[CategoryCount]) -> Node:
 
 def _books(page: Page, books: Sequence[BookCount]) -> Node:
     t = page.t
-    begun = [x for x in books if x.started]
+    # The builder's texts have no page of their own to start from: always listed.
+    begun = [x for x in books if x.started or x.kind == "builder"]
     if not begun:
         return None
     return section(class_="panel")[
@@ -532,6 +538,90 @@ def unfinished_page(
             ]
             if unfinished
             else p(class_="muted")[t("translations.unfinished_none")],
+        ],
+    )
+
+
+def builder_page(
+    page: Page,
+    *,
+    lang: str,
+    languages: Sequence[Language],
+    texts: Sequence[BuilderText],
+    machine: bool,
+) -> Element:
+    """The creature builder's ready-made texts — monster features, traits and actions —
+    each with how far it is translated, opening its editor and coming back here; and one
+    run drafting all of them."""
+    t = page.t
+    language = next((x.name for x in languages if x.code == lang), lang)
+    back = f"{BUILDER_URL}?lang={lang}"
+    groups: dict[str, list[BuilderText]] = {}
+    for x in texts:
+        groups.setdefault(x.target.where[0], []).append(x)
+    open_texts = sum(1 for x in texts if x.translated < x.total)
+
+    def state(x: BuilderText) -> Node:
+        if x.translated == 0:
+            return span(class_="muted")[t("translations.builder_open")]
+        pills: list[Node] = []
+        if x.translated < x.total:
+            pills.append(
+                span(class_="pill cond")[
+                    t("translations.unfinished_count", open=x.total - x.translated, total=x.total)
+                ]
+            )
+        if x.drafts:
+            pills.append(span(class_="pill cond")[t("translate.draft")])
+        if x.stale:
+            pills.append(span(class_="pill dmg")[t("translate.stale")])
+        return pills or span(class_="pill")[t("translations.builder_done")]
+
+    return app_shell(
+        page,
+        t("translations.builder"),
+        div(class_="tr-page")[
+            page_head(
+                t("translations.eyebrow"),
+                t("translations.builder_in", language=language),
+                t("translations.builder_lede"),
+            ),
+            p[a(href=f"{TRANSLATIONS_URL}?lang={lang}")[t("translations.title")]],
+            form(method="post", action=f"{TRANSLATIONS_URL}/jobs", class_="cb-line")[
+                hidden("lang", lang),
+                hidden("scope", "builder:creatures"),
+                button(type="submit", class_="btn btn-primary")[
+                    icon("sparkles"), span[t.plural("translations.builder_run", open_texts)]
+                ],
+            ]
+            if open_texts and machine
+            else None,
+            [
+                section(class_="panel")[
+                    h2[
+                        t(f"translations.builder_{kind}"),
+                        " ",
+                        small(class_="muted")[str(len(items))],
+                    ],
+                    ul(class_="tr-problems")[
+                        [
+                            li[
+                                a(
+                                    href=translate_url(
+                                        "builder", *x.target.where, lang=lang, back=back
+                                    )
+                                )[x.target.title],
+                                " ",
+                                state(x),
+                            ]
+                            for x in items
+                        ]
+                    ],
+                ]
+                for kind, items in groups.items()
+            ]
+            if texts
+            else p(class_="muted")[t("translations.builder_none")],
         ],
     )
 

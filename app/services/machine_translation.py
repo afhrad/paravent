@@ -9,7 +9,8 @@ Three rules keep a draft safe to show:
 * **Tags stay as they are.** The model is told to copy every ``{@...}`` tag verbatim,
   and a translation whose tags differ from the English (one lost, one invented, one
   changed) is thrown away and the passage stays English — §3: tags come from the
-  source, never from the translated words.
+  source, never from the translated words. The creature builder's placeholders
+  (``<$to_hit__str$>``) are held the same way.
 * **The glossary's names are used.** The terms a batch mentions are sent with it, so
   "charmed" comes back as the table's "bezaubert" everywhere.
 * **Structure never travels.** Only the passages' strings go out and only strings come
@@ -33,7 +34,7 @@ from anthropic.types.beta import BetaMessageParam, BetaOutputConfigParam, BetaTe
 
 from app.services.i18n import Translatable
 from app.services.translation_targets import Target
-from app.services.translations import TranslationStore, passages, tags_in
+from app.services.translations import TranslationStore, marks_in, passages
 
 logger = logging.getLogger(__name__)
 
@@ -57,6 +58,11 @@ The text contains markup tags in curly braces that start with an at sign, for ex
 its contents, and place it where it belongs in the translated sentence. Never \
 translate, add, drop, merge or reorder the text inside a tag's braces; the software \
 shows the tag's label in the reader's language itself.
+
+Some text holds placeholders between <$ and $>, for example <$to_hit__str$> or \
+<$title_short_name$>. Copy each exactly as it is, too. <$title_short_name$> and \
+<$short_name$> stand for the creature's name (the software puts in its name, without an \
+article), so build the sentence around them as around a name.
 
 When the request lists glossary terms, use exactly those names for those terms.
 
@@ -256,7 +262,7 @@ def _accepted(
         text = by_id.get(index)
         if text is None:
             rejected += 1
-        elif sorted(tags_in(text)) != sorted(tags_in(english)):
+        elif sorted(marks_in(text)) != sorted(marks_in(english)):
             rejected += 1  # a tag lost, made up or changed: the passage stays English
         else:
             translated[path] = text
