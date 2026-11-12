@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from httpx import AsyncClient
 
-from app.models.gamestate import SourceSet
+from app.models.gamestate import SourceSet, World
 from app.services.chargen import Offer
 from app.services.chargen.catalogue import Catalogue
 from app.store.fluff import FluffStore
@@ -69,6 +69,27 @@ class TestCards:
         chosen = (await ac.post(step, data={"class": "Fighter|XPHB"}, headers=HTMX)).text
         assert 'class="cg-about"' in chosen and "About Fighter" in chosen
         assert "/ref/class/XPHB/Fighter" in chosen
+
+    async def test_the_chosen_text_links_its_references_and_hints_its_units(
+        self,
+        client: tuple[AsyncClient, StoreRegistry],  # noqa: F811
+    ) -> None:
+        ac, registry = client
+        world = registry.gamestate.worlds.list()[0]
+        draft = (await ac.post("/chargen", data={"world": world.id})).headers["location"]
+        step = f"/chargen/{draft.split('/')[2]}/background"
+        chosen = (await ac.post(step, data={"background": "Entertainer|XPHB"}, headers=HTMX)).text
+        about = chosen[chosen.index('class="cg-about"') :]
+        assert 'href="/ref/baseitem/XPHB/Lute' in about  # {@item lute|XPHB}, a link now
+        # A reader in metres: the metric value beside the books' feet, in a 2014 world.
+        old = registry.gamestate.worlds.create(
+            World(name="Sunken Marches", source_set=SourceSet(sources=BOOKS_2014))
+        )
+        await ac.post("/language", data={"lang": "de"})
+        draft = (await ac.post("/chargen", data={"world": old.id})).headers["location"]
+        step = f"/chargen/{draft.split('/')[2]}/species"
+        chosen = (await ac.post(step, data={"species": "Dwarf|PHB"}, headers=HTMX)).text
+        assert 'under 5 feet<span class="unit-hint"> (1,5 m)</span> tall' in chosen
 
 
 async def _as_gamemaster(ac: AsyncClient) -> None:

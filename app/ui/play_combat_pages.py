@@ -36,6 +36,7 @@ from htpy import (
 from app.models.gamestate import KnownFact
 from app.services.combat import PlayerView, SeenCombatant, SeenDetails, SeenTurn
 from app.services.protocol_view import Filter
+from app.services.text import strip_tags
 from app.services.tokens import Token
 from app.store.projections import coerce_type
 from app.ui.context import Page
@@ -45,6 +46,7 @@ from app.ui.knowledge_text import fact_detail, fact_kind, fact_label, ordered
 from app.ui.layout import app_shell
 from app.ui.names import ITEM, monster_label, named
 from app.ui.rules_text import kind_text, speed
+from app.ui.tags import RenderContext, render
 from app.ui.tokens import token
 
 PLAY_COMBAT_URL = "/play/combat"
@@ -204,11 +206,13 @@ def member_details(
     image_url: Callable[[str], str] = play_image_url,
     own_picture: str | None = None,
     names: Mapping[str, str] | None = None,
+    ctx: RenderContext | None = None,
 ) -> Node:
     """What players know of a combatant: for a creature with a statblock, what anyone
     sees by looking — never a number that is not seen. ``own_picture`` is the address
     of the table's own picture of its kind, shown instead of the books'; ``names`` its
-    action and trait names in the reader's language."""
+    action and trait names in the reader's language; ``ctx`` renders the books'
+    description with its links (plain text without one)."""
     t = page.t
     member, seen = details.member, details.sight
     known = _known(page, details.known, names)
@@ -230,7 +234,9 @@ def member_details(
         # Its token beside what is seen, as the order shows it.
         div(class_="pv-seen-head")[_seen_token(member, "xl"), _facts(page, rows)],
         known,
-        p(class_="pv-lore", lang="en" if page.lang != "en" else None)[seen.description]
+        p(class_="pv-lore", lang="en" if page.lang != "en" else None)[
+            render(seen.description, ctx) if ctx is not None else strip_tags(seen.description)
+        ]
         if seen.description
         else None,
     ]

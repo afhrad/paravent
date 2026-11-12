@@ -411,7 +411,9 @@ observed from the log. (3) The gamemaster's reveals on the tracker, and forgetti
 
 **Step 1 built 2026-10-25** (`app/services/creature_sight.py`). Details is fetched when
 opened (`GET /play/combat/{id}/c/{cid}/details`): side, state and conditions, then size
-and kind, movement, gear and the description. Gear is the 2024 `gear` list, or for 2014
+and kind, movement, gear and the description (its first paragraph, drawn by the tag
+renderer since 2026-11-12: links only to what the player may read, metric hints for a
+reader in metres). Gear is the 2024 `gear` list, or for 2014
 the armour named in the AC and the attacks named after a base item (a goblin's Scimitar
 and Shortbow, never a dragon's Bite). Pictures are served from `/play/img/…`, read in
 place from `PARAVENT_IMAGE_DIR` or `img/` next to the corpus, and confined to it. A hidden

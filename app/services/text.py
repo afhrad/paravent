@@ -12,7 +12,7 @@ none remain; a flat regex over the whole string would cut a nested tag in half.
 from __future__ import annotations
 
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from typing import Any
 
 # The innermost tag: no braces inside its body.
@@ -108,53 +108,58 @@ def strip_tags(text: str) -> str:
     return text
 
 
-def paragraphs(entries: Any, *, limit: int | None = None) -> list[str]:
+def paragraphs(entries: Any, *, limit: int | None = None, tags: bool = False) -> list[str]:
     """Flatten 5eTools ``entries`` into plain paragraphs.
 
     Named sub-entries keep their name as a lead-in ("Sculpt Spells. You can…"); list
     items become their own paragraphs, prefixed with a bullet; tables are summarised by
-    their caption, since a table does not survive being flattened into prose.
+    their caption, since a table does not survive being flattened into prose. With
+    ``tags``, the ``{@...}`` tags are kept, for the tag renderer to draw as links.
     """
     out: list[str] = []
-    _walk(entries, out)
+    _walk(entries, out, clean=_keep if tags else strip_tags)
     return out[:limit] if limit is not None else out
 
 
-def _walk(node: Any, out: list[str], lead: str = "") -> None:
+def _keep(text: str) -> str:
+    return text
+
+
+def _walk(node: Any, out: list[str], lead: str = "", *, clean: Callable[[str], str]) -> None:
     if node is None:
         return
     if isinstance(node, str):
-        text = strip_tags(node).strip()
+        text = clean(node).strip()
         if text:
             out.append(f"{lead}{text}" if lead else text)
         return
     if isinstance(node, list):
         for i, child in enumerate(node):
-            _walk(child, out, lead if i == 0 else "")
+            _walk(child, out, lead if i == 0 else "", clean=clean)
         return
     if not isinstance(node, dict):
         return
     kind = node.get("type")
     name = node.get("name")
-    prefix = f"{strip_tags(str(name))}. " if name else lead
+    prefix = f"{clean(str(name))}. " if name else lead
     if kind == "list":
         for item in node.get("items", []):
             if isinstance(item, dict) and item.get("type") == "item":
-                label = strip_tags(str(item.get("name", ""))).strip()
+                label = clean(str(item.get("name", ""))).strip()
                 item_entries = item.get("entries") or item.get("entry")
                 sub: list[str] = []
-                _walk(item_entries, sub)
+                _walk(item_entries, sub, clean=clean)
                 text = " ".join(sub)
                 out.append(f"• {label} {text}".strip())
             else:
                 sub = []
-                _walk(item, sub)
+                _walk(item, sub, clean=clean)
                 out.extend(f"• {s}" for s in sub)
         return
     if kind == "table":
         caption = node.get("caption")
         if caption:
-            out.append(f"[{strip_tags(str(caption))}]")
+            out.append(f"[{clean(str(caption))}]")
         return
     if kind in (
         "entries",
@@ -169,10 +174,10 @@ def _walk(node: Any, out: list[str], lead: str = "") -> None:
         "inlineBlock",
         "item",
     ):
-        _walk(node.get("entries") or node.get("entry"), out, prefix)
+        _walk(node.get("entries") or node.get("entry"), out, prefix, clean=clean)
         return
     if "entries" in node:
-        _walk(node["entries"], out, prefix)
+        _walk(node["entries"], out, prefix, clean=clean)
 
 
 def first_dice(entries: Any, tag: str = "damage") -> str | None:

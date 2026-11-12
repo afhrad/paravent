@@ -373,8 +373,11 @@ Done before this plan: `app/models/pc.py` (the draft model, CHARGEN.md G6),
    - **What the books say** (2026-11-01, `Catalogue.about`): each species, subspecies,
      class, subclass and background card ends with the start of its fluff, in the reader's
      language where translated; the chosen one's whole text and picture are folded above
-     the cards ("About Wizard"), as plain paragraphs: a label cannot hold links, and the
-     reference page has the rest. A subrace's fluff is filed as a race, `Dwarf (Hill)`.
+     the cards ("About Wizard"). The card's line is plain text: a card is a label tapped
+     to choose it, and cannot hold links. The folded text is drawn by the tag renderer
+     (2026-11-12): its references are links (a player's only to what they may read) and a
+     reader in metres sees the metric hints. A subrace's fluff is filed as a race,
+     `Dwarf (Hill)`.
    - Species, subspecies, classes and subclasses are **cards** (size, speed,
      darkvision, the 2014 bonuses or the 2024 traits; hit die, saves, caster); the level
      is a select; the class's features through that level are listed. **Every other

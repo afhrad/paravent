@@ -35,6 +35,7 @@ class Sight:
     speed: Mapping[str, Any] = field(default_factory=dict)
     # English item names, as the books print them ("Leather Armor").
     gear: tuple[str, ...] = ()
+    # The first paragraph of the books' description, 5eTools tags and all.
     description: str = ""
     # The picture's path under the image folder, when the file is there.
     image: str | None = None
@@ -92,10 +93,11 @@ def _is_attack(action: Mapping[str, Any]) -> bool:
 
 
 def _description(fluff: Fluff | None) -> str:
-    """The first paragraph of the books' description, its tags made plain text."""
+    """The first paragraph of the books' description, its tags kept for the renderer
+    (a player's links only to what they may read)."""
     if fluff is None:
         return ""
-    first = paragraphs(fluff.entries, limit=1)
+    first = paragraphs(fluff.entries, limit=1, tags=True)
     return first[0] if first else ""
 
 

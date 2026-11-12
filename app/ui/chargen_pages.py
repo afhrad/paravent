@@ -86,7 +86,7 @@ from app.ui.names import ITEM, name_text, named, training_text
 from app.ui.names import summary as summary_line
 from app.ui.naming_pages import style_options
 from app.ui.sheet_pages import speed_text
-from app.ui.tags import ref_url
+from app.ui.tags import RenderContext, localized_context, ref_url, render
 from app.ui.translate_pages import translate_url
 
 CHARGEN_URL = "/chargen"
@@ -494,7 +494,15 @@ def _card_question(
         if about is not None and o.reference.lower() in chosen:
             readable = category in REF_PAGES and page.can_read(category, o.data)
             url = ref_url(category, o.name, o.source, world_id) if readable else None
-            folded = _about_panel(page, local or o.name, about, lines, url)
+            ctx = localized_context(
+                page.t,
+                resolver=planner.catalogue.compendium.resolver(),
+                source_set=planner.catalogue.source_set,
+                world_id=world_id,
+                readable=page.readable,
+                units=page.u,
+            )
+            folded = _about_panel(page, local or o.name, about, lines, url, ctx)
         cards.append(
             label(
                 class_="pick cg-card",
@@ -508,7 +516,8 @@ def _card_question(
                 ],
                 span(class_="cg-card-en")[o.name] if local and local != o.name else None,
                 body(o),
-                span(class_="pd cg-card-about")[lines[0]] if lines else None,
+                # A card is tapped to choose it, so its line is plain: no link to steal the tap.
+                span(class_="pd cg-card-about")[strip_tags(lines[0])] if lines else None,
             ]
         )
     return _question(
@@ -521,12 +530,12 @@ def _card_question(
 
 
 def _about_lines(page: Page, about: About | None, names: Sequence[str]) -> list[str]:
-    """What the books say, in plain paragraphs, in the reader's language where translated;
-    the heading the books open with, the option's own name, is left out."""
+    """What the books say, in paragraphs with their tags, in the reader's language where
+    translated; the heading the books open with, the option's own name, is left out."""
     if about is None:
         return []
     shown = page.t.overlay(about.category, about.key, {"entries": about.entries}, ("entries",))
-    lines = paragraphs(shown.data["entries"])
+    lines = paragraphs(shown.data["entries"], tags=True)
     for name in names:
         if lines and lines[0].startswith(f"{name}. "):
             lines[0] = lines[0].removeprefix(f"{name}. ")
@@ -534,9 +543,15 @@ def _about_lines(page: Page, about: About | None, names: Sequence[str]) -> list[
 
 
 def _about_panel(
-    page: Page, name: str, about: About, lines: Sequence[str], url: str | None
+    page: Page,
+    name: str,
+    about: About,
+    lines: Sequence[str],
+    url: str | None,
+    ctx: RenderContext,
 ) -> Element:
-    """The chosen option's whole description, above the cards so it stays in reach; the
+    """The chosen option's whole description, above the cards so it stays in reach, its
+    references links (to what the reader may open) and its units hinted in metres; the
     gamemaster can translate it from here and come back."""
     gamemaster = page.identity is not None and page.identity.is_gamemaster
     return details(class_="cg-about")[
@@ -550,7 +565,7 @@ def _about_panel(
             )
             if about.image
             else None,
-            [p[line] for line in lines],
+            [p[render(line, ctx)] for line in lines],
             a(class_="ref", href=url)[page.t("ref.open")] if url else None,
             a(
                 class_="btn btn-sm",

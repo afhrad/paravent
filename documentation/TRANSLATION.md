@@ -397,8 +397,9 @@ numbers do not survive it. So:
 > (`RenderContext.units`, passed by every page that shows the corpus: reference pages and
 > previews, statblocks, rulebooks, adventures, the sheet, the tracker). The gamemaster's
 > own Markdown is not touched, nor the English column of the translation editor, nor a
-> translated passage beyond what it still writes in feet. The wizard's descriptions and the
-> players' Details are plain paragraphs and carry none.
+> translated passage beyond what it still writes in feet. The wizard's folded description
+> and the players' Details get them too (rendered with their links since 2026-11-12); a
+> wizard card's one line stays plain.
 
 - **A translation carries whatever units its translator wrote.** If the German text says "6 m", that
   is simply the translated text; no conversion is applied to it. The unit setting governs *typed

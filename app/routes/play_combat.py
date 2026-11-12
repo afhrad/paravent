@@ -44,6 +44,7 @@ from app.ui.play_combat_pages import (
     player_board,
     player_combat_page,
 )
+from app.ui.tags import localized_context
 
 router = APIRouter(tags=["play"])
 
@@ -110,7 +111,19 @@ async def player_details(
     monster = row.monster if row is not None else None
     data = monster.entry.model_dump(by_alias=True, exclude_none=True) if monster else None
     names = action_names(page, data)
-    return html(member_details(page, details, play_image_url, own, names))
+    references = registry.references
+    world_id = references.known_world(combat.world_id)
+    # The books' description draws its links (only to what the player may read) and,
+    # for a reader in metres, its metric hints.
+    ctx = localized_context(
+        page.t,
+        resolver=references.resolver(),
+        source_set=references.source_set(world_id),
+        world_id=world_id,
+        readable=page.readable,
+        units=page.u,
+    )
+    return html(member_details(page, details, play_image_url, own, names, ctx))
 
 
 @router.get("/play/combat/{combat_id}/c/{combatant_id}/picture")

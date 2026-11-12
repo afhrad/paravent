@@ -5,7 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 
 from app.models.compendium import Fluff
-from app.services.creature_sight import image_file, sight
+from app.services.combat import SeenCombatant, SeenDetails
+from app.services.creature_sight import Sight, image_file, sight
+from app.services.i18n import UiCatalogue
+from app.services.units import UnitFormat
+from app.ui.context import Page
+from app.ui.play_combat_pages import member_details
+from app.ui.tags import RenderContext
 
 ITEMS = {"leather armor": "Leather Armor", "shield": "Shield", "scimitar": "Scimitar"}
 
@@ -48,7 +54,8 @@ class TestSight:
         assert dict(seen.speed) == {"walk": 30}
         # armour from the AC, weapons from attacks named after an item; a Bite is no gear
         assert seen.gear == ("Leather Armor", "Shield", "Scimitar")
-        assert seen.description == "Goblins are small and spiteful."
+        # tags kept, for the renderer to draw as links
+        assert seen.description == "Goblins are {@b small} and spiteful."
         assert seen.image is None
         assert "15" not in repr(seen) and "2d6" not in repr(seen)  # no AC, no hit points
 
@@ -79,3 +86,23 @@ class TestSight:
         images.mkdir()
         assert image_file(images, "../secret.txt") is None
         assert image_file(images, "missing.webp") is None
+
+
+class TestDetails:
+    """The players' Details draw the books' description through the tag renderer: its
+    references links, its units hinted for a reader in metres."""
+
+    def _shown(self, ctx: RenderContext | None) -> str:
+        member = SeenCombatant("Shrub", "unhurt", (), None)
+        description = "Woken by the {@spell awaken} spell, it moves 20 feet a round."
+        details = SeenDetails(member, Sight(description=description))
+        return str(member_details(Page(UiCatalogue().translator("de")), details, ctx=ctx))
+
+    def test_with_the_renderer(self) -> None:
+        shown = self._shown(RenderContext(units=UnitFormat("metres", "de")))
+        assert "{@" not in shown and "awaken" in shown
+        assert '20 feet<span class="unit-hint"> (6 m)</span> a round' in shown
+
+    def test_plain_without_it(self) -> None:
+        shown = self._shown(None)
+        assert "Woken by the awaken spell, it moves 20 feet a round." in shown
