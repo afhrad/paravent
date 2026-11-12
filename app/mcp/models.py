@@ -256,6 +256,16 @@ class RolledEncounterAnswer(BaseModel):
     rating: RatingAnswer | None = Field(description="The creatures rated for the party")
 
 
+class BuiltEncounterAnswer(BaseModel):
+    """A fight `build_encounter` put together; nothing is saved."""
+
+    shape: str = Field(description="The shape it followed: Boss, Boss with Minions, …")
+    monsters: list[MonsterInput] = Field(
+        description="Ready for create_encounter: add a label to reskin, or change any"
+    )
+    rating: RatingAnswer
+
+
 class ChapterState(BaseModel):
     """A chapter and how far the table got with it."""
 
@@ -588,6 +598,7 @@ __all__ = [
     "AdventureSummary",
     "Attack",
     "BookInfo",
+    "BuiltEncounterAnswer",
     "CampaignObject",
     "MonsterAnswer",
     "MonsterInfo",

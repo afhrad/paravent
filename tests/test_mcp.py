@@ -472,6 +472,28 @@ class TestCraft:
             if rolled["monsters"]:
                 assert rolled["rating"]["party_levels"] == [8]
 
+            built = await call(
+                mcp,
+                "build_encounter",
+                world_id=world_id,
+                difficulty="hard",
+                shape="boss with minions",
+                habitat="swamp",
+                character_ids=[brunhild],
+            )
+            assert built["shape"] == "Boss with Minions" and built["monsters"]
+            assert built["rating"]["party_levels"] == [8]
+            assert built["rating"]["difficulty"] in ("medium", "hard", "deadly")
+            assert "easy, medium, hard, deadly" in await refused(
+                mcp, "build_encounter", world_id=world_id, difficulty="moderate"
+            )
+            assert "Horde" in await refused(
+                mcp, "build_encounter", world_id=world_id, difficulty="hard", shape="Swarm"
+            )
+            assert "forest" in await refused(
+                mcp, "build_encounter", world_id=world_id, difficulty="hard", habitat="moon"
+            )
+
             draft = await call(
                 mcp,
                 "create_adventure",

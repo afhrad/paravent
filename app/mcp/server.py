@@ -27,6 +27,7 @@ from app.mcp.models import (
     Attack,
     BookInfo,
     BudgetAnswer,
+    BuiltEncounterAnswer,
     CampaignObject,
     GeneratedNames,
     MonsterAnswer,
@@ -49,6 +50,7 @@ from app.mcp.models import (
 from app.models.gamestate import Location, Npc, SourceSet, Treasure, World
 from app.models.naming import SUBJECTS, Subject
 from app.services.difficulty import rules_for
+from app.services.encounter_gen import EncounterGenerator, bands_of, pool_of
 from app.services.encounter_roll import EncounterRoller
 from app.services.naming import GENDERS, FoundStyle, NamingError
 from app.services.naming_workshop import race_names
@@ -129,7 +131,10 @@ Work in this order:
 6. Create every fight with `create_encounter`. Choose creatures with `find_monsters` that
    fit the place and the story (environment, type), check the rating it answers with and
    adjust until it sits where you want it. Put terrain, tactics, morale and how it can
-   end in its notes. `random_encounter` can supply travel encounters.
+   end in its notes. `build_encounter` puts a fight together at a difficulty and in a
+   shape (a boss with minions, a horde) from the world's books when no creature is
+   fixed by the story: keep what fits, reskin with a label, swap the rest.
+   `random_encounter` can supply travel encounters.
 7. Create rewards with `create_treasure` (items from the books by name) or
    `roll_treasure` for a hoard of the right challenge rating.
 8. Write each chapter with `write_chapter`: read-aloud text in `> [!read]`, secrets in
@@ -592,6 +597,78 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
             monsters=monsters,
             unresolved=rolled.unresolved,
             rating=rating,
+        )
+
+    @server.tool()
+    def build_encounter(
+        world_id: str,
+        difficulty: Annotated[
+            str,
+            Field(description="2014: easy, medium, hard, deadly; 2024: low, moderate, high"),
+        ],
+        shape: Annotated[
+            str,
+            Field(
+                description="Boss, Boss with Minions, Duo, Trio or Horde; empty for any "
+                "(an unknown one lists them)"
+            ),
+        ] = "",
+        habitat: Annotated[
+            str,
+            Field(
+                description='Where its creatures live as the books say: "forest", "swamp", '
+                '"underdark", "planar, feywild"; empty for anywhere (an unknown one lists '
+                "the world's)"
+            ),
+        ] = "",
+        character_ids: Annotated[
+            list[str] | None,
+            Field(description="The party; the world's characters when omitted"),
+        ] = None,
+        party_size: Annotated[int | None, Field(ge=1, le=12)] = None,
+        party_level: Annotated[int | None, Field(ge=1, le=20)] = None,
+    ) -> BuiltEncounterAnswer:
+        """Put a fight together at a difficulty for the party, from the world's books, in
+        one of the corpus's shapes — what the builder's "Build a fight" does; saves
+        nothing. Each try differs: call again for another. Then rename what does not fit
+        the story with a label (a reskin), and pass the monsters to create_encounter."""
+        registry = stores()
+        world = world_of(world_id)
+        rules = rules_for(world.source_set)
+        difficulty_rules = registry.encounters.difficulty
+        if not difficulty_rules.has_tables(rules):
+            raise ToolError(
+                "This world plays the 2014 rules, but the table's 5eTools data lacks the "
+                "2014 Dungeon Master's Guide: nothing to rate a fight against."
+            )
+        if difficulty not in bands_of(rules):
+            raise ToolError(
+                f"Under these rules the difficulty is one of {', '.join(bands_of(rules))}."
+            )
+        shapes = registry.encounter_tables.shapes()
+        chosen = [s for s in shapes if not shape or s.name.lower() == shape.strip().lower()]
+        if not chosen:
+            raise ToolError("No such shape. The shapes are: " + ", ".join(s.name for s in shapes))
+        monsters = registry.compendium.monsters().in_books(world.source_set)
+        _all, habitats = pool_of(monsters)
+        if habitat and habitat.strip().lower() not in habitats:
+            raise ToolError(
+                "No creature of this world lives there. Habitats: " + ", ".join(habitats)
+            )
+        if habitat:
+            monsters = monsters.environment(habitat.strip().lower())
+        pool, _ = pool_of(monsters)
+        levels = party_levels(registry, world, character_ids, party_size, party_level)
+        made = EncounterGenerator(difficulty_rules).generate(
+            pool, levels, rules, difficulty, chosen
+        )
+        if made is None:
+            raise ToolError("No fight could be built: no party, or no creatures for it.")
+        found = [MonsterInput(name=n, source=s, count=c) for n, s, c in made.monsters]
+        planned, _ = resolve_monsters(registry, world, found)
+        rating, lines = registry.encounters.rate_plan(world, planned, levels)
+        return BuiltEncounterAnswer(
+            shape=made.shape, monsters=found, rating=rating_answer(rating, lines, levels)
         )
 
     @server.tool()
