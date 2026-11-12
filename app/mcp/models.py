@@ -662,6 +662,14 @@ class CreatureDraft(BaseModel):
         description="Spells, items or creatures named that are not in the world's books: "
         "mend them before you hand over",
     )
+    revision_of: str | None = Field(
+        default=None,
+        description="The accepted creature this draft revises: it stays as it is until the "
+        "gamemaster accepts the revision",
+    )
+    changes: list[str] = Field(
+        default_factory=list, description="The fields a revision changes on its creature"
+    )
     picture: str | None = Field(
         default=None, description="Where the gamemaster sees its picture, if it has one"
     )

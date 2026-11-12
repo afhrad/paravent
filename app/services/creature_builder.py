@@ -126,6 +126,20 @@ class Wording:
         return self.t(f"creatures.text.{key}", **params)
 
 
+# What is a design's own and never copied or compared between a creature and its revision.
+_OWN_FIELDS = frozenset(
+    {
+        "id",
+        "created_at",
+        "updated_at",
+        "published_at",
+        "published_hash",
+        "drafted_by",
+        "revision_of",
+    }
+)
+
+
 class CreatureError(Translatable):
     """A change a design cannot take."""
 
@@ -899,15 +913,22 @@ class CreatureService:
             raise CreatureNotFound(design_id)
         return found
 
-    def _clean_name(self, name: str, own_id: str | None = None) -> str:
+    def _clean_name(
+        self, name: str, own_id: str | None = None, revision_of: str | None = None
+    ) -> str:
         cleaned = " ".join(name.split())[:80]
         if not cleaned:
             raise CreatureError("creatures.error.name")
+        # A design shares its name only with its own revision.
+        kin = {own_id, revision_of} - {None}
         clash = next(
             (
                 c
                 for c in self._store.creatures.list()
-                if c.name.casefold() == cleaned.casefold() and c.id != own_id
+                if c.name.casefold() == cleaned.casefold()
+                and c.id not in kin
+                and not (own_id is not None and c.revision_of == own_id)
+                and not (revision_of is not None and c.revision_of == revision_of)
             ),
             None,
         )
@@ -950,7 +971,10 @@ class CreatureService:
 
     def save(self, design: CreatureDesign) -> CreatureDesign:
         """Store a changed design (not yet published)."""
-        design.name = self._clean_name(design.name, design.id)
+        if design.revision_of:  # a revision keeps its creature's name and world
+            original = self.get(design.revision_of)
+            design.name, design.world_id = original.name, original.world_id
+        design.name = self._clean_name(design.name, design.id, design.revision_of)
         design.touch()
         return self._store.creatures.replace(design)
 
@@ -958,6 +982,8 @@ class CreatureService:
         """Delete a design; its statblock leaves the homebrew file on the next publish."""
         design = self.get(design_id)
         self._store.creatures.delete(design_id)
+        if (revision := self.revision(design_id)) is not None:  # nothing left to revise
+            self._store.creatures.delete(revision.id)
         return design
 
     def _hash(self, design: CreatureDesign) -> str:
@@ -975,7 +1001,9 @@ class CreatureService:
             (
                 d
                 for d in self._store.creatures.list()
-                if d.name.casefold() == wanted and (world_id is None or d.world_id == world_id)
+                if d.name.casefold() == wanted
+                and not d.revision_of
+                and (world_id is None or d.world_id == world_id)
             ),
             None,
         )
@@ -1000,8 +1028,59 @@ class CreatureService:
         return drafts
 
     def accept(self, design_id: str) -> CreatureDesign:
-        """Make Claude's draft one of the gamemaster's designs, published from now on."""
+        """Make Claude's draft one of the gamemaster's designs, published from now on;
+        a revision is written onto its creature (:meth:`accept_revision`)."""
+        if self.get(design_id).revision_of:
+            return self.accept_revision(design_id)
         return self._store.creatures.update(design_id, drafted_by=None)
+
+    def revision(self, design_id: str) -> CreatureDesign | None:
+        """The open revision of a design, if Claude has one."""
+        return next((d for d in self._store.creatures.list() if d.revision_of == design_id), None)
+
+    def start_revision(self, design_id: str, drafted_by: str) -> CreatureDesign:
+        """A draft copy of an accepted design for Claude to change, or the one already
+        open; the design itself stays as it is, published, until the copy is accepted."""
+        original = self.get(design_id)
+        if original.drafted_by:
+            raise CreatureError("creatures.error.revise_draft", name=original.name)
+        found = self.revision(design_id)
+        if found is not None:
+            return found
+        copy = CreatureDesign.model_validate(
+            {
+                **original.model_dump(exclude=set(_OWN_FIELDS)),
+                "drafted_by": drafted_by,
+                "revision_of": original.id,
+            }
+        )
+        return self._store.creatures.create(copy)
+
+    def changes(self, revision: CreatureDesign) -> builtins.list[str]:
+        """The fields a revision changes against its creature, in the design's order."""
+        if not revision.revision_of:
+            return []
+        original = self._store.creatures.find(revision.revision_of)
+        if original is None:
+            return []
+        mine, theirs = revision.model_dump(), original.model_dump()
+        kept = _OWN_FIELDS | {"name", "world_id"}  # the creature's, followed by its revision
+        return [k for k in mine if k not in kept and mine[k] != theirs.get(k)]
+
+    def accept_revision(self, design_id: str) -> CreatureDesign:
+        """Write a revision onto its creature (same id, name and picture, so encounters
+        keep it), drop the copy, and publish when the creature was published."""
+        revision = self.get(design_id)
+        original = self.get(revision.revision_of or "")
+        changed = original.model_copy(
+            update={k: getattr(revision, k) for k in self.changes(revision)}
+        )
+        changed.touch()
+        self._store.creatures.replace(changed)
+        self._store.creatures.delete(revision.id)
+        if original.published_at is not None:
+            self.publish()
+        return self.get(original.id)
 
     def publish(self) -> Published:
         """Write every design but Claude's drafts to the homebrew file and reload the

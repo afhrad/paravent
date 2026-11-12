@@ -165,7 +165,7 @@ class EncounterService:
         designs = {
             d.name.casefold(): d.id
             for d in self._store.creatures.list()
-            if d.name.casefold() in planned
+            if d.name.casefold() in planned and not d.revision_of
         }
         return EncounterView(
             encounter, world, lines, party, stated, rating, inferred, designs=designs

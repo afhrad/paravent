@@ -237,6 +237,9 @@ def _builder(
         unpublished=service.unpublished(design),
         published=design.published_at is not None,
         picture=_picture_url(registry, design),
+        original=service.get(design.revision_of) if design.revision_of else None,
+        revision=service.revision(design.id),
+        changes=service.changes(design),
     )
     ctx = localized_context(
         page.t,
@@ -289,10 +292,11 @@ async def show_creature(
     design_id: str,
     published: str = "",
     worlds: str = "",
+    revised: str = "",
 ) -> HTMLResponse:
     """The builder."""
     design = registry.creatures.get(design_id)
-    notice_text = None
+    notice_text = page.t("creatures.revision_accepted") if revised else None
     if published:
         notice_text = page.t.plural("creatures.published_n", int(published))
         if worlds:
@@ -315,6 +319,13 @@ async def change_creature(
     before = service.get(design_id)
     design = _read_form(before, form, registry, page)
     design = _apply(action, design, form, registry, page)
+    if action == "accept" and before.revision_of:  # written onto its creature
+        try:
+            service.save(design)
+        except CreatureError as exc:
+            return _builder(page, registry, design, error=page.t.error(exc), status_code=422)
+        accepted = service.accept_revision(design.id)
+        return redirect(f"{creature_url(accepted.id)}?revised=1")
     if action == "accept":  # Claude's draft becomes the gamemaster's own
         design = design.model_copy(update={"drafted_by": None})
     try:

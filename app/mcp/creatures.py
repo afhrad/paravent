@@ -159,6 +159,8 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
             advice=advice,
             statblock=lines,
             problems=problems,
+            revision_of=design.revision_of,
+            changes=registry.creatures.changes(design),
             picture=f"{creature_url(design.id)}/picture"
             if registry.creature_pictures.find(design.world_id, design_ref(design.name))
             else None,
@@ -377,7 +379,16 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
         except CreatureNotFound as exc:
             raise ToolError(f"No creature design with id {design_id}") from exc
         if not design.drafted_by:
-            raise ToolError("Only drafts you created can be changed; this is the gamemaster's.")
+            raise ToolError(
+                "Only drafts you created can be changed; this is the gamemaster's. "
+                "To change it, open a revision with `start_creature_revision`."
+            )
+        if design.revision_of and name is not None and name.strip() != design.name:
+            raise ToolError("A revision keeps its creature's name: encounters find it by it.")
+        if design.revision_of and image_url is not None:
+            raise ToolError(
+                "An accepted creature's picture is the gamemaster's to change in the builder."
+            )
         if cr is not None and not registry.creatures.known_cr(cr.strip()):
             raise ToolError(f"No challenge rating {cr!r}: 0, 1/8, 1/4, 1/2, 1 … 30")
         changes = _changes(
@@ -412,6 +423,37 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
         saved = apply(design, changes, fit)
         keep_picture(design, saved, image_url, picture)
         return answer(saved)
+
+    @server.tool()
+    def start_creature_revision(
+        ctx: Context,
+        creature: Annotated[
+            str, Field(description="The accepted creature's design id, or its name")
+        ],
+    ) -> CreatureDraft:
+        """A draft copy of a creature the gamemaster accepted (or made in the builder),
+        to change with `update_creature`. Answers with the copy (write to its id), or
+        the copy already open. The creature stays as it is, published and in its
+        encounters, until the gamemaster accepts the revision; it keeps its name and
+        picture. Your own drafts need no copy."""
+        registry = stores()
+        found = registry.mcp_tokens.verify(bearer_of(ctx))
+        if found is None:
+            raise ToolError("This request carries no valid Paravent key.")
+        service = registry.creatures
+        try:
+            design = service.get(creature)
+        except CreatureNotFound:
+            named = service.named(creature)
+            if named is None:
+                raise ToolError(f"No creature design {creature!r}") from None
+            design = named
+        if design.revision_of:
+            return answer(design)
+        if design.drafted_by:
+            raise ToolError(f"{design.name} is still your draft: change it with update_creature.")
+        with tool_errors():
+            return answer(service.start_revision(design.id, found[0].id))
 
 
 __all__ = ["register_creatures"]

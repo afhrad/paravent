@@ -501,6 +501,9 @@ class CreatureDesign(Record):
     # The MCP key that drafted it (MCP.md): Claude's draft, left out of a publish until
     # the gamemaster accepts it; None for the gamemaster's own designs.
     drafted_by: str | None = None
+    # A revision (MCP.md §10): Claude's draft copy of the accepted design with this id,
+    # under the same name; accepting it writes it onto that design.
+    revision_of: str | None = None
 
 
 class EncounterMonster(GameStateModel):

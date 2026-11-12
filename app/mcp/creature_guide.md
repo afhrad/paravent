@@ -126,7 +126,15 @@ first and the encounter after, and hand them over together. In a chapter show it
 its encounter (`{@encounter Mire}`): a `{@creature Moorhulk}` tag finds it only once it is
 published, and the chapter check reports it until then.
 
-## 9. Check, then hand over
+## 9. Changing an accepted creature
+
+A creature the gamemaster accepted, or made in the builder, is not yours to change. When
+asked to change one, `start_creature_revision` with its id or name gives you a draft copy:
+change the copy with `update_creature`. Its name and picture stay the creature's. The
+answer's `changes` lists what the revision changes. The creature stays as it is until the
+gamemaster accepts the revision, so tell them it waits under *Creatures*.
+
+## 10. Check, then hand over
 
 Every answer gives the CR it **plays at** by the guide's method, beside the target, with
 its defensive and offensive CR and an `advice` when they are more than a step apart; the

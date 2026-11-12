@@ -124,7 +124,7 @@ plain text. Names and ids are what Claude passes back; ids are Paravent's record
 | `draft_naming_style(name, pattern, parts, …, world_id?)` | Proposes a naming style: a write outside a draft adventure, but inert, offered nowhere until the gamemaster accepts it; with `world_id` it then joins that world's styles (NAMES.md §5b, §6) |
 | `set_world_naming_styles(world_id, keys)` | Chooses the naming styles a world's names come from (empty: every style). The other write outside a draft adventure, asked for by the user 2026-11-09; it changes only that list (NAMES.md §5b) |
 | `creature_guide()` | How to design a creature: based on the books or blank, placeholders, spellcasting, equipment, what changes the CR (§10) |
-| `create_creature(world_id, name, cr, based_on?, …)` / `update_creature(design_id, …)` | A creature in the creature builder from a description, as **Claude's draft**, left out of a publish until the gamemaster accepts it; each answer is the CR it plays at, its statblock and what its text names that the world's books lack (§10) |
+| `create_creature(world_id, name, cr, based_on?, …)` / `update_creature(design_id, …)` / `start_creature_revision(creature)` | A creature in the creature builder from a description, as **Claude's draft**, left out of a publish until the gamemaster accepts it; each answer is the CR it plays at, its statblock and what its text names that the world's books lack (§10) |
 | `check_adventure(adventure_id)` | The same check over every chapter and the notes of the adventure's NPCs, places, encounters and treasure, naming where each problem is. Called last, once everything exists: a chapter or note may name something written later |
 | `list_sounds()` | The sound desk's scenes and sounds, for `{@sound Name}` (SOUND.md) |
 | `check_chapter(chapter_id)` | The chapter check (ADVENTURES.md §5.7): references that lead nowhere with the nearest names, missing NPCs/encounters/treasure, empty encounters, unknown callouts, missing headings and images |
@@ -300,6 +300,15 @@ builder (`app/services/creature_builder.py`).
   The builder marks it ("Claude's draft") and offers **Accept**; `CreatureService.publish`
   leaves every draft out, so nothing unreviewed reaches `library/homebrew/`. Claude changes
   only drafts; the gamemaster's designs are refused.
+- **Revisions** (2026-11-12): `start_creature_revision(creature)` (an id or a name) makes a
+  draft copy of an accepted design, `revision_of` its id, under the same name (the only
+  name two designs may share; `named` and so encounters and `{@creature}` find the
+  original). Claude changes the copy with `update_creature`, but not its name, world or
+  picture. The original stays published until the gamemaster opens the copy (marked
+  "Revision", with the fields it changes, `CreatureService.changes`) and accepts it:
+  `accept_revision` writes the changed fields onto the original (its id, name, picture and
+  encounters kept), deletes the copy and publishes. Deleting the copy discards it; deleting
+  the original deletes its copy.
 - **The answer is the builder's working:** the CR it plays at by the guide's method with
   its defensive and offensive CR and an `advice` when they are more than a step from the
   target, hit points with their formula, armour class, damage per round, attack and DC, the

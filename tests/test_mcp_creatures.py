@@ -325,3 +325,63 @@ class TestForAGermanTable:
         registry.creatures.publish()
         entry = (await raw.get("/ref/monster/Homebrew/Moorhulk")).text
         assert "Moorhulk" in entry and "ref-names" not in entry and "tr-note" not in entry
+
+
+class TestARevision:
+    async def test_claude_revises_an_accepted_creature(
+        self,
+        table: tuple[httpx.AsyncClient, Any],  # noqa: F811
+    ) -> None:
+        raw, facts = table
+        registry: StoreRegistry = facts["app"].state.stores
+        service = registry.creatures
+        world_id = facts["world"].id
+        own = service.create("Bog Hound", world_id, "1")
+        service.publish()
+        async with session(table) as mcp:
+            copy = await call(mcp, "start_creature_revision", creature="bog hound")
+            assert copy["id"] != own.id and copy["revision_of"] == own.id
+            assert copy["name"] == "Bog Hound" and copy["changes"] == []
+            again = await call(mcp, "start_creature_revision", creature=own.id)
+            assert again["id"] == copy["id"]
+            changed = await call(mcp, "update_creature", design_id=copy["id"], ac=17)
+            assert changed["changes"] == ["ac"]
+            assert "keeps its creature's name" in await _refused(
+                mcp, "update_creature", design_id=copy["id"], name="Bog Lord"
+            )
+            assert "picture" in await _refused(
+                mcp, "update_creature", design_id=copy["id"], image_url="https://x.test/a.png"
+            )
+        # Until accepted, the table keeps the creature as it was.
+        assert service.named("Bog Hound") == service.get(own.id)
+
+        def published_ac() -> int:
+            entry = registry.compendium.get("monster", "Bog Hound|Homebrew")
+            first = entry.model_dump(by_alias=True)["ac"][0]
+            return int(first["ac"] if isinstance(first, dict) else first)
+
+        assert published_ac() == own.ac != 17
+
+        await raw.post("/login", data={"username": "dm", "password": PASSWORD})
+        assert "Open the revision" in (await raw.get(f"/gm/creatures/{own.id}")).text
+        page = (await raw.get(f"/gm/creatures/{copy['id']}")).text
+        assert "Accept the revision" in page and "It changes: Armor Class." in page
+        revision = service.get(copy["id"])
+        form: dict[str, Any] = {
+            "action": "accept",
+            "name": "Ignored",
+            "world": world_id,
+            "cr": revision.cr,
+            "ac": "17",
+            "hit_dice": str(revision.hit_dice),
+            "speed_walk": "30",
+            **{f"ab_{a}": str(v) for a, v in revision.abilities.items()},
+            "actions_name": [b.name for b in revision.actions],
+            "actions_text": [b.text for b in revision.actions],
+        }
+        answer = await raw.post(f"/gm/creatures/{copy['id']}", data=form)
+        assert answer.headers["location"] == f"/gm/creatures/{own.id}?revised=1"
+        accepted = service.get(own.id)
+        assert accepted.ac == 17 and accepted.name == "Bog Hound" and not accepted.drafted_by
+        assert service.revision(own.id) is None and len(service.list()) == 1
+        assert published_ac() == 17

@@ -120,7 +120,9 @@ def creatures_page(
                     )
                 ],
             ],
-            span(class_="pill accent", title=t("creatures.draft_hint"))[t("creatures.draft")]
+            span(class_="pill accent", title=t("creatures.revision_hint"))[t("creatures.revision")]
+            if r.design.revision_of
+            else span(class_="pill accent", title=t("creatures.draft_hint"))[t("creatures.draft")]
             if r.design.drafted_by
             else span(class_="pill cond")[t("creatures.unpublished")]
             if r.unpublished
@@ -198,6 +200,50 @@ class BuilderView:
     published: bool
     # The address of its picture (versioned), when it has one.
     picture: str | None = None
+    # A revision's creature, and the fields the revision changes on it.
+    original: CreatureDesign | None = None
+    changes: Sequence[str] = ()
+    # Claude's open revision of this creature.
+    revision: CreatureDesign | None = None
+
+
+# Labels of the fields a revision changes, where the field's own label is not
+# ``creatures.<field>``.
+_CHANGE_LABELS = {
+    "type_tags": "creatures.type",
+    "speed": "creatures.change.speed",
+    "based_on": "creatures.change.based_on",
+    **{kind: f"creatures.kind.{kind}" for kind in BLOCK_KINDS},
+}
+
+
+def _revision_note(page: Page, view: BuilderView) -> Element | None:
+    """What a revision changes on which creature, or that this creature has one waiting."""
+    t = page.t
+    if view.original is not None:
+        changed = ", ".join(t(_CHANGE_LABELS.get(f, f"creatures.{f}")) for f in view.changes)
+        return div(class_="notice cb-revision", role="status")[
+            icon("pencil"),
+            span[
+                t("creatures.revision_of"),
+                " ",
+                a(href=creature_url(view.original.id))[view.original.name],
+                ". ",
+            ],
+            span[t("creatures.revision_changes", fields=changed)]
+            if changed
+            else span[t("creatures.revision_unchanged")],
+        ]
+    if view.revision is not None:
+        return div(class_="notice cb-revision", role="status")[
+            icon("pencil"),
+            span[
+                t("creatures.revision_waiting"),
+                " ",
+                a(href=creature_url(view.revision.id))[t("creatures.revision_open")],
+            ],
+        ]
+    return None
 
 
 def _picture(page: Page, view: BuilderView, error: str) -> Element:
@@ -677,7 +723,9 @@ def builder_page(
     d = view.design
     url = creature_url(d.id)
     status = (
-        span(class_="pill accent", title=t("creatures.draft_hint"))[t("creatures.draft")]
+        span(class_="pill accent", title=t("creatures.revision_hint"))[t("creatures.revision")]
+        if d.revision_of
+        else span(class_="pill accent", title=t("creatures.draft_hint"))[t("creatures.draft")]
         if d.drafted_by
         else span(class_="pill cond")[t("creatures.unpublished")]
         if view.unpublished
@@ -685,14 +733,17 @@ def builder_page(
     )
     actions = div(class_="form-actions cb-actions")[
         button(type="submit", name="action", value="accept", class_="btn btn-primary")[
-            icon("check"), span[t("creatures.accept")]
+            icon("check"),
+            span[t("creatures.accept_revision" if d.revision_of else "creatures.accept")],
         ]
         if d.drafted_by
         else None,
         button(type="submit", name="action", value="save", class_="btn")[
             icon("check"), span[t("creatures.save")]
         ],
-        button(type="submit", name="action", value="publish", class_="btn btn-primary")[
+        None
+        if d.revision_of  # its creature is published when the revision is accepted
+        else button(type="submit", name="action", value="publish", class_="btn btn-primary")[
             icon("upload"), span[t("creatures.publish")]
         ],
         a(href=ref_url("monster", d.name, HOMEBREW_SOURCE, d.world_id), class_="btn btn-ghost")[
@@ -715,8 +766,14 @@ def builder_page(
                 span(class_="muted")[t("creatures.based_on", ref=d.based_on)]
                 if d.based_on
                 else None,
-                delete_link(page, f"{url}/delete", t("creatures.delete"), text=True),
+                delete_link(
+                    page,
+                    f"{url}/delete",
+                    t("creatures.discard_revision" if d.revision_of else "creatures.delete"),
+                    text=True,
+                ),
             ],
+            _revision_note(page, view),
             notice(notice_text),
             alert(error),
             div(class_="cb-layout")[

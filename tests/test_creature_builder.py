@@ -186,6 +186,27 @@ class TestDesigns:
         service.add_template(german, "action", "Bite (Cloaker)", wording.u)
         assert " ft." not in german.actions[-1].text and "1,5 m" in german.actions[-1].text
 
+    def test_a_revision_shares_its_creatures_name(self, registry: StoreRegistry) -> None:
+        service = registry.creatures
+        own = service.create("Ash Wight", None, "3")
+        copy = service.start_revision(own.id, "key")
+        assert copy.name == "Ash Wight" and service.named("ash wight") == own
+        with pytest.raises(CreatureError):
+            service.create("Ash Wight", None, "1")
+        # Renamed meanwhile: the revision follows, and accepting it keeps the new name.
+        own.name = "Grave Wight"
+        service.save(own)
+        copy.hit_dice = 12
+        copy = service.save(copy)
+        assert copy.name == "Grave Wight" and service.changes(copy) == ["hit_dice"]
+        accepted = service.accept(copy.id)
+        assert accepted.id == own.id and accepted.name == "Grave Wight"
+        assert accepted.hit_dice == 12 and service.list() == [accepted]
+        # Deleting a creature deletes its open revision.
+        service.start_revision(own.id, "key")
+        service.delete(own.id)
+        assert service.list() == []
+
     def test_names_are_needed_and_unique(self, registry: StoreRegistry) -> None:
         service = registry.creatures
         service.create("Ash Wight", None, "3")
