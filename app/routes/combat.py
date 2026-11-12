@@ -93,6 +93,7 @@ def _ctx(page: Page, registry: StoreRegistry, combat: Combat) -> RenderContext:
         resolver=registry.compendium.resolver(),
         source_set=references.source_set(world_id),
         world_id=world_id,
+        units=page.u,
     )
 
 

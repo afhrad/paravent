@@ -665,6 +665,8 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       say 18 m for 60 ft, not 18.3 m. Also 1 mile = 1.5 km and 1 lb = 0.5 kg
 - [x] Prose units are **left alone**. 39,315 unit mentions sit in untagged prose and `{@area}` is a
       map link, not a distance. Optional render-time annotation only; never a rewrite
+      **Metric hints** (2026-11-12, `UnitFormat.prose_hints`): a reader in metres sees
+      "60 feet (18 m)" beside each clear mention, the text unchanged (TRANSLATION.md §6 note)
 
 ## Player Character
 
@@ -946,6 +948,7 @@ What is still true: Paravent ships no translation, exactly as it ships no 5e con
 7. ~~`combatant_card()` in htpy~~ — **done 2026-10-18** as the tracker's rows (COMBAT.md).
 8. ~~`GET /ref/.../preview` — the tooltip fragment endpoint~~ — **done 2026-10-15**, with
    hover/tap previews.
-9. Translation, in the order TRANSLATION.md §8 gives: UI strings → glossary + label substitution
-   → translation store → translation UI → unit preference. Steps 1–2 alone already deliver a
+9. ~~Translation~~ — **done**, all six steps of TRANSLATION.md §8 (2026-11-12), in its
+   order: UI strings → glossary + label substitution → translation store → translation UI →
+   unit preference → metric hints in prose. Steps 1–2 alone already deliver a
    tool that feels German, and nothing in the chain blocks on a complete translation existing.

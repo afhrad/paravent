@@ -6,7 +6,7 @@ and units — and how a translation gets authored, stored and kept honest as the
 **Date:** 2026-09-14 · **Status:** UI strings built (§5 note); the glossary and label
 substitution built 2026-10-19 (§4 note); translated text, the editor, machine drafts
 and the coverage page built 2026-10-21 (§5, §7 notes); importing a translated corpus built
-2026-11-11 (§7 note). Still design: prose unit annotation.
+2026-11-11 (§7 note); metric hints in prose built 2026-11-12 (§6 note).
 
 > **One sentence:** the English record stays canonical and structural; a translation is a
 > **text-only lookup layered over it**, never a replacement entity.
@@ -386,6 +386,20 @@ numbers do not survive it. So:
 
 - **Do not rewrite prose.** Optionally annotate unambiguous forms at render time (a parenthetical or
   hover showing the metric equivalent), which is reversible and never corrupts the source.
+> **Built 2026-11-12: metric hints.** A reader in metres sees the metric value beside each
+> clear unit mention of the books' prose, in a muted hint of its own: "within 60 feet
+> (18 m)", "a 20-foot-radius (6 m) sphere", "20/60 ft. (6/18 m)", "a 10-by-10-foot
+> (3 × 3 m) room", "5 miles (7,5 km)", "15 lb. (7,5 kg)" — the same 0.3, 1.5 and 0.5 as the
+> typed fields. Clear means a number in digits directly before its unit, spaced or
+> hyphenated. Left alone: spelled-out numbers, areas ("10 square feet"), a distance that
+> multiplies a roll ("1d6 × 10 feet"). `UnitFormat.prose_hints` finds them; the tag
+> renderer adds them to plain text when its context carries the reader's units
+> (`RenderContext.units`, passed by every page that shows the corpus: reference pages and
+> previews, statblocks, rulebooks, adventures, the sheet, the tracker). The gamemaster's
+> own Markdown is not touched, nor the English column of the translation editor, nor a
+> translated passage beyond what it still writes in feet. The wizard's descriptions and the
+> players' Details are plain paragraphs and carry none.
+
 - **A translation carries whatever units its translator wrote.** If the German text says "6 m", that
   is simply the translated text; no conversion is applied to it. The unit setting governs *typed
   fields* and *annotations*, never translated prose.
@@ -514,7 +528,7 @@ than it returns and reintroduces every problem this design avoids.
 3. **Translation storage + fallback resolution** (§5), including `source_hash`.
 4. **The translation UI** (§7) — read-only coverage view first, then the editor.
 5. **Unit preference** for typed fields (§6).
-6. **Prose unit annotation** — last, optional, and only if it proves wanted.
+6. ~~**Prose unit annotation**~~ — built 2026-11-12 as metric hints (§6 note).
 
 Steps 1 and 2 together already deliver a tool that feels German. Everything after that is
 incremental coverage, which is the point: **no step blocks on a complete translation existing.**

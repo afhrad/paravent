@@ -66,6 +66,7 @@ from htpy import (
 from htpy import code as code_el
 
 from app.models.gamestate import SourceSet
+from app.services.units import UnitFormat
 from app.store.reference import Outcome, parse_reference
 from app.ui.icons import available, icon
 
@@ -327,6 +328,9 @@ class RenderContext:
     # the English defaults. Translations keep these tags verbatim, so the label is what
     # makes a translated statblock read in one language.
     label: Callable[..., str] | None = None
+    # The reader's units: a metric reader sees the metric value beside each clear unit
+    # mention in the prose ("60 feet (18 m)"), the text itself unchanged. None: no hints.
+    units: UnitFormat | None = None
     missing_label: Callable[[str, str], str] = field(
         default=lambda case, book: (
             f"{book} is not among this world's books."
@@ -344,9 +348,11 @@ def localized_context(
     world_id: str | None = None,
     roll_form: str | None = None,
     readable: Callable[[str, Any], bool] | None = None,
+    units: UnitFormat | None = None,
 ) -> RenderContext:
     """A context whose "not in your books" messages are in the reader's language;
-    ``readable`` (a page's) keeps a player's links to what they may read."""
+    ``readable`` (a page's) keeps a player's links to what they may read, ``units``
+    (a page's) adds metric hints to the prose for a reader in metres."""
 
     def missing(case: str, book: str) -> str:
         return t("ref.missing_excluded" if case == "excluded" else "ref.missing_absent", book=book)
@@ -360,6 +366,7 @@ def localized_context(
         term=getattr(t, "term", None),
         dice_letter=dice_letter(t),
         label=t,
+        units=units,
         missing_label=missing,
     )
 
@@ -430,7 +437,7 @@ def _inline(text: str, ctx: RenderContext) -> list[Node]:
 
 def _render_node(node: str | Tag, ctx: RenderContext) -> Node:
     if isinstance(node, str):
-        return node
+        return _with_hints(node, ctx.units) if ctx.units is not None else node
     name = node.name
     if name in ENTITY_CATEGORY:
         return _entity(node, ctx)
@@ -441,6 +448,21 @@ def _render_node(node: str | Tag, ctx: RenderContext) -> Node:
         return handler(node, ctx)
     # Unknown or not-yet-meaningful tags (books, filters, comics…): their text.
     return _inline(_display_slot(node), ctx)
+
+
+def _with_hints(text: str, units: UnitFormat) -> Node:
+    """Prose with the metric value after each clear unit mention, in a hint of its own
+    ("60 feet" + " (18 m)"), so the books' text stays as written."""
+    hints = units.prose_hints(text)
+    if not hints:
+        return text
+    out: list[Node] = []
+    start = 0
+    for end, value in hints:
+        out += [text[start:end], span(".unit-hint")[f" ({value})"]]
+        start = end
+    out.append(text[start:])
+    return out
 
 
 def _entity(tag: Tag, ctx: RenderContext) -> Node:

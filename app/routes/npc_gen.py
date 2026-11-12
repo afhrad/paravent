@@ -118,6 +118,7 @@ def _page(
         resolver=registry.references.resolver(),
         source_set=world.source_set,
         world_id=world.id,
+        units=page.u,
     )
     return html(generate_page(page, view, ctx, error=error), status_code=status_code)
 

@@ -1421,6 +1421,7 @@ def sheet_fragment(
             world_id=sheet.character.world_id,
             roll_form=_roll_form_id(sheet),
             readable=page.readable,
+            units=page.u,
         )
         if resolver is not None
         else None

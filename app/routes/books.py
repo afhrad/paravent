@@ -86,6 +86,7 @@ async def chapter(
         source_set=registry.references.source_set(world_id),
         world_id=world_id,
         readable=page.readable,
+        units=page.u,
     )
     return html(chapter_page(page, body, index, ctx, world_id))
 
@@ -110,6 +111,7 @@ async def screen(
         source_set=source_set,
         world_id=world_id,
         readable=page.readable,
+        units=page.u,
     )
     # The screens are made from the 2014 books; say so to a table on the 2024 rules only.
     older = source_set is not None and source_set.editions == {"one"}

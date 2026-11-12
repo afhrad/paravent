@@ -63,6 +63,7 @@ async def reference(
         source_set=source_set,
         world_id=world_id,
         readable=page.readable,
+        units=page.u,
     )
     backlinks = registry.backlinks.links_to(
         entry.category, entry.name, entry.source, source_set=source_set, world_id=world_id
@@ -108,7 +109,7 @@ async def reference_preview(
     entry = _readable(
         page, references.get(category, source, name, world or page.home_world or None)
     )
-    inert = RenderContext(static_rolls=True, dice_letter=dice_letter(page.t))
+    inert = RenderContext(static_rolls=True, dice_letter=dice_letter(page.t), units=page.u)
     open_url = ref_url(
         category, entry.name, entry.source, references.known_world(world or page.home_world or None)
     )

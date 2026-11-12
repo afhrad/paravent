@@ -65,6 +65,7 @@ def _reading(page: Page, registry: StoreRegistry, handout: Handout) -> MarkdownC
             source_set=world.source_set if world is not None else None,
             world_id=handout.world_id,
             readable=page.readable,
+            units=page.u,
         ),
         media=picture,
         find_media=picture,

@@ -4,7 +4,9 @@ A per-user setting that follows the language: switching to English shows feet an
 pounds, any other language metres and kilograms (:func:`units_for_language`). Only
 **structured** values are converted — a speed, a spell's or weapon's range, a weight, a
 sense's radius — never prose, so "a 10-foot pole" and the books' 39,315 unit mentions in
-running text stay as written.
+running text stay as written. A metric reader is offered the metric value *beside* the
+clear ones of them instead (:meth:`UnitFormat.prose_hints`, TRANSLATION.md §6): "60 feet"
+reads "60 feet (18 m)", the text itself unchanged.
 
 The conversion is the published German books' own, not the exact one:
 **1 ft = 0.3 m** (60 ft → 18 m, 5 ft → 1.5 m, where 1/3.28 would give 18.3 m),
@@ -29,6 +31,19 @@ COMMA_LANGUAGES = frozenset({"de", "fr", "es", "it", "nl", "pt", "pl"})
 _UNIT_TEXT = re.compile(
     r"(?P<n>\d+(?:\.\d+)?(?:/\d+(?:\.\d+)?)?)\s?"
     r"(?P<u>ft\.?|feet|foot|mi\.?|miles?|lb\.?|lbs\.?|pounds?)(?![A-Za-z])"
+)
+
+# A unit mention in the books' prose, clear enough to annotate: a number written in digits
+# ("60", "1,000", "20/60", "10 by 10") directly before its unit, spaced or hyphenated
+# ("60 feet", "30 ft.", "10-foot", "20-foot-radius", "5 miles", "15 lb."). Not one that
+# multiplies a roll ("1d6 × 10 feet"), and not spelled-out numbers or areas ("square feet").
+_NUM = r"\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?"
+_PROSE_UNIT = re.compile(
+    rf"(?<![\w.,/×*-])(?<!× )(?<!\* )"
+    rf"(?:(?P<a>{_NUM})(?:\s*(?:by|×)\s*|-by-))?"
+    rf"(?P<n>(?:{_NUM})(?:/(?:{_NUM}))?)"
+    r"(?:\s|-)(?P<u>feet|foot|ft\.|miles?|mi\.|pounds?|lbs?\.?)"
+    r"(?P<tail>(?:-[A-Za-z]+){0,2})(?![A-Za-z])"
 )
 
 # A distance typed in metres or kilometres, for reading a form back into feet.
@@ -92,6 +107,31 @@ class UnitFormat:
             return f"{'/'.join(numbers)} {symbol}"
 
         return _UNIT_TEXT.sub(convert, value)
+
+    def prose_hints(self, text: str) -> list[tuple[int, str]]:
+        """Where the books' prose names a clear distance or weight, the metric value to
+        show after it: ``(end, "18 m")`` for "60 feet", ``"3 × 3 m"`` for "10-by-10-foot",
+        ``"6/18 m"`` for "20/60 feet". Empty for a reader in feet."""
+        if not self.metric or not text:
+            return []
+        hints = []
+        for match in _PROSE_UNIT.finditer(text):
+            unit = match["u"].rstrip(".").lower()
+            factor, symbol = (
+                (FOOT, "m")
+                if unit in ("feet", "foot", "ft")
+                else (MILE, "km")
+                if unit in ("mile", "miles", "mi")
+                else (POUND, "kg")
+            )
+            numbers = [
+                self.number(Decimal(n.replace(",", "")) * factor) for n in match["n"].split("/")
+            ]
+            value = "/".join(numbers)
+            if match["a"]:
+                value = f"{self.number(Decimal(match['a'].replace(',', '')) * factor)} × {value}"
+            hints.append((match.end(), f"{value} {symbol}"))
+        return hints
 
 
 def feet_from(value: str, metric: bool) -> int | None:

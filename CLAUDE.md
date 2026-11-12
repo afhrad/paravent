@@ -127,7 +127,8 @@ Rules that follow:
   use would be silently mis-tagged. Tags come from the translator or the source.
 - **Units are stored per user and set by the language switch** (English → feet, any other
   language → metres; decided 2026-10-25, replacing the separate unit menu). Convert typed
-  fields only; leave the 39,315 prose unit mentions alone. German conversion is
+  fields only; leave the 39,315 prose unit mentions alone (a metric reader gets a hint beside
+  the clear ones, `UnitFormat.prose_hints`; the text is never rewritten). German conversion is
   `1 ft = 0.3 m`, never `1/3.28`.
 - **Do not build a string query DSL.** The corpus fields are polymorphic (`cr` is str|dict|absent);
   normalize them into typed projections at load and expose typed filters. The coercion is the work;

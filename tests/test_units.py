@@ -13,6 +13,7 @@ from app.main import create_app
 from app.models.gamestate import Role
 from app.services.units import UnitFormat, feet_from, text_in_feet
 from app.store.registry import StoreRegistry
+from app.ui.tags import RenderContext, render
 
 PASSWORD = "correct horse battery"
 
@@ -76,6 +77,65 @@ async def client(tmp_path: Path, corpus: Path) -> AsyncIterator[tuple[AsyncClien
         yield ac, registry
 
 
+def _hinted(text: str, units: UnitFormat) -> str:
+    out = text
+    for end, value in reversed(units.prose_hints(text)):
+        out = f"{out[:end]} ({value}){out[end:]}"
+    return out
+
+
+class TestProseHints:
+    """A metric reader sees the metric value beside the clear unit mentions of the books'
+    prose; the text itself is never rewritten (TRANSLATION.md §6)."""
+
+    @pytest.mark.parametrize(
+        ("text", "shown"),
+        [
+            ("within 60 feet of you", "within 60 feet (18 m) of you"),
+            ("a 10-foot pole", "a 10-foot (3 m) pole"),
+            ("a 20-foot-radius sphere", "a 20-foot-radius (6 m) sphere"),
+            ("range 20/60 ft. and", "range 20/60 ft. (6/18 m) and"),
+            ("a 10-by-10-foot room", "a 10-by-10-foot (3 × 3 m) room"),
+            ("a 30 by 20 feet hall", "a 30 by 20 feet (9 × 6 m) hall"),
+            ("1,000 feet up", "1,000 feet (300 m) up"),
+            ("5 miles away", "5 miles (7,5 km) away"),
+            ("weighs 15 lb. and", "weighs 15 lb. (7,5 kg) and"),
+            ("up to 2 pounds", "up to 2 pounds (1 kg)"),
+            ("moves 5 feet. It", "moves 5 feet (1,5 m). It"),
+        ],
+    )
+    def test_clear_mentions_get_a_hint(self, text: str, shown: str) -> None:
+        assert _hinted(text, UnitFormat("metres", "de")) == shown
+
+    @pytest.mark.parametrize(
+        "text",
+        [
+            "1d6 × 10 feet",  # multiplies a roll
+            "10 square feet",  # an area
+            "thirty feet",  # spelled out
+            "DC 15 Strength",
+            "a 10-footed beast",
+        ],
+    )
+    def test_unclear_ones_are_left_alone(self, text: str) -> None:
+        assert UnitFormat("metres", "de").prose_hints(text) == []
+
+    def test_a_reader_in_feet_gets_none(self) -> None:
+        assert UnitFormat("feet", "en").prose_hints("within 60 feet") == []
+
+    def test_the_renderer_adds_them_beside_the_text(self) -> None:
+        metric = RenderContext(units=UnitFormat("metres", "de"))
+        html = "".join(str(n) for n in render("Each one within {@b 60 feet} must", metric))
+        assert (
+            html
+            == 'Each one within <strong>60 feet<span class="unit-hint"> (18 m)</span></strong> must'
+        )
+        assert render("within 60 feet", RenderContext(units=UnitFormat("feet", "en"))) == [
+            "within 60 feet"
+        ]
+        assert render("within 60 feet", RenderContext()) == ["within 60 feet"]
+
+
 class TestSetting:
     async def test_the_language_sets_the_units(
         self, client: tuple[AsyncClient, StoreRegistry]
@@ -91,11 +151,12 @@ class TestSetting:
         assert 'value="de" lang="de"' in page and "/units" not in page
         fireball = (await ac.get("/ref/spell/PHB/Fireball")).text
         assert "45 m" in fireball and "150 ft" not in fireball
-        # prose keeps its units
-        assert "20-foot-radius" in fireball
+        # prose keeps its units, the metric value beside them
+        assert '20-foot-radius<span class="unit-hint"> (6 m)</span>' in fireball
         await ac.post("/language", data={"lang": "en"})
         assert registry.auth.find_user("dm").units == "feet"  # type: ignore[union-attr]
         assert "30 ft." in (await ac.get(goblin)).text
+        assert "unit-hint" not in (await ac.get("/ref/spell/PHB/Fireball")).text
 
     async def test_an_unknown_language_changes_nothing(
         self, client: tuple[AsyncClient, StoreRegistry]

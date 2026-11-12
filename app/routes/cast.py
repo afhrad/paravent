@@ -144,6 +144,7 @@ async def show_npc(
         resolver=registry.references.resolver(),
         source_set=world.source_set,
         world_id=world.id,
+        units=page.u,
     )
     return html(
         npc_page(

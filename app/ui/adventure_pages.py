@@ -215,6 +215,7 @@ def prose_context(
         resolver=services.references.resolver(),
         source_set=source_set,
         world_id=world.id,
+        units=page.u,
     )
     here = Scope(
         world_id=world.id,

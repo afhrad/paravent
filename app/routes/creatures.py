@@ -246,6 +246,7 @@ def _builder(
         resolver=registry.references.resolver(),
         source_set=world.source_set if world else None,
         world_id=design.world_id,
+        units=page.u,
     )
     return html(
         builder_page(
