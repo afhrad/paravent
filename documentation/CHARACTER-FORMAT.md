@@ -232,10 +232,14 @@ damage) and ends concentration on a failure; damage at 0 HP is a failed death sa
 0 resets death saves; a long rest sets `hp` back to the maximum; a short rest restores short-rest resources and pact slots; a long rest
 restores HP, slots, all resources, half the hit dice and one level of exhaustion.
 
+**Carrying** (2026-11-12, `Sheet.load`): the inventory's weights from the books times their
+quantity, plus the coins (50 to the pound), against the carrying capacity — Strength × 15 lb.,
+twice that with Powerful Build (every species the books print is Small or Medium, which carry
+alike) — and push, drag or lift twice the capacity. The gear pane shows it in the reader's
+units; past the capacity it says the load can only be pushed or dragged, at 5 ft. Items whose
+weight the books do not give are counted and named in its title, not guessed.
+
 ## 5. Not yet
 
-- Units are always feet; the per-user unit setting (TRANSLATION.md §6) is not applied yet.
-- Spell, feature and condition **text** is the English corpus text; translating reference text is
-  the overlay system of TRANSLATION.md, not built yet. Labels — abilities, skills, condition
-  names — are translated.
-- Carrying capacity and encumbrance are not computed.
+- Variant encumbrance (the PHB's optional rule: speed −10 ft. past Strength × 5, −20 ft. and
+  disadvantage past × 10) is not applied: it would be a world's choice.

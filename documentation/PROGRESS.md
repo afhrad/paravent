@@ -698,7 +698,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       rules behind every button: damage/heal/temp HP, concentration saves, death saves, slots,
       casting, resources, conditions, exhaustion, short and long rests, hit dice, and every roll
       with three-state advantage. The player opens only their own characters; the gamemaster
-      opens all of them and manages them at `/gm/characters`. **Deleting** (2026-10-21):
+      opens all of them and manages them at `/gm/characters`. **Carrying** (2026-11-12): carried weight, coins included, against carrying capacity (Powerful Build doubling it) on the gear pane (CHARACTER-FORMAT.md §4). **Deleting** (2026-10-21): **Deleting** (2026-10-21):
       from either list, after a confirmation that says it cannot be undone (and if the
       character is in a running fight); a player only their own, the gamemaster any
 - [x] **Live updates** — `app/services/events.py`: every change, from a button, another screen

@@ -926,6 +926,34 @@ def _item_summary(page: Page, summary: str) -> str:
     return f"{rules_text.dice(page, dice_part)} {words}".strip()
 
 
+def _load_line(page: Page, sheet: Sheet) -> Node:
+    """Carried weight against carrying capacity, in the reader's units; past it, what that
+    means. The title says what is counted."""
+    load = sheet.load
+    if load is None:
+        return None
+    t, u = page.t, page.u
+    parts = [t("sheet.load_items", weight=u.weight(load.items))]
+    if load.coins:
+        parts.append(t("sheet.load_coins", weight=u.weight(load.coins)))
+    if load.powerful_build:
+        parts.append(t("sheet.load_powerful"))
+    if load.unweighed:
+        parts.append(t.plural("sheet.load_unweighed", load.unweighed))
+    return p(class_=f"cs-load {'over' if load.over else ''}", title=" · ".join(parts))[
+        span[
+            t(
+                "sheet.load",
+                carried=u.weight(round(load.carried, 1)),
+                capacity=u.weight(load.capacity),
+            )
+        ],
+        " · ",
+        span(class_="muted")[t("sheet.load_push", weight=u.weight(load.push))],
+        span(class_="tag warn")[t("sheet.load_over", speed=u.distance(5))] if load.over else None,
+    ]
+
+
 def _gear_pane(page: Page, sheet: Sheet) -> Element:
     t = page.t
     coins = sheet.character.currency
@@ -940,6 +968,7 @@ def _gear_pane(page: Page, sheet: Sheet) -> Element:
                 for c in ("pp", "gp", "ep", "sp", "cp")
             ]
         ],
+        _load_line(page, sheet),
         div(class_="cs-list")[[_item_row(page, sheet, i) for i in sheet.inventory]]
         if sheet.inventory
         else p(class_="cs-empty")[t("sheet.no_items")],

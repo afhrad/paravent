@@ -490,3 +490,42 @@ class TestExhaustion:
         )
         sheet = build_sheet(pc, loaded_compendium)
         assert sheet.edition == "2024" and sheet.speed.value == 30 - 10
+
+
+class TestCarrying:
+    """Carried weight against carrying capacity (Strength × 15 lb.)."""
+
+    def test_without_a_corpus_coins_still_weigh(self) -> None:
+        sheet = build_sheet(
+            _pc(
+                abilities={"str": 10},
+                currency={"gp": 100, "sp": 50},
+                inventory=[{"item": "Mystery Box|HB", "quantity": 2}],
+            )
+        )
+        load = sheet.load
+        assert load is not None
+        assert (load.capacity, load.push, load.coins, load.items) == (150, 300, 3.0, 0)
+        assert load.unweighed == 1 and not load.over
+
+    @requires_corpus
+    def test_powerful_build_and_the_books_weights(self, loaded_compendium: CompendiumStore) -> None:
+        goliath = _pc(
+            species="Goliath|XPHB",
+            abilities={"str": 8},
+            classes=[{"class": "Fighter|XPHB", "level": 1}],
+            inventory=[
+                {"item": "Chain Mail|XPHB", "quantity": 1},
+                {"item": "Javelin|XPHB", "quantity": 5},
+            ],
+        )
+        load = build_sheet(goliath, loaded_compendium).load
+        assert load is not None and load.powerful_build
+        assert (load.capacity, load.items) == (8 * 15 * 2, 55 + 5 * 2)
+        human = goliath.model_copy(update={"species": None})
+        heavy = build_sheet(
+            human.model_copy(update={"inventory": [*goliath.inventory] * 3}),
+            loaded_compendium,
+        ).load
+        assert heavy is not None and not heavy.powerful_build
+        assert heavy.capacity == 120 and heavy.carried == 195 and heavy.over

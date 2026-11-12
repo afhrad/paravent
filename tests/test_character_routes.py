@@ -74,6 +74,8 @@ class TestAccess:
         assert response.status_code == 200
         assert 'id="sheet"' in response.text
         assert "/static/js/htmx.min.js" in response.text and "/static/js/sheet.js" in response.text
+        # Carried weight against carrying capacity, in the reader's units.
+        assert 'class="cs-load' in response.text and "Carried " in response.text
 
     async def test_another_player_gets_not_found(
         self, client: AsyncClient, torvald: PlayerCharacter

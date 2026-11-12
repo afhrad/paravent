@@ -227,6 +227,8 @@
 .cs-custom{ display:flex; gap:6px; margin:0; }
 .cs-custom input{ flex:1; max-width:220px; }
 .cs-coins{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin-bottom:12px; }
+.cs-load{ margin:0 0 12px; font-size:.875rem; display:flex; flex-wrap:wrap; gap:4px 6px; align-items:baseline; }
+.cs-load.over > span:first-child{ color:var(--dmg-text); font-weight:600; }
 .cs-coin{ display:grid; justify-items:center; padding:7px 4px; border:1px solid var(--border); border-radius:var(--r); }
 .cs-coin .v{ font-weight:700; font-size:16px; }
 .cs-coin .k{ font-size:10px; color:var(--text-3); font-family:var(--font-ui); }

@@ -379,6 +379,29 @@ class ItemView:
 
 
 @dataclass(frozen=True)
+class Load:
+    """What a character carries against what it can (the rules' carrying capacity:
+    Strength × 15 lb., doubled by Powerful Build; push, drag or lift twice that)."""
+
+    items: float  # lb., the inventory's known weights times their quantity
+    coins: float  # lb., 50 coins to the pound
+    capacity: int
+    push: int
+    powerful_build: bool = False
+    unweighed: int = 0  # entries whose weight the books do not give
+
+    @property
+    def carried(self) -> float:
+        """Everything carried, in pounds."""
+        return self.items + self.coins
+
+    @property
+    def over(self) -> bool:
+        """More than it can carry: it can only push, drag or lift it, at 5 ft. a turn."""
+        return self.carried > self.capacity
+
+
+@dataclass(frozen=True)
 class ConditionView:
     key: str
     name: str
@@ -435,6 +458,7 @@ class Sheet:
     features: list[FeatureView] = field(default_factory=list)
     resources: list[ResourceView] = field(default_factory=list)
     inventory: list[ItemView] = field(default_factory=list)
+    load: Load | None = None
     conditions: list[ConditionView] = field(default_factory=list)
     concentration: SpellView | None = None
     languages: list[str] = field(default_factory=list)
@@ -696,6 +720,7 @@ def build_sheet(
         ),
     )
     sheet.speed = _value(character, "speed", _speed(species, subspecies))
+    sheet.load = _load(sheet, character, species, subspecies)
     _hit_points(sheet, character, classes, mods["con"])
     _spellcasting(sheet, character, corpus, classes, mods, prof_bonus)
     _features(sheet, character, corpus, classes, species, subspecies, background)
@@ -1178,6 +1203,35 @@ def _kind_of(item: dict[str, Any]) -> str:
     """A weapon's kind: its base item's name for a magic one ("longsword|dmg" → Longsword)."""
     base = str(item.get("baseItem") or "").split("|")[0]
     return base.title() if base else str(item.get("name", ""))
+
+
+COINS_PER_POUND = 50
+
+
+def _load(
+    sheet: Sheet,
+    character: PlayerCharacter,
+    species: dict[str, Any] | None,
+    subspecies: dict[str, Any] | None,
+) -> Load | None:
+    """Carried weight and carrying capacity. Every species the books print is Small or
+    Medium, which carry alike; Powerful Build counts as one size larger (twice as
+    much). None without a Strength score."""
+    strength = next((a.score.value for a in sheet.abilities if a.key == "str"), None)
+    if strength is None:
+        return None
+    powerful = any(_has_entry(record, "Powerful Build") for record in (species, subspecies))
+    capacity = strength * 15 * (2 if powerful else 1)
+    items = sum(i.weight * i.quantity for i in sheet.inventory if i.weight is not None)
+    unweighed = sum(1 for i in sheet.inventory if i.weight is None)
+    coins = sum(character.currency.model_dump().values()) / COINS_PER_POUND
+    return Load(round(items, 2), round(coins, 2), capacity, capacity * 2, powerful, unweighed)
+
+
+def _has_entry(record: dict[str, Any] | None, name: str) -> bool:
+    """True when ``record``'s entries hold one named ``name`` (a species trait)."""
+    entries = (record or {}).get("entries") or []
+    return any(isinstance(e, dict) and e.get("name") == name for e in entries)
 
 
 def _speed(species: dict[str, Any] | None, subspecies: dict[str, Any] | None) -> Derivation | None:
