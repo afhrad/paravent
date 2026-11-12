@@ -183,16 +183,21 @@ def _readers() -> tuple[Reader, ...]:
 READERS = _readers()
 
 # Keys Paravent knows and has not loaded yet (TECHSTACK.md §6b): reported, not warned.
-PLANNED_KEYS = frozenset(
-    {
-        "legendaryGroupTemplate",
-        "languageScript",
-        "raceFluffMeta",
-        "linkedLootTables",
-        "reducedItemProperty",
-        "reducedItemType",
-    }
-)
+# None are left; a key named here is listed as "not loaded yet".
+PLANNED_KEYS: frozenset[str] = frozenset()
+
+# Keys Paravent knows and leaves unread because they are not content, by key → why.
+NOT_CONTENT_KEYS = {
+    # Font files for writing a language's script, not text.
+    "languageScript": "fonts",
+    # Which loot table a variant item sits on; treasure rolls read the tables themselves.
+    "linkedLootTables": "loot_links",
+    # 5eTools's notes on its own data.
+    "raceFluffMeta": "meta",
+    # Short texts for 5eTools's card maker (makecards.json).
+    "reducedItemProperty": "card_maker",
+    "reducedItemType": "card_maker",
+}
 
 # Files that are not content, by pattern → why. Their keys are not checked.
 NOT_CONTENT: tuple[tuple[str, str], ...] = (
@@ -386,7 +391,9 @@ class KeyUse(BaseModel):
     """A top-level key across the corpus: who reads it, in how many files and rows."""
 
     key: str
-    status: str  # "loaded", "planned" or "unknown"
+    status: str  # "loaded", "skipped" (not content), "planned" or "unknown"
+    # Why a skipped key is not content (a NOT_CONTENT_KEYS reason).
+    reason: str = ""
     loader: str = ""
     files: list[str]
     rows: int
@@ -396,7 +403,7 @@ class UnreadFile(BaseModel):
     """A file no loader reads, and why that is fine (or not)."""
 
     file: str
-    reason: str  # a NOT_CONTENT reason, "planned" or "unknown"
+    reason: str  # a NOT_CONTENT or NOT_CONTENT_KEYS reason, "planned" or "unknown"
 
 
 class Changes(BaseModel):
@@ -648,15 +655,31 @@ class CorpusCheck:
             statuses: set[str] = set()
             for key, loader in loaders.items():
                 value = data[key]
-                status = "loaded" if loader else "planned" if key in PLANNED_KEYS else "unknown"
+                skipped = NOT_CONTENT_KEYS.get(key, "")
+                status = (
+                    "loaded"
+                    if loader
+                    else "skipped"
+                    if skipped
+                    else "planned"
+                    if key in PLANNED_KEYS
+                    else "unknown"
+                )
                 statuses.add(status)
                 use = uses.setdefault(
-                    key, {"status": status, "loader": loader or "", "files": [], "rows": 0}
+                    key,
+                    {
+                        "status": status,
+                        "loader": loader or "",
+                        "reason": skipped if status == "skipped" else "",
+                        "files": [],
+                        "rows": 0,
+                    },
                 )
                 # A key read in one file and not another (``data`` of renderdemo) counts
                 # as read; the unread file is listed on its own.
                 if status == "loaded":
-                    use["status"], use["loader"] = status, loader
+                    use["status"], use["loader"], use["reason"] = status, loader, ""
                 use["files"].append(shown)
                 use["rows"] += len(value) if isinstance(value, list) else 1
                 if status == "unknown":
@@ -664,7 +687,13 @@ class CorpusCheck:
             if "loaded" in statuses:
                 read += 1
             else:
-                reason = "unknown" if "unknown" in statuses else "planned"
+                reason = (
+                    "unknown"
+                    if "unknown" in statuses
+                    else "planned"
+                    if "planned" in statuses
+                    else next((NOT_CONTENT_KEYS[k] for k in loaders if k in NOT_CONTENT_KEYS), "")
+                )
                 unread.append(UnreadFile(file=shown, reason=reason))
         keys = [KeyUse(key=k, **v) for k, v in sorted(uses.items())]
         return keys, unread, read

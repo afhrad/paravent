@@ -192,8 +192,24 @@ class CopyResolver:
         apply = definition.get("apply") or {}
         for prop, value in (apply.get("_root") or {}).items():
             if prop not in own:
+                replaced = target.get(prop)
                 target[prop] = copy_module.deepcopy(value)
+                # A legendary group replaced by the template's is kept beside it: the
+                # template's group may only add to it (``legendaryGroupTemplate``).
+                if (
+                    prop == "legendaryGroup"
+                    and isinstance(replaced, dict)
+                    and isinstance(target[prop], dict)
+                ):
+                    target[prop]["_base"] = copy_module.deepcopy(replaced)
         for prop, instructions in (apply.get("_mod") or definition.get("_mod") or {}).items():
+            for instruction in _as_list(instructions):
+                self._apply_mod(target, prop, instruction)
+
+    def apply_mods(self, target: dict[str, Any], mods: dict[str, Any]) -> None:
+        """Apply a ``_mod`` block (``{prop: instruction or [instructions]}``) to
+        ``target`` in place."""
+        for prop, instructions in mods.items():
             for instruction in _as_list(instructions):
                 self._apply_mod(target, prop, instruction)
 

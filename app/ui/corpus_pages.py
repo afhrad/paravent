@@ -254,6 +254,7 @@ def _counts(page: Page, counts: Sequence[CategoryCount]) -> Element:
 def _not_loaded(page: Page, keys: Sequence[KeyUse], unread: Sequence[UnreadFile]) -> Element:
     t = page.t
     planned = [k for k in keys if k.status == "planned"]
+    skipped = [k for k in keys if k.status == "skipped"]
     return details(class_="panel corpus-group")[
         summary(class_="corpus-group-head")[b[t("corpus.not_loaded")]],
         p(class_="muted")[t("corpus.not_loaded_hint")],
@@ -264,6 +265,15 @@ def _not_loaded(page: Page, keys: Sequence[KeyUse], unread: Sequence[UnreadFile]
             ]
         ]
         if planned
+        else None,
+        h2[t("corpus.skipped_keys")] if skipped else None,
+        ul(class_="corpus-list")[
+            [
+                li[code[k.key], " ", small(class_="muted")[t(f"corpus.reason.{k.reason}")]]
+                for k in skipped
+            ]
+        ]
+        if skipped
         else None,
         h2[t("corpus.unread_files")],
         ul(class_="corpus-list")[

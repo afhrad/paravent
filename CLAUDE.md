@@ -104,7 +104,8 @@ Rules that follow:
 - Homebrew is **library** data, not reference data, even though it uses the 5eTools format.
 - Resolve `_copy` before validation — a shell entry often lacks required fields.
 - The load target is the **whole** corpus, all 94 entry keys, phased per TECHSTACK.md §6b.
-  Currently 45 keys load.
+  All of the corpus's 93 top-level keys are accounted for (2026-11-12): 89 are read, four
+  are not content, and the corpus check names each.
 
 ## Reference resolution (TECHSTACK.md §6c)
 

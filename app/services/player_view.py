@@ -53,6 +53,7 @@ READABLE = frozenset(
         "subclassFeature",
         "subrace",
         "table",
+        "tableGroup",
         "variantrule",
     }
 )

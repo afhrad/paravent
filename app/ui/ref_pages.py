@@ -40,6 +40,7 @@ from htpy import (
 )
 from htpy import input as input_el
 
+from app.models.compendium import subrace_name
 from app.services.backlinks import Backlinks, Owner
 from app.services.references import Printing, ReferenceEntry
 from app.services.sheet import spell_view
@@ -87,6 +88,7 @@ CATEGORY_KEY = {
     "itemProperty": "ref.kind.item_property",
     "itemType": "ref.kind.item_type",
     "table": "ref.kind.table",
+    "tableGroup": "ref.kind.table",
     "condition": "ref.kind.condition",
     "status": "ref.kind.condition",
     "psionic": "ref.kind.psionic",
@@ -482,6 +484,19 @@ def _table_entry(page: Page, data: dict[str, Any], ctx: RenderContext) -> list[N
         div(class_="ref-body")[
             render_entries([{"type": "table", **shown}], ctx),
             render_entries(data.get("footnotes") or [], ctx),
+        ]
+    ]
+
+
+def _table_group(page: Page, data: dict[str, Any], ctx: RenderContext) -> list[Node]:
+    """Tables printed together under one name: each in turn, with its caption."""
+    return [
+        div(class_="ref-body")[
+            [
+                render_entries([{"type": "table", **table}], ctx)
+                for table in data.get("tables") or []
+                if isinstance(table, dict)
+            ]
         ]
     ]
 
@@ -920,6 +935,7 @@ PREVIEW_ICON = {
     "baseitem": "gem",
     "itemGroup": "gem",
     "table": "dices",
+    "tableGroup": "dices",
     "condition": "footprints",
     "status": "hourglass",
 }
@@ -1034,7 +1050,11 @@ def _preview_body(page: Page, entry: ReferenceEntry, ctx: RenderContext) -> list
             if data.get("entries")
             else None,
         ]
-    if entry.category == "table":
+    if entry.category == "tableGroup":
+        # The first of its tables, as a table's preview shows it.
+        first = next((x for x in data.get("tables") or [] if isinstance(x, dict)), {})
+        data = {**first, "name": data.get("name")}
+    if entry.category in ("table", "tableGroup"):
         rows = data.get("rows") or []
         shown = {k: data[k] for k in ("colLabels", "colStyles") if k in data}
         return [
@@ -1124,6 +1144,7 @@ def statblock(page: Page, entry: ReferenceEntry, ctx: RenderContext) -> Element:
         "magicvariant": _item,
         "itemGroup": _item_group,
         "table": _table_entry,
+        "tableGroup": _table_group,
         "vehicle": _vehicle,
         "facility": _facility,
         "cult": _cult,
@@ -1139,7 +1160,7 @@ def statblock(page: Page, entry: ReferenceEntry, ctx: RenderContext) -> Element:
             token(entry.token, "lg") if entry.token else None,
             span(class_="eyebrow")[kind],
             h1(class_="sb-name")[
-                t.term(entry.category, entry.name) or entry.name,
+                t.term(entry.category, entry.name) or _heading_name(entry),
                 small(class_="sb-en")[entry.name] if t.term(entry.category, entry.name) else None,
             ],
             span(class_="sb-source mono", title=where)[where],
@@ -1151,6 +1172,13 @@ def statblock(page: Page, entry: ReferenceEntry, ctx: RenderContext) -> Element:
         [_section(t("ref.more_from", book=book), more, ctx) for book, more in entry.more],
         _deck_cards(page, entry.cards, ctx),
     ]
+
+
+def _heading_name(entry: ReferenceEntry) -> str:
+    """The entry's name as a heading: a subrace with its race ("Elf (Wood)")."""
+    if entry.category == "subrace" and not entry.data.get("isBaseVariant"):
+        return subrace_name(str(entry.data.get("raceName", "")), entry.name) or entry.name
+    return entry.name
 
 
 def _lair(page: Page, group: dict[str, Any], ctx: RenderContext) -> Node:

@@ -286,6 +286,16 @@ class Feat(Named):
     srd: bool | str | None = None
 
 
+def subrace_name(race: str, name: str) -> str | None:
+    """A subrace's name as 5eTools composes it: "Elf (Wood)", or "Human (Innistrad;
+    Gavony)" where the race's own name has brackets; None where it is the race's."""
+    if not race or not name or name == race:
+        return None
+    if race.endswith(")"):
+        return f"{race[:-1]}; {name})"
+    return f"{race} ({name})"
+
+
 class Race(Named, Copyable):
     """A player race. 157 races plus 98 subraces."""
 
@@ -312,6 +322,15 @@ class Race(Named, Copyable):
     def is_base_variant(self) -> bool:
         """True when this subrace is its parent race's unnamed default variant."""
         return bool(self.extra_fields().get("isBaseVariant"))
+
+    @property
+    def composed_name(self) -> str | None:
+        """A subrace's name as 5eTools composes it and tags write it ("Elf (Wood)" for
+        the Wood subrace of Elf, "Human (Innistrad; Gavony)" where the race's name has
+        its own brackets); None for a race or a base variant."""
+        if not self.raceName or self.is_base_variant:
+            return None
+        return subrace_name(self.raceName, self.name)
 
     size: list[str] = Field(default_factory=list)
     speed: int | Speed | dict[str, Any] | None = None
@@ -423,6 +442,14 @@ class Table(Named):
     colLabels: list[str] = Field(default_factory=list)
     colStyles: list[str] = Field(default_factory=list)
     rows: list[Any] = Field(default_factory=list)
+
+
+class TableGroup(Named):
+    """Tables printed together under one name ("Treasure Hoard: Challenge 0—4", the
+    coins and the items), which ``{@table …}`` names like a single table. 22 entries, all
+    from the corpus's table index."""
+
+    tables: list[Any] = Field(default_factory=list)
 
 
 class Fluff(Named, Copyable):
@@ -632,6 +659,14 @@ class LegendaryGroup(Named):
 
     lairActions: list[Any] = Field(default_factory=list)
     regionalEffects: list[Any] = Field(default_factory=list)
+
+
+class LegendaryGroupTemplate(Named):
+    """What a creature template adds to the legendary group the creature already has
+    (``bestiary/template.json``): a legendary shadow dragon keeps its own kind's lair
+    actions and gains the shadow dragon's. One in the corpus."""
+
+    apply: dict[str, Any] = Field(default_factory=dict)
     mythicEncounter: list[Any] = Field(default_factory=list)
 
 

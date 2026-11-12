@@ -138,6 +138,16 @@ the data splits into **94 entry keys / 26,918 array rows**. The first implementa
 24 of those keys, reading 140 of 499 files for 10,491 distinct entries — roughly half the corpus
 by row count, and the missing half includes the parts the planned features depend on most.
 
+> **Done 2026-11-12.** Every one of the 93 top-level keys of the 2.39 release is accounted
+> for: 89 are read (47 compendium categories, 19 fluff keys, and the book, adventure,
+> treasure, encounter, NPC and creature-builder loaders), and four are not content —
+> `languageScript` (font files), `linkedLootTables` (which loot table a variant sits on;
+> the treasure rolls read the tables), and the card maker's `reducedItemProperty` and
+> `reducedItemType`. The corpus check lists them as such (`NOT_CONTENT_KEYS`), and
+> `PLANNED_KEYS` is empty. Of `generated/`, the variant rules and both table keys
+> (`table`, `tableGroup`) load; the maps index, the old site addresses and the
+> navigation index are not used.
+
 (Entry counts below are corpus rows. The store keys entries by `(name, source)`, so reprints
 collapse — which is why 13,669 rows in the loaded keys become 10,491 stored entries.)
 

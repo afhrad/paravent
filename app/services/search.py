@@ -68,6 +68,7 @@ GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
             "reward",
             "object",
             "table",
+            "tableGroup",
             "facility",
             "cult",
             "boon",

@@ -189,6 +189,10 @@ class ReferenceIndex:
                 name = getattr(model, "ref_name", None) or getattr(model, "name", None)
                 if isinstance(name, str) and name:
                     by_name[name.lower()].append(model)
+                # A subrace also by the name tags write it as: "Elf (Wood)".
+                composed = getattr(model, "composed_name", None)
+                if isinstance(composed, str) and composed.lower() != str(name).lower():
+                    by_name[composed.lower()].append(model)
             if by_name:
                 buckets[category] = dict(by_name)
         self._buckets = buckets
@@ -241,6 +245,17 @@ class ReferenceResolver:
         if source:
             found = self._exact.get(category, {}).get(entry_key(name, source))
             if found is None:
+                # A subrace is keyed by its own name ("Wood"); a tag writes the composed
+                # one ("Elf (Wood)|PHB"), which the name index holds.
+                found = next(
+                    (
+                        e
+                        for e in self._index.candidates(category, name)
+                        if str(getattr(e, "source", "")).lower() == source.lower()
+                    ),
+                    None,
+                )
+            if found is None:
                 return Resolution(Outcome.NOT_IMPORTED)
             if not declared.allows(source):
                 return Resolution(Outcome.NOT_IN_SOURCE_SET, candidates=(found,))
@@ -252,18 +267,12 @@ class ReferenceResolver:
 
         # Step 2 — narrow to the declared books.
         allowed = [
-            entry
-            for entry in all_candidates
-            if declared.allows(getattr(entry, "source", None))
+            entry for entry in all_candidates if declared.allows(getattr(entry, "source", None))
         ]
         if not allowed:
-            return Resolution(
-                Outcome.NOT_IN_SOURCE_SET, candidates=tuple(all_candidates)
-            )
+            return Resolution(Outcome.NOT_IN_SOURCE_SET, candidates=tuple(all_candidates))
         if len(allowed) == 1:
-            return Resolution(
-                Outcome.RESOLVED, entry=allowed[0], candidates=tuple(allowed)
-            )
+            return Resolution(Outcome.RESOLVED, entry=allowed[0], candidates=tuple(allowed))
 
         # Step 3 — drop anything reprinted as another candidate we also hold.
         survivors, superseded = self._apply_supersession(allowed)
@@ -298,9 +307,7 @@ class ReferenceResolver:
         )
 
     @staticmethod
-    def _by_declaration_order(
-        candidates: list[Any], declared: SourceSet
-    ) -> list[Any]:
+    def _by_declaration_order(candidates: list[Any], declared: SourceSet) -> list[Any]:
         """Order candidates by where their source appears in the declaration.
 
         Unrestricted sets have no declaration to order by, so the order is left as the
@@ -322,7 +329,7 @@ class ReferenceResolver:
         cannot supersede one it does — otherwise declaring fewer books would resolve to
         nothing.
         """
-        keys = {self._key_of(entry) for entry in candidates}
+        keys = {key for entry in candidates for key in self._keys_of(entry)}
         survivors: list[Any] = []
         superseded: list[Any] = []
         for entry in candidates:
@@ -331,6 +338,16 @@ class ReferenceResolver:
             else:
                 survivors.append(entry)
         return survivors, superseded
+
+    @classmethod
+    def _keys_of(cls, entry: Any) -> set[str]:
+        """Every ``name|source`` a reprint may name the entry by: a subrace also by its
+        composed name ("Genasi (Fire)|MPMM" for MPMM's Fire)."""
+        keys = {cls._key_of(entry)}
+        composed = getattr(entry, "composed_name", None)
+        if isinstance(composed, str):
+            keys.add(f"{composed.lower()}|{str(getattr(entry, 'source', '')).lower()}")
+        return keys
 
     @staticmethod
     def _key_of(entry: Any) -> str:

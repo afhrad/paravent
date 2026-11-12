@@ -15,8 +15,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] **An unconfigured corpus is a reported state, not a crash** — `reference_dir` has no
       default, `Settings.reference_configured` says so, and startup logs how to fix it. A fresh
       checkout runs with homebrew only, as a data-neutral tool should
-- [~] **Load the full corpus.** 45 entry keys + 19 fluff keys load today — 21,353 entries
-      (3,559 of them the specific magic items made from variants) from 174 files, plus
+- [x] **Load the full corpus.** Every one of the corpus's 93 top-level keys is accounted for
+      (2026-11-12): 89 read, four not content (`languageScript`'s fonts, `linkedLootTables`, the
+      card maker's `reducedItemProperty`/`reducedItemType`), each named by the corpus check.
+      47 categories + 19 fluff keys load — 21,392 entries
+      (3,559 of them the specific magic items made from variants) from 176 files, plus
       5,984 fluff records.
       Phased in TECHSTACK.md §6b:
   - [x] **Phase 1 complete.** `class` (30), `subclass` (315), `classFeature` (677),
@@ -118,7 +121,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         out — filled group by group to its share of the XP and rated by the builder's
         own arithmetic, the best of sixty tries kept; it replaces the plan and heads the
         notes. Phase 2 is complete
-  - [~] Phase 3 — `book/` and `adventure/` long-form text + the bookref indices, then the
+  - [x] Phase 3 — `book/` and `adventure/` long-form text + the bookref indices, then the
         long tail. **Rulebooks done 2026-10-19** (`PublishedBooks` in
         `app/store/published.py`, read on demand like adventures): `/books` (the world's
         books by group, in the navigation for gamemaster and players), a book's contents,
@@ -138,6 +141,14 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         — their text translatable, the amounts held like tags. `converterSample` is the
         sample text of 5eTools's converter page, not content: the corpus check files it
         with the demo files
+        **The last of it** (2026-11-12): `tableGroup` (22, tables printed together under one
+        name, such as the DMG's "Treasure Hoard: Challenge 0—4"), the 14 rules 5eTools cuts
+        out of book sections (`generated/gendata-variantrules.json`, "Weapon Mastery
+        Properties"), and `legendaryGroupTemplate`: a legendary shadow dragon keeps its own
+        kind's lair actions and gains the shadow dragon's. **Subrace links** resolve by the
+        name 5eTools composes ("Elf (Wood)", "Human (Innistrad; Gavony)"). The corpus check's
+        dead references fell from 112 (296 uses) to 8 (13), all upstream:
+        a race the data lacks (Goblin (Ixalan)), typos, and two links into the wrong book
 - [x] **Corpus check** — 2026-10-26, `app/services/corpus_check.py`: `python -m app.cli
       corpus check` (`--references`, `--strict`, `--json`; exit 1 on an error) and
       `/gm/corpus` under the settings gear, run in the background, with the 5eTools version
@@ -202,10 +213,12 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       adding Mind Sliver to Sorcerer/Warlock/Wizard), so reading `class` alone emptied their
       class lists. `include_variants=False` serves a table that has not adopted the expanded
       lists, and `variant_sources()` says which book added a spell
-- [~] **Section model** — the `data` arrays inside book/adventure files. **Adventures done**
+- [x] **Section model** — the `data` arrays inside book/adventure files. **Adventures done**
       (`app/store/published.py`): read on demand, a typed view over the corpus's own dicts with
       an id index, used by published-adventure chapters. Books (`book/book-*.json`) read the
-      same way since 2026-10-19 (`PublishedBooks`), by position: their ids are not unique
+      same way since 2026-10-19 (`PublishedBooks`), by position: their ids are not unique.
+      Both 5eTools layouts are read, the old bare `data` and 2.39's wrapped `bookData`/
+      `adventureData` (TECHSTACK.md §8 note)
 
 ## Framework Development
 
@@ -273,9 +286,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       `pending`, a sheet roll in a fight belongs to the fight, initiative from the sheet,
       players' saves, dice sounds and the party card read the log
 - [x] JSON Database handling (CRUD) service — `app/store/jsonfile.py`, `app/store/gamestate.py`
-- [~] Generate datamodel (Pydantic) for all 5eTools JSON files. Models for the 24 loaded keys are
-      validated against the full corpus (10,491 entries, 0 failures); the remaining 70 keys have
-      no models yet — `app/models/`
+- [x] Generate datamodel (Pydantic) for all 5eTools JSON files — `app/models/`: 43 lossless
+      models for the 47 compendium categories (21,392 entries, 0 failures), fluff joined onto
+      its entry, and typed readers for the books, adventures, treasure, encounter, name and
+      creature-builder files. Every top-level key of the corpus is read or named as not
+      content by the corpus check (2026-11-12)
 - [x] **Browse and search across the whole reference set** — `app/services/search.py`, one
       ranked query over 24 categories in six groups (spells, bestiary, items, character options,
       rules, world), the best-matching group first; 1–15 ms warm. Scoped to the world's books
@@ -332,9 +347,9 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       (`GamemasterDep`, `PlayerDep`) that return 403 rather than hiding buttons. First run
       opens `/setup` to create the gamemaster, then closes. `python -m app.cli user add|list|passwd`
       manages accounts until the gamemaster screen can
-- [~] **Role screens** — `/gm` and `/play` exist and are routed to by role from `/` and after
-      login. `/play` lists the player's own characters; `/gm` is a placeholder. Both are the
-      next pieces of UI work
+- [x] **Role screens** — `/gm` and `/play`, routed to by role from `/` and after login (or
+      to the page last read). `/play` lists the player's own characters and the running
+      fight; `/gm` is the gamemaster's table below
   - [x] **The gamemaster's table** at `/gm` — a live party overview: one card per character
         with HP, AC, initiative, passive Perception, spell DC, speed, conditions,
         concentration, inspiration, death saves, slots and the last roll, each card swapped
@@ -810,8 +825,10 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Reference root never written — `tests/test_two_roots.py`, 16 tests: derived paths, the
       configured/unconfigured split, the write guard (including library == corpus), change
       routing for homebrew-under-library, and an end-to-end write landing in `library/`
-- [~] Full-corpus load: every key modelled, 0 validation failures — `tests/test_classes.py`
-      (40 tests) covers the class group and both lookups; 65 keys still unmodelled
+- [x] Full-corpus load: every key read or named, 0 validation failures — the corpus check
+      (`python -m app.cli corpus check --strict`, exit 1 on an error) holds the real corpus;
+      `tests/test_corpus_check.py` holds its rules (loaded, skipped, unknown keys, validation,
+      counts), `tests/test_classes.py` (40 tests) the class group and both lookups
 - [x] Resolver: for each measured source set, every name with several printings in its books
       resolves to one entry from them — `tests/test_resolver_corpus.py` (2026-10-21). Six
       names fall back to declaration order, flagged `AMBIGUOUS`, and are listed in the test
@@ -843,19 +860,19 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2192 tests.
+2223 tests.
 
 ---
 
 ## What was built in the data layer
 
-- **Pydantic models for 20 compendium categories** (24 entry keys) plus the game-state schema.
-  Validated against the full corpus: 10,491 entries, 0 failures.
+- **Pydantic models for 47 compendium categories** (43 models) plus the library's schema.
+  Validated against the full corpus: 21,392 entries, 0 failures.
   The compendium models are deliberately *lossless*: unknown upstream fields are preserved
   rather than dropped, because the 5eTools schema grows with every published book.
 - **`_copy` inheritance resolution.** 25% of the bestiary (1,144 entries) is a patch against
-  another entry rather than a record. All twelve `_mod` modes that occur in the corpus are
-  implemented; an unrecognised mode is reported rather than silently skipped.
+  another entry rather than a record. All `_mod` modes that occur in the corpus, the twelve of
+  `_copy` and the eight of monster templates, are implemented; an unrecognised mode is reported rather than silently skipped.
 - **In-memory compendium store** with ranked substring search across every loaded category.
 - **Atomic-write JSON CRUD** for game state, safe under concurrent writes.
 - **File watcher** that reloads on any JSON change without a restart.
@@ -866,19 +883,19 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 | Metric | Value |
 | --- | --- |
 | Corpus size | 499 files, ~114 MB, 94 entry keys, 26,918 entries |
-| Entry keys loaded | 39 of 94, plus all 19 populated fluff keys |
-| Entries loaded | 17,770 distinct (3,469 made from magic variants), from 163 of 499 files |
+| Entry keys loaded | 89 of 93 read, the other four not content (2026-11-12) |
+| Entries loaded | 21,392 distinct in 47 categories (3,559 made from magic variants), from 176 files |
 | Fluff records | 5,984 from 129 files, 19 categories, 0 failures |
 | Class group | 30 classes, 315 subclasses, 677 + 1,397 features — every count matches the files |
 | Validation failures | 0 |
 | Unresolved `_copy` directives | 0 |
 | Unknown `_copy` modes | 0 |
-| Cold load time | ~2.1 s (compendium + fluff + lookups) |
-| Search latency | 0.4–4 ms |
+| Cold load time | ~3.8 s (everything: compendium, fluff, lookups, indices, library) |
+| Search latency | ~10 ms over every category; 1–15 ms scoped to a world |
 
-Cold load time will rise as coverage grows. If the full corpus pushes startup past a few
-seconds, the answer is `reference-cache/` — a parsed snapshot invalidated by corpus mtime —
-not a database.
+Coverage is complete (2026-11-12) and the cold load stays under four seconds. Should it
+grow past that, the answer is `reference-cache/` — a parsed snapshot invalidated by corpus
+mtime — not a database.
 
 ## Translation
 
@@ -912,7 +929,8 @@ What is still true: Paravent ships no translation, exactly as it ships no 5e con
    uniformly, evaluate prerequisites, keep the back-navigable stack. Two confirmed traps:
    `defaultData` keys are `a`/`b` **and** `A`/`B`/`C` **and** an undocumented `_` in 14 places;
    eight `equipmentType` deferred pickers must expand into filtered item lists.
-2. **The wizard UI** — one route per step, fragments in htpy, state in `library/`.
+2. ~~**The wizard UI**~~ — **done 2026-10-18** (CHARGEN-WIZARD.md §8): one form per step,
+   htpy fragments, the draft in `library/`.
 3. ~~Normalized projections~~ — **done 2026-10-16**, with the typed filter API, search and
    the ⌘K palette. ~~Encounters~~ — **done 2026-10-16**, with difficulty under both rule
    editions. ~~Worlds, adventures and chapters~~ — **done 2026-10-16** (ADVENTURES.md §8
@@ -925,7 +943,7 @@ What is still true: Paravent ships no translation, exactly as it ships no 5e con
 6. ~~The gamemaster screen and the character screen~~ — **done 2026-10-15**: the live sheet,
    the live party overview, worlds with declared books. Next on this path: adventures and
    encounters inside a world, then the combat tracker.
-7. `combatant_card()` in htpy.
+7. ~~`combatant_card()` in htpy~~ — **done 2026-10-18** as the tracker's rows (COMBAT.md).
 8. ~~`GET /ref/.../preview` — the tooltip fragment endpoint~~ — **done 2026-10-15**, with
    hover/tap previews.
 9. Translation, in the order TRANSLATION.md §8 gives: UI strings → glossary + label substitution

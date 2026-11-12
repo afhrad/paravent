@@ -15,6 +15,7 @@ from app import cli
 from app.config import Settings
 from app.main import create_app
 from app.models.gamestate import Role
+from app.services import corpus_check
 from app.services.corpus_check import (
     REPORT_FILE,
     CorpusCheck,
@@ -95,7 +96,7 @@ class TestFaults:
             },
         )
         write(root, "items.json", "{not json")
-        write(root, "legendarygroups-extra.json", {"legendaryGroupTemplate": [{"name": "Boss"}]})
+        write(root, "makecards.json", {"reducedItemType": [{"abbreviation": "AT"}]})
         write(root, "spells/index.json", {"ZZ": "spells-zz.json"})
         return root
 
@@ -119,17 +120,25 @@ class TestFaults:
         assert (spells.rows, spells.invalid, spells.repeated, spells.loaded) == (4, 2, 1, 1)
         assert spells.matches
 
-    def test_keys_planned_unknown_and_files_not_read(self, corpus: Path) -> None:
+    def test_keys_skipped_unknown_and_files_not_read(self, corpus: Path) -> None:
         report = check(corpus)
-        status = {k.key: k.status for k in report.keys}
-        assert status["spell"] == "loaded"
-        assert status["legendaryGroupTemplate"] == "planned"
-        assert status["spellNovelty"] == "unknown"
+        keys = {k.key: k for k in report.keys}
+        assert keys["spell"].status == "loaded"
+        assert (keys["reducedItemType"].status, keys["reducedItemType"].reason) == (
+            "skipped",
+            "card_maker",
+        )
+        assert keys["spellNovelty"].status == "unknown"
         unread = {u.file: u.reason for u in report.unread}
-        assert unread == {
-            "legendarygroups-extra.json": "planned",
-            "spells/index.json": "site_index",
-        }
+        assert unread == {"makecards.json": "card_maker", "spells/index.json": "site_index"}
+
+    def test_a_planned_key_is_not_loaded_yet(
+        self, corpus: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setattr(corpus_check, "PLANNED_KEYS", frozenset({"spellNovelty"}))
+        report = check(corpus)
+        assert {k.key: k.status for k in report.keys}["spellNovelty"] == "planned"
+        assert Kind.UNKNOWN_KEY not in kinds(report)
 
     def test_an_entry_lost_without_a_report_is_an_error(self, corpus: Path) -> None:
         compendium, fluff, lookups = CompendiumStore(), FluffStore(), LookupTables()

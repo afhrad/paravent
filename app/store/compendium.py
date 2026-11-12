@@ -47,6 +47,7 @@ from app.models.compendium import (
     ItemTypeEntries,
     Language,
     LegendaryGroup,
+    LegendaryGroupTemplate,
     Monster,
     Object,
     OptionalFeature,
@@ -61,6 +62,7 @@ from app.models.compendium import (
     Subclass,
     SubclassFeature,
     Table,
+    TableGroup,
     Trap,
     VariantRule,
     Vehicle,
@@ -151,7 +153,13 @@ CATEGORIES: tuple[Category, ...] = (
     Category("skill", Skill, "skill", ("skills.json",)),
     Category("sense", Sense, "sense", ("senses.json",)),
     Category("deity", Deity, "deity", ("deities.json",)),
-    Category("variantrule", VariantRule, "variantrule", ("variantrules.json",)),
+    # And the rules 5eTools cuts out of book sections ("Weapon Mastery Properties").
+    Category(
+        "variantrule",
+        VariantRule,
+        "variantrule",
+        ("variantrules.json", "generated/gendata-variantrules.json"),
+    ),
     Category("language", Language, "language", ("languages.json",)),
     Category("optionalfeature", OptionalFeature, "optionalfeature", ("optionalfeatures.json",)),
     Category("trap", Trap, "trap", ("trapshazards.json",)),
@@ -161,6 +169,8 @@ CATEGORIES: tuple[Category, ...] = (
     # The 13 standalone tables, and the 2,234 printed inside the books and adventures
     # that 5eTools gathers for {@table …} (each with its book chapter).
     Category("table", Table, "table", ("tables.json", "generated/gendata-tables.json")),
+    # Tables printed together under one name, which a {@table …} tag names as one.
+    Category("tableGroup", TableGroup, "tableGroup", ("generated/gendata-tables.json",)),
     # Classes: one file per class, each holding all four keys. Subclasses and subclass
     # features carry ``_copy`` (124 and 75 records respectively), so resolution must run
     # before validation — an unresolved shell lacks the ``source`` the model requires.
@@ -180,6 +190,14 @@ CATEGORIES: tuple[Category, ...] = (
         LegendaryGroup,
         "legendaryGroup",
         ("bestiary/legendarygroups.json",),
+    ),
+    # What a creature template adds to the group a creature already has (the legendary
+    # shadow dragon's), read by the reference page, never searched.
+    Category(
+        "legendaryGroupTemplate",
+        LegendaryGroupTemplate,
+        "legendaryGroupTemplate",
+        ("bestiary/template.json",),
     ),
     # The long tail of TECHSTACK.md §6b phase 2: whole categories with one file each.
     Category("psionic", Psionic, "psionic", ("psionics.json",)),

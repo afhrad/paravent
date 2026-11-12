@@ -221,6 +221,15 @@ class TestPages:
         assert "Lair actions" in page and "Regional effects" in page
         assert "Lair actions" not in (await ac.get("/ref/monster/MM/Goblin")).text
 
+    async def test_a_legendary_shadow_dragon_keeps_its_kind_s_lair(
+        self, client: tuple[AsyncClient, StoreRegistry]
+    ) -> None:
+        """The template's group adds to the black dragon's (legendaryGroupTemplate)."""
+        ac, _registry = client
+        page = (await ac.get("/ref/monster/PotA/Nurvureem, The Dark Lady")).text
+        assert "Pools of water" in page  # the black dragon's own lair action
+        assert "Banish Light" in page and "Brooding Despair" in page  # the shadow's
+
     async def test_the_tracker_shows_the_lair_and_what_is_due(
         self, client: tuple[AsyncClient, StoreRegistry]
     ) -> None:

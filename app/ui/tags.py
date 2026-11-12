@@ -94,7 +94,7 @@ ENTITY_CATEGORY: dict[str, tuple[str, ...]] = {
     "trap": ("trap",),
     "object": ("object",),
     "language": ("language",),
-    "table": ("table",),
+    "table": ("table", "tableGroup"),
     "reward": ("reward",),
     "optfeature": ("optionalfeature",),
     "legroup": ("legendaryGroup",),

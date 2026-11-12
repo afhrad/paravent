@@ -13,6 +13,7 @@ from typing import Any
 
 from app.models.gamestate import SourceSet
 from app.services.tokens import Token
+from app.store.copyresolver import CopyResolver
 from app.store.gamestate import GameStateStore
 from app.store.published import PublishedBooks, table_anchor
 
@@ -114,7 +115,7 @@ class ReferenceService:
         data = entry.model_dump(by_alias=True, exclude_none=True)
         lair = self.legendary_group(data.get("legendaryGroup")) if category == "monster" else None
         cards = self.deck_cards(data) if category == "deck" else ()
-        printed = self.printed_in(data) if category == "table" else None
+        printed = self.printed_in(data) if category in ("table", "tableGroup") else None
         more = self.type_entries(category, data, world_id)
         token = self._token(category, data, world_id) if self._token else None
         return ReferenceEntry(category, data, world_id, lair, cards, printed, more, token)
@@ -236,6 +237,22 @@ class ReferenceService:
         """The lair and regional actions a creature's ``legendaryGroup`` points at."""
         if not isinstance(pointer, dict) or not pointer.get("name"):
             return None
+        base = pointer.get("_base")
+        template = (
+            self._compendium.find(
+                "legendaryGroupTemplate", str(pointer["name"]), pointer.get("source") or None
+            )
+            if isinstance(base, dict)
+            else None
+        )
+        if template is not None and isinstance(base, dict):
+            # A template's group adds to the creature's own (a legendary shadow dragon
+            # keeps its kind's lair actions and gains the shadow dragon's).
+            own = self.legendary_group(base)
+            if own is not None:
+                mods = (template.apply or {}).get("_mod") or {}
+                CopyResolver({}).apply_mods(own, mods)
+                return own
         group = self._compendium.find(
             "legendaryGroup", str(pointer["name"]), pointer.get("source") or None
         )

@@ -17,6 +17,7 @@ from collections import defaultdict
 
 import pytest
 
+from app.models.compendium import subrace_name
 from app.models.gamestate import SourceSet
 from app.store.compendium import CompendiumStore
 from app.store.reference import Outcome
@@ -104,3 +105,40 @@ class TestOutsideTheBooks:
         html = str(render("{@creature xvart|MPMM}", ctx)[0])
         assert 'class="ref missing"' in html and "href" not in html
         assert "MPMM is not among this world" in html
+
+
+class TestLinksTheCorpusWrites:
+    """Links that once led nowhere though their entry is loaded (the corpus check's
+    dead references): subraces by the name 5eTools composes, table groups and the rules
+    5eTools cuts out of book sections."""
+
+    def _link(self, compendium: CompendiumStore, tag: str) -> str:
+        ctx = RenderContext(resolver=compendium.resolver(), source_set=SourceSet())
+        return str(render(tag, ctx)[0])
+
+    @pytest.mark.parametrize(
+        ("tag", "href"),
+        [
+            ("{@race Elf (wood)}", "/ref/subrace/PHB/Wood"),
+            ("{@race Elf (Wood)|PHB}", "/ref/subrace/PHB/Wood"),
+            ("{@race Human (Innistrad; Gavony)|PSI}", "/ref/subrace/PSI/Gavony"),
+            ("{@table Treasure Hoard: Challenge 0—4|DMG}", "/ref/tableGroup/DMG/"),
+            ("{@variantrule weapon mastery properties|XPHB}", "/ref/variantrule/XPHB/"),
+        ],
+    )
+    def test_it_resolves(self, loaded_compendium: CompendiumStore, tag: str, href: str) -> None:
+        html = self._link(loaded_compendium, tag)
+        assert "missing" not in html and href in html, html
+
+    def test_a_reprinted_subrace_resolves_to_its_reprint(
+        self, loaded_compendium: CompendiumStore
+    ) -> None:
+        both = SourceSet(sources=["EEPC", "MPMM"])
+        result = loaded_compendium.resolver().resolve_parts("subrace", "Genasi (Fire)", None, both)
+        assert result.entry is not None and result.entry.source == "MPMM"
+
+
+def test_a_subrace_s_name_as_5etools_composes_it() -> None:
+    assert subrace_name("Elf", "Wood") == "Elf (Wood)"
+    assert subrace_name("Human (Innistrad)", "Gavony") == "Human (Innistrad; Gavony)"
+    assert subrace_name("Dragonborn", "Dragonborn") is None
