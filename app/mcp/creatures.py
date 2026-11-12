@@ -21,7 +21,13 @@ from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field, ValidationError
 
 from app.mcp.common import tool_errors
-from app.mcp.models import CreatureBlockInput, CreatureDraft, CreatureProblem
+from app.mcp.models import (
+    CreatureBlockInput,
+    CreatureDraft,
+    CreatureProblem,
+    ReadyMadeInput,
+    ReadyMadeText,
+)
 from app.models.gamestate import CreatureBlock, CreatureDesign, CreatureFeature, Scope
 from app.services.creature_builder import (
     ABILITIES,
@@ -32,8 +38,11 @@ from app.services.creature_builder import (
     SPEEDS,
     TYPES,
     CreatureNotFound,
+    entries_text,
+    feature_block,
 )
 from app.services.creature_pictures import design_ref, fetch
+from app.services.translation_targets import BUILDER_FIELDS, builder_key
 from app.ui.context import Page
 from app.ui.creature_pages import creature_url
 
@@ -52,6 +61,13 @@ def _blocks(given: Sequence[CreatureBlockInput] | None) -> list[CreatureBlock] |
         return None
     return [CreatureBlock(name=" ".join(b.name.split()), text=b.text.strip()) for b in given]
 
+
+READY_MADE = Field(
+    description="Ready-made texts of the builder to add, after the block lists given "
+    "(`ready_made_texts` lists them): written in the world's language where the table "
+    "translated them, their numbers following the creature"
+)
+READY_MADE_LIMIT = 40
 
 IMAGE_URL = Field(
     description="A web address of a picture of it (PNG, JPEG, WebP, GIF or AVIF, at most "
@@ -166,7 +182,51 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
             else None,
         )
 
-    def apply(design: CreatureDesign, changes: dict[str, Any], fit: bool) -> CreatureDesign:
+    def template_name(kind: str, name: str) -> str:
+        """A ready-made block's full name, from it or from a title only one block has."""
+        tables = stores().creature_tables
+        blocks = tables.traits() if kind == "trait" else tables.actions()
+        wanted = " ".join(name.split()).lower()
+        exact = [b.name for b in blocks if b.name.lower() == wanted]
+        if exact:
+            return exact[0]
+        titled = [b.name for b in blocks if b.title.lower() == wanted]
+        if len(titled) == 1:
+            return titled[0]
+        if titled:
+            raise ToolError(f"Several {kind}s are called {name!r}: {', '.join(titled[:12])}.")
+        raise ToolError(f"No ready-made {kind} {name!r}: see `ready_made_texts`.")
+
+    def add_ready_made(design: CreatureDesign, given: Sequence[ReadyMadeInput]) -> None:
+        """Add ready-made texts to ``design`` in its world's language and units."""
+        registry = stores()
+        world = registry.worlds.find(design.world_id) if design.world_id else None
+        wording = registry.creature_wording(design.world_id, world.language if world else "en")
+        service = registry.creatures
+        for item in given:
+            if item.kind != "feature":
+                service.add_template(
+                    design, item.kind, template_name(item.kind, item.name), wording
+                )
+                continue
+            feature = registry.creature_tables.feature(item.name)
+            if feature is None:
+                raise ToolError(f"{item.name!r} is not a monster feature of the guide.")
+            if any(f.name == feature.name for f in design.features):
+                # Counted already (`features`): only its text.
+                block = feature_block(feature)
+                design.traits.append(
+                    wording.ready_made(design, "feature", feature.name, block.name, [block.text])
+                )
+            else:
+                service.add_feature(design, feature.name, item.value, wording)
+
+    def apply(
+        design: CreatureDesign,
+        changes: dict[str, Any],
+        fit: bool,
+        ready_made: Sequence[ReadyMadeInput] | None = None,
+    ) -> CreatureDesign:
         registry = stores()
         if "features" in changes:  # by the guide's table's own spelling
             named = []
@@ -182,6 +242,8 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
             changed = CreatureDesign.model_validate({**design.model_dump(), **changes})
         except ValidationError as exc:
             raise ToolError(f"Not a creature the builder can make: {exc}") from exc
+        if ready_made:
+            add_ready_made(changed, ready_made)
         if fit:
             changed = registry.creatures.math.fit(changed)
         with tool_errors():
@@ -215,6 +277,55 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
     def creature_guide() -> str:
         """How to design a creature for the world: read it before `create_creature`."""
         return CREATURE_GUIDE.read_text(encoding="utf-8")
+
+    @server.tool()
+    def ready_made_texts(
+        world_id: str,
+        kind: Annotated[
+            str, Field(description="trait, action or feature; empty for all three")
+        ] = "",
+        query: Annotated[str, Field(description="Words its name contains: bite, pack")] = "",
+    ) -> list[ReadyMadeText]:
+        """The creature builder's ready-made traits, actions and monster features, in the
+        world's language where the table translated them: add one by name with
+        `ready_made` on `create_creature` or `update_creature` rather than writing a
+        block the builder has. At most 40, so narrow with ``query``."""
+        registry = stores()
+        world = registry.worlds.find(world_id)
+        if world is None:
+            raise ToolError(f"No world with id {world_id}")
+        if kind and kind not in ("trait", "action", "feature"):
+            raise ToolError("kind is trait, action or feature")
+        t = registry.creature_wording(world.id, world.language).t
+        tables = registry.creature_tables
+        words = query.lower().split()
+        found: list[ReadyMadeText] = []
+        rows: list[tuple[str, str, str, list[Any], bool]] = []
+        if kind in ("", "feature"):
+            for f in tables.features():
+                block = feature_block(f)
+                rows.append(("feature", f.name, block.name, [block.text], f.takes_number))
+        for part, blocks in (("trait", tables.traits()), ("action", tables.actions())):
+            if kind in ("", part):
+                rows += [(part, b.name, b.title, list(b.entries), False) for b in blocks]
+        for part, name, title, entries, number in rows:
+            if not all(w in name.lower() for w in words):
+                continue
+            data = {"name": title, "entries": entries}
+            shown = t.overlay("builder", builder_key(part, name), data, BUILDER_FIELDS)
+            found.append(
+                ReadyMadeText(
+                    kind=part,
+                    name=name,
+                    title=str(shown.data["name"]),
+                    text=entries_text(list(shown.data["entries"])),
+                    translated=shown.coverage.any,
+                    takes_number=number,
+                )
+            )
+            if len(found) >= READY_MADE_LIMIT:
+                break
+        return found
 
     @server.tool()
     async def create_creature(
@@ -276,6 +387,7 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
                 "spellcaster: the average of its best three rounds (the guide's method)",
             ),
         ] = None,
+        ready_made: Annotated[list[ReadyMadeInput] | None, READY_MADE] = None,
         fit: Annotated[
             bool,
             Field(description="Set armour class and hit dice to the CR table's (after the rest)"),
@@ -335,7 +447,7 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
             wording = registry.creature_wording(world.id, world.language)
             design = registry.creatures.create(name, world.id, cr.strip(), base, wording)
         design = design.model_copy(update={"drafted_by": found[0].id})
-        saved = apply(design, changes, fit)
+        saved = apply(design, changes, fit, ready_made)
         keep_picture(None, saved, image_url, picture)
         return answer(saved)
 
@@ -368,6 +480,7 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
         legendary: list[CreatureBlockInput] | None = None,
         features: list[CreatureFeature] | None = None,
         damage_per_round: Annotated[int | None, Field(ge=0)] = None,
+        ready_made: Annotated[list[ReadyMadeInput] | None, READY_MADE] = None,
         fit: bool = False,
         image_url: Annotated[str | None, IMAGE_URL] = None,
     ) -> CreatureDraft:
@@ -420,7 +533,7 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
             dpr_override=damage_per_round,
         )
         picture = await picture_of(image_url)
-        saved = apply(design, changes, fit)
+        saved = apply(design, changes, fit, ready_made)
         keep_picture(design, saved, image_url, picture)
         return answer(saved)
 

@@ -6,7 +6,7 @@ names, numbers and short text, never rendered HTML.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -616,6 +616,33 @@ class CreatureBlockInput(BaseModel):
         "({@damage 1d8<$damage_mod__str$>}) slashing damage; DC <$dc__int$>; "
         "<$title_short_name$> for 'The lich'. Paragraphs split by a blank line"
     )
+
+
+class ReadyMadeInput(BaseModel):
+    """One of the builder's ready-made texts to add to a creature (`ready_made_texts`)."""
+
+    kind: Literal["trait", "action", "feature"] = Field(
+        description="trait or action: one of the builder's ready-made blocks; feature: a "
+        "monster feature of the guide, which also counts towards the CR"
+    )
+    name: str = Field(
+        description='Its name as `ready_made_texts` lists it: "Bite (Cloaker)", or its '
+        'title alone ("Pack Tactics") when only one has it'
+    )
+    value: int | None = Field(
+        default=None, description="A feature's number (uses a day, dice of extra damage)"
+    )
+
+
+class ReadyMadeText(BaseModel):
+    """A ready-made text of the builder, in the world's language where translated."""
+
+    kind: str
+    name: str = Field(description="What `ready_made` takes")
+    title: str = Field(description="The block's name as the creature will show it")
+    text: str
+    translated: bool = Field(description="False: the table has not translated it yet")
+    takes_number: bool = False
 
 
 class CreatureProblem(BaseModel):

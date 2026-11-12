@@ -67,6 +67,15 @@ A weapon attack: `{@atk mw} {@hit <$to_hit__str$>} to hit, reach 5 ft., one targ
 (`{@atk rw}` ranged, `{@atk ms}` / `{@atk rs}` spell attacks.) A Multiattack's first number
 word ("makes two attacks") says how many attacks a round counts.
 
+**The builder's ready-made texts** come first where one fits: `ready_made_texts` lists its
+traits, actions and the guide's monster features (narrow with `query`: "bite", "keen"),
+and `ready_made` adds them by name (`{"kind": "trait", "name": "Keen Smell"}`, `{"kind":
+"action", "name": "Bite (Cloaker)"}`, `{"kind": "feature", "name": "Pack Tactics"}`).
+They arrive in the world's language where the gamemaster's table translated them
+(`translated` says which), named and in its units, their numbers already placeholders;
+a feature added so also counts towards the CR. Write a block yourself when none fits, or
+when an untranslated one would leave English in a world of another language.
+
 ## 4. Spells
 
 A caster gets a **Spellcasting** trait: its caster level, ability, `DC <$dc__int$>` and

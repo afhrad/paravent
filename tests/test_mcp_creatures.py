@@ -326,6 +326,87 @@ class TestForAGermanTable:
         entry = (await raw.get("/ref/monster/Homebrew/Moorhulk")).text
         assert "Moorhulk" in entry and "ref-names" not in entry and "tr-note" not in entry
 
+    async def test_ready_made_texts_in_german(
+        self,
+        table: tuple[httpx.AsyncClient, Any],  # noqa: F811
+    ) -> None:
+        _raw, facts = table
+        registry: StoreRegistry = facts["app"].state.stores
+        world_id = facts["world"].id
+        pack = registry.translation_targets.builder("feature", "Pack Tactics")
+        registry.translations.save(
+            "de",
+            "builder",
+            pack.key,
+            pack.data,
+            {"name": "Rudeltaktik", "entries/0": "<$title_short_name$> jagt im Rudel."},
+            by="dm",
+            fields=pack.fields,
+        )
+        async with session(table) as mcp:
+            listed = await call(
+                mcp, "ready_made_texts", world_id=world_id, kind="feature", query="pack"
+            )
+            assert listed == [
+                {
+                    "kind": "feature",
+                    "name": "Pack Tactics",
+                    "title": "Rudeltaktik",
+                    "text": "<$title_short_name$> jagt im Rudel.",
+                    "translated": True,
+                    "takes_number": False,
+                }
+            ]
+            bites = await call(
+                mcp, "ready_made_texts", world_id=world_id, kind="action", query="bite"
+            )
+            assert "Bite (Cloaker)" in [x["name"] for x in bites]
+            assert all(not x["translated"] for x in bites)
+            drafted = await call(
+                mcp,
+                "create_creature",
+                world_id=world_id,
+                name="Moorwolf",
+                cr="2",
+                ready_made=[
+                    {"kind": "feature", "name": "pack tactics"},
+                    {"kind": "trait", "name": "Keen Smell"},
+                    {"kind": "action", "name": "Bite (Cloaker)"},
+                ],
+            )
+            design = registry.creatures.get(drafted["id"])
+            assert [f.name for f in design.features] == ["Pack Tactics"]
+            assert design.traits[-2].name == "Rudeltaktik"
+            assert design.traits[-2].text == "Moorwolf jagt im Rudel."
+            assert design.traits[-1].name == "Keen Smell"
+            assert design.actions[-1].name == "Bite" and "1,5 m" in design.actions[-1].text
+            # Counted already in `features`: only its text comes along.
+            again = await call(
+                mcp,
+                "update_creature",
+                design_id=drafted["id"],
+                traits=[],
+                features=[{"name": "Pack Tactics"}],
+                ready_made=[{"kind": "feature", "name": "Pack Tactics"}],
+            )
+            design = registry.creatures.get(again["id"])
+            assert [f.name for f in design.features] == ["Pack Tactics"]
+            assert [b.name for b in design.traits] == ["Rudeltaktik"]
+            several = await _refused(
+                mcp,
+                "update_creature",
+                design_id=drafted["id"],
+                ready_made=[{"kind": "action", "name": "Bite"}],
+            )
+            assert "Bite (Cloaker)" in several and "Bite (Kraken)" in several
+            unknown = await _refused(
+                mcp,
+                "update_creature",
+                design_id=drafted["id"],
+                ready_made=[{"kind": "trait", "name": "Nothing Such"}],
+            )
+            assert "ready_made_texts" in unknown
+
 
 class TestARevision:
     async def test_claude_revises_an_accepted_creature(

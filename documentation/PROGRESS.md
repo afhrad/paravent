@@ -75,7 +75,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         `update_creature`), spells and equipment from the world's books; a draft is
         published only once the gamemaster accepts it. A picture by web address
         (`image_url`) or uploaded in the builder, shown in fights' Details. Claude's creature
-        fights in its draft adventures, rated from its statblock, and is accepted with it. **Revisions** (2026-11-12): a draft copy of an accepted creature, written back onto it when the gamemaster accepts it. **Its ready-made texts translated** (2026-11-12, TRANSLATION.md §6 note): traits, actions and monster features as a translatable "book", placeholders held like tags. **The long tail**
+        fights in its draft adventures, rated from its statblock, and is accepted with it. **Revisions** (2026-11-12): a draft copy of an accepted creature, written back onto it when the gamemaster accepts it. **Its ready-made texts translated** (2026-11-12, TRANSLATION.md §6 note): traits, actions and monster features as a translatable "book", placeholders held like tags; Claude adds them by name over MCP (`ready_made`). **The long tail**
         (2026-10-19): `psionic` (52), `vehicle` (39), `vehicleUpgrade` (31), `facility`
         (53), `charoption` (44), `cult` (30), `boon` (12), `deck` (34) and `card` (711)
         load as categories — every count matches the files, 0 errors. Searchable (vehicles

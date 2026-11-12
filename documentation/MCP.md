@@ -124,7 +124,7 @@ plain text. Names and ids are what Claude passes back; ids are Paravent's record
 | `draft_naming_style(name, pattern, parts, …, world_id?)` | Proposes a naming style: a write outside a draft adventure, but inert, offered nowhere until the gamemaster accepts it; with `world_id` it then joins that world's styles (NAMES.md §5b, §6) |
 | `set_world_naming_styles(world_id, keys)` | Chooses the naming styles a world's names come from (empty: every style). The other write outside a draft adventure, asked for by the user 2026-11-09; it changes only that list (NAMES.md §5b) |
 | `creature_guide()` | How to design a creature: based on the books or blank, placeholders, spellcasting, equipment, what changes the CR (§10) |
-| `create_creature(world_id, name, cr, based_on?, …)` / `update_creature(design_id, …)` / `start_creature_revision(creature)` | A creature in the creature builder from a description, as **Claude's draft**, left out of a publish until the gamemaster accepts it; each answer is the CR it plays at, its statblock and what its text names that the world's books lack (§10) |
+| `create_creature(world_id, name, cr, based_on?, …)` / `update_creature(design_id, …)` / `start_creature_revision(creature)` / `ready_made_texts(world_id, kind?, query?)` | A creature in the creature builder from a description, as **Claude's draft**, left out of a publish until the gamemaster accepts it; each answer is the CR it plays at, its statblock and what its text names that the world's books lack (§10) |
 | `check_adventure(adventure_id)` | The same check over every chapter and the notes of the adventure's NPCs, places, encounters and treasure, naming where each problem is. Called last, once everything exists: a chapter or note may name something written later |
 | `list_sounds()` | The sound desk's scenes and sounds, for `{@sound Name}` (SOUND.md) |
 | `check_chapter(chapter_id)` | The chapter check (ADVENTURES.md §5.7): references that lead nowhere with the nearest names, missing NPCs/encounters/treasure, empty encounters, unknown callouts, missing headings and images |
@@ -296,6 +296,12 @@ builder (`app/services/creature_builder.py`).
   `features`, `damage_per_round` for damage the text cannot tell (spells), and `fit`, which
   sets armour class and hit dice to the CR table's last. **`update_creature`** changes a
   draft the same way; a block list given replaces that list.
+- **Ready-made texts** (2026-11-12): `ready_made_texts(world_id, kind?, query?)` lists the
+  builder's traits, actions and monster features (at most 40) in the world's language
+  where the table translated them (TRANSLATION.md §6 note), and `ready_made` on both tools
+  adds them by name ("Bite (Cloaker)", or a title only one has) after the block lists, as
+  the builder's own picker does: translated, named and in the world's units. A feature
+  also counts towards the CR, unless `features` names it already.
 - **Claude's drafts:** a design made over MCP carries `drafted_by`, the key that wrote it.
   The builder marks it ("Claude's draft") and offers **Accept**; `CreatureService.publish`
   leaves every draft out, so nothing unreviewed reaches `library/homebrew/`. Claude changes
