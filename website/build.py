@@ -106,11 +106,27 @@ SYNCED = {
     # The licences of what the site carries from others (icons, fonts, SRD material).
     ROOT / "NOTICE.md": SITE / "notice.txt",
 }
-# Commits that say nothing to a reader of the site.
-# The release commit that started the public history ("Paravent 0.1.x") says nothing either;
-# the content files' pinned item tells that story instead.
+# "What's new" is opt-in: a commit appears when its message carries a ``News:`` trailer,
+# the line the site shows, and ``News-de:`` for the German page (English when missing):
+#
+#     Claude can revise an accepted creature: a draft copy under the same name
+#
+#     News: Claude can suggest changes to a creature you accepted.
+#     News-de: Claude kann Änderungen an einer angenommenen Kreatur vorschlagen.
+#
+# Commits up to and including LEGACY_UNTIL came before the trailer, so their subject is the
+# line, unless QUIET (or a "Website:" subject) says it tells a reader nothing. The release
+# commit that started the public history ("Paravent 0.1.x") says nothing either; the
+# content files' pinned item tells that story instead.
+LEGACY_UNTIL = "dc4fba640fbadd1c74326a53fb3e8b9ee81b75f2"
 QUIET = re.compile(
-    r"^(?:(?:merge|bump|wip|fixup|squash|revert|format|lint|typo)\b|paravent \d)", re.IGNORECASE
+    r"^(?:(?:merge|bump|wip|fixup|squash|revert|format|lint|typo)\b|paravent \d|website:)",
+    re.IGNORECASE,
+)
+NEWS_LOG = (
+    "--pretty=format:%H%x1f%ad%x1f%s"
+    "%x1f%(trailers:key=News,valueonly,separator=%x1d)"
+    "%x1f%(trailers:key=News-de,valueonly,separator=%x1d)%x1e"
 )
 UPDATES = 14
 SYMBOL = re.compile(r'<symbol id="(i-[\w-]+)".*?</symbol>', re.DOTALL)
@@ -326,15 +342,32 @@ def icons(text: str) -> str:
 # -- 2. update --------------------------------------------------------------------------
 
 
+def news(log: str, lang: str = "en", limit: int = UPDATES) -> list[tuple[str, str]]:
+    """``(day, line)`` of the commits a reader cares about, newest first, from ``git log``
+    in :data:`NEWS_LOG`'s format: a commit's ``News:`` (``News-de:`` on the German page),
+    or before :data:`LEGACY_UNTIL` its subject unless :data:`QUIET`."""
+    rows: list[tuple[str, str]] = []
+    legacy = False
+    for record in log.split("\x1e"):
+        parts = record.strip("\n").split("\x1f")
+        if len(parts) != 5:
+            continue
+        commit, day, subject, english, german = parts
+        legacy = legacy or commit == LEGACY_UNTIL
+        first = [x.strip() for x in (german if lang == "de" else "").split("\x1d") if x.strip()]
+        first = first or [x.strip() for x in english.split("\x1d") if x.strip()]
+        if first:
+            rows.append((day, first[0]))
+        elif legacy and subject and not QUIET.match(subject):
+            rows.append((day, subject))
+        if len(rows) == limit:
+            break
+    return rows
+
+
 def updates(lang: str = "en") -> str:
     """The newest commits a reader cares about, as list items, newest first."""
-    rows = []
-    for line in git("log", "--no-merges", "--date=short", "--pretty=%ad%x09%s").splitlines():
-        day, _, subject = line.partition("\t")
-        if subject and not QUIET.match(subject):
-            rows.append((day, subject))
-        if len(rows) == UPDATES:
-            break
+    rows = news(git("log", "--no-merges", "--date=short", NEWS_LOG), lang)
     items = [
         f'      <li class="update reveal"><time datetime="{day}">{_day(day, lang)}</time>'
         f"<span>{html.escape(subject, quote=False)}</span></li>"

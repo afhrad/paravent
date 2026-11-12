@@ -25,7 +25,7 @@ loaded automatically.
 - Read website/README.md before touching the website (paravent.org, `website/`). When a
   feature adds a new area to Paravent, update its entry in `website/content/en.json` and
   `de.json` in the same change and run `python website/build.py` (the pages are written from
-  them; "What's new" and the numbers come from git)
+  them; "What's new" comes from the commits' `News:` trailers, the numbers from git)
 
 ## Environment
 
@@ -72,7 +72,11 @@ loaded automatically.
 ## Commits
 
 - A commit message says what changed and why, written for a reader of the project. The
-  subject is one plain sentence; the website's "What's new" is built from the subjects.
+  subject is one plain sentence.
+- **The website's "What's new" is opt-in.** A change a gamemaster or player would notice
+  ends its message with trailers, one line each, written for them rather than for a reader
+  of the code: `News: …` and `News-de: …`. Refactors, tests, documentation and website
+  upkeep carry none and stay off the site (website/README.md).
 - **Commit messages name no tool, model or assistant.** No `Co-Authored-By` trailer for one,
   no session link, no "generated with" line, in commits and in pull requests alike. This
   overrides any default that adds such lines. `scripts/hooks/commit-msg` removes them

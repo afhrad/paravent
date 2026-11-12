@@ -41,9 +41,12 @@ python website/build.py --check    # exit 1 when the pages are behind the app
    writes the icons the pages use (`<use href="#i-name"/>`) from `static/icons.svg` into
    each page between `<!-- icons:start -->` and `<!-- icons:end -->`. Use any icon of the
    app's sprite by name; the next build brings it in.
-2. **Update**: "What's new" from the git history (commit subjects are written for a
-   reader; merges, bumps, the release commit "Paravent 0.1.x" and the like are left out),
-   followed by the hand-written items of `updates.pinned` in the content files (the first
+2. **Update**: "What's new" from the git history, **opt-in**: a commit appears only when
+   its message ends with a `News:` trailer, the line the site shows, and `News-de:` for
+   the German page (the English line where it is missing). Commits up to `LEGACY_UNTIL`
+   in `build.py` came before the trailer and show their subject, unless it is
+   housekeeping (merges, bumps, "Website: …", the release commit "Paravent 0.1.x").
+   Followed by the hand-written items of `updates.pinned` in the content files (the first
    public release), and the facts strip: version, number of tests, date. Each lives
    between `<!-- name:start/end -->` markers.
 3. **Pack** — `dist/site/` and the zip, without `build.py`, this README and dotfiles.
@@ -136,8 +139,9 @@ between the same page in the other language, **at the same place**: the section 
 view and how far into it go along (session storage) and are restored on the other page,
 whose sections share the ids. The choice is remembered (local storage). On a
 first visit, a browser whose first language is German is sent from `/` to `/de/`; once a
-flag was clicked, the start page no longer follows the browser. "What's new" stays English
-on both (the commits are), with German dates and numbers on the German page.
+flag was clicked, the start page no longer follows the browser. "What's new" reads each
+commit's `News-de:` on the German page (its `News:` where there is none), with German
+dates and numbers.
 
 ## Screenshots
 

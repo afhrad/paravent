@@ -7,6 +7,7 @@ import importlib.util
 import json
 import re
 import shutil
+import subprocess
 import sys
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -335,8 +336,76 @@ def test_the_site_as_it_ships_passes_the_check(tmp_path: Path) -> None:
 def test_the_release_commit_and_housekeeping_stay_out_of_the_news() -> None:
     for quiet in ("Paravent 0.1.x", "paravent 1.0", "Merge branch x", "bump version"):
         assert build.QUIET.match(quiet), quiet
+    assert build.QUIET.match("Website: news brought up to date")
     for news in ("Paravent's tracker names creatures", "Draft styles for every people"):
         assert not build.QUIET.match(news), news
+
+
+def _log(*commits: tuple[str, str, str, str, str]) -> str:
+    return "".join("\x1f".join(c) + "\x1e\n" for c in commits)
+
+
+def test_news_is_opt_in_after_the_trailer_came() -> None:
+    log = _log(
+        ("c4", "2026-11-14", "Refactor the store", "", ""),
+        (
+            "c3",
+            "2026-11-13",
+            "Creatures revised",
+            "Claude revises creatures.",
+            "Claude überarbeitet.",
+        ),
+        ("c2", "2026-11-13", "Tracker sorted", "The tracker sorts.\x1dSecond line.", ""),
+        (build.LEGACY_UNTIL, "2026-11-12", "Old feature", "", ""),
+        ("c0", "2026-11-11", "Website: brought up to date", "", ""),
+        ("b9", "2026-11-10", "Older feature", "", ""),
+    )
+    assert build.news(log) == [
+        ("2026-11-13", "Claude revises creatures."),
+        ("2026-11-13", "The tracker sorts."),
+        ("2026-11-12", "Old feature"),
+        ("2026-11-10", "Older feature"),
+    ]
+    # The German page reads News-de, the English line where there is none.
+    assert [line for _day, line in build.news(log, "de")][:2] == [
+        "Claude überarbeitet.",
+        "The tracker sorts.",
+    ]
+    assert len(build.news(log, limit=1)) == 1
+
+
+def test_git_reads_the_trailers(tmp_path: Path) -> None:
+    def run(*args: str) -> str:
+        return subprocess.run(
+            ["git", *args], cwd=tmp_path, capture_output=True, check=True, text=True
+        ).stdout
+
+    run("init", "-q")
+    run(
+        "-c",
+        "user.name=t",
+        "-c",
+        "user.email=t@x",
+        "commit",
+        "-q",
+        "--allow-empty",
+        "-m",
+        "Plain change",
+    )
+    run(
+        "-c",
+        "user.name=t",
+        "-c",
+        "user.email=t@x",
+        "commit",
+        "-q",
+        "--allow-empty",
+        "-m",
+        "A feature\n\nWhy it matters.\n\nNews: Shown on the site.\nNews-de: Gezeigt.",
+    )
+    log = run("log", "--no-merges", "--date=short", build.NEWS_LOG)
+    assert [line for _day, line in build.news(log)] == ["Shown on the site."]
+    assert [line for _day, line in build.news(log, "de")] == ["Gezeigt."]
 
 
 # -- the upload ----------------------------------------------------------------------------
