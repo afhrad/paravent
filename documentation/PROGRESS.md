@@ -149,6 +149,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         name 5eTools composes ("Elf (Wood)", "Human (Innistrad; Gavony)"). The corpus check's
         dead references fell from 112 (296 uses) to 8 (13), all upstream:
         a race the data lacks (Goblin (Ixalan)), typos, and two links into the wrong book
+        **Maps** (2026-11-12, `generated/gendata-maps.json`, ADVENTURES.md §7): the 1,302 maps
+        of the adventures and rulebooks, by chapter, on an adventure started from a book and
+        a rulebook's contents, each leading to where it sits, with its player version; a
+        map's numbered areas link to their text; rulebook chapters show their pictures.
+        For reading, not play
 - [x] **Corpus check** — 2026-10-26, `app/services/corpus_check.py`: `python -m app.cli
       corpus check` (`--references`, `--strict`, `--json`; exit 1 on an error) and
       `/gm/corpus` under the settings gear, run in the background, with the 5eTools version
@@ -862,7 +867,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2226 tests.
+2229 tests.
 
 ---
 

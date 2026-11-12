@@ -84,6 +84,7 @@ from app.store.fluff import FluffStore
 from app.store.gamestate import GameStateStore
 from app.store.lookups import LookupTables
 from app.store.loot import LootTables
+from app.store.maps import MapIndex
 from app.store.npc_tables import NpcTables
 from app.store.projections import MonsterProjection
 from app.store.protocol import ProtocolStore, log_key
@@ -753,6 +754,12 @@ class StoreRegistry:
         return ReferenceScreens(reference)
 
     @cached_property
+    def maps(self) -> MapIndex:
+        """The maps printed in each adventure and rulebook, read on first use."""
+        reference = self.settings.reference_dir if self.settings.reference_configured else None
+        return MapIndex(reference)
+
+    @cached_property
     def rulebooks(self) -> PublishedBooks:
         """The corpus's rulebooks: the index, and bodies read on demand."""
         reference = self.settings.reference_dir if self.settings.reference_configured else None
@@ -959,6 +966,8 @@ class StoreRegistry:
             self.rulebooks.clear()
         if "screens" in self.__dict__:
             self.screens.clear()
+        if "maps" in self.__dict__:
+            self.maps.clear()
         if "loot" in self.__dict__:
             self.loot.clear()
         if "encounter_tables" in self.__dict__:

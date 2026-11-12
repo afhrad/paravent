@@ -145,7 +145,8 @@ by row count, and the missing half includes the parts the planned features depen
 > the treasure rolls read the tables), and the card maker's `reducedItemProperty` and
 > `reducedItemType`. The corpus check lists them as such (`NOT_CONTENT_KEYS`), and
 > `PLANNED_KEYS` is empty. Of `generated/`, the variant rules and both table keys
-> (`table`, `tableGroup`) load; the maps index, the old site addresses and the
+> (`table`, `tableGroup`) load, and the maps index lists each book's maps (2026-11-12,
+> ADVENTURES.md §7); the old site addresses and the
 > navigation index are not used.
 
 (Entry counts below are corpus rows. The store keys entries by `(name, source)`, so reprints

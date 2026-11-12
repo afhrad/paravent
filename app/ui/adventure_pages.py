@@ -826,8 +826,10 @@ def adventure_page(
     notice_text: str | None = None,
     error: str | None = None,
     review: Node = None,
+    maps: Node = None,
 ) -> Element:
-    """An adventure: cover, summary, text, its chapters in order, and what it holds."""
+    """An adventure: cover, summary, text, its chapters in order, the maps of the book
+    it was started from, and what it holds."""
     t = page.t
     adv, world = view.adventure, view.world
     chapters = view.chapters
@@ -897,6 +899,7 @@ def adventure_page(
                     t("chapters.new"),
                 ),
             ],
+            maps,
             holdings,
         ],
         world_id=world.id,

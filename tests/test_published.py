@@ -14,6 +14,7 @@ from app.models.gamestate import Adventure, Role, SourceSet, World
 from app.services.adventures import AdventureError
 from app.services.i18n import english
 from app.store.compendium import CompendiumStore
+from app.store.maps import MapIndex
 from app.store.published import PublishedAdventures, body_sections
 from app.store.registry import StoreRegistry
 from app.ui import tags
@@ -256,3 +257,73 @@ class TestBodyLayouts:
 
     def test_anything_else_is_empty(self) -> None:
         assert body_sections([]) == []
+
+
+def _image_folder(registry: StoreRegistry, tmp_path: Path, *paths: str) -> None:
+    """An image folder holding these (fake) pictures, as the user's 5eTools images would."""
+    images = tmp_path / "img"
+    for path in paths:
+        (images / path).parent.mkdir(parents=True, exist_ok=True)
+        (images / path).write_bytes(b"RIFF....WEBP")
+    registry.settings.image_dir = images
+
+
+CRAGMAW = "adventure/LMoP/Cragmaw Hideout.webp"
+
+
+class TestMaps:
+    """The maps each book prints (generated/gendata-maps.json): listed by chapter, each
+    leading to where it sits; a map's numbered areas lead to their text. For reading."""
+
+    def test_the_index(self, corpus: Path) -> None:
+        maps = MapIndex(corpus).of("lmop")
+        assert len(maps) == 8 and all(m.player is not None for m in maps)
+        cragmaw = maps[1]
+        assert (cragmaw.title, cragmaw.chapter, cragmaw.id) == ("Cragmaw Hideout", 1, "1ab")
+        assert cragmaw.thumbnail == "adventure/LMoP/thumbnail/Cragmaw Hideout.webp"
+        assert cragmaw.regions == 8 and cragmaw.player is not None
+        assert cragmaw.player.path == "adventure/LMoP/Cragmaw Hideout (Player).webp"
+        assert MapIndex(corpus).of("nothing") == ()
+        assert MapIndex(None).of("LMoP") == ()
+
+    async def test_an_adventure_from_the_book_lists_them_and_its_areas_lead_on(
+        self, client: tuple[AsyncClient, StoreRegistry], tmp_path: Path
+    ) -> None:
+        ac, registry = client
+        _image_folder(
+            registry,
+            tmp_path,
+            CRAGMAW,
+            "adventure/LMoP/thumbnail/Cragmaw Hideout.webp",
+            "adventure/LMoP/Cragmaw Hideout (Player).webp",
+        )
+        world = registry.gamestate.worlds.create(
+            World(name="Sword Coast", source_set=SourceSet(sources=["PHB", "MM", "DMG"]))
+        )
+        made = await ac.post(f"/gm/worlds/{world.id}/adventures/from-book", data={"book": "LMoP"})
+        adventure = registry.adventures.adventures(world.id)[0]
+        goblins = registry.adventures.chapters(adventure.id)[1]
+        page = (await ac.get(made.headers["location"])).text
+        assert 'class="maps-panel' in page and "8 maps" in page
+        assert f'href="/gm/chapters/{goblins.id}#e-1ab"' in page  # where the map sits
+        assert 'src="/play/img/adventure/LMoP/thumbnail/Cragmaw%20Hideout.webp"' in page
+        assert 'href="/play/img/adventure/LMoP/Cragmaw%20Hideout%20%28Player%29.webp"' in page
+        assert "Phandalin" in page and "Image not in your corpus" in page  # no file for it
+
+        chapter = (await ac.get(f"/gm/chapters/{goblins.id}")).text
+        assert 'id="e-1ab"' in chapter and 'class="map-areas"' in chapter
+        areas = chapter[chapter.index('class="map-areas"') :]
+        areas = areas[: areas.index("</svg>")]
+        assert areas.count("<polygon") == 8  # every numbered area of the hideout
+        assert 'href="#e-' in areas and "<title>" in areas
+
+    async def test_a_rulebook_lists_its_maps_and_shows_its_pictures(
+        self, client: tuple[AsyncClient, StoreRegistry], tmp_path: Path
+    ) -> None:
+        ac, registry = client
+        _image_folder(registry, tmp_path, "book/DMG/app-c-1.webp")
+        contents = (await ac.get("/books/DMG")).text
+        assert 'class="maps-panel' in contents and "Map 1" in contents
+        assert 'href="/books/DMG/12#e-233"' in contents
+        chapter = (await ac.get("/books/DMG/12")).text
+        assert 'id="e-233"' in chapter and 'src="/play/img/book/DMG/app-c-1.webp"' in chapter

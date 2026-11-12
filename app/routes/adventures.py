@@ -21,7 +21,7 @@ import difflib
 import re
 from dataclasses import replace
 from typing import Annotated
-from urllib.parse import quote, urlencode
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response, StreamingResponse
@@ -31,13 +31,19 @@ from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.models.gamestate import Adventure, Scope, SourceSet
 from app.routes.auth import html, redirect, safe_next
 from app.services import image_effects, scope
-from app.services.adventures import AdventureError, ChapterView, EditConflict, text_version
+from app.services.adventures import (
+    AdventureError,
+    AdventureView,
+    ChapterView,
+    EditConflict,
+    text_version,
+)
 from app.services.creature_builder import HOMEBREW_SOURCE
-from app.services.creature_sight import image_file
 from app.services.difficulty import rules_for
 from app.services.encounters import EncounterError
 from app.services.events import revision_stream
 from app.services.media import MAX_BYTES, MediaError
+from app.store.maps import BookMap
 from app.store.registry import StoreRegistry
 from app.ui.adventure_pages import (
     DraftReview,
@@ -56,7 +62,7 @@ from app.ui.adventure_pages import (
     revision_waiting,
     world_page,
 )
-from app.ui.book_pages import book_chapter, creatures_in
+from app.ui.book_pages import anchor_id, area_links, book_chapter, book_picture, creatures_in
 from app.ui.cast_pages import creatures_panel, holdings_panel
 from app.ui.context import Page
 from app.ui.journal_pages import share_href
@@ -69,6 +75,7 @@ from app.ui.library_links import (
     chapter_url,
     world_url,
 )
+from app.ui.maps import maps_panel
 from app.ui.markdown import MarkdownContext, Rendered
 from app.ui.prose_check import Checks, Problem, check
 from app.ui.tags import ENTITY_CATEGORY
@@ -275,9 +282,32 @@ def _adventure(
             notice_text=notice_text,
             error=error,
             review=review,
+            maps=_maps(page, registry, view),
         ),
         status_code=status_code,
     )
+
+
+def _maps(page: Page, registry: StoreRegistry, view: AdventureView) -> Node:
+    """For an adventure started from a book: the book's maps, each leading to the
+    chapter that shows its section."""
+    if view.book is None:
+        return None
+    maps = registry.maps.of(view.book.id)
+    body = registry.published.body(view.book.id) if maps else None
+    if body is None:
+        return None
+    chapters = {c.section: chapter_url(c.id) for c in view.chapters if c.section}
+
+    def where(found: BookMap) -> str | None:
+        if not 0 <= found.chapter < len(body.sections):
+            return None
+        url = chapters.get(body.sections[found.chapter].id)
+        if url is None:
+            return None
+        return f"{url}#{anchor_id(found.id)}" if found.id else url
+
+    return maps_panel(page, maps, where, book_picture(registry.settings.images_root))
 
 
 def _own_creatures(registry: StoreRegistry, adventure: Adventure) -> list[str]:
@@ -580,13 +610,7 @@ def _chapter_text(page: Page, registry: StoreRegistry, view: ChapterView) -> Ren
         return render_body(view.chapter.body, ctx)
     body, part = book
     url = chapter_url(view.chapter.id)
-    images = registry.settings.images_root
-
-    def picture(path: str) -> str | None:
-        if images is None or image_file(images, path) is None:
-            return None
-        return f"/play/img/{quote(path)}"
-
+    picture = book_picture(registry.settings.images_root)
     return book_chapter(
         page,
         body,
@@ -595,6 +619,16 @@ def _chapter_text(page: Page, registry: StoreRegistry, view: ChapterView) -> Ren
         view.chapter.body,
         lambda entry: f"{url}/edit?at={entry}#f-body",
         picture,
+        # A map's areas lead to their text, here or in the chapter showing their section.
+        area_links(
+            body,
+            part.id,
+            {
+                c.section: chapter_url(c.id)
+                for c in registry.adventures.chapters(view.adventure.id)
+                if c.section
+            },
+        ),
     )
 
 

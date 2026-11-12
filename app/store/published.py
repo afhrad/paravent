@@ -95,6 +95,11 @@ class AdventureBody:
         """The section with this id."""
         return next((s for s in self.sections if s.id == section_id), None)
 
+    def entry(self, entry_id: str) -> dict[str, Any] | None:
+        """The entry with this id, wherever it lies."""
+        found = self._ids.get(entry_id)
+        return found[1] if found else None
+
     def section_of(self, entry_id: str) -> str | None:
         """Which section an entry id lies in."""
         found = self._ids.get(entry_id)

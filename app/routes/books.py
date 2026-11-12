@@ -17,10 +17,14 @@ from fastapi.responses import HTMLResponse
 from app.dependencies import IdentityDep, PageDep, RegistryDep
 from app.routes.auth import html
 from app.services.references import ReferenceNotFound
+from app.store.maps import BookMap
+from app.ui.book_pages import anchor_id, book_picture
+from app.ui.maps import maps_panel
 from app.ui.rulebook_pages import (
     BOOKS_URL,
     SCREEN_URL,
     book_page,
+    book_url,
     books_page,
     chapter_page,
     screen_page,
@@ -58,9 +62,15 @@ async def book(
     found = registry.rulebooks.get(book_id)
     if found is None or not page.reads_book(found.source):
         raise BookNotFound(book_id)
-    return html(
-        book_page(page, found, registry.references.known_world(world or page.home_world or None))
-    )
+    world_id = registry.references.known_world(world or page.home_world or None)
+    picture = book_picture(registry.settings.images_root)
+
+    def where(found_map: BookMap) -> str | None:
+        url = book_url(found.id, found_map.chapter, world_id)
+        return f"{url}#{anchor_id(found_map.id)}" if found_map.id else url
+
+    maps = maps_panel(page, registry.maps.of(found.id), where, picture)
+    return html(book_page(page, found, world_id, maps))
 
 
 @router.get(f"{BOOKS_URL}/{{book_id}}/{{index}}", response_class=HTMLResponse)
@@ -88,7 +98,9 @@ async def chapter(
         readable=page.readable,
         units=page.u,
     )
-    return html(chapter_page(page, body, index, ctx, world_id))
+    return html(
+        chapter_page(page, body, index, ctx, world_id, book_picture(registry.settings.images_root))
+    )
 
 
 @router.get(SCREEN_URL, response_class=HTMLResponse)

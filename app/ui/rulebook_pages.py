@@ -9,7 +9,8 @@ the world's books, dice roll, names follow the glossary.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from dataclasses import replace
 from typing import Any
 from urllib.parse import urlencode
 
@@ -37,6 +38,7 @@ from htpy import (
 
 from app.services.translations import CHAPTER_FIELDS, Overlaid
 from app.store.published import Anchors, BookBody, PublishedBook, heading_anchor, is_heading
+from app.ui.book_pages import book_image
 from app.ui.context import Page
 from app.ui.home_pages import page_head
 from app.ui.icons import icon
@@ -117,8 +119,8 @@ def books_page(page: Page, books: Sequence[PublishedBook], world_id: str | None)
     )
 
 
-def book_page(page: Page, book: PublishedBook, world_id: str | None) -> Element:
-    """A book's table of contents, with each chapter's headings."""
+def book_page(page: Page, book: PublishedBook, world_id: str | None, maps: Node = None) -> Element:
+    """A book's table of contents, with each chapter's headings, and its maps."""
     t = page.t
     return app_shell(
         page,
@@ -129,6 +131,7 @@ def book_page(page: Page, book: PublishedBook, world_id: str | None) -> Element:
             ],
             page_head(t("books.eyebrow"), book.name, t("books.contents")),
             section(class_="panel")[_contents(book, world_id)],
+            maps,
         ],
         world_id=world_id,
     )
@@ -201,12 +204,31 @@ def _chapter_text(page: Page, book_id: str, index: int, chapter: Any) -> Overlai
 
 
 def chapter_page(
-    page: Page, body: BookBody, index: int, ctx: RenderContext, world_id: str | None
+    page: Page,
+    body: BookBody,
+    index: int,
+    ctx: RenderContext,
+    world_id: str | None,
+    picture: Callable[[str], str | None] | None = None,
 ) -> Element:
-    """One chapter of a book, its headings listed beside it."""
+    """One chapter of a book, its headings listed beside it; its pictures and maps from
+    the image folder (``picture(path)``, the address of a file it holds), each at its
+    anchor, which the book's maps link to."""
     t = page.t
     book = body.book
     chapter = body.sections[index]
+
+    def pictures(entry: dict[str, Any], default: Callable[[], Node]) -> Node | None:
+        kind = entry.get("type")
+        if kind == "image":
+            return book_image(page, entry, picture)
+        if kind == "gallery":
+            return div(class_="book-gallery")[
+                [book_image(page, i, picture) for i in entry.get("images", [])]
+            ]
+        return None
+
+    ctx = replace(ctx, block_hook=pictures)
     shown = _chapter_text(page, book.id, index, chapter)
     title = str(shown.data.get("name") or chapter.name)
     headings = _Headings()

@@ -563,6 +563,16 @@ must follow it.)
   the gamemaster's text and the book's look the same.
 - **Images:** shown from the 5eTools image folder (`PARAVENT_IMAGE_DIR`) when it holds them,
   each with its share button (JOURNAL.md); a captioned placeholder otherwise.
+- **Maps** (2026-11-12, `generated/gendata-maps.json`, `app/store/maps.py`): an adventure
+  started from a book lists the book's maps under its chapters, folded, by the chapter they
+  are printed in — a thumbnail, the title, the full picture, the player version (the map
+  without its secrets, to show the table), each leading to the chapter that shows its
+  section, at the map (`#e-<image id>`). On a map in a chapter, **its numbered areas are
+  links** to their text (809 of the corpus's 1,302 maps have them): an SVG of the book's
+  polygons laid over the picture in its own pixels, invisible until hovered or focused, an
+  area in this chapter jumping to its heading, one in another to the chapter showing it.
+  For reading only: no grid, no tokens, no fog (not a virtual tabletop). A rulebook's
+  contents list its maps the same way, and its chapters now show their pictures.
 - A helper worth building with it: "creatures in this section" — every `{@creature}` the
   section mentions, each one click from an encounter.
 
