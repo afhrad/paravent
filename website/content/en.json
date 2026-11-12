@@ -153,7 +153,7 @@
       {
         "title": "Claude as a writing partner",
         "icon": "sparkles",
-        "text": "If you like, Claude drafts an adventure for your group: chapters, characters and fights from your own books. It stays a draft until you read it and say yes."
+        "text": "If you like, Claude drafts an adventure for your group: chapters, characters and fights from your own books. It stays a draft until you read it and say yes. Asked to change an adventure or creature you already accepted, Claude writes a revision beside it, which changes nothing until you say yes to that too."
       },
       {
         "title": "German, done properly",
