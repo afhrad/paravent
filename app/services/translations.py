@@ -93,6 +93,11 @@ BOOKISH = frozenset({"book", "adventure", "screen", "builder"})
 # The creature builder's numbers and names (``<$to_hit__str$>``, ``<$short_name$>``) and a
 # recipe's amounts (``{=amount1/v}``).
 PLACEHOLDER = re.compile(r"<\$[^$<>]+\$>|\{=[^{}]+\}")
+# The creature's name, as the builder fills it in: plain, and capitalised for a sentence's
+# start. A translation may write either, and as often as its language needs — German
+# names the creature where English says "it", and may leave out a repeat — as long as a
+# passage naming the creature still names it.
+NAME_PLACEHOLDERS = frozenset({"<$short_name$>", "<$title_short_name$>"})
 MAX_PASSAGE = 20000
 
 
@@ -180,14 +185,27 @@ def marks_in(text: str) -> list[str]:
     return [*tags, *PLACEHOLDER.findall(rest)]
 
 
+def comparable_marks(text: str) -> list[str]:
+    """What a translation is checked against: :func:`marks_in`, sorted, with the
+    creature's name (:data:`NAME_PLACEHOLDERS`) once if the text names it at all."""
+    marks = marks_in(text)
+    named = any(mark in NAME_PLACEHOLDERS for mark in marks)
+    rest = sorted(mark for mark in marks if mark not in NAME_PLACEHOLDERS)
+    return ["<$short_name$>", *rest] if named else rest
+
+
 def missing_tags(english: str, translated: str) -> list[str]:
     """Tags (and placeholders) of the English that the translation lacks (§3: tags come
     from the source, so a missing one is a lost link or roll — worth saying, not worth
-    refusing)."""
-    have = list(marks_in(translated))
+    refusing). The creature's name is missing only when the translation never names it."""
+    have = marks_in(translated)
+    named = any(mark in NAME_PLACEHOLDERS for mark in have)
     missing: list[str] = []
     for tag in marks_in(english):
-        if tag in have:
+        if tag in NAME_PLACEHOLDERS:
+            if not named and tag not in missing:
+                missing.append(tag)
+        elif tag in have:
             have.remove(tag)
         else:
             missing.append(tag)

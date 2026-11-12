@@ -371,7 +371,10 @@ every German player expects 18 m.
 > `/gm/translate/builder/<kind>/<name>`, and drafted by the machine as "The creature
 > builder's texts". The builder's placeholders (`<$to_hit__str$>`, `<$short_name$>`) are
 > held like tags: offered as chips, a lost one reported, a machine draft that changes one
-> thrown away. A creature of a world in that language gets the translation, the name
+> thrown away. **The creature's name** is the exception (2026-11-12): `<$short_name$>` and
+> `<$title_short_name$>` may stand in either spelling and as often as the language needs —
+> German names the creature where English says "it" — as long as a passage naming it still
+> does (`NAME_PLACEHOLDERS`); 30 of the 34 builder passages this had refused came through. A creature of a world in that language gets the translation, the name
 > placeholders replaced by its name, distances converted; what is untranslated stays
 > English. The picker shows the reader's names ("Biss (Cloaker)").
 

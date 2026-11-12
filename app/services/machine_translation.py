@@ -34,7 +34,7 @@ from anthropic.types.beta import BetaMessageParam, BetaOutputConfigParam, BetaTe
 
 from app.services.i18n import Translatable
 from app.services.translation_targets import Target
-from app.services.translations import TranslationStore, marks_in, passages
+from app.services.translations import TranslationStore, comparable_marks, passages
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +63,8 @@ Some text holds placeholders between <$ and $>, for example <$to_hit__str$> or \
 <$title_short_name$>, or between {= and }, for example {=amount1/v}. Copy each exactly \
 as it is, too. <$title_short_name$> and \
 <$short_name$> stand for the creature's name (the software puts in its name, without an \
-article), so build the sentence around them as around a name.
+article), so build the sentence around them as around a name: use either where the \
+sentence needs the name (the first capitalised), as often as the language needs it.
 
 When the request lists glossary terms, use exactly those names for those terms.
 
@@ -263,7 +264,7 @@ def _accepted(
         text = by_id.get(index)
         if text is None:
             rejected += 1
-        elif sorted(marks_in(text)) != sorted(marks_in(english)):
+        elif comparable_marks(text) != comparable_marks(english):
             rejected += 1  # a tag lost, made up or changed: the passage stays English
         else:
             translated[path] = text

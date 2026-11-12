@@ -92,6 +92,31 @@ class TestPassages:
         accepted, rejected, _ = _accepted(batch, [{"id": 0, "text": kept}, {"id": 1, "text": lost}])
         assert accepted == {"a": kept} and rejected == 1
 
+    def test_the_creatures_name_as_often_as_the_language_needs(self) -> None:
+        """<$short_name$> and <$title_short_name$> are the creature's name, capitalised or
+        not; German names it where English says "it", or leaves out a repeat. Any number,
+        either spelling — but a passage naming the creature must still name it."""
+        from app.services.machine_translation import _accepted
+
+        english = "If <$short_name$> takes fire damage, it has disadvantage on attack rolls."
+        swapped = "Erleidet <$title_short_name$> Feuerschaden, hat er Nachteil."
+        repeated = "Erleidet <$short_name$> Feuerschaden, hat <$short_name$> Nachteil."
+        unnamed = "Erleidet es Feuerschaden, hat es Nachteil."
+        renamed = "Erleidet <$to_hit__str$> Feuerschaden, hat es Nachteil."
+        for fine in (swapped, repeated):
+            assert missing_tags(english, fine) == []
+        assert missing_tags(english, unnamed) == ["<$short_name$>"]
+        assert missing_tags(english, renamed) == ["<$short_name$>"]
+        batch = [(str(n), english) for n in range(4)]
+        accepted, rejected, _ = _accepted(
+            batch,
+            [{"id": n, "text": t} for n, t in enumerate((swapped, repeated, unnamed, renamed))],
+        )
+        assert accepted == {"0": swapped, "1": repeated} and rejected == 2
+        # every other tag and placeholder still has to be there as often as in the English
+        twice = "{@hit <$to_hit__str$>}; <$short_name$> bites, {@dc 12}."
+        assert missing_tags(twice, "<$short_name$> beißt, {@dc 12}.") == ["{@hit <$to_hit__str$>}"]
+
 
 class TestStore:
     def test_a_partial_translation_falls_back_per_passage(
