@@ -37,7 +37,7 @@ from app.services.creature_builder import (
 from app.services.creature_pictures import design_ref
 from app.services.media import MediaError, media_type
 from app.services.references import ReferenceEntry
-from app.services.units import feet_from, text_in_feet
+from app.services.units import feet_from
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
 from app.ui.creature_pages import (
@@ -49,6 +49,7 @@ from app.ui.creature_pages import (
     creatures_page,
     delete_page,
 )
+from app.ui.rules_text import typed_senses
 from app.ui.tags import localized_context
 
 router = APIRouter(tags=["creature builder"])
@@ -80,10 +81,12 @@ def _speed(raw: object, metric: bool) -> int:
 
 
 def _read_form(
-    design: CreatureDesign, form: FormData, registry: StoreRegistry, metric: bool = False
+    design: CreatureDesign, form: FormData, registry: StoreRegistry, page: Page
 ) -> CreatureDesign:
-    """The design as the form has it; values out of range are brought into it. With
-    ``metric`` the reader typed distances in metres, which the design keeps in feet."""
+    """The design as the form has it; values out of range are brought into it. The
+    reader typed distances in their units and senses in their words, which the design
+    keeps in feet and English."""
+    metric = page.u.metric
     worlds = {w.id for w in registry.worlds.list()}
     crs = {r.cr for r in registry.creature_tables.rows()}
     changes: dict[str, object] = {
@@ -107,7 +110,7 @@ def _read_form(
         },
         "saves": [ab for ab in ABILITIES if ab in form.getlist("saves")],
         "skills": _list(form.get("skills", "")),
-        "senses": text_in_feet(str(form.get("senses", ""))[:200].strip()),
+        "senses": typed_senses(page, str(form.get("senses", ""))[:200].strip()),
         "languages": str(form.get("languages", ""))[:200].strip(),
         "resist": _list(form.get("resist", "")),
         "immune": _list(form.get("immune", "")),
@@ -126,10 +129,11 @@ def _read_form(
 
 
 def _apply(
-    action: str, design: CreatureDesign, form: FormData, registry: StoreRegistry
+    action: str, design: CreatureDesign, form: FormData, registry: StoreRegistry, page: Page
 ) -> CreatureDesign:
-    """One builder button."""
+    """One builder button; what it writes is in the creature's world's language."""
     service = registry.creatures
+    wording = registry.creature_wording(design.world_id, page.t.code)
     if action == "fit":
         return service.math.fit(design)
     if action == "attack":
@@ -138,6 +142,7 @@ def _apply(
             ability=str(form.get("attack_ability", "str")),
             dice=str(form.get("attack_dice", "1d8")),
             damage_type=str(form.get("attack_type", "bludgeoning")),
+            wording=wording,
         )
         name = str(form.get("attack_name", "")).strip()[:80] or "Attack"
         design.actions.append(CreatureBlock(name=name, text=text))
@@ -152,10 +157,10 @@ def _apply(
             del blocks[int(index)]
     elif action in ("template:trait", "template:action"):
         kind = action.removeprefix("template:")
-        service.add_template(design, kind, str(form.get(f"template_{kind}", "")))
+        service.add_template(design, kind, str(form.get(f"template_{kind}", "")), wording.u)
     elif action == "feature":
         value = _int(form.get("feature_value", ""), None, 0, 999)
-        service.add_feature(design, str(form.get("feature", "")), value)
+        service.add_feature(design, str(form.get("feature", "")), value, wording.u)
     elif action.startswith("unfeature:"):
         index = action.removeprefix("unfeature:")
         if index.isdigit() and int(index) < len(design.features):
@@ -268,7 +273,8 @@ async def create_creature(
     """Start a design and open it."""
     world_id = world if registry.worlds.find(world) else None
     try:
-        design = registry.creatures.create(name, world_id, cr, based_on)
+        wording = registry.creature_wording(world_id, page.t.code)
+        design = registry.creatures.create(name, world_id, cr, based_on, wording)
     except CreatureError as exc:
         draft = {"name": name, "world": world, "cr": cr, "based_on": based_on}
         return _list_page(page, registry, error=page.t.error(exc), draft=draft, status_code=422)
@@ -307,8 +313,8 @@ async def change_creature(
     form = await request.form()
     action = str(form.get("action", "save"))
     before = service.get(design_id)
-    design = _read_form(before, form, registry, page.u.metric)
-    design = _apply(action, design, form, registry)
+    design = _read_form(before, form, registry, page)
+    design = _apply(action, design, form, registry, page)
     if action == "accept":  # Claude's draft becomes the gamemaster's own
         design = design.model_copy(update={"drafted_by": None})
     try:

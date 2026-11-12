@@ -45,7 +45,8 @@ from app.models.gamestate import (
     CreatureFeature,
     SourceSet,
 )
-from app.services.i18n import Translatable
+from app.services.i18n import Translatable, Translator
+from app.services.units import UnitFormat, units_for_language
 from app.store.creature_tables import CreatureTables, CrRow, MonsterFeature, cr_value
 from app.store.gamestate import GameStateStore
 from app.store.jsonfile import write_json
@@ -91,13 +92,38 @@ DEFAULT_ATTACK = (
 _PHYSICAL = {"bludgeoning", "piercing", "slashing"}
 _NUMBER_WORDS = {
     "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8,
+    "zwei": 2, "drei": 3, "vier": 4, "fünf": 5, "sechs": 6, "sieben": 7, "acht": 8,
 }  # fmt: skip
+# Multiattack as the languages a design may be written in name it.
+_MULTIATTACK = ("multiattack", "mehrfachangriff")
 _PLACEHOLDER = re.compile(r"<\$([^$]+)\$>")
 _HIT = re.compile(r"\{@hit (-?\d+)\}")
 _DAMAGE = re.compile(r"(\d+) \(\{@damage\s+(\d+)d(\d+)(?:\s*([+-])\s*(\d+))?\s*\}\)")
 _DAMAGE_SHOWN = re.compile(r"(\d+) \(\{@damage [^}]*\}\)")
 _DC = re.compile(r"\{@dc (\d+)\}|\bDC (\d+)\b")
 _DICE = re.compile(r"(\d+)d(\d+)")
+
+
+@dataclass(frozen=True)
+class Wording:
+    """The language and units the builder's own templates write in: the creature's
+    world's language, or the reader's for a creature of no world."""
+
+    t: Translator
+
+    @property
+    def u(self) -> UnitFormat:
+        """Distances in the language's units (English feet, otherwise metres)."""
+        return UnitFormat(units_for_language(self.t.code), self.t.code)
+
+    def subject(self, design: CreatureDesign) -> str:
+        """How a text names the creature: the corpus's placeholder in English ("The
+        lich", following a rename), its name in any other language."""
+        return "<$title_short_name$>" if self.t.code == "en" else design.name
+
+    def __call__(self, key: str, /, **params: Any) -> str:
+        """The template ``creatures.text.<key>``."""
+        return self.t(f"creatures.text.{key}", **params)
 
 
 class CreatureError(Translatable):
@@ -625,15 +651,25 @@ class CreatureMath:
             notes=notes,
         )
 
-    def on_target(self, design: CreatureDesign) -> CreatureDesign:
+    def on_target(self, design: CreatureDesign, wording: Wording | None = None) -> CreatureDesign:
         """A blank design's attack sized to its CR: Strength for the table's attack
         bonus, and a slam (two from damage 30 up, with Multiattack) whose dice reach
         the middle of the table's damage per round."""
         row = self._tables.row(design.cr)
+        slam_name = wording("slam") if wording else "Slam"
         if row is None:
-            return design.model_copy(
-                update={"actions": [CreatureBlock(name="Slam", text=DEFAULT_ATTACK)]}
+            text = (
+                DEFAULT_ATTACK
+                if wording is None
+                else attack_text(
+                    ranged=False,
+                    ability="str",
+                    dice="1d8",
+                    damage_type="bludgeoning",
+                    wording=wording,
+                )
             )
+            return design.model_copy(update={"actions": [CreatureBlock(name=slam_name, text=text)]})
         strength = max(1, min(30, 10 + 2 * (row.attack - row.pb)))
         mod = modifier(strength)
         middle = (row.dpr_min + row.dpr_max) / 2
@@ -644,16 +680,25 @@ class CreatureMath:
         else:
             count, die = 1, 4 if wanted < 3 else 6
         slam = attack_text(
-            ranged=False, ability="str", dice=f"{count}d{die}", damage_type="bludgeoning"
+            ranged=False,
+            ability="str",
+            dice=f"{count}d{die}",
+            damage_type="bludgeoning",
+            wording=wording,
         )
-        actions = [CreatureBlock(name="Slam", text=slam)]
+        actions = [CreatureBlock(name=slam_name, text=slam)]
         if attacks > 1:
-            actions.insert(
-                0,
+            multiattack = (
                 CreatureBlock(
+                    name=wording("multiattack"),
+                    text=wording("two_slams", name=wording.subject(design)),
+                )
+                if wording
+                else CreatureBlock(
                     name="Multiattack", text="<$title_short_name$> makes two slam attacks."
-                ),
+                )
             )
+            actions.insert(0, multiattack)
         abilities = {**design.abilities, "str": strength}
         return design.model_copy(update={"abilities": abilities, "actions": actions})
 
@@ -686,8 +731,8 @@ def read_offence(actions: Sequence[dict[str, Any]]) -> tuple[int, int | None, in
     for action in actions:
         text = " ".join(e for e in action.get("entries") or [] if isinstance(e, str))
         name = str(action.get("name", ""))
-        if name.lower().startswith("multiattack"):
-            words = re.findall(r"\b(one|two|three|four|five|six|seven|eight)\b", text.lower())
+        if name.lower().startswith(_MULTIATTACK):
+            words = re.findall(rf"\b({'|'.join(_NUMBER_WORDS)})\b", text.lower())
             if words:
                 count = _NUMBER_WORDS[words[0]]
             continue
@@ -871,9 +916,15 @@ class CreatureService:
         return cleaned
 
     def create(
-        self, name: str, world_id: str | None, cr: str, based_on: str = ""
+        self,
+        name: str,
+        world_id: str | None,
+        cr: str,
+        based_on: str = "",
+        wording: Wording | None = None,
     ) -> CreatureDesign:
-        """A new design: from a printed creature, or blank with the CR's numbers."""
+        """A new design: from a printed creature, or blank with the CR's numbers (its
+        slam written in ``wording``'s language and units)."""
         fields: dict[str, Any] = {}
         ref = based_on.strip()
         if ref:
@@ -894,7 +945,7 @@ class CreatureService:
             **fields,
         )
         if not ref:
-            design = self.math.fit(self.math.on_target(design))
+            design = self.math.fit(self.math.on_target(design, wording))
         return self._store.creatures.create(design)
 
     def save(self, design: CreatureDesign) -> CreatureDesign:
@@ -992,22 +1043,31 @@ class CreatureService:
         self._reload()
         return Published(len(designs), sorted(worlds))
 
-    def add_feature(self, design: CreatureDesign, name: str, value: int | None) -> None:
-        """Add a monster feature: it counts towards the CR and its text becomes a trait."""
+    def add_feature(
+        self, design: CreatureDesign, name: str, value: int | None, units: UnitFormat | None = None
+    ) -> None:
+        """Add a monster feature: it counts towards the CR and its text becomes a trait,
+        its distances in ``units`` (the corpus writes it in English and feet)."""
         feature = self._tables.feature(name)
         if feature is None:
             return
         design.features.append(
             CreatureFeature(name=feature.name, value=value if feature.takes_number else None)
         )
-        design.traits.append(feature_block(feature))
+        block = feature_block(feature)
+        if units is not None:
+            block.text = units.text(block.text)
+        design.traits.append(block)
 
-    def add_template(self, design: CreatureDesign, kind: str, name: str) -> None:
-        """Add a ready-made trait or action from the corpus."""
+    def add_template(
+        self, design: CreatureDesign, kind: str, name: str, units: UnitFormat | None = None
+    ) -> None:
+        """Add a ready-made trait or action from the corpus, its distances in ``units``."""
         template = self._tables.template(kind, name)
         if template is None:
             return
-        block = CreatureBlock(name=template.title, text=entries_text(list(template.entries)))
+        text = entries_text(list(template.entries))
+        block = CreatureBlock(name=template.title, text=units.text(text) if units else text)
         (design.traits if kind == "trait" else design.actions).append(block)
 
 
@@ -1020,12 +1080,30 @@ def attack_text(
     reach: int = 5,
     short_range: int = 80,
     long_range: int = 320,
+    wording: Wording | None = None,
 ) -> str:
-    """A weapon attack in placeholders, so its numbers follow the creature."""
+    """A weapon attack in placeholders, so its numbers follow the creature; in
+    ``wording``'s language and units, English and feet without one."""
     found = _DICE.fullmatch(dice.strip().lower())
     count, die = (int(found[1]), int(found[2])) if found else (1, 6)
     ability = ability if ability in ABILITIES else "str"
     average = count * (die + 1) / 2
+    if wording is not None:
+        hit = f"{{@hit <$to_hit__{ability}$>}}"
+        if ranged:
+            where = wording.u.text(f"{short_range}/{long_range} ft.")
+            head = wording("ranged", atk="{@atk rw}", hit=hit, range=where)
+        else:
+            head = wording("melee", atk="{@atk mw}", hit=hit, reach=wording.u.distance(reach))
+        kind = damage_type if damage_type in DAMAGE_TYPES else "bludgeoning"
+        damage = wording(
+            "damage",
+            h="{@h}",
+            average=f"<$damage_avg__{average:g}+{ability}$>",
+            dice=f"{{@damage {count}d{die}<$damage_mod__{ability}$>}}",
+            type=wording(f"damage.{kind}"),
+        )
+        return f"{head} {damage}"
     if ranged:
         where = f"range {short_range}/{long_range} ft."
         head = f"{{@atk rw}} {{@hit <$to_hit__{ability}$>}} to hit, {where}, one target."
@@ -1054,6 +1132,7 @@ __all__ = [
     "CreatureService",
     "Numbers",
     "Published",
+    "Wording",
     "attack_text",
     "entries_text",
     "evaluate",

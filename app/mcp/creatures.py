@@ -330,7 +330,8 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
         )
         picture = await picture_of(image_url)
         with tool_errors():
-            design = registry.creatures.create(name, world.id, cr.strip(), base)
+            wording = registry.creature_wording(world.id, world.language)
+            design = registry.creatures.create(name, world.id, cr.strip(), base, wording)
         design = design.model_copy(update={"drafted_by": found[0].id})
         saved = apply(design, changes, fit)
         keep_picture(None, saved, image_url, picture)

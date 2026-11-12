@@ -359,7 +359,12 @@ every German player expects 18 m.
 > ("Self (15 ft cone)", a sense "darkvision 60 ft."), never entry prose.
 > **Typed in, too** (2026-11-11): the creature builder's speeds and senses are shown and
 > entered in the reader's units and kept in feet (`feet_from`, `text_in_feet`: back by the
-> same 0.3, on the 5 ft. grid, so 9 m is 30 ft.).
+> same 0.3, on the 5 ft. grid, so 9 m is 30 ft.). Senses are named in the reader's words
+> ("Dunkelsicht 18 m", kept as "darkvision 60 ft."). What the builder writes itself (the
+> attack button, a blank creature's slam and Multiattack: `creatures.text.*`) is in the
+> creature's world's language and units, the reader's for a creature of no world
+> (`Wording`); the corpus's ready-made traits and actions stay English, their distances
+> converted.
 
 ### Prose — leave it alone
 

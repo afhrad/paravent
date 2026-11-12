@@ -155,6 +155,37 @@ class TestDesigns:
         hp, _formula = service.math.hp(fitted)
         assert fitted.ac == 15 and 131 <= hp <= 145
 
+    def test_written_in_the_worlds_language_and_units(self, registry: StoreRegistry) -> None:
+        world = registry.gamestate.worlds.create(
+            World(name="Moor", language="de", source_set=SourceSet(sources=["MM"]))
+        )
+        service = registry.creatures
+        wording = registry.creature_wording(world.id, "en")
+        german = service.create("Moorhulk", world.id, "8", wording=wording)
+        english = service.create(
+            "Bog Hulk", None, "8", wording=registry.creature_wording(None, "en")
+        )
+        assert [a.name for a in german.actions] == ["Mehrfachangriff", "Hieb"]
+        assert german.actions[0].text == "Moorhulk führt zwei Hiebangriffe aus."
+        slam = german.actions[1].text
+        assert "zum Treffen, Reichweite 1,5 m, ein Ziel." in slam and slam.endswith("Wuchtschaden.")
+        assert [a.name for a in english.actions] == ["Multiattack", "Slam"]
+        assert "reach 5 ft., one target." in english.actions[1].text
+        # The German Multiattack counts its attacks as the English one does.
+        estimate, other = service.math.estimate(german), service.math.estimate(english)
+        assert estimate is not None and other is not None
+        assert estimate.dpr == other.dpr and estimate.final == "8"
+
+        ranged = attack_text(
+            ranged=True, ability="dex", dice="1d8", damage_type="necrotic", wording=wording
+        )
+        assert "Reichweite 24/96 m, ein Ziel." in ranged and ranged.endswith(
+            "nekrotischer Schaden."
+        )
+        # The corpus's ready-made text arrives in the world's units.
+        service.add_template(german, "action", "Bite (Cloaker)", wording.u)
+        assert " ft." not in german.actions[-1].text and "1,5 m" in german.actions[-1].text
+
     def test_names_are_needed_and_unique(self, registry: StoreRegistry) -> None:
         service = registry.creatures
         service.create("Ash Wight", None, "3")

@@ -36,7 +36,8 @@ encounter's `label`) than a new design.
   Then make it fit the target: lower scores and hit dice, trim legendary actions and the
   spell list to what the CR can carry, and rewrite what no longer suits.
 - **Blank** when nothing is close: it starts with the CR's armour class, hit dice and a
-  slam, which you replace with its own actions.
+  slam, written in the world's language and units, which you replace with its own actions.
+  A Multiattack is named "Multiattack" (in German "Mehrfachangriff").
 
 `cr` is the challenge rating it should play at ("difficulty 5" is CR 5). `fit=true` sets
 armour class and hit dice to the CR table's after everything else.

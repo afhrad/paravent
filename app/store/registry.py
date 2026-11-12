@@ -30,7 +30,12 @@ from app.services.chargen.prepare import Preparations
 from app.services.combat import CombatService, SheetCharacters
 from app.services.corpus_check import CorpusHealth, corpus_version
 from app.services.corpus_import import CorpusImport, CorpusImports
-from app.services.creature_builder import HOMEBREW_SOURCE, CreatureMath, CreatureService
+from app.services.creature_builder import (
+    HOMEBREW_SOURCE,
+    CreatureMath,
+    CreatureService,
+    Wording,
+)
 from app.services.creature_pictures import CreaturePictures
 from app.services.creature_sight import Sight, fluff_image, sight
 from app.services.difficulty import DifficultyRules
@@ -715,6 +720,12 @@ class StoreRegistry:
             monster,
             self.reload_compendium,
         )
+
+    def creature_wording(self, world_id: str | None, fallback: str) -> Wording:
+        """The language and units the builder writes a creature's text in: its world's,
+        or ``fallback`` (the reader's language) for a creature of no world."""
+        world = self.worlds.find(world_id) if world_id else None
+        return Wording(self.ui.translator(world.language if world else fallback))
 
     @cached_property
     def worlds(self) -> WorldService:

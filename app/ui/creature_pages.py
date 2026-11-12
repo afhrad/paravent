@@ -62,6 +62,7 @@ from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.library_links import delete_link
 from app.ui.ref_pages import statblock
+from app.ui.rules_text import senses_shown
 from app.ui.tags import RenderContext, ref_url
 
 
@@ -396,7 +397,7 @@ def _defence(page: Page, view: BuilderView) -> Element:
             text_field(
                 "senses",
                 t("creatures.senses"),
-                value=page.u.text(d.senses),
+                value=senses_shown(page, d.senses),
                 autocomplete="off",
                 required=False,
                 optional_text=optional,

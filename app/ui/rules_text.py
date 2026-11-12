@@ -18,6 +18,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import Any
 
 from app.services.sheet import SpellView
+from app.services.units import text_in_feet
 from app.store.projections import CreatureKind, coerce_cr, coerce_type
 from app.ui.context import Page
 from app.ui.names import named
@@ -206,6 +207,30 @@ def sense(page: Page, text: str) -> str:
     return page.u.text(text)
 
 
+SENSE_NAMES = ("blindsight", "darkvision", "tremorsense", "truesight")
+
+
+def typed_senses(page: Page, value: str) -> str:
+    """Senses typed in the reader's words and units ("Dunkelsicht 18 m") as the data
+    keeps them ("darkvision 60 ft."): each sense named in the reader's language becomes
+    its English name, metres become feet."""
+    names = {page.t(f"rules.sense.{n}").casefold(): n for n in SENSE_NAMES}
+    names = {word: name for word, name in names.items() if not word.startswith("rules.")}
+
+    def english(match: re.Match[str]) -> str:
+        return names.get(match[0].casefold(), match[0])
+
+    if names:
+        pattern = "|".join(re.escape(w) for w in sorted(names, key=len, reverse=True))
+        value = re.sub(rf"(?<!\w)(?:{pattern})(?!\w)", english, value, flags=re.IGNORECASE)
+    return text_in_feet(value)
+
+
+def senses_shown(page: Page, value: str) -> str:
+    """A design's senses ("darkvision 60 ft., tremorsense 10 ft.") as the reader reads them."""
+    return ", ".join(sense(page, part) for part in value.split(",") if part.strip())
+
+
 def senses(page: Page, data: Mapping[str, Any]) -> list[str]:
     """Every sense, then passive Perception, as the statblock lists them."""
     out = [sense(page, str(x)) for x in data.get("senses") or []]
@@ -293,6 +318,8 @@ __all__ = [
     "school",
     "sense",
     "senses",
+    "senses_shown",
+    "typed_senses",
     "skills",
     "speed",
     "spell_duration",

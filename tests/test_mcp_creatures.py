@@ -287,7 +287,7 @@ class TestForAGermanTable:
         await raw.post("/language", data={"lang": "de", "next": "/"})
         page = (await raw.get(url)).text
         assert 'name="speed_walk"' in page and 'step="1.5" value="9"' in page
-        assert 'value="darkvision 18 m"' in page
+        assert 'value="Dunkelsicht 18 m"' in page
         form = {
             "action": "save",
             "name": "Moorhulk",
@@ -295,11 +295,23 @@ class TestForAGermanTable:
             "cr": "3",
             "speed_walk": "12",
             "speed_swim": "4,5",
-            "senses": "darkvision 36 m",
+            "senses": "Dunkelsicht 36 m, Erschütterungssinn 3 m",
         }
         await raw.post(url, data=form)
         saved = registry.creatures.get(design.id)
-        assert saved.speed == {"walk": 40, "swim": 15} and saved.senses == "darkvision 120 ft."
+        assert saved.speed == {"walk": 40, "swim": 15} and saved.senses == (
+            "darkvision 120 ft., tremorsense 10 ft."
+        )
+
+        # The builder's own templates write German and metres.
+        form["action"] = "attack"
+        form["attack_name"] = "Klaue"
+        form["attack_dice"] = "2d6"
+        form["attack_type"] = "slashing"
+        await raw.post(url, data=form)
+        claw = registry.creatures.get(design.id).actions[-1]
+        assert claw.name == "Klaue" and "Reichweite 1,5 m" in claw.text
+        assert claw.text.endswith("Hiebschaden.")
 
         # In an encounter, the creature opens in the builder, draft or published.
         encounter = registry.encounters.create("Mire", world_id)
