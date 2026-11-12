@@ -161,7 +161,7 @@ coverage is not a nice-to-have, it is what the tag renderer and tooltip layer st
 | --- | --- | --- |
 | `psionic`, `vehicle`, `vehicleUpgrade`, `facility`, `charoption`, `cult`, `boon` | 262 | Whole categories invisible to search until loaded (done 2026-10-19). |
 | `magicvariant`, `itemGroup`, `itemProperty`, `itemType`, `itemMastery`, `itemEntry` | 455 | Completes the item model — variants are how "+1 longsword" exists at all. |
-| `encounter`, `encounterShape` | 47 | Random-encounter tables for the encounter builder. |
+| `encounter`, `encounterShape` | 47 | Random-encounter tables for the encounter builder, and the shapes its "Build a fight" fills to a difficulty (2026-11-12). |
 | `individual`, `hoard`, `dragon`, `gems`, `artObjects`, `magicItems`, `dragonMundaneItems` | 100 | Treasure tables. PROJECT.md lists treasures as a first-class feature. |
 | `name`, `lifeClass`, `lifeBackground`, `lifeTrinket` | 135 | NPC and character generation flavour (CHARGEN.md step 10). |
 | `deck`, `card` | 745 | Deck of Many Things and friends. A card is keyed `(name, source, set)` and reached through its deck, like a feature through its class (done 2026-10-19). |

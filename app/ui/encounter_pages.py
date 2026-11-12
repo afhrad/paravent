@@ -39,6 +39,7 @@ from app.models.gamestate import EDITION_CLASSIC, Combat, Encounter, World
 from app.services.combat import Summary
 from app.services.creature_builder import HOMEBREW_SOURCE
 from app.services.difficulty import Rating
+from app.services.encounter_gen import bands_of
 from app.services.encounters import EncounterView, PlannedMonster
 from app.services.naming import StyleEntry
 from app.services.search import SearchResult
@@ -635,13 +636,15 @@ def encounter_page(
     environments: Sequence[tuple[str, str, bool]] = (),
     notes: Rendered | None = None,
     name_styles: Sequence[StyleEntry] = (),
+    build: tuple[Sequence[str], Sequence[str], tuple[str, str, str]] = ((), (), ("", "", "")),
 ) -> Element:
     """The builder: plan, rating, picker and settings; ``notes`` the encounter's notes
     rendered as Paravent Markdown; ``name_styles`` what the "Shown as" dice may roll.
 
     ``scopes`` are every place the encounter could belong; ``place`` names where it does;
     ``running`` is the combat being fought from it, if any, and ``fought`` the finished
-    ones with what they came to.
+    ones with what they came to. ``build`` is what "Build a fight" offers: the shapes, the
+    habitats of the world's creatures, and the difficulty, shape and habitat last chosen.
     """
     t = page.t
     enc = view.encounter
@@ -671,6 +674,7 @@ def encounter_page(
                 div(class_="enc-main")[_plan(page, view, name_styles), _picker(page, view, result)],
                 div(class_="enc-side")[
                     _rating(page, view),
+                    _build_fight(page, view, *build),
                     _roll_table(page, view, environments),
                     _fought(page, fought),
                     _settings(page, view, scopes),
@@ -682,6 +686,83 @@ def encounter_page(
         insert_layer=True,
         extra_scripts=("/static/js/htmx.min.js",),
     )
+
+
+def shape_name(page: Page, name: str) -> str:
+    """An encounter shape's name in the reader's language: the corpus's five have one."""
+    key = f"encounters.shape.{name.lower().replace(' ', '_')}"
+    shown = page.t(key)
+    return name if shown == key else shown
+
+
+def habitat_name(page: Page, code: str) -> str:
+    """A creature's habitat as the books name it ("forest", "planar, feywild") in the
+    reader's words: "Wald", "Ebenen: Feywild"."""
+    plane, _, which = code.partition(", ")
+    key = f"encounters.habitat.{plane.replace(' ', '_')}"
+    shown = page.t(key)
+    name = plane.capitalize() if shown == key else shown
+    return f"{name}: {which.title()}" if which else name
+
+
+def _build_fight(
+    page: Page,
+    view: EncounterView,
+    shapes: Sequence[str],
+    habitats: Sequence[str],
+    chosen: tuple[str, str, str],
+) -> Node:
+    """Build a fight at a difficulty for the party: a shape of the corpus filled from the
+    world's books; the result replaces the monsters."""
+    t = page.t
+    if not shapes:
+        return None
+    rules = view.rating.rules
+    bands = bands_of(rules)
+    band, shape, habitat = chosen
+    band = band if band in bands else bands[1]
+
+    return section(class_="panel enc-build", aria_labelledby="build-h")[
+        div(class_="panel-head")[
+            h2(id="build-h")[t("encounters.build")],
+            p(class_="muted")[t("encounters.build_hint")],
+        ],
+        form(
+            method="post", action=f"{encounter_url(view.encounter.id)}/build", class_="stack-form"
+        )[
+            div(class_="field")[
+                label(for_="f-build-band")[t("encounters.difficulty")],
+                select(id="f-build-band", name="difficulty")[
+                    [
+                        option(value=key, selected=key == band)[t(f"encounters.level.{key}")]
+                        for key in bands
+                    ]
+                ],
+            ],
+            div(class_="field")[
+                label(for_="f-build-shape")[t("encounters.build_shape")],
+                select(id="f-build-shape", name="shape")[
+                    option(value="", selected=not shape)[t("encounters.build_any_shape")],
+                    [option(value=s, selected=s == shape)[shape_name(page, s)] for s in shapes],
+                ],
+            ],
+            div(class_="field")[
+                label(for_="f-build-habitat")[t("encounters.build_habitat")],
+                select(id="f-build-habitat", name="habitat")[
+                    option(value="", selected=not habitat)[t("encounters.build_any_habitat")],
+                    [
+                        option(value=h, selected=h == habitat)[habitat_name(page, h)]
+                        for h in sorted(habitats, key=lambda h: habitat_name(page, h))
+                    ],
+                ],
+            ],
+            div(class_="form-actions")[
+                button(type="submit", class_="btn")[
+                    icon("wand-sparkles", "sm"), span[t("encounters.build_go")]
+                ]
+            ],
+        ],
+    ]
 
 
 def _roll_table(

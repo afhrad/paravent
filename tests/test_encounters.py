@@ -162,6 +162,15 @@ class TestArithmetic:
     def test_beyond_the_2024_budget(self, rules: DifficultyRules) -> None:
         assert rules.rate(EDITION_ONE, [1], [(1800, 1)]).level == "beyond"
 
+    def test_a_2024_fight_is_the_budget_it_fits_within(self, rules: DifficultyRules) -> None:
+        """ "Spend as much of your XP budget as you can without going over" (XDMG)."""
+        low, moderate, high = (b.xp for b in rules.bands(EDITION_ONE, [1, 1, 1, 1]))
+        assert rules.rate(EDITION_ONE, [1, 1, 1, 1], [(low - 10, 1)]).level == "low"
+        assert rules.rate(EDITION_ONE, [1, 1, 1, 1], [(low + 10, 1)]).level == "moderate"
+        assert rules.rate(EDITION_ONE, [1, 1, 1, 1], [(high, 1)]).level == "high"
+        assert rules.rate(EDITION_ONE, [1, 1, 1, 1], [(high + 1, 1)]).level == "beyond"
+        assert moderate < high
+
     def test_below_the_first_band(self, rules: DifficultyRules) -> None:
         assert rules.rate(EDITION_CLASSIC, [5, 5, 5, 5], [(10, 1)]).level == "trivial"
 

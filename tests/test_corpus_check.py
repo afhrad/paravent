@@ -95,7 +95,7 @@ class TestFaults:
             },
         )
         write(root, "items.json", "{not json")
-        write(root, "encounterbuilder.json", {"encounterShape": [{"name": "Boss"}]})
+        write(root, "legendarygroups-extra.json", {"legendaryGroupTemplate": [{"name": "Boss"}]})
         write(root, "spells/index.json", {"ZZ": "spells-zz.json"})
         return root
 
@@ -123,10 +123,13 @@ class TestFaults:
         report = check(corpus)
         status = {k.key: k.status for k in report.keys}
         assert status["spell"] == "loaded"
-        assert status["encounterShape"] == "planned"
+        assert status["legendaryGroupTemplate"] == "planned"
         assert status["spellNovelty"] == "unknown"
         unread = {u.file: u.reason for u in report.unread}
-        assert unread == {"encounterbuilder.json": "planned", "spells/index.json": "site_index"}
+        assert unread == {
+            "legendarygroups-extra.json": "planned",
+            "spells/index.json": "site_index",
+        }
 
     def test_an_entry_lost_without_a_report_is_an_error(self, corpus: Path) -> None:
         compendium, fluff, lookups = CompendiumStore(), FluffStore(), LookupTables()

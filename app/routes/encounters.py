@@ -27,6 +27,7 @@ from app.models.gamestate import PartySpec
 from app.routes.auth import html, redirect
 from app.routes.paravent_markdown import paravent_markdown
 from app.services import scope
+from app.services.encounter_gen import EncounterGenerator, bands_of, pool_of
 from app.services.encounter_roll import EncounterRoller
 from app.services.encounters import EncounterError, EncounterView
 from app.services.npc_gen import edition_for
@@ -42,6 +43,7 @@ from app.ui.encounter_pages import (
     encounter_page,
     encounter_url,
     encounters_page,
+    shape_name,
 )
 from app.ui.markdown import Rendered, render_markdown
 
@@ -190,8 +192,10 @@ def _builder(
     *,
     notice_text: str | None = None,
     error: str | None = None,
+    built: tuple[str, str, str] = ("", "", ""),
 ) -> HTMLResponse:
-    """The builder page, with the fights run from it and the tables to roll on."""
+    """The builder page, with the fights run from it and the tables to roll on.
+    ``built``: the difficulty, shape and habitat a fight was last built with."""
     combats = registry.combats
     encounter_id = view.encounter.id
     running = next((c for c in combats.list(encounter_id=encounter_id) if c.running), None)
@@ -205,6 +209,10 @@ def _builder(
         )
         for env in registry.encounter_tables.all()
     ]
+    _pool, habitats = pool_of(registry.compendium.monsters().in_books(source_set))
+    # Without the rules' tables (a 2014 world whose corpus lacks the guide) nothing rates.
+    rated = registry.encounters.difficulty.has_tables(view.rating.rules)
+    shapes = [s.name for s in registry.encounter_tables.shapes()] if rated else []
     return html(
         encounter_page(
             page,
@@ -216,6 +224,7 @@ def _builder(
             running=running,
             fought=fought,
             environments=environments,
+            build=(shapes, habitats, built),
             notice_text=notice_text,
             error=error,
             notes=_notes(page, registry, view),
@@ -280,6 +289,58 @@ async def roll_encounter(
         else t("encounters.rolled_event", text=rolled.text)
     )
     return _builder(page, registry, view, result, notice_text=notice_text)
+
+
+@router.post(f"{ENCOUNTERS_URL}/{{encounter_id}}/build", response_class=HTMLResponse)
+async def build_encounter(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    encounter_id: str,
+    difficulty: Annotated[str, Form()] = "",
+    shape: Annotated[str, Form()] = "",
+    habitat: Annotated[str, Form()] = "",
+) -> HTMLResponse:
+    """Build a fight at a difficulty for the party, from the world's books (a habitat's
+    creatures, if chosen) in one of the corpus's shapes; it replaces the monsters."""
+    service = registry.encounters
+    view = service.view(service.get(encounter_id))
+    result = registry.search.search("", view.source_set, group=PICKER_GROUP, term=page.t.terms())
+    t = page.t
+    built = (difficulty, shape, habitat)
+    levels = [m.level for m in view.party]
+    if not levels:
+        return _builder(
+            page, registry, view, result, error=t("encounters.build_no_party"), built=built
+        )
+    monsters = registry.compendium.monsters().in_books(view.source_set)
+    if habitat:
+        monsters = monsters.environment(habitat)
+    pool, _habitats = pool_of(monsters)
+    shapes = [s for s in registry.encounter_tables.shapes() if not shape or s.name == shape]
+    rules = view.rating.rules
+    band = difficulty if difficulty in bands_of(rules) else bands_of(rules)[1]
+    made = EncounterGenerator(service.difficulty).generate(pool, levels, rules, band, shapes)
+    if made is None:
+        return _builder(page, registry, view, result, error=t("encounters.build_none"), built=built)
+    rating = made.rating
+    note = t(
+        "encounters.built_note",
+        shape=shape_name(page, made.shape),
+        difficulty=t(f"encounters.level.{band}"),
+        xp=t.number(rating.adjusted_xp),
+    )
+    service.apply_roll(encounter_id, made.monsters, note)
+    view = service.view(service.get(encounter_id))
+    shown = t(f"encounters.level.{rating.level}") if rating.level else ""
+    return _builder(
+        page,
+        registry,
+        view,
+        result,
+        notice_text=t("encounters.built", shape=shape_name(page, made.shape), difficulty=shown),
+        built=built,
+    )
 
 
 @router.post(f"{ENCOUNTERS_URL}/{{encounter_id}}", response_class=HTMLResponse)

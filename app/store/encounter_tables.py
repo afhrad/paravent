@@ -18,6 +18,7 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 ENCOUNTERS_FILE = "encounters.json"
+SHAPES_FILE = "encounterbuilder.json"
 
 
 @dataclass(frozen=True)
@@ -65,12 +66,21 @@ class EncounterTables:
         """``reference_dir`` is the corpus root, or None when none is configured."""
         self._root = reference_dir
         self._environments: list[Environment] | None = None
+        self._shapes: list[EncounterShape] | None = None
         self._lock = threading.Lock()
 
     def clear(self) -> None:
         """Forget the tables, after the corpus changed."""
         with self._lock:
             self._environments = None
+            self._shapes = None
+
+    def shapes(self) -> list[EncounterShape]:
+        """How fights are put together, for the generator (``encounterbuilder.json``)."""
+        with self._lock:
+            if self._shapes is None:
+                self._shapes = read_shapes(self._root)
+            return list(self._shapes)
 
     def _load(self) -> list[Environment]:
         if self._root is None:
@@ -113,4 +123,64 @@ class EncounterTables:
         return next((e for e in self.all() if e.key.lower() == key.lower()), None)
 
 
-__all__ = ["EncounterTable", "EncounterTables", "Environment"]
+@dataclass(frozen=True)
+class ShapeGroup:
+    """One group of a shape: how many creatures (``count``) and what share of the XP
+    budget they take (``ratio``; None: an even part of what the others leave). Both as
+    5eTools writes them: ``{"exact": 1}``, ``{"min": 1, "max": 3}``,
+    ``{"formulaMin": "players", "formulaMax": "players * 2"}``, a ratio's
+    ``{"num": 1, "denom": 3}``."""
+
+    count: dict[str, Any]
+    ratio: dict[str, Any] | None
+
+
+@dataclass(frozen=True)
+class EncounterShape:
+    """How a fight is put together — "Boss with Minions", "Horde" — as one or more
+    templates of groups, one chosen per fight (``encounterbuilder.json``)."""
+
+    name: str
+    source: str
+    templates: tuple[tuple[ShapeGroup, ...], ...]
+
+
+def read_shapes(reference_dir: Path | None) -> list[EncounterShape]:
+    """The corpus's encounter shapes, in its order; none without a corpus."""
+    if reference_dir is None:
+        return []
+    try:
+        raw = json.loads((reference_dir / SHAPES_FILE).read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.info("Encounter shapes not read: %s", exc)
+        return []
+    out = []
+    for item in raw.get("encounterShape", []) if isinstance(raw, dict) else []:
+        if not isinstance(item, dict) or not item.get("name"):
+            continue
+        templates = tuple(
+            tuple(
+                ShapeGroup(
+                    dict(g["count"]),
+                    dict(g["ratio"]) if isinstance(g.get("ratio"), dict) else None,
+                )
+                for g in template.get("groups") or []
+                if isinstance(g, dict) and isinstance(g.get("count"), dict)
+            )
+            for template in item.get("shapeTemplate") or []
+            if isinstance(template, dict)
+        )
+        templates = tuple(t for t in templates if t)
+        if templates:
+            out.append(EncounterShape(str(item["name"]), str(item.get("source", "")), templates))
+    return out
+
+
+__all__ = [
+    "EncounterShape",
+    "EncounterTable",
+    "EncounterTables",
+    "Environment",
+    "ShapeGroup",
+    "read_shapes",
+]

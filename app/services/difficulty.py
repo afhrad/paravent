@@ -54,9 +54,11 @@ class Band:
 class Rating:
     """The result: what the fight is worth, against what the party can take.
 
-    ``level`` is the highest band the fight reaches, ``"trivial"`` below the first, and
-    under 2024 ``"beyond"`` above High — the XDMG's budgets stop there. ``bands`` is
-    empty when there is no party to rate against.
+    ``level`` under 2014 is the highest threshold the fight reaches, ``"trivial"`` below
+    the first. Under 2024 it is the lowest budget the fight fits within — the XDMG spends
+    "as much of your XP budget as you can without going over" — and ``"beyond"`` above
+    High, where its budgets stop. ``bands`` is empty when there is no party to rate
+    against.
     """
 
     rules: str
@@ -181,13 +183,13 @@ class DifficultyRules:
         adjusted = round(base * factor)
         bands = self.bands(rules, levels)
         level: str | None = None
-        if bands and count:
+        if bands and count and rules == EDITION_ONE:
+            level = next((b.key for b in bands if adjusted <= b.xp), "beyond")
+        elif bands and count:
             level = "trivial"
             for band in bands:
                 if adjusted >= band.xp:
                     level = band.key
-            if rules == EDITION_ONE and adjusted > bands[-1].xp:
-                level = "beyond"
         return Rating(
             rules=rules,
             base_xp=base,

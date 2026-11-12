@@ -96,7 +96,7 @@ plain text. Names and ids are what Claude passes back; ids are Paravent's record
 | `search_reference(world_id, query, category?)` | The ⌘K search over the world's books: name, category, book, a one-line gist |
 | `find_monsters(world_id, cr_min?, cr_max?, type?, environment?, name?, limit?)` | Creatures in the world's books by the typed filters (TECHSTACK.md: `cr_between`, `of_type`, `in_books`): name, book, CR, XP, type, size, AC, HP, environments |
 | `get_reference(world_id, category, name, source?)` | One entry resolved through the world's books, as text: a creature's statblock, a spell, an item. "Not in your books" when it is not |
-| `rate_encounter(world_id, monsters, character_ids?, party_size?, party_level?)` | The rating without saving anything: XP, the multiplier (2014) or budget (2024), every band's threshold, the difficulty reached — under the rules the world's books imply |
+| `rate_encounter(world_id, monsters, character_ids?, party_size?, party_level?)` | The rating without saving anything: XP, the multiplier (2014) or budget (2024), every band's threshold, the difficulty (2014: the highest threshold reached; 2024: the lowest budget it fits within) — under the rules the world's books imply |
 | `party_budget(world_id, character_ids?)` | One encounter's XP per difficulty for the party and, under 2014 rules, the DMG's *Adventuring Day XP* summed over it (2024 sets no daily budget) |
 | `list_naming_styles` | The naming styles, with three examples each; `world_id` for a world's own (NAMES.md §5b, §6) |
 | `generate_names(world_id, style?, gender?, count?, race?, culture?, parent?)` | Names for a race and culture or in a style, none already an NPC or character of the world; `fallback` when nothing served them (NAMES.md §5) |

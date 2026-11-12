@@ -56,7 +56,7 @@ from app.store.compendium import (
 )
 from app.store.copyresolver import CopyResolver, composite_key
 from app.store.creature_tables import BLOCKS_FILE, FEATURES_FILE, STATS_FILE, CreatureTables
-from app.store.encounter_tables import ENCOUNTERS_FILE, EncounterTables
+from app.store.encounter_tables import ENCOUNTERS_FILE, SHAPES_FILE, EncounterTables
 from app.store.errors import CopyResolutionError
 from app.store.fluff import FLUFF_SUFFIX, FluffStore
 from app.store.jsonfile import read_json, write_json
@@ -163,6 +163,7 @@ def _readers() -> tuple[Reader, ...]:
         Reader(pattern=LOOT_FILE, keys=None, loader="treasure"),
         Reader(pattern=ITEMS_FILE, keys=frozenset({"itemGroup"}), loader="treasure"),
         Reader(pattern=ENCOUNTERS_FILE, keys=frozenset({"encounter"}), loader="encounters"),
+        Reader(pattern=SHAPES_FILE, keys=frozenset({"encounterShape"}), loader="encounters"),
         Reader(pattern=NAMES_FILE, keys=frozenset({"name"}), loader="npcs"),
         Reader(
             pattern=LIFE_FILE,
@@ -184,7 +185,6 @@ READERS = _readers()
 # Keys Paravent knows and has not loaded yet (TECHSTACK.md §6b): reported, not warned.
 PLANNED_KEYS = frozenset(
     {
-        "encounterShape",
         "legendaryGroupTemplate",
         "languageScript",
         "raceFluffMeta",
@@ -832,6 +832,7 @@ class CorpusCheck:
         checks: tuple[tuple[str, Any], ...] = (
             (LOOT_FILE, lambda: loot.books()),
             (ENCOUNTERS_FILE, lambda: encounters.all()),
+            (SHAPES_FILE, lambda: encounters.shapes()),
             (NAMES_FILE, lambda: npcs.ancestries()),
             (LIFE_FILE, lambda: npcs.trinkets()),
             (STATS_FILE, lambda: creatures.rows()),

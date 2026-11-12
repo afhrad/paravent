@@ -23,7 +23,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         `subclassFeature` (1,397), `legendaryGroup` (171), both `generated/` lookups, and
         all **5,984 fluff records** across 19 categories. Every count matches the raw
         files; 0 validation errors, 0 unresolved copies throughout
-  - [~] Phase 2 — psionics, vehicles, facilities, charoptions, cults/boons, magic variants and
+  - [x] Phase 2 — psionics, vehicles, facilities, charoptions, cults/boons, magic variants and
         the rest of the item model, encounter tables, loot tables, names/life, decks,
         creature-builder sources, the `cr` table. **Magic variants done 2026-10-19**
         (`app/store/magicvariants.py`): the 214 generic variants load as `magicvariant`
@@ -111,10 +111,13 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         `lifeBackground`** (2026-10-26): the wizard's Details step rolls a backstory on
         them (CHARGEN-WIZARD.md §8 step 7). **`itemTypeAdditionalEntries`** (2026-11-12):
         Xanathar's text on gaming sets and musical instruments, shown on the type's page
-        and its items' as "More from XGE" where the world has the book. Still open in
-        phase 2: `encounterShape`, the templates of 5eTools's random encounter generator
-        by XP budget ("a boss and minions"), which Paravent does not have: loading it
-        waits for one
+        and its items' as "More from XGE" where the world has the book. **`encounterShape`** (2026-11-12): the five
+        shapes (Boss, Boss with Minions, Duo, Trio, Horde) drive the builder's **Build a
+        fight** (`app/services/encounter_gen.py`): a difficulty, a shape (or any) and a
+        habitat (or anywhere) give a fight from the world's books — named people left
+        out — filled group by group to its share of the XP and rated by the builder's
+        own arithmetic, the best of sixty tries kept; it replaces the plan and heads the
+        notes. Phase 2 is complete
   - [~] Phase 3 — `book/` and `adventure/` long-form text + the bookref indices, then the
         long tail. **Rulebooks done 2026-10-19** (`PublishedBooks` in
         `app/store/published.py`, read on demand like adventures): `/books` (the world's
@@ -384,7 +387,12 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         and see the difficulty live: 2014 rules (thresholds, multiplier with the party-size
         shift) or 2024 rules (budgets), chosen by the world's books or set per encounter.
         Rated against the characters in the world, or a stated party size and level.
-        Monsters are stored as `Name|SOURCE` references, so a corpus update re-rates them
+        Monsters are stored as `Name|SOURCE` references, so a corpus update re-rates them.
+        **2024 ratings corrected** (2026-11-12): a fight is the lowest budget it fits
+        within — the XDMG spends "as much of your XP budget as you can without going
+        over" — no longer the highest it reaches, which made High a single number and
+        a fight just under Low "Trivial". **Build a fight** to a difficulty, from the
+        corpus's encounter shapes (phase 2 note above)
   - [~] **Adventures and chapters** (documentation/ADVENTURES.md) — step 1 done:
         `app/store/prose.py` keeps worlds, adventures and chapters as `.md` files with YAML
         front matter, one folder per world under `library/worlds/`, with the character
