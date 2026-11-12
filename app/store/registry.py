@@ -16,6 +16,7 @@ from functools import cached_property
 from pathlib import Path
 from typing import Any
 
+from app import __version__
 from app.config import Settings
 from app.models.gamestate import Combat, Combatant
 from app.models.protocol import EntryKind, ProtocolEntry
@@ -89,6 +90,7 @@ from app.store.npc_tables import NpcTables
 from app.store.projections import MonsterProjection
 from app.store.protocol import ProtocolStore, log_key
 from app.store.published import PublishedAdventures, PublishedBooks, ReferenceScreens
+from app.store.snapshot import Snapshot, fingerprint
 from app.store.watcher import JsonWatcher
 
 logger = logging.getLogger(__name__)
@@ -934,8 +936,7 @@ class StoreRegistry:
                 "5eTools data %s",
                 f"{version.version} ({version.date})" if version else "of unknown version",
             )
-        report = self.compendium.load(*self.compendium_roots)
-        self.fluff.load(*self.compendium_roots)
+        report = self._load_corpus()
         self.lookups.load(*self.compendium_roots)
         self.gamestate.load_all()
         # Worlds and adventures from before they were Markdown files.
@@ -976,9 +977,27 @@ class StoreRegistry:
             self.npc_tables.clear()
         if "creature_tables" in self.__dict__:
             self.creature_tables.clear()
-        self.fluff.load(*self.compendium_roots)
         self.lookups.load(*self.compendium_roots)
-        return self.compendium.load(*self.compendium_roots)
+        return self._load_corpus()
+
+    def _load_corpus(self) -> LoadReport:
+        """The compendium and its fluff: from the snapshot when nothing they are read
+        from has changed since it was made (app/store/snapshot.py), else read, and the
+        snapshot made anew."""
+        roots = self.compendium_roots
+        snapshot = None
+        if self.settings.reference_snapshot:
+            snapshot = Snapshot(self.settings.reference_cache_dir, fingerprint(roots, __version__))
+            state = snapshot.read()
+            if isinstance(state, tuple) and len(state) == 2:
+                report = self.compendium.restore(state[0])
+                self.fluff.restore(state[1])
+                return report
+        report = self.compendium.load(*roots)
+        self.fluff.load(*roots)
+        if snapshot is not None:
+            snapshot.write((self.compendium.state(), self.fluff.state()))
+        return report
 
     def reload_gamestate(self, changed: set[Path] | None = None) -> None:
         """Re-read library records after an external edit.

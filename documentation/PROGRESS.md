@@ -871,12 +871,15 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2229 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2236 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the
 MCP server's forty tools (now on first use, `tests/conftest.py`, the `mcp_server` mark for
 tests that talk to `/mcp`); passwords hashed at the app's bcrypt cost (cost 4 in tests).
+`pytest -n auto` (pytest-xdist) runs it on every core in about 2½ minutes. In the app, the
+tracker keeps each character's sheet per state (`CharacterService.sheet`): a click built up
+to 26 sheets for four characters, and took 60–134 ms; now 25–37 ms.
 
 ---
 
@@ -906,12 +909,12 @@ tests that talk to `/mcp`); passwords hashed at the app's bcrypt cost (cost 4 in
 | Validation failures | 0 |
 | Unresolved `_copy` directives | 0 |
 | Unknown `_copy` modes | 0 |
-| Cold load time | ~3.8 s (everything: compendium, fluff, lookups, indices, library) |
+| Cold load time | ~3.8 s (everything: compendium, fluff, lookups, indices, library); ~1 s from the snapshot |
 | Search latency | ~10 ms over every category; 1–15 ms scoped to a world |
 
-Coverage is complete (2026-11-12) and the cold load stays under four seconds. Should it
-grow past that, the answer is `reference-cache/` — a parsed snapshot invalidated by corpus
-mtime — not a database.
+Coverage is complete (2026-11-12) and the cold load stays under four seconds; a restart
+with nothing changed takes about one, from the parsed snapshot in `reference-cache/`
+(TECHSTACK.md §3, 2026-11-12), not a database.
 
 ## Translation
 

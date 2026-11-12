@@ -40,6 +40,13 @@ requires_corpus = pytest.mark.skipif(
 )
 
 
+# No corpus snapshot in the repository's cache from a test (tests/test_snapshot.py asks for
+# one in its own folder). Set on import, not only per test: a module-scoped fixture builds
+# its registry before any per-test fixture runs.
+SNAPSHOT_ENV = "PARAVENT_REFERENCE_SNAPSHOT"
+os.environ[SNAPSHOT_ENV] = "false"
+
+
 @pytest.fixture(autouse=True)
 def isolate_settings_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """Keep the developer's own ``.env`` out of the tests.
@@ -53,6 +60,7 @@ def isolate_settings_env(monkeypatch: pytest.MonkeyPatch) -> None:
     for key in list(os.environ):
         if key.startswith("PARAVENT_") and key != CORPUS_ENV:
             monkeypatch.delenv(key, raising=False)
+    monkeypatch.setenv(SNAPSHOT_ENV, "false")
     get_settings.cache_clear()
 
 

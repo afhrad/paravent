@@ -8,6 +8,8 @@ so a player cannot probe for other players' characters.
 
 from __future__ import annotations
 
+import threading
+from collections import OrderedDict
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -53,6 +55,10 @@ def _actor(identity: Identity) -> Actor:
     return Actor(user.display_name or user.username, username=user.username)
 
 
+# How many sheets :meth:`CharacterService.sheet` keeps: a table's characters, a few times over.
+SHEETS_KEPT = 64
+
+
 class CharacterService:
     """Reading, playing and listing characters on behalf of a logged-in user."""
 
@@ -71,6 +77,9 @@ class CharacterService:
         self._library_dir = library_dir
         self._protocol = protocol
         self.play = PlayService(store.characters, protocol=protocol, fight_of=fight_of)
+        # Sheets made lately, by everything a sheet is made from (see :meth:`sheet`).
+        self._sheets: OrderedDict[tuple[Any, ...], Sheet] = OrderedDict()
+        self._sheets_lock = threading.Lock()
 
     # -- access ------------------------------------------------------------------
 
@@ -109,17 +118,46 @@ class CharacterService:
         return self._compendium.resolver() if self._compendium is not None else None
 
     def sheet(self, character: PlayerCharacter) -> Sheet:
-        """The derived sheet, with the file's revision and any error reading it."""
+        """The derived sheet, with the file's revision and any error reading it.
+
+        Made once for each state of the character and kept for the next asks: the
+        tracker and the players' fight view ask a character's sheet a dozen times a
+        request (the order, who is down, the initiative). The key is everything a sheet
+        is made from — the character as it stands, its world's books and encumbrance
+        rule, the file's revision and error, the corpus load — so any change makes a new
+        one. Shared, like the corpus: read it, never change it.
+        """
         store = self._store.characters
         world = self._store.worlds.find(character.world_id) if character.world_id else None
-        sheet = build_sheet(
-            character,
-            self._compendium,
-            source_set=self.source_set(character),
-            revision=store.revision(character.id),
-            file_error=store.error(character.id),
-            variant_encumbrance=world is not None and world.variant_encumbrance,
+        source_set = self.source_set(character)
+        revision = store.revision(character.id)
+        file_error = store.error(character.id)
+        encumbrance = world is not None and world.variant_encumbrance
+        key = (
+            character.model_dump_json(),
+            source_set.identity if source_set is not None else None,
+            revision,
+            file_error,
+            encumbrance,
+            getattr(self._compendium, "generation", None),
         )
+        with self._sheets_lock:
+            sheet = self._sheets.get(key)
+            if sheet is not None:
+                self._sheets.move_to_end(key)
+        if sheet is None:
+            sheet = build_sheet(
+                character,
+                self._compendium,
+                source_set=source_set,
+                revision=revision,
+                file_error=file_error,
+                variant_encumbrance=encumbrance,
+            )
+            with self._sheets_lock:
+                self._sheets[key] = sheet
+                while len(self._sheets) > SHEETS_KEPT:
+                    self._sheets.popitem(last=False)
         if self._protocol is not None:
             sheet.last_roll = self._protocol.newest(
                 f"character:{character.id}", character.world_id, rolled=True

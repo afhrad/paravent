@@ -95,6 +95,15 @@ class FluffStore:
         self._by_category: dict[str, dict[str, Fluff]] = {}
         self.report = FluffReport()
 
+    def state(self) -> tuple[Any, ...]:
+        """What a load made, for a snapshot (app/store/snapshot.py)."""
+        return (self._by_category, self.report)
+
+    def restore(self, state: tuple[Any, ...]) -> FluffReport:
+        """Take back what :meth:`state` gave, as if the fluff had been loaded again."""
+        self._by_category, self.report = state
+        return self.report
+
     # -- loading -----------------------------------------------------------------
 
     def load(self, *roots: Path) -> FluffReport:

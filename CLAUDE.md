@@ -64,7 +64,7 @@ loaded automatically.
 - `python -m black .` - Format code
 - `python -m mypy .` - Type check
 - `uvicorn app.main:app --reload` — Start development server on port 8000
-- `pytest` — Run test suite
+- `pytest` — Run test suite (`pytest -n auto` runs it on every core, about 2½ minutes)
 - `pytest --cov=app` — Run tests with coverage report
 - `ruff check .` — Run linter
 - `ruff format .` — Format code

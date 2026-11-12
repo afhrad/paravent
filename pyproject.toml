@@ -1,6 +1,6 @@
 [project]
 name = "paravent"
-version = "0.1.206"
+version = "0.1.207"
 description = "D&D 5e tool for players and dungeon masters"
 license = "MIT"
 license-files = ["LICENSE", "NOTICE.md"]
@@ -29,6 +29,7 @@ dev = [
     "pytest-asyncio>=0.24",
     "httpx>=0.27",
     "pytest-cov>=6.0",
+    "pytest-xdist>=3.6",
     "ruff>=0.8",
     "mypy>=1.13",
     "types-pyyaml>=6.0.12.20260906",

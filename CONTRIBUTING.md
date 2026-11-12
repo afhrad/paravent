@@ -28,6 +28,7 @@ copied into the repository or written to.
 ```bash
 pytest                        # tests needing a corpus are skipped without one
 PARAVENT_TEST_CORPUS=/path/to/5etools/data pytest   # the whole suite against your data
+pytest -n auto                # on every core
 ruff check <files you changed>
 ruff format <files you changed>   # not the whole tree: it is not formatted throughout
 mypy app/

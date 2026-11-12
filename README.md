@@ -382,6 +382,7 @@ How to set up, test and send a change, and what may not go into the repository:
 
 ```bash
 pytest                    # the whole suite
+pytest -n auto            # the same, on every core (about 2½ minutes)
 pytest --cov=app          # coverage
 ruff check . && ruff format .
 mypy app/

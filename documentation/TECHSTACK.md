@@ -72,6 +72,11 @@ project's version control.
 
 - **Loaded into RAM on server start**, search/filter in Python over dicts/lists — at this data
   volume a linear scan is **millisecond**-scale and no index is needed.
+  **A parsed snapshot** (2026-11-12, `app/store/snapshot.py`): the compendium and fluff, as
+  a load made them, are pickled into `reference-cache/`, and a start takes them when no JSON
+  file under the corpus and homebrew roots (path, size, modification time), the app's
+  version and Python's have changed — about 1 s instead of 3.8. Any change makes a new one;
+  an unreadable one is read past. `PARAVENT_REFERENCE_SNAPSHOT=false` switches it off.
 - **The upstream layout is read as-is**, not normalised onto disk first. The 5eTools file and
   key layout *is* the on-disk schema; an import step would add a build phase and break lossless
   round-tripping when upstream adds a field.

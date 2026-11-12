@@ -57,6 +57,9 @@ class Settings(BaseSettings):
 
     # --- Derived artefacts: disposable, rebuilt on demand -------------------
     reference_cache_dir: Path = Path("data/reference-cache")
+    # Keep the parsed corpus there (app/store/snapshot.py), so a restart with nothing
+    # changed takes about half the time; any change to the corpus or homebrew makes a new one.
+    reference_snapshot: bool = True
 
     # --- Backups of the library (app/services/backup.py) ---------------------
     # Where the zip files go; empty means no backups. Never the reference data.

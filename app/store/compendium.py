@@ -298,6 +298,8 @@ class CompendiumStore:
         self._index = ReferenceIndex()
         self._projections: Projections | None = None
         self._dumps: dict[str, list[dict[str, Any]]] = {}
+        # Counts the loads, so what is kept from one (a character's sheet) knows it is old.
+        self.generation = 0
         self.report = LoadReport()
 
     # -- loading -----------------------------------------------------------------
@@ -344,8 +346,29 @@ class CompendiumStore:
         self._index.build(entries)
         self._projections = None  # rebuilt on first use, from the entries just loaded
         self._dumps = {}
+        self.generation += 1
         self.report = report
         logger.info("Compendium loaded: %s", report.summary())
+        return report
+
+    def state(self) -> tuple[Any, ...]:
+        """What a load made, for a snapshot (app/store/snapshot.py)."""
+        return (self._entries, dict(self._sources), self.report)
+
+    def restore(self, state: tuple[Any, ...]) -> LoadReport:
+        """Take back what :meth:`state` gave, as if the corpus had been loaded again."""
+        entries, sources, report = state
+        if not isinstance(report, LoadReport):
+            raise TypeError("not a compendium snapshot")
+        self._entries = entries
+        self._sources = defaultdict(set, sources)
+        self._index = ReferenceIndex()
+        self._index.build(entries)
+        self._projections = None
+        self._dumps = {}
+        self.generation += 1
+        self.report = report
+        logger.info("Compendium restored from its snapshot: %s", report.summary())
         return report
 
     def _make_variants(

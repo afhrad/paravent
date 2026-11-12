@@ -540,3 +540,31 @@ class TestPlayerBar:
         await client.post("/logout")
         await login(client, "dm")
         assert 'class="player-bar"' not in (await client.get("/gm")).text
+
+
+class TestSheetsKept:
+    """A sheet is made once for each state of a character and kept: the tracker asks for
+    it a dozen times a request (app/services/characters.py)."""
+
+    def test_the_same_state_the_same_sheet_any_change_a_new_one(
+        self, registry: StoreRegistry, torvald: PlayerCharacter
+    ) -> None:
+        characters, files = registry.characters, registry.gamestate.characters
+        first = characters.sheet(files.get(torvald.id))
+        assert characters.sheet(files.get(torvald.id)) is first
+        state = files.get(torvald.id).state.model_copy(update={"hp": 5})
+        files.update(torvald.id, state=state)
+        again = characters.sheet(files.get(torvald.id))
+        assert again is not first and again.character.state.hp == 5
+        # the character as it stands is the key, saved or not
+        changed = files.get(torvald.id).model_copy(deep=True)
+        changed.state.hp = 4
+        assert characters.sheet(changed).character.state.hp == 4
+
+    def test_a_new_corpus_load_makes_them_again(
+        self, registry: StoreRegistry, torvald: PlayerCharacter
+    ) -> None:
+        characters = registry.characters
+        first = characters.sheet(registry.gamestate.characters.get(torvald.id))
+        registry.compendium.load()
+        assert characters.sheet(registry.gamestate.characters.get(torvald.id)) is not first
