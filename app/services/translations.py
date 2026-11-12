@@ -56,6 +56,15 @@ ENTRY_FIELDS = (
     "spellcasting",
     "headerEntries",
     "footerEntries",
+    # A recipe's and a crochet pattern's text.
+    "ingredients",
+    "equipment",
+    "instructions",
+    "noteCook",
+    "yarn",
+    "notions",
+    "gauge",
+    "notes",
 )
 CHAPTER_FIELDS = ("name", *ENTRY_FIELDS)
 # Inside the text, the keys that hold more text. Anything else (type, source, page,
@@ -81,8 +90,9 @@ NOT_TEXT = frozenset({"statblock", "statblockInline", "image", "gallery", "link"
 # Files holding one book (or published adventure, reference screen, or the creature
 # builder's texts) each.
 BOOKISH = frozenset({"book", "adventure", "screen", "builder"})
-# The creature builder's numbers and names: ``<$to_hit__str$>``, ``<$short_name$>``.
-PLACEHOLDER = re.compile(r"<\$[^$<>]+\$>")
+# The creature builder's numbers and names (``<$to_hit__str$>``, ``<$short_name$>``) and a
+# recipe's amounts (``{=amount1/v}``).
+PLACEHOLDER = re.compile(r"<\$[^$<>]+\$>|\{=[^{}]+\}")
 MAX_PASSAGE = 20000
 
 
@@ -160,8 +170,9 @@ def tags_in(text: str) -> list[str]:
 
 
 def marks_in(text: str) -> list[str]:
-    """What a translation must keep as it is: the ``{@...}`` tags, and the creature
-    builder's placeholders outside them (``<$title_short_name$>``)."""
+    """What a translation must keep as it is: the ``{@...}`` tags, and the placeholders
+    outside them (the creature builder's ``<$title_short_name$>``, a recipe's
+    ``{=amount1/v}``)."""
     tags = tags_in(text)
     rest = text
     for tag in tags:

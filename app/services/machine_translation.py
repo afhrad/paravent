@@ -60,7 +60,8 @@ translate, add, drop, merge or reorder the text inside a tag's braces; the softw
 shows the tag's label in the reader's language itself.
 
 Some text holds placeholders between <$ and $>, for example <$to_hit__str$> or \
-<$title_short_name$>. Copy each exactly as it is, too. <$title_short_name$> and \
+<$title_short_name$>, or between {= and }, for example {=amount1/v}. Copy each exactly \
+as it is, too. <$title_short_name$> and \
 <$short_name$> stand for the creature's name (the software puts in its name, without an \
 article), so build the sentence around them as around a name.
 

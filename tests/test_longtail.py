@@ -38,6 +38,8 @@ FILES = {
     "boon": ("cultsboons.json", "boon"),
     "deck": ("decks.json", "deck"),
     "card": ("decks.json", "card"),
+    "recipe": ("recipes.json", "recipe"),
+    "crochetPattern": ("homecrafts.json", "crochetPattern"),
 }
 
 
@@ -105,6 +107,8 @@ class TestTags:
             ("{@facility Arcane Study|XDMG}", "facility"),
             ("{@cult Cult of Baalzebul|MTF}", "cult"),
             ("{@deck Tarokka Deck|CoS}", "deck"),
+            ("{@recipe Elverquisst|HFFotM}", "recipe"),
+            ("{@crochet Bag of Holding}", "crochetPattern"),
         ],
     )
     def test_entity_tags_resolve(
@@ -122,13 +126,22 @@ class TestSearch:
         service = SearchService(loaded_compendium)
         found = {
             (hit.row.category, hit.row.name)
-            for query in ("demon grinder", "arcane study", "tarokka", "cult of baalzebul")
+            for query in (
+                "demon grinder",
+                "arcane study",
+                "tarokka",
+                "cult of baalzebul",
+                "elverquisst",
+                "bag of holding",
+            )
             for hit in flatten(service.search(query).groups)
         }
         assert ("vehicle", "Demon Grinder") in found
         assert ("facility", "Arcane Study") in found
         assert ("deck", "Tarokka Deck") in found
         assert ("cult", "Cult of Baalzebul") in found
+        assert ("recipe", "Elverquisst") in found
+        assert ("crochetPattern", "Bag of Holding") in found
 
     def test_cards_are_not_searched(self, loaded_compendium: CompendiumStore) -> None:
         hits = flatten(SearchService(loaded_compendium).search("abjurer").groups)
@@ -164,7 +177,7 @@ class TestPages:
                 response = await ac.get(_url(category, entry))
                 assert response.status_code == 200, (category, entry.name)
                 text = _html_text(response.text)
-                assert "{@" not in text, (category, entry.name)
+                assert "{@" not in text and "{=" not in text, (category, entry.name)
                 assert not re.search(r"\bref\.[a-z_]+\b", text), (category, entry.name)
 
     async def test_a_ship_shows_its_hull_and_parts(
@@ -174,6 +187,36 @@ class TestPages:
         text = _html_text((await ac.get("/ref/vehicle/AI/Battle Balloon")).text)
         for words in ("Hull", "damage threshold 15", "Control", "Helm", "Weapons", "Harpoon Gun"):
             assert words in text
+
+    async def test_a_recipe_writes_its_amounts(
+        self, client: tuple[AsyncClient, StoreRegistry]
+    ) -> None:
+        ac, _registry = client
+        text = _html_text((await ac.get('/ref/recipe/HFLotT/"Leftovers" Egg Bake')).text)
+        for words in ("Ingredients", "Instructions", "5 tablespoons unsalted butter", "1½"):
+            assert words in text, words
+
+    async def test_a_crochet_pattern_lists_what_it_needs(
+        self, client: tuple[AsyncClient, StoreRegistry]
+    ) -> None:
+        ac, _registry = client
+        text = _html_text((await ac.get("/ref/crochetPattern/CaBoMP/Bag of Holding")).text)
+        for words in ("Yarn", "Gauge", "Advanced", "4 mm", "Instructions"):
+            assert words in text, words
+
+    async def test_a_later_book_adds_to_an_item_type_where_the_world_has_it(
+        self, client: tuple[AsyncClient, StoreRegistry]
+    ) -> None:
+        from app.models.gamestate import World
+
+        ac, registry = client
+        worlds = registry.gamestate.worlds
+        with_xge = worlds.create(World(name="A", source_set=SourceSet(sources=["PHB", "XGE"])))
+        without = worlds.create(World(name="B", source_set=SourceSet(sources=["PHB"])))
+        for url in ("/ref/item/PHB/Dice Set", "/ref/itemType/PHB/Gaming Set"):
+            shown = (await ac.get(f"{url}?world={with_xge.id}")).text
+            assert "More from XGE" in shown, url
+            assert "More from XGE" not in (await ac.get(f"{url}?world={without.id}")).text
 
     async def test_a_deck_lists_its_cards_with_anchors(
         self, client: tuple[AsyncClient, StoreRegistry]

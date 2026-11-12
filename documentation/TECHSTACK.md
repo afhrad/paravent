@@ -191,7 +191,7 @@ coverage is not a nice-to-have, it is what the tag renderer and tooltip layer st
 | `book` + `book/book-*.json` | 122 + 61 files | Rulebooks as browsable, searchable, cross-linked text. PROJECT.md asks for a rulebook database. |
 | `adventure` + `adventure/adventure-*.json` | 198 + 99 files | Published adventures, same treatment. |
 | `generated/bookref-*` | — | The DM-screen and quick-reference indices 5eTools builds over that text. |
-| `recipe`, `crochetPattern`, `converterSample` | 278 | The genuine long tail. Loaded for completeness; nothing depends on them. |
+| `recipe`, `crochetPattern`, `converterSample` | 353 | The genuine long tail. Recipes and crochet patterns load as categories (2026-11-12); the converter's samples are not content. |
 
 Root-level files are **the index**, the subdirectory files are **the body**: `adventures.json`
 lists the 99 adventures with cover, level range and table of contents, while

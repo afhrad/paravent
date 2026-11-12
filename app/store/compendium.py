@@ -32,6 +32,7 @@ from app.models.compendium import (
     ClassEntry,
     ClassFeature,
     Condition,
+    CrochetPattern,
     Cult,
     Deck,
     Deity,
@@ -43,6 +44,7 @@ from app.models.compendium import (
     ItemMastery,
     ItemProperty,
     ItemType,
+    ItemTypeEntries,
     Language,
     LegendaryGroup,
     Monster,
@@ -50,6 +52,7 @@ from app.models.compendium import (
     OptionalFeature,
     Psionic,
     Race,
+    Recipe,
     Reward,
     Sense,
     Skill,
@@ -186,6 +189,9 @@ CATEGORIES: tuple[Category, ...] = (
     Category("charoption", CharOption, "charoption", ("charcreationoptions.json",)),
     Category("cult", Cult, "cult", ("cultsboons.json",)),
     Category("boon", Boon, "boon", ("cultsboons.json",)),
+    # The long tail of phase 3: the cookbooks' recipes and the crochet book's patterns.
+    Category("recipe", Recipe, "recipe", ("recipes.json",)),
+    Category("crochetPattern", CrochetPattern, "crochetPattern", ("homecrafts.json",)),
     # The 2024 weapon mastery properties, linked from a weapon's ``mastery``.
     Category("itemMastery", ItemMastery, "itemMastery", ("items-base.json",)),
     # Weapon properties and item types, addressed by abbreviation ("V|XPHB", "M|XPHB").
@@ -203,6 +209,13 @@ CATEGORIES: tuple[Category, ...] = (
         ("items-base.json",),
         supports_copy=True,
         key_field="abbreviation",
+    ),
+    # More text about a type from a later book, shown with the type and its items.
+    Category(
+        "itemTypeAdditionalEntries",
+        ItemTypeEntries,
+        "itemTypeAdditionalEntries",
+        ("items-base.json",),
     ),
     Category("deck", Deck, "deck", ("decks.json",), supports_copy=True),
     # Keyed by (name, source, deck) and reached through the deck, like class features

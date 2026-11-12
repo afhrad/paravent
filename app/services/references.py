@@ -33,6 +33,9 @@ class ReferenceEntry:
     cards: tuple[tuple[dict[str, Any], int], ...] = ()
     # Where a table is printed, readable here: (url, book name, chapter name).
     printed_in: tuple[str, str, str] | None = None
+    # More text about an item type from a later book in the world's books, for the type
+    # and its items: (book, entries).
+    more: tuple[tuple[str, list[Any]], ...] = ()
 
     @property
     def name(self) -> str:
@@ -102,7 +105,31 @@ class ReferenceService:
         lair = self.legendary_group(data.get("legendaryGroup")) if category == "monster" else None
         cards = self.deck_cards(data) if category == "deck" else ()
         printed = self.printed_in(data) if category == "table" else None
-        return ReferenceEntry(category, data, world_id, lair, cards, printed)
+        more = self.type_entries(category, data, world_id)
+        return ReferenceEntry(category, data, world_id, lair, cards, printed, more)
+
+    def type_entries(
+        self, category: str, data: dict[str, Any], world_id: str | None
+    ) -> tuple[tuple[str, list[Any]], ...]:
+        """More text about an item type from a later book (``itemTypeAdditionalEntries``),
+        for the type's page and its items', when the world uses that book. Matched by the
+        type's abbreviation, so the 2024 gaming sets read Xanathar's words too."""
+        if category == "itemType":
+            code = str(data.get("abbreviation", ""))
+        elif category in ("item", "baseitem"):
+            code = str(data.get("type", "")).split("|", 1)[0]
+        else:
+            return ()
+        if not code:
+            return ()
+        books = self.source_set(world_id)
+        found: list[tuple[str, list[Any]]] = []
+        for extra in self._compendium.all("itemTypeAdditionalEntries"):
+            applies = str(getattr(extra, "applies_to", "")).split("|", 1)[0]
+            source = str(getattr(extra, "source", ""))
+            if applies.lower() == code.lower() and (books is None or books.allows(source)):
+                found.append((source, list(getattr(extra, "entries", []))))
+        return tuple(found)
 
     def _by_shown_name(self, category: str, source: str, name: str) -> Any:
         """An entry keyed by a code (an item property, ``v|xphb``) found by the name its

@@ -15,8 +15,8 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] **An unconfigured corpus is a reported state, not a crash** — `reference_dir` has no
       default, `Settings.reference_configured` says so, and startup logs how to fix it. A fresh
       checkout runs with homebrew only, as a data-neutral tool should
-- [~] **Load the full corpus.** 42 entry keys + 19 fluff keys load today — 20,213 entries
-      (3,469 of them the specific magic items made from variants) from 165 files, plus
+- [~] **Load the full corpus.** 45 entry keys + 19 fluff keys load today — 21,353 entries
+      (3,559 of them the specific magic items made from variants) from 174 files, plus
       5,984 fluff records.
       Phased in TECHSTACK.md §6b:
   - [x] **Phase 1 complete.** `class` (30), `subclass` (315), `classFeature` (677),
@@ -109,9 +109,12 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         type has rules text; the sheet links its attacks' properties (and the Lance's
         `{"uid": "2H|XPHB", "note": …}` is no longer lost). **`lifeClass` and
         `lifeBackground`** (2026-10-26): the wizard's Details step rolls a backstory on
-        them (CHARGEN-WIZARD.md §8 step 7). Still open in phase 2:
-        `itemTypeAdditionalEntries` and `encounterShape`, none of which a feature reads
-        yet
+        them (CHARGEN-WIZARD.md §8 step 7). **`itemTypeAdditionalEntries`** (2026-11-12):
+        Xanathar's text on gaming sets and musical instruments, shown on the type's page
+        and its items' as "More from XGE" where the world has the book. Still open in
+        phase 2: `encounterShape`, the templates of 5eTools's random encounter generator
+        by XP budget ("a boss and minions"), which Paravent does not have: loading it
+        waits for one
   - [~] Phase 3 — `book/` and `adventure/` long-form text + the bookref indices, then the
         long tail. **Rulebooks done 2026-10-19** (`PublishedBooks` in
         `app/store/published.py`, read on demand like adventures): `/books` (the world's
@@ -125,7 +128,13 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         world is told so) on one page each, with a section list; linked from the Books
         page and as "Rules" from the combat tracker; kept out of search and backlinks,
         whose sections only repeat the books. Wide tables in book text scroll in their
-        box on a phone. Still open: the long tail
+        box on a phone. **The long tail** (2026-11-12): `recipe` (316, the cookbooks)
+        and `crochetPattern` (20) as categories with their tags, search and pages — a
+        recipe's ingredients with their amounts written in ("1½ teaspoons"), equipment,
+        instructions and cook's notes; a pattern's yarn, hooks, notions, gauge and steps
+        — their text translatable, the amounts held like tags. `converterSample` is the
+        sample text of 5eTools's converter page, not content: the corpus check files it
+        with the demo files
 - [x] **Corpus check** — 2026-10-26, `app/services/corpus_check.py`: `python -m app.cli
       corpus check` (`--references`, `--strict`, `--json`; exit 1 on an error) and
       `/gm/corpus` under the settings gear, run in the background, with the 5eTools version
@@ -698,7 +707,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       rules behind every button: damage/heal/temp HP, concentration saves, death saves, slots,
       casting, resources, conditions, exhaustion, short and long rests, hit dice, and every roll
       with three-state advantage. The player opens only their own characters; the gamemaster
-      opens all of them and manages them at `/gm/characters`. **Carrying** (2026-11-12): carried weight, coins included, against carrying capacity (Powerful Build doubling it) on the gear pane (CHARACTER-FORMAT.md §4). **Deleting** (2026-10-21): **Deleting** (2026-10-21):
+      opens all of them and manages them at `/gm/characters`. **Carrying** (2026-11-12): carried weight, coins included, against carrying capacity (Powerful Build doubling it) on the gear pane (CHARACTER-FORMAT.md §4). **Deleting** (2026-10-21):
       from either list, after a confirmation that says it cannot be undone (and if the
       character is in a running fight); a player only their own, the gamemaster any
 - [x] **Live updates** — `app/services/events.py`: every change, from a button, another screen

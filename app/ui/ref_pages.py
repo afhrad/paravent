@@ -95,6 +95,8 @@ CATEGORY_KEY = {
     "charoption": "ref.kind.charoption",
     "cult": "ref.kind.cult",
     "boon": "ref.kind.boon",
+    "recipe": "ref.kind.recipe",
+    "crochetPattern": "ref.kind.crochet_pattern",
     "itemMastery": "ref.kind.item_mastery",
     "deck": "ref.kind.deck",
     "card": "ref.kind.card",
@@ -762,6 +764,103 @@ def _cult(page: Page, data: dict[str, Any], ctx: RenderContext) -> list[Node]:
     ]
 
 
+_AMOUNT = re.compile(r"\{=(amount\d+)(?:/[a-z]+)?\}")
+_FRACTIONS = {0.125: "⅛", 0.25: "¼", 1 / 3: "⅓", 0.5: "½", 2 / 3: "⅔", 0.75: "¾"}
+
+
+def _amount(value: Any) -> str:
+    """``1.5`` → ``"1½"``, ``0.125`` → ``"⅛"``, ``2`` → ``"2"``: as the cookbooks print."""
+    if not isinstance(value, int | float):
+        return str(value)
+    whole, part = int(value), value - int(value)
+    if part < 0.01:
+        return str(whole)
+    sign = next((s for f, s in _FRACTIONS.items() if abs(part - f) < 0.01), None)
+    if sign is None:
+        return f"{value:g}"
+    return f"{whole}{sign}" if whole else sign
+
+
+def _filled(value: Any) -> Any:
+    """A recipe's ingredients with their amounts written in: ``{=amount1/v}`` is the
+    ingredient's own ``amount1`` (the flags after the slash only steer 5eTools's
+    scaling, which Paravent does not offer)."""
+    if isinstance(value, list):
+        return [_filled(v) for v in value]
+    if not isinstance(value, dict):
+        return value
+    out = {k: _filled(v) for k, v in value.items()}
+    entry = out.get("entry")
+    if isinstance(entry, str):
+        out["entry"] = _AMOUNT.sub(lambda m: _amount(value.get(m.group(1), "?")), entry)
+    if out.get("type") == "ingredient":
+        return out.get("entry", "")
+    return out
+
+
+def _recipe(page: Page, data: dict[str, Any], ctx: RenderContext) -> list[Node]:
+    t = page.t
+    serves = data.get("serves") or {}
+    eats = (
+        str(serves["exact"])
+        if "exact" in serves
+        else f"{serves['min']}–{serves['max']}"
+        if "min" in serves and "max" in serves
+        else ""
+    )
+    facts = [
+        _line(t("ref.serves"), eats) if eats else None,
+        _line(t("ref.makes"), render(str(data["makes"]), ctx)) if data.get("makes") else None,
+        _line(t("ref.dish"), ", ".join(map(str, data["dishTypes"])))
+        if data.get("dishTypes")
+        else None,
+        _line(t("ref.allergens"), ", ".join(map(str, data["allergenGroups"])))
+        if data.get("allergenGroups")
+        else None,
+    ]
+    return [
+        p(class_="sb-type")[str(data["type"])] if data.get("type") else None,
+        div(class_="sb-core")[facts] if any(facts) else None,
+        _section(t("ref.equipment"), _filled(data.get("equipment")), ctx),
+        _section(t("ref.ingredients"), _filled(data.get("ingredients")), ctx),
+        _section(t("ref.instructions"), data.get("instructions"), ctx),
+        _section(t("ref.cook_notes"), data.get("noteCook"), ctx),
+    ]
+
+
+_CROCHET_LEVELS = {"B": "beginner", "I": "intermediate", "A": "advanced"}
+
+
+def _crochet(page: Page, data: dict[str, Any], ctx: RenderContext) -> list[Node]:
+    t = page.t
+    level = _CROCHET_LEVELS.get(str(data.get("level", "")))
+    sizes = [
+        " × ".join(str(part["entry"]) for part in size.values() if isinstance(part, dict))
+        for size in data.get("size") or []
+        if isinstance(size, dict)
+    ]
+    hooks = [
+        page.u.number(h) + " mm" for h in data.get("hooks") or [] if isinstance(h, int | float)
+    ]
+    facts = [
+        _line(t("ref.designers"), ", ".join(map(str, data["designers"])))
+        if data.get("designers")
+        else None,
+        _line(t("ref.skill_level"), t(f"ref.crochet_level.{level}")) if level else None,
+        _line(t("ref.pattern_type"), str(data["patternType"])) if data.get("patternType") else None,
+        _line(t("ref.size"), "; ".join(sizes)) if sizes else None,
+        _line(t("ref.hooks"), ", ".join(hooks)) if hooks else None,
+    ]
+    return [
+        div(class_="sb-core")[facts] if any(facts) else None,
+        _section(t("ref.yarn"), data.get("yarn"), ctx),
+        _section(t("ref.notions"), data.get("notions"), ctx),
+        _section(t("ref.gauge"), data.get("gauge"), ctx),
+        _section(t("ref.notes"), data.get("notes"), ctx),
+        _section(t("ref.instructions"), data.get("instructions"), ctx),
+    ]
+
+
 def _psionic(page: Page, data: dict[str, Any], ctx: RenderContext) -> list[Node]:
     t = page.t
     kind = PSIONIC_TYPES.get(str(data.get("type")), "Psionic")
@@ -1028,6 +1127,8 @@ def statblock(page: Page, entry: ReferenceEntry, ctx: RenderContext) -> Element:
         "facility": _facility,
         "cult": _cult,
         "boon": _cult,
+        "recipe": _recipe,
+        "crochetPattern": _crochet,
         "psionic": _psionic,
     }.get(entry.category, _generic)
     kind = t(CATEGORY_KEY.get(entry.category, "ref.kind.rule"))
@@ -1045,6 +1146,7 @@ def statblock(page: Page, entry: ReferenceEntry, ctx: RenderContext) -> Element:
         _printed_in(page, entry.printed_in),
         builder(page, data, ctx),
         _lair(page, entry.lair, ctx) if entry.lair else None,
+        [_section(t("ref.more_from", book=book), more, ctx) for book, more in entry.more],
         _deck_cards(page, entry.cards, ctx),
     ]
 

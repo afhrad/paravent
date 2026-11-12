@@ -86,6 +86,7 @@ class TestPassages:
         assert missing_tags(english, kept) == [] and missing_tags(english, lost) == [
             "<$title_short_name$>"
         ]
+        assert marks_in("{=amount1/v} cups flour") == ["{=amount1/v}"]  # a recipe's amount
         # A machine draft that drops one stays English.
         batch = [("a", english), ("b", english)]
         accepted, rejected, _ = _accepted(batch, [{"id": 0, "text": kept}, {"id": 1, "text": lost}])

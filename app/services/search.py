@@ -71,6 +71,8 @@ GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
             "facility",
             "cult",
             "boon",
+            "recipe",
+            "crochetPattern",
         ),
     ),
     # The rulebooks' chapters and headings (TECHSTACK.md §6b phase 3), from their index.

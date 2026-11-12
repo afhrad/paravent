@@ -76,6 +76,8 @@ CATEGORY_ICON: dict[str, tuple[str, str]] = {
     "facility": ("vault", ""),
     "cult": ("users", ""),
     "boon": ("flame", ""),
+    "recipe": ("book-open", ""),
+    "crochetPattern": ("scroll", ""),
     "itemMastery": ("swords", ""),
     "itemProperty": ("swords", ""),
     "itemType": ("gem", ""),

@@ -106,6 +106,8 @@ ENTITY_CATEGORY: dict[str, tuple[str, ...]] = {
     "charoption": ("charoption",),
     "cult": ("cult",),
     "boon": ("boon",),
+    "recipe": ("recipe",),
+    "crochet": ("crochetPattern",),
     "itemMastery": ("itemMastery",),
     "itemProperty": ("itemProperty",),
     "deck": ("deck",),

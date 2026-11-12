@@ -184,11 +184,7 @@ READERS = _readers()
 # Keys Paravent knows and has not loaded yet (TECHSTACK.md §6b): reported, not warned.
 PLANNED_KEYS = frozenset(
     {
-        "itemTypeAdditionalEntries",
         "encounterShape",
-        "recipe",
-        "crochetPattern",
-        "converterSample",
         "legendaryGroupTemplate",
         "languageScript",
         "raceFluffMeta",
@@ -206,6 +202,8 @@ NOT_CONTENT: tuple[tuple[str, str], ...] = (
     ("spells/sources.json", "site_index"),
     ("generated/*", "generated"),
     ("renderdemo.json", "demo"),
+    # Sample texts for 5eTools's own converter page.
+    ("converter.json", "demo"),
     (CHANGELOG_FILE, "changelog"),
     # Paravent's own tag catalogue, which once sat beside a corpus in data/reference/.
     ("5etools_tags.json", "paravent"),

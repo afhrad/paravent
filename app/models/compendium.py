@@ -695,6 +695,23 @@ class Boon(Named):
     entries: list[Any] = Field(default_factory=list)
 
 
+class Recipe(Named):
+    """A dish from the Heroes' Feast cookbooks: ingredients with their amounts
+    (``{=amount1/v}`` filled from the ingredient's ``amount1``), then the instructions.
+    316 entries."""
+
+    type: str | None = None
+    ingredients: list[Any] = Field(default_factory=list)
+    instructions: list[Any] = Field(default_factory=list)
+
+
+class CrochetPattern(Named):
+    """A crochet pattern from the Crochet Book of Magical Patterns: yarn, hooks, notions,
+    gauge, then the instructions. 20 entries."""
+
+    instructions: list[Any] = Field(default_factory=list)
+
+
 class ItemMastery(Named):
     """A 2024 weapon mastery property — Topple, Vex, Sap… 8 entries, in items-base.json."""
 
@@ -747,6 +764,15 @@ class ItemType(Abbreviated):
     text, in items-base.json."""
 
 
+class ItemTypeEntries(Named):
+    """More text about an item type from a later book: Xanathar's on gaming sets and
+    musical instruments. ``appliesTo`` names the type (``"GS|PHB"``). 2 entries, in
+    items-base.json; shown with the type and its items, never on a page of their own."""
+
+    applies_to: str = Field(default="", alias="appliesTo")
+    entries: list[Any] = Field(default_factory=list)
+
+
 class Deck(Named, Copyable):
     """A card deck — the Deck of Many Things, the Tarokka. 34 entries, 2 ``_copy`` shells.
 
@@ -794,6 +820,9 @@ __all__ = [
     "Action",
     "Background",
     "Boon",
+    "CrochetPattern",
+    "Recipe",
+    "ItemTypeEntries",
     "ItemMastery",
     "Card",
     "CharOption",
