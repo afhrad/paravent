@@ -14,7 +14,7 @@ import unicodedata
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 
 from PIL import Image, ImageChops, ImageDraw, ImageOps, UnidentifiedImageError
 
@@ -320,6 +320,28 @@ class Tokens:
         if not (root / relative).is_file():
             return None
         return f"/play/img/{quote(relative)}"
+
+    def path_of(self, token: Token) -> Path | None:
+        """The file a token's address serves (an own token, or one from the image
+        folder); None for the kind's disc or an address that leads nowhere."""
+        src = token.src
+        if not src:
+            return None
+        address = unquote(src.split("?", 1)[0])
+        if address.startswith("/play/img/"):
+            root = self._images_root()
+            relative = address.removeprefix("/play/img/")
+            if root is None or ".." in Path(relative).parts:
+                return None
+            found = root / relative
+            return found if found.is_file() else None
+        if address.startswith(f"{TOKEN_URL}/"):
+            parts = address.removeprefix(f"{TOKEN_URL}/").split("/")
+            if len(parts) != 3:
+                return None
+            where, kind, ident = parts
+            return self.file(None if where == "-" else where, kind, ident)
+        return None
 
     # -- by element ------------------------------------------------------------------
 

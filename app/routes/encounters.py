@@ -15,24 +15,28 @@ in the middle of, so adding six different monsters is six clicks and no retyping
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import replace
 from typing import Annotated
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep, WorldsDep
 from app.models.gamestate import PartySpec
+from app.models.pc import DraftStatus
 from app.routes.auth import html, redirect
 from app.routes.paravent_markdown import paravent_markdown
-from app.services import scope
+from app.services import scope, token_export
 from app.services.encounter_gen import EncounterGenerator, bands_of, pool_of
 from app.services.encounter_roll import EncounterRoller
 from app.services.encounters import EncounterError, EncounterView
 from app.services.npc_gen import edition_for
 from app.services.scope import ScopeError
 from app.services.search import SearchResult
+from app.services.token_export import Piece, PlannedGroup
+from app.services.tokens import Token
 from app.services.worlds import WorldService
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
@@ -41,11 +45,13 @@ from app.ui.encounter_pages import (
     encounter_delete_page,
     encounter_line,
     encounter_page,
+    encounter_tokens_page,
     encounter_url,
     encounters_page,
     shape_name,
 )
 from app.ui.markdown import Rendered, render_markdown
+from app.ui.names import name_text
 
 router = APIRouter(tags=["encounters"])
 
@@ -514,6 +520,103 @@ async def roll_label(
         )
         return html(line)
     return redirect(_back(encounter_id))
+
+
+def _pieces(page: Page, registry: StoreRegistry, encounter_id: str, party: bool) -> list[Piece]:
+    """The fight's tokens to take to the table (documentation/TOKENS.md §4): the world's
+    characters when ``party``, then every planned creature."""
+    view = _with_tokens(registry, registry.encounters.view(registry.encounters.get(encounter_id)))
+    groups = [
+        PlannedGroup(
+            line.planned.reskin or name_text(page, "monster", line.planned.name),
+            view.tokens.get(line.index, Token("creature")),
+            line.planned.count,
+            line.monster.sizes if line.monster is not None else (),
+            line.planned.names,
+        )
+        for line in view.lines
+    ]
+    world_id = view.world.id if view.world else None
+    members = (
+        [
+            (pc.name or pc.id, registry.tokens.of_record("character", world_id, pc.id))
+            for pc in registry.characters.in_world(world_id)
+            if pc.status is DraftStatus.READY
+        ]
+        if party and world_id
+        else []
+    )
+    return token_export.pieces(groups, members)
+
+
+@router.get(f"{ENCOUNTERS_URL}/{{encounter_id}}/tokens", response_class=HTMLResponse)
+async def encounter_tokens(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    encounter_id: str,
+    square: int = token_export.DEFAULT_SQUARE_MM,
+    party: bool = False,
+) -> HTMLResponse:
+    """The fight's tokens, laid out to print at a chosen square size, or to download."""
+    encounter = registry.encounters.get(encounter_id)
+    square = square if square in token_export.SQUARE_MM else token_export.DEFAULT_SQUARE_MM
+    return html(
+        encounter_tokens_page(
+            page,
+            encounter,
+            _pieces(page, registry, encounter_id, party),
+            square=square,
+            party=party,
+        )
+    )
+
+
+@router.get(f"{ENCOUNTERS_URL}/{{encounter_id}}/tokens/{{n:int}}.png")
+async def encounter_token_piece(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    encounter_id: str,
+    n: int,
+    party: bool = False,
+) -> Response:
+    """One piece, drawn sharp enough to print."""
+    found = _pieces(page, registry, encounter_id, party)
+    if not 0 <= n < len(found):
+        raise HTTPException(status_code=404)
+    piece = found[n]
+    data = await asyncio.to_thread(
+        token_export.render,
+        piece,
+        registry.tokens.path_of(piece.token),
+        token_export.PRINT_PIXELS,
+    )
+    return Response(data, media_type="image/png", headers={"Cache-Control": "no-cache"})
+
+
+@router.get(f"{ENCOUNTERS_URL}/{{encounter_id}}/tokens.zip")
+async def encounter_tokens_zip(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    encounter_id: str,
+    px: int = token_export.DEFAULT_PIXELS,
+    party: bool = False,
+) -> Response:
+    """Every piece as a PNG, ``px`` per square, in one ZIP for a virtual tabletop."""
+    encounter = registry.encounters.get(encounter_id)
+    px = px if px in token_export.PIXELS else token_export.DEFAULT_PIXELS
+    found = _pieces(page, registry, encounter_id, party)
+    data = await asyncio.to_thread(token_export.archive, found, registry.tokens.path_of, px)
+    filename = Piece(encounter.name or "tokens", Token("encounter")).filename
+    return Response(
+        data,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f"attachment; filename*=UTF-8''{quote(filename[:-4] + '.zip')}"
+        },
+    )
 
 
 @router.get(f"{ENCOUNTERS_URL}/{{encounter_id}}/delete", response_class=HTMLResponse)

@@ -157,6 +157,7 @@ async def share_form(
             fields=fields,
             title=title,
             recipients=handouts.recipients(view.world.id),
+            world_id=view.world.id,
             error=page.t(error) if error.startswith("journal.error.") else None,
         )
     )

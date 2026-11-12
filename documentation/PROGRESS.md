@@ -374,7 +374,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         5eTools token from the image folder (creatures, vehicles, objects), else the
         kind's disc in the theme's colours. In the tracker and the players' fight view
         (a numbered label's number on the token), the encounter builder, the lists and
-        party cards, the campaign link previews, and on reference pages and previews
+        party cards, the campaign link previews, and on reference pages and previews;
+        the players' Details card, the sheet's fight strip, the recap and the journal.
+        **To the table** (2026-11-12): an encounter's tokens printed at their true size
+        on a 20/25/30 mm grid, or as a ZIP of PNGs for a virtual tabletop, numbered
+        and sized by the creature (`app/services/token_export.py`)
   - [x] **Themes** (2026-11-04, documentation/THEMES.md): the whole look as a folder —
         `theme.json`, `tokens.css`, `skin.css`, fonts, pictures, optionally a complete icon
         sprite — shipped in `app/themes/` or dropped into `library/themes/`; the table's

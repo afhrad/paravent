@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from app.models.gamestate import Combat
 from app.models.protocol import EntryKind, ProtocolEntry
 from app.services.combat import CombatService
+from app.services.tokens import Token
 
 
 @dataclass
@@ -28,6 +29,8 @@ class Fighter:
     crits: int = 0
     fumbles: int = 0
     down: bool = False
+    # Its round token, from the fight it was first met in (documentation/TOKENS.md).
+    token: Token | None = None
 
 
 @dataclass(frozen=True)
@@ -88,6 +91,8 @@ def recap(
             entry = fighter(service.label_of(member), member.is_friend)
             entry.party = member.is_friend
             entry.down = entry.down or service.is_down(member)
+            if entry.token is None:
+                entry.token = service.token_of(member, combat.world_id)
         out.fights.append(
             FightLine(
                 combat.id,

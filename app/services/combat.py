@@ -842,6 +842,10 @@ class CombatService:
         name, source = combatant.ref.split("|", 1)
         return self._monster(name, source)
 
+    def token_of(self, combatant: Combatant, world_id: str | None) -> Token | None:
+        """A combatant's round token (documentation/TOKENS.md), None without a source."""
+        return self._token(combatant, world_id) if self._token else None
+
     def label_of(self, combatant: Combatant) -> str:
         """A character's current name from its file; anyone else's label."""
         if combatant.character_id is not None:

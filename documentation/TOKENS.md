@@ -63,6 +63,10 @@ point at the centre, cut round to the opening, the ring on top — and saved so,
 - **Lists and cards** — NPCs, places, encounters, treasure, characters, the party cards,
   and the hover previews of campaign links.
 - **Reference pages** — beside an entry's name, and in its hover preview.
+- **The players' side and the record** (2026-11-12) — the Details card of a creature in
+  the players' fight view (its token beside what is seen), the strip above the sheet
+  (whose turn it is, the character's target), the recap's fighters, and the journal (the
+  recipients when sharing, and on the gamemaster's list who each handout went to).
 - **In place of the picture itself** (2026-11-12, the user's request): an NPC's portrait,
   a place's picture and a builder creature's picture are shown as their token wherever
   Paravent shows them — the head of its page (large), its card in a chapter, its edit
@@ -86,7 +90,26 @@ the script the form still uploads, centred. Stored as WebP:
 creature of no world: the library's `media/tokens/`). Removing it returns to §1's next
 source. Served at `/tokens/<kind>/<id>`, the address carrying the file's version.
 
-## 4. Code
+## 4. Taking them to the table
+
+**Tokens** on an encounter's builder (2026-11-12, the user's request) opens its tokens:
+one piece per creature, numbered as the tracker numbers a group ("Goblin 2"), a group
+with names of its own by those names, the world's characters first when "With the party"
+is ticked. Each takes the squares of its size (Tiny and Small one, Large two, Huge three,
+Gargantuan four; the larger of "Medium or Small").
+
+- **Print** lays them out at their true size, the square chosen as 20, 25 (the one-inch
+  battle-map grid) or 30 mm; the print styles leave only the tokens on the paper. The
+  print dialog's scale must be 100 %.
+- **Download for a virtual tabletop** sends a ZIP of PNGs, 140, 200, 256 or 280 pixels per
+  square, each file named for its piece (`Goblin 2.png`).
+
+Each piece is drawn by `app/services/token_export.py`: its token's file (the table's own,
+or 5eTools's; `Tokens.path_of` finds it from the address), else its kind's empty frame
+with the name's first letter in the opening, the number on a white badge at its edge.
+Nothing is stored; pieces are drawn when asked for.
+
+## 5. Code
 
 `app/services/tokens.py` resolves a token (`Tokens.of_*`), crops uploads and finds files;
 `app/ui/tokens.py` draws one (`token(page, tok, size)`): an `<img>` or the default disc,

@@ -21,6 +21,7 @@ from htpy import (
     form,
     h1,
     h2,
+    img,
     label,
     li,
     optgroup,
@@ -43,6 +44,7 @@ from app.services.encounter_gen import bands_of
 from app.services.encounters import EncounterView, PlannedMonster
 from app.services.naming import StyleEntry
 from app.services.search import SearchResult
+from app.services.token_export import DEFAULT_PIXELS, PIXELS, SQUARE_MM, Piece
 from app.services.tokens import Token
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
@@ -660,6 +662,11 @@ def encounter_page(
                 div(class_="enc-title")[
                     h1[enc.name],
                     _run_button(page, enc, running),
+                    a(href=f"{encounter_url(enc.id)}/tokens", class_="btn btn-ghost")[
+                        icon("printer"), span[t("encounters.tokens")]
+                    ]
+                    if enc.monsters
+                    else None,
                     delete_link(
                         page, f"{encounter_url(enc.id)}/delete", t("encounters.delete"), text=True
                     ),
@@ -691,6 +698,77 @@ def encounter_page(
         world_id=view.world.id if view.world else None,
         insert_layer=True,
         extra_scripts=("/static/js/htmx.min.js",),
+    )
+
+
+def encounter_tokens_page(
+    page: Page,
+    encounter: Encounter,
+    pieces: Sequence[Piece],
+    *,
+    square: int,
+    party: bool,
+) -> Element:
+    """The fight's tokens to take to the table (documentation/TOKENS.md §4): laid out at
+    their size on the grid to print and cut out, or downloaded for a virtual tabletop."""
+    t = page.t
+    url = encounter_url(encounter.id)
+    suffix = "?party=1" if party else ""
+    choose = form(method="get", action=f"{url}/tokens", class_="tok-print-form")[
+        select_field(
+            "square",
+            t("encounters.tokens_square"),
+            [(str(mm), t("encounters.tokens_mm", mm=mm)) for mm in SQUARE_MM],
+            selected=str(square),
+        ),
+        checkbox_field("party", t("encounters.tokens_party"), checked=party),
+        button(type="submit", class_="btn")[t("encounters.tokens_show")],
+        button(type="button", class_="btn btn-primary", onclick="window.print()")[
+            icon("printer"), span[t("encounters.tokens_print")]
+        ],
+    ]
+    download = form(method="get", action=f"{url}/tokens.zip", class_="tok-print-form")[
+        hidden("party", "1") if party else None,
+        select_field(
+            "px",
+            t("encounters.tokens_pixels"),
+            [(str(px), str(px)) for px in PIXELS],
+            selected=str(DEFAULT_PIXELS),
+        ),
+        button(type="submit", class_="btn")[
+            icon("download"), span[t("encounters.tokens_download")]
+        ],
+    ]
+    sheet: Node = (
+        div(class_="tok-print")[
+            [
+                img(
+                    src=f"{url}/tokens/{n}.png{suffix}",
+                    alt=" ".join(x for x in (piece.label, piece.number) if x),
+                    title=" ".join(x for x in (piece.label, piece.number) if x),
+                    style=f"width:{piece.squares * square}mm;height:{piece.squares * square}mm",
+                    loading="lazy",
+                )
+                for n, piece in enumerate(pieces)
+            ]
+        ]
+        if pieces
+        else empty_state("swords", t("encounters.tokens_empty"), "")
+    )
+    return app_shell(
+        page,
+        t("encounters.tokens_title"),
+        div(class_="tr-page tok-print-page")[
+            a(href=url, class_="backlink")[icon("arrow-left"), span[encounter.name]],
+            page_head(encounter.name, t("encounters.tokens_title"), t("encounters.tokens_lede")),
+            section(class_="panel tok-print-controls")[
+                choose,
+                p(class_="field-hint")[t("encounters.tokens_hint")],
+                download,
+            ],
+            sheet,
+        ],
+        world_id=encounter.world_id,
     )
 
 

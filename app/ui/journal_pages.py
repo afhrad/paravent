@@ -31,6 +31,7 @@ from app.ui.forms import alert, hidden, notice
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
+from app.ui.tokens import token
 
 JOURNAL_URL = "/journal"
 SHARE_URL = "/gm/share"
@@ -60,6 +61,7 @@ def share_page(
     fields: dict[str, str],
     title: str,
     recipients: Sequence[tuple[str, str]],
+    world_id: str | None = None,
     error: str | None = None,
 ) -> Element:
     """What will be handed over, to whom, under which title."""
@@ -80,6 +82,7 @@ def share_page(
                     [
                         label(class_="check-inline")[
                             input_el(type="checkbox", name="characters", value=pc_id, checked=True),
+                            token(page.token_of("character", world_id, pc_id), "sm"),
                             name,
                         ]
                         for pc_id, name in recipients
@@ -124,6 +127,15 @@ def _row(page: Page, handout: Handout, names: Sequence[str] | None) -> Element:
                 [" · ", t("journal.to_names", names=", ".join(names))] if names else None,
             ],
         ],
+        # Who it went to, by their tokens (the gamemaster's list).
+        span(class_="tok-stack")[
+            [
+                token(page.token_of("character", handout.world_id, c), "sm")
+                for c in handout.characters
+            ]
+        ]
+        if names
+        else None,
         span(class_="journal-new")[t("journal.new")] if unread else None,
     ]
 

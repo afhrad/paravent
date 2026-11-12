@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import io
+import zipfile
 from collections.abc import AsyncIterator
 from pathlib import Path
 
@@ -23,6 +24,7 @@ from app.models.gamestate import (
     World,
 )
 from app.models.pc import PlayerCharacter
+from app.services.token_export import Piece, PlannedGroup, archive, pieces, render, squares_of
 from app.services.tokens import Placement, Token, compose, crop_round, token_name
 from app.store.registry import StoreRegistry
 
@@ -64,6 +66,49 @@ class TestTheParts:
         assert Placement.parse("0.3", "0.7", "2") == Placement(0.3, 0.7, 2.0)
         assert Placement.parse("-1", "9", "0.2") == Placement(0.0, 1.0, 1.0)
         assert Placement.parse("x", "nan", "") == Placement()
+
+
+class TestTakingThemToTheTable:
+    """An encounter's tokens to print or download (documentation/TOKENS.md §4)."""
+
+    def test_pieces_are_numbered_and_sized(self) -> None:
+        goblin, ogre = Token("creature", "/x/goblin.webp"), Token("creature")
+        made = pieces(
+            [
+                PlannedGroup("Goblin", goblin, 2, ("S",)),
+                PlannedGroup("Ogre", ogre, 1, ("L",)),
+                PlannedGroup("Orc", ogre, 2, ("M",), ("Gruk", "Ugrash")),
+            ],
+            [("Lyra", Token("character"))],
+        )
+        assert [(p.label, p.number, p.squares) for p in made] == [
+            ("Lyra", None, 1),
+            ("Goblin", "1", 1),
+            ("Goblin", "2", 1),
+            ("Ogre", None, 2),
+            ("Gruk", None, 1),
+            ("Ugrash", None, 1),
+        ]
+        assert squares_of(("M", "S")) == 1 and squares_of(("G",)) == 4 and squares_of(()) == 1
+        assert Piece('Drow "Mage"/2', goblin, number="3").filename == "Drow Mage2 3.png"
+
+    def test_a_piece_is_drawn_at_its_size_with_its_number(self, tmp_path: Path) -> None:
+        source = tmp_path / "t.webp"
+        Image.new("RGBA", (64, 64), (20, 120, 20, 255)).save(source)
+        drawn = Image.open(
+            io.BytesIO(render(Piece("Ogre", Token("creature"), 2, "7"), source, 100))
+        )
+        assert drawn.size == (200, 200)
+        assert drawn.getpixel((100, 100))[1] > 100  # the token's own picture (green)
+        assert drawn.getpixel((164, 190))[0] > 200  # the white badge at its edge
+        empty = Image.open(io.BytesIO(render(Piece("Ogre", Token("creature")), None, 100)))
+        assert empty.size == (100, 100) and empty.getpixel((2, 2))[3] == 0  # the empty frame
+
+    def test_a_download_names_each_file(self) -> None:
+        piece = Piece("Goblin", Token("creature"))
+        bundle = zipfile.ZipFile(io.BytesIO(archive([piece, piece], lambda _t: None, 140)))
+        assert bundle.namelist() == ["Goblin.png", "Goblin (2).png"]
+        assert Image.open(bundle.open("Goblin.png")).size == (140, 140)
 
 
 @pytest.fixture
@@ -225,3 +270,36 @@ class TestThePages:
         assert '<span class="tok-badge">2</span>' in board  # "Goblin 2" keeps its number
         reference = (await ac.get("/ref/monster/MM/Goblin")).text
         assert "sb-head has-token" in reference and "Goblin.webp" in reference
+        recap = (await ac.get(f"/gm/combat/{combat.id}/recap")).text
+        assert "recap-who" in recap and "Goblin.webp" in recap
+
+    async def test_an_encounter_s_tokens_to_print_and_download(
+        self, client: tuple[AsyncClient, StoreRegistry]
+    ) -> None:
+        ac, registry = client
+        await _login(ac, "dm")
+        world = registry.gamestate.worlds.create(World(name="Moor", source_set=SourceSet()))
+        registry.gamestate.characters.create(
+            PlayerCharacter(name="Lyra", player="pia", world_id=world.id, status="ready")
+        )
+        encounter = registry.gamestate.encounters.create(
+            Encounter(
+                name="Ambush",
+                world_id=world.id,
+                monsters=[EncounterMonster(name="Goblin", source="MM", count=2)],
+            )
+        )
+        url = f"/gm/encounters/{encounter.id}"
+        assert f'href="{url}/tokens"' in (await ac.get(url)).text
+        sheet = (await ac.get(f"{url}/tokens?square=30")).text
+        assert f'src="{url}/tokens/1.png"' in sheet and "width:30mm" in sheet
+        assert "Lyra" not in sheet
+        with_party = (await ac.get(f"{url}/tokens?party=on")).text
+        assert 'alt="Lyra"' in with_party and f"{url}/tokens/2.png?party=1" in with_party
+        piece = await ac.get(f"{url}/tokens/1.png")
+        assert piece.status_code == 200 and piece.headers["content-type"] == "image/png"
+        assert (await ac.get(f"{url}/tokens/9.png")).status_code == 404
+        download = await ac.get(f"{url}/tokens.zip?px=200&party=1")
+        assert download.headers["content-type"] == "application/zip"
+        names = zipfile.ZipFile(io.BytesIO(download.content)).namelist()
+        assert names == ["Lyra.png", "Goblin 1.png", "Goblin 2.png"]

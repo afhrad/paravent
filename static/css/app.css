@@ -2366,3 +2366,27 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .tok-zoom-row{ display:flex; align-items:center; gap:10px; }
 .tok-zoom{ flex:1; }
 .token-panel[data-ready] .tok-plain{ display:none; }
+
+/* Tokens in the players' fight view, the strip, the recap and the journal (TOKENS.md §2). */
+.pv-seen-head{ display:flex; gap:12px; align-items:flex-start; }
+.pv-seen-head .pv-facts{ flex:1; min-width:0; }
+.pv-strip-turn, .pv-aimed{ display:inline-flex; align-items:center; gap:6px; }
+.recap-who{ display:inline-flex; align-items:center; gap:8px; }
+.tok-stack{ display:inline-flex; flex:none; }
+.tok-stack .tok + .tok{ margin-left:-8px; }
+
+/* An encounter's tokens to print (TOKENS.md §4): true size on paper, nothing else. */
+.tok-print-controls{ display:grid; gap:12px; }
+.tok-print-form{ display:flex; flex-wrap:wrap; gap:10px 14px; align-items:flex-end; }
+.tok-print-form .field{ margin:0; }
+.tok-print{ display:flex; flex-wrap:wrap; gap:3mm; align-items:flex-start; margin-top:16px; }
+.tok-print img{ display:block; flex:none; }
+@media print{
+  @page{ margin:10mm; }
+  body{ background:#fff !important; }
+  .topbar, .shell-bar, .tok-print-controls, .tok-print-page .backlink,
+  .tok-print-page .page-head p, nav, [class*="player-bar"], [id*="toast"], dialog{ display:none !important; }
+  .shell, .shell-main, main{ display:block !important; padding:0 !important; margin:0 !important; }
+  .tok-print{ margin:0; gap:2mm; }
+  .tok-print img{ break-inside:avoid; }
+}

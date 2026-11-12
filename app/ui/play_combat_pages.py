@@ -110,6 +110,12 @@ def _fill(member: SeenCombatant) -> str:
     return "--hp:0%" if member.health == "down" else "--hp:100%"
 
 
+def _seen_token(member: SeenCombatant, size: str = "md", badge: str | None = None) -> Element:
+    """A combatant's round token, or its kind's disc (documentation/TOKENS.md)."""
+    tok = member.token or Token("character" if member.character_id else "creature")
+    return token(tok, size, badge=badge)
+
+
 def _number(label: str) -> str | None:
     """The number of a numbered label ("Goblin 2" → "2"), shown on its token."""
     head, _, last = label.rpartition(" ")
@@ -124,10 +130,7 @@ def _member(page: Page, view: PlayerView, member: SeenCombatant, mine: frozenset
     names = _names(page, view)
     aimed_by = sorted(c for c in mine if view.targets.get(c) == member.id)
     row = [
-        token(
-            member.token or Token("character" if member.character_id else "creature"),
-            badge=_number(_label(page, member)),
-        ),
+        _seen_token(member, badge=_number(_label(page, member))),
         b[_label(page, member)],
         span(class_="pill accent")[t("combat.you")] if you else None,
         [
@@ -224,7 +227,8 @@ def member_details(
         img(src=picture, alt=_label(page, member), class_="pv-picture", loading="lazy")
         if picture
         else None,
-        _facts(page, rows),
+        # Its token beside what is seen, as the order shows it.
+        div(class_="pv-seen-head")[_seen_token(member, "xl"), _facts(page, rows)],
         known,
         p(class_="pv-lore", lang="en" if page.lang != "en" else None)[seen.description]
         if seen.description
@@ -488,7 +492,10 @@ def combat_strip(
         if yours:
             turn = b(class_="pv-strip-yours")[icon("zap"), t("combat.your_turn")]
         elif view.round and current is not None:
-            turn = span(class_="muted")[t("combat.turn_of", name=_turn_name(page, current))]
+            turn = span(class_="muted pv-strip-turn")[
+                _seen_token(current.members[0], "sm") if current.members else None,
+                t("combat.turn_of", name=_turn_name(page, current)),
+            ]
         roll: Node = None
         if character_id in view.waiting:
             url = f"/characters/{character_id}/act/roll"
@@ -514,7 +521,9 @@ def combat_strip(
             _state(page, view),
             turn,
             span(class_="pill accent pv-aimed")[
-                icon("target", "sm"), t("combat.target_is", name=_label(page, aimed))
+                icon("target", "sm"),
+                _seen_token(aimed, "sm"),
+                t("combat.target_is", name=_label(page, aimed)),
             ]
             if aimed is not None
             else None,

@@ -23,11 +23,13 @@ from htpy import (
 )
 
 from app.services.recap import Recap
+from app.services.tokens import Token
 from app.ui.context import Page
 from app.ui.home_pages import page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.names import monster_label
+from app.ui.tokens import token
 
 
 def _name(page: Page, label: str) -> str:
@@ -101,7 +103,11 @@ def recap_page(
     rows = [
         tr(class_="recap-party" if f.party else None)[
             th(scope="row")[
-                _name(page, f.name), span(class_="recap-down")[" ✝"] if f.down else None
+                span(class_="recap-who")[
+                    token(f.token or Token("character" if f.party else "creature"), "sm"),
+                    _name(page, f.name),
+                    span(class_="recap-down")[" ✝"] if f.down else None,
+                ]
             ],
             td(class_="num")[str(f.dealt or "—")],
             td(class_="num")[str(f.taken or "—")],
