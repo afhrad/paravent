@@ -25,7 +25,6 @@ from htpy import (
     form,
     h1,
     h2,
-    img,
     label,
     li,
     option,
@@ -61,7 +60,6 @@ from app.ui.library_links import (
     crumbs,
     delete_link,
     location_url,
-    media_url,
     npc_url,
     saved_version,
     treasure_url,
@@ -117,16 +115,10 @@ def coins_text(page: Page, coins: Coins) -> str:
     )
 
 
-def _portrait(npc: Npc, size: str = "thumb") -> Node:
-    if not npc.portrait:
-        return span(class_=f"avatar {'avatar-lg' if size == 'large' else ''}", aria_hidden="true")[
-            icon("circle-user")
-        ]
-    return img(
-        class_="portrait" if size == "large" else "thumb",
-        src=media_url(npc.scope.record_id, npc.portrait),
-        alt="",
-    )
+def _portrait(page: Page, npc: Npc, size: str = "thumb") -> Node:
+    """The portrait as its round token: one picture, one look (documentation/TOKENS.md)."""
+    tok = page.token_of("npc", npc.scope.world_id, npc.id)
+    return token(tok, "xxl" if size == "large" else "lg", title=npc.name)
 
 
 def _place_text(names: Sequence[str]) -> str:
@@ -145,7 +137,7 @@ def npc_card(page: Page, npc: Npc, creature: ReferenceEntry | None, ctx: RenderC
     t = page.t
     return div(class_="npc-embed")[
         div(class_="md-embed-head npc-embed-head")[
-            _portrait(npc),
+            _portrait(page, npc),
             div(class_="npc-embed-main")[
                 span(class_="md-embed-kind")[t("md.embed.npc")],
                 a(href=npc_url(npc.id), class_="npc-embed-name")[npc.name],
@@ -518,7 +510,7 @@ def npc_page(
             ),
             notice(notice_text),
             div(class_="npc-head")[
-                _portrait(npc, "large"),
+                _portrait(page, npc, "large"),
                 div(class_="npc-head-main")[
                     span(class_="eyebrow")[_place_text(place)],
                     h1[npc.name],
@@ -656,7 +648,7 @@ def npc_form_page(
             section(class_="panel images-panel")[
                 div(class_="panel-head")[b[t("npcs.portrait")]],
                 div(class_="image-row")[
-                    _portrait(npc),
+                    _portrait(page, npc),
                     form(
                         method="post",
                         action=f"{url}/portrait",

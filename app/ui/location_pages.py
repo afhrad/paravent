@@ -18,7 +18,6 @@ from htpy import (
     form,
     h1,
     h2,
-    img,
     label,
     li,
     p,
@@ -46,7 +45,6 @@ from app.ui.library_links import (
     crumbs,
     delete_link,
     location_url,
-    media_url,
     saved_version,
     world_url,
 )
@@ -71,16 +69,10 @@ def world_locations_url(world_id: str) -> str:
     return f"{world_url(world_id)}/places"
 
 
-def _picture(location: Location, size: str = "thumb") -> Node:
-    if not location.picture:
-        return span(class_=f"avatar {'avatar-lg' if size == 'large' else ''}", aria_hidden="true")[
-            icon("map")
-        ]
-    return img(
-        class_="portrait" if size == "large" else "thumb",
-        src=media_url(location.scope.record_id, location.picture),
-        alt="",
-    )
+def _picture(page: Page, location: Location, size: str = "thumb") -> Node:
+    """The picture as its round token: one picture, one look (documentation/TOKENS.md)."""
+    tok = page.token_of("place", location.scope.world_id, location.id)
+    return token(tok, "xxl" if size == "large" else "lg", title=location.name)
 
 
 def _where(names: Sequence[str]) -> str:
@@ -93,7 +85,7 @@ def location_card(page: Page, location: Location, notes: Markup | None) -> Eleme
     t = page.t
     return div(class_="npc-embed place-embed")[
         div(class_="md-embed-head npc-embed-head")[
-            _picture(location),
+            _picture(page, location),
             div(class_="npc-embed-main")[
                 span(class_="md-embed-kind")[t("md.embed.place")],
                 a(href=location_url(location.id), class_="npc-embed-name")[location.name],
@@ -194,7 +186,7 @@ def location_page(
             ),
             notice(notice_text),
             div(class_="npc-head")[
-                _picture(location, "large"),
+                _picture(page, location, "large"),
                 div(class_="npc-head-main")[
                     span(class_="eyebrow")[_where(where)],
                     h1[location.name],
@@ -345,7 +337,7 @@ def location_form_page(
             section(class_="panel images-panel")[
                 div(class_="panel-head")[b[t("places.picture")]],
                 div(class_="image-row")[
-                    _picture(location),
+                    _picture(page, location),
                     form(
                         method="post",
                         action=f"{url}/picture",

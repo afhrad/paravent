@@ -63,6 +63,11 @@ point at the centre, cut round to the opening, the ring on top — and saved so,
 - **Lists and cards** — NPCs, places, encounters, treasure, characters, the party cards,
   and the hover previews of campaign links.
 - **Reference pages** — beside an entry's name, and in its hover preview.
+- **In place of the picture itself** (2026-11-12, the user's request): an NPC's portrait,
+  a place's picture and a builder creature's picture are shown as their token wherever
+  Paravent shows them — the head of its page (large), its card in a chapter, its edit
+  form. The full picture is what the token is made from, and what players see of a
+  creature in a fight's Details.
 
 ## 3. The table's own tokens
 

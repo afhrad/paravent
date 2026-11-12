@@ -214,7 +214,8 @@ class TestItsPicture:
         done = await raw.post(f"{url}/picture", files={"picture": ("hound.png", PNG)})
         assert done.status_code == 303
         page = (await raw.get(url)).text
-        assert f'src="{url}/picture?v=' in page
+        # Shown as its round token (this PNG is too broken to make one: the disc).
+        assert "tok tok-xxl tok-creature" in page
         served = await raw.get(f"{url}/picture")
         assert served.status_code == 200 and served.content == PNG
         # renaming in the builder keeps the picture with the creature

@@ -24,7 +24,6 @@ from htpy import (
     dt,
     form,
     h2,
-    img,
     label,
     li,
     option,
@@ -256,7 +255,12 @@ def _picture(page: Page, view: BuilderView, error: str) -> Element:
     action = f"{creature_url(view.design.id)}/picture"
     return section(id="cb-picture", class_="panel cb-picture")[
         h2[t("creatures.picture")],
-        img(src=view.picture, alt=view.design.name, class_="cb-picture-img", loading="lazy")
+        # Shown as its round token: one picture, one look (documentation/TOKENS.md).
+        token(
+            page.token_of("creature", view.design.world_id, view.design.id),
+            "xxl",
+            title=view.design.name,
+        )
         if view.picture
         else None,
         p(class_="field-hint")[t("creatures.picture_hint")],

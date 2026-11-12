@@ -32,7 +32,7 @@ KIND_ICONS = {
     "vehicle": "footprints",
     "object": "vault",
 }
-SIZES = frozenset({"sm", "md", "lg", "xl"})
+SIZES = frozenset({"sm", "md", "lg", "xl", "xxl"})
 
 
 def token(tok: Token, size: str = "md", *, badge: str | None = None, title: str = "") -> Element:
