@@ -21,6 +21,7 @@ from app.dependencies import IdentityDep, PageDep, RegistryDep
 from app.routes.auth import html
 from app.routes.editor import CREATABLE
 from app.services.search import GROUPS, Row, SearchHit, SearchResult
+from app.store.registry import StoreRegistry
 from app.ui.combat_pages import combat_url
 from app.ui.context import Page
 from app.ui.editor_suggest import CALLOUT, INLINE, kind_suggestions
@@ -122,6 +123,7 @@ async def search(
         group=None if group == CAMPAIGN else group or None,
         all_books=all == "1",
         term=page.t.terms(),
+        place_map=_map_places(registry, world_id) if _identity.is_gamemaster else None,
     )
     if page.reader is not None:
         result = _for_player(page, result)
@@ -132,6 +134,32 @@ async def search(
     if partial:
         return html(results(page, result, world_id, target))
     return html(search_page(page, result, world_id))
+
+
+def _map_places(registry: StoreRegistry, world_id: str | None) -> Callable[[Row], str | None]:
+    """Where a published adventure's map leads in this world: the chapter of the world's
+    adventure started from that book which shows the map's section, at the map. None for
+    a book no adventure of the world is based on, or a section it has no chapter for."""
+    based: dict[str, list[str]] = {}
+    for adventure in registry.adventures.adventures(world_id) if world_id else ():
+        if adventure.based_on:
+            based.setdefault(adventure.based_on.lower(), []).append(adventure.id)
+
+    def place(row: Row) -> str | None:
+        found = row.entry
+        ids = based.get(row.adventure.lower())
+        body = registry.published.body(row.adventure) if ids else None
+        if ids is None or body is None or not 0 <= found.chapter < len(body.sections):
+            return None
+        section = body.sections[found.chapter].id
+        for adventure_id in ids:
+            for chapter in registry.adventures.chapters(adventure_id):
+                if chapter.section == section:
+                    url = chapter_url(chapter.id)
+                    return f"{url}#e-{found.id}" if found.id else url
+        return None
+
+    return place
 
 
 def _for_player(page: Page, result: SearchResult) -> SearchResult:

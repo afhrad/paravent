@@ -44,6 +44,7 @@ from app.ui.tags import ref_url
 CATEGORY_ICON: dict[str, tuple[str, str]] = {
     "spell": ("sparkles", "magic"),
     "book": ("book-open", ""),
+    "map": ("map", ""),
     "monster": ("skull", "dmg"),
     "item": ("gem", "item"),
     "baseitem": ("gem", "item"),

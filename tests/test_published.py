@@ -337,3 +337,41 @@ class TestMaps:
         assert 'href="/books/DMG/12#e-233"' in contents
         chapter = (await ac.get("/books/DMG/12")).text
         assert 'id="e-233"' in chapter and 'src="/play/img/book/DMG/app-c-1.webp"' in chapter
+
+    async def test_search_finds_maps_where_they_lead(
+        self, client: tuple[AsyncClient, StoreRegistry]
+    ) -> None:
+        ac, registry = client
+        books = SourceSet(sources=["PHB", "MM", "DMG"])
+        world = registry.gamestate.worlds.create(World(name="Sword Coast", source_set=books))
+        other = registry.gamestate.worlds.create(World(name="Elsewhere", source_set=books))
+        await ac.post(f"/gm/worlds/{world.id}/adventures/from-book", data={"book": "LMoP"})
+        adventure = registry.adventures.adventures(world.id)[0]
+        goblins = registry.adventures.chapters(adventure.id)[1]
+
+        found = (
+            await ac.get(
+                "/search", params={"q": "Cragmaw Hideout", "world": world.id, "partial": "1"}
+            )
+        ).text
+        assert f"/gm/chapters/{goblins.id}?world={world.id}#e-1ab" in found  # at the map
+        assert "Lost Mine of Phandelver · Part 1" in found
+        elsewhere = (
+            await ac.get(
+                "/search", params={"q": "Cragmaw Hideout", "world": other.id, "partial": "1"}
+            )
+        ).text
+        assert "#e-1ab" not in elsewhere  # no adventure of that world is based on the book
+        rulebook = (
+            await ac.get("/search", params={"q": "Map 1", "world": world.id, "partial": "1"})
+        ).text
+        assert f"/books/DMG/12?world={world.id}#e-233" in rulebook
+
+        await ac.post("/logout")
+        await ac.post("/login", data={"username": "alice", "password": PASSWORD})
+        player = (
+            await ac.get(
+                "/search", params={"q": "Cragmaw Hideout", "world": world.id, "partial": "1"}
+            )
+        ).text
+        assert "#e-1ab" not in player and "/gm/chapters" not in player

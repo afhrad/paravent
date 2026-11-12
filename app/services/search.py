@@ -17,12 +17,13 @@ their parent entry, never on their own.
 from __future__ import annotations
 
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from app.models.gamestate import SourceSet
+from app.store.maps import MapIndex
 from app.store.projections import Projections
-from app.store.published import PublishedBooks, chapter_headings
+from app.store.published import PublishedAdventures, PublishedBooks, chapter_headings
 from app.store.query import in_source_set
 
 GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
@@ -76,8 +77,9 @@ GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
             "crochetPattern",
         ),
     ),
-    # The rulebooks' chapters and headings (TECHSTACK.md §6b phase 3), from their index.
-    ("books", ("book",)),
+    # The rulebooks' chapters and headings (TECHSTACK.md §6b phase 3), from their index,
+    # and the maps printed in rulebooks and adventures (generated/gendata-maps.json).
+    ("books", ("book", "map")),
 )
 GROUP_KEYS: tuple[str, ...] = tuple(key for key, _ in GROUPS)
 
@@ -98,6 +100,9 @@ class Row:
     # say where they sit.
     url: str | None = None
     context: str = ""
+    # A map of a published adventure: that adventure's id. Where it leads depends on the
+    # world (the chapter of its adventure that shows it), so ``url`` is left empty.
+    adventure: str = ""
 
 
 @dataclass(frozen=True, slots=True)
@@ -161,10 +166,19 @@ def match_tier(name: str, needle: str) -> int | None:
 class SearchService:
     """Searches the loaded compendium; rows are rebuilt whenever it reloads."""
 
-    def __init__(self, compendium: Any, books: PublishedBooks | None = None) -> None:
-        """Bind to a compendium store, and the rulebooks whose headings are searched too."""
+    def __init__(
+        self,
+        compendium: Any,
+        books: PublishedBooks | None = None,
+        maps: MapIndex | None = None,
+        adventures: PublishedAdventures | None = None,
+    ) -> None:
+        """Bind to a compendium store, the rulebooks whose headings are searched too, and
+        the maps of the rulebooks and published adventures."""
         self._compendium = compendium
         self._books = books
+        self._maps = maps
+        self._adventures = adventures
         self._built_for: Projections | None = None
         self._rows: dict[str, tuple[Row, ...]] = {}
         self._scopes: dict[str, dict[str, Callable[[Row], bool]]] = {}
@@ -181,6 +195,9 @@ class SearchService:
             for category in categories:
                 if category == "book":
                     rows[category] = self._book_rows()
+                    continue
+                if category == "map":
+                    rows[category] = self._map_rows()
                     continue
                 rows[category] = tuple(
                     Row(
@@ -222,6 +239,40 @@ class SearchService:
                 )
         return tuple(rows)
 
+    def _map_rows(self) -> tuple[Row, ...]:
+        """Every map: a rulebook's leading to it in its chapter, an adventure's to be
+        placed per world (:meth:`search`'s ``place_map``)."""
+        if self._maps is None:
+            return ()
+        rows: list[Row] = []
+        for book in self._books.all() if self._books is not None else ():
+            for found in self._maps.of(book.id):
+                url = f"/books/{book.id}/{found.chapter}"
+                rows.append(
+                    Row(
+                        "map",
+                        found.title or found.chapter_name,
+                        book.source,
+                        found,
+                        url=f"{url}#e-{found.id}" if found.id else url,
+                        context=f"{book.name} · {found.chapter_name}",
+                    )
+                )
+        for adventure in self._adventures.all() if self._adventures is not None else ():
+            rows.extend(
+                Row(
+                    "map",
+                    found.title or found.chapter_name,
+                    adventure.source,
+                    found,
+                    url="",
+                    context=f"{adventure.name} · {found.chapter_name}",
+                    adventure=adventure.id,
+                )
+                for found in self._maps.of(adventure.id)
+            )
+        return tuple(row for row in rows if row.name)
+
     def _scope(self, source_set: SourceSet | None) -> dict[str, Callable[[Row], bool]]:
         """Per category: does this row survive the declared books and supersession?"""
         rows = self._ensure_rows()
@@ -243,11 +294,15 @@ class SearchService:
         group: str | None = None,
         all_books: bool = False,
         term: Callable[[str, str], str | None] | None = None,
+        place_map: Callable[[Row], str | None] | None = None,
     ) -> SearchResult:
         """Search every group (or one), ranked, within the books the world declares.
 
         With ``term`` (the reader's glossary), a localized name matches too: "Feuerball"
-        finds Fireball, and the hit carries the name to show.
+        finds Fireball, and the hit carries the name to show. ``place_map(row)`` is where
+        a published adventure's map leads in this world — the chapter of its adventure
+        that shows it — or None; such a map is found only where it leads somewhere,
+        whatever books the world declares, as it is the world's own adventure.
         """
         needle = query.strip().lower()
         group = group if group in GROUP_KEYS else None
@@ -269,6 +324,12 @@ class SearchService:
             for category in categories:
                 keep = scope[category] if scope is not None else None
                 for row in rows[category]:
+                    if row.adventure:
+                        tier = match_tier(row.name, needle)
+                        placed = place_map(row) if tier is not None and place_map else None
+                        if tier is not None and placed is not None:
+                            hits.append(SearchHit(replace(row, url=placed), tier))
+                        continue
                     tier = match_tier(row.name, needle)
                     label = term(category, row.name) if term is not None else None
                     if label is not None:

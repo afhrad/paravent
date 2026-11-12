@@ -574,6 +574,10 @@ must follow it.)
   area in this chapter jumping to its heading, one in another to the chapter showing it.
   For reading only: no grid, no tokens, no fog (not a virtual tabletop). A rulebook's
   contents list its maps the same way, and its chapters now show their pictures.
+  **Search finds the maps** by title (⌘K, under Books): a rulebook's leads to its chapter
+  at the map, within the world's books; a published adventure's to the chapter of the
+  world's adventure started from that book that shows it — found only where there is
+  one, and never by a player.
 - A helper worth building with it: "creatures in this section" — every `{@creature}` the
   section mentions, each one click from an encounter.
 

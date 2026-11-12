@@ -644,7 +644,7 @@ class StoreRegistry:
     @cached_property
     def search(self) -> SearchService:
         """One search over every category; follows compendium reloads on its own."""
-        return SearchService(self.compendium, self.rulebooks)
+        return SearchService(self.compendium, self.rulebooks, self.maps, self.published)
 
     @cached_property
     def encounters(self) -> EncounterService:

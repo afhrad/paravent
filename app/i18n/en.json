@@ -1760,6 +1760,7 @@
   "books.pager": "Chapters",
   "search.group.books": "Books",
   "search.kind.book": "Book",
+  "search.kind.map": "Map",
   "glossary.category.book": "Book",
   "ref.kind.variant": "Magic item variant",
   "search.kind.magicvariant": "Magic item variant",
