@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import html
+import re
 from collections.abc import AsyncIterator
 from pathlib import Path
 
@@ -309,6 +311,14 @@ class TestMaps:
         assert 'src="/play/img/adventure/LMoP/thumbnail/Cragmaw%20Hideout.webp"' in page
         assert 'href="/play/img/adventure/LMoP/Cragmaw%20Hideout%20%28Player%29.webp"' in page
         assert "Phandalin" in page and "Image not in your corpus" in page  # no file for it
+        # The player version goes to the players' journal from the chapter showing the map.
+        share = re.search(r'href="(/gm/share\?[^"]+)" class="maps-share"', page)
+        assert share is not None
+        url = html.unescape(share.group(1))
+        assert f"chapter={goblins.id}" in url and "Cragmaw+Hideout+%28Player%29" in url
+        form = await ac.get(url)
+        assert form.status_code == 200
+        assert 'src="/play/img/adventure/LMoP/Cragmaw%20Hideout%20%28Player%29.webp"' in form.text
 
         chapter = (await ac.get(f"/gm/chapters/{goblins.id}")).text
         assert 'id="e-1ab"' in chapter and 'class="map-areas"' in chapter

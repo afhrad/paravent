@@ -1109,6 +1109,7 @@
   "maps.untitled_chapter": "Without a chapter",
   "maps.full": "Full size",
   "maps.player": "Player version",
+  "maps.share_player": "Share the player version",
   "maps.areas": {"one": "{count} area to click", "other": "{count} areas to click"},
   "combat.error.label": "Give the combatant a name.",
   "combat.error.begun": "The combat has already begun.",

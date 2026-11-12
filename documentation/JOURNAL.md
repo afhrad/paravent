@@ -51,6 +51,9 @@ otherwise, without a button). A book box is named by its id, else by its content
 (`book_key`), and found in the section **as it reads in the gamemaster's language**; the
 handout keeps that entry as 5eTools JSON (`Handout.entry`) and the players read it through
 the entries renderer, in the world's books. A book picture is copied from the image folder.
+**A book's maps** (2026-11-12, ADVENTURES.md §7): the maps listed on an adventure started
+from a book each share from the chapter that shows them — the player version where the
+book prints one (the map without its secrets), else the map.
 
 **The toast**: sharing writes one log entry per character (`EntryKind.HANDOUT`, private,
 the character as subject, the title as note), which the log's own rules pop up on that

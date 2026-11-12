@@ -424,7 +424,8 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         over" — no longer the highest it reaches, which made High a single number and
         a fight just under Low "Trivial". **Build a fight** to a difficulty, from the
         corpus's encounter shapes (phase 2 note above)
-  - [~] **Adventures and chapters** (documentation/ADVENTURES.md) — step 1 done:
+  - [x] **Adventures and chapters** (documentation/ADVENTURES.md) — all five steps of its
+        §8 done (2026-10-16), the maps added 2026-11-12. Step 1:
         `app/store/prose.py` keeps worlds, adventures and chapters as `.md` files with YAML
         front matter, one folder per world under `library/worlds/`, with the character
         store's rules for hand edits (ids written back, copies re-id'd, a broken edit keeps
@@ -528,9 +529,12 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         says how long; unknown names count the same, so nothing reveals which accounts
         exist. First-run setup is limited per address. Counters are in memory; a
         forwarded-for header is not trusted
-- [ ] Develop 5eTools crossreferencing methods that also spans multiple languages
-      — **unblocked by design** (TRANSLATION.md): tags in translated text resolve through the
-      English keyspace, so cross-referencing never waits on a translation existing
+- [x] Develop 5eTools crossreferencing methods that also spans multiple languages
+      — **solved by design** (TRANSLATION.md §3): tags in translated text resolve through the
+      English keyspace, so cross-referencing never waits on a translation existing; the
+      glossary gives a link its label in the reader's language (2026-10-19), and translated
+      passages keep the English record's tags (2026-10-21). Held by `tests/test_tags.py`
+      against the corpus for a 2014 and a 2024 world
 - [x] **The `{@tag}` renderer** — `app/ui/tags.py` (in `ui/`, not `services/` as first planned:
       it produces markup). A recursive parser (tags nest) and handlers driven by the 110-tag
       catalogue: entity tags resolve through the world's books into links, or grey text that

@@ -1109,6 +1109,7 @@
   "maps.untitled_chapter": "Ohne Kapitel",
   "maps.full": "Volle Größe",
   "maps.player": "Spielerversion",
+  "maps.share_player": "Spielerversion teilen",
   "maps.areas": {"one": "{count} Bereich zum Anklicken", "other": "{count} Bereiche zum Anklicken"},
   "combat.error.label": "Gib dem Kampfteilnehmer einen Namen.",
   "combat.error.begun": "Der Kampf hat bereits begonnen.",

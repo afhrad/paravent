@@ -21,17 +21,19 @@ def maps_panel(
     maps: Sequence[BookMap],
     where: Callable[[BookMap], str | None],
     picture: Callable[[str], str | None],
+    share: Callable[[BookMap, str], str | None] | None = None,
 ) -> Node:
     """The maps of a book, folded, by chapter. ``where(map)`` is the address of the map
     in the text (None where the table's text does not show it), ``picture(path)`` the
-    address of a file the image folder holds, or None. Nothing when the book has none."""
+    address of a file the image folder holds, or None; ``share(map, path)`` the share
+    form for a picture of it (JOURNAL.md), or None. Nothing when the book has none."""
     if not maps:
         return None
     t = page.t
     groups = [
         div(class_="maps-chapter")[
             h3(class_="maps-chapter-title")[name or t("maps.untitled_chapter")],
-            div(class_="maps-grid")[[_card(page, m, where, picture) for m in chapter]],
+            div(class_="maps-grid")[[_card(page, m, where, picture, share) for m in chapter]],
         ]
         for name, chapter in ((n, list(g)) for n, g in groupby(maps, key=lambda m: m.chapter_name))
     ]
@@ -48,6 +50,7 @@ def _card(
     found: BookMap,
     where: Callable[[BookMap], str | None],
     picture: Callable[[str], str | None],
+    share: Callable[[BookMap, str], str | None] | None,
 ) -> Element:
     t = page.t
     title = found.title or found.chapter_name or t("maps.untitled")
@@ -55,6 +58,9 @@ def _card(
     thumb = (picture(found.thumbnail) if found.thumbnail else None) or full
     player = picture(found.player.path) if found.player is not None else None
     here = where(found)
+    # What players are handed: the map without its secrets where the book prints one.
+    handed = found.player.path if player and found.player is not None else found.path
+    shared = share(found, handed) if share is not None and (player or full) else None
     shown: Node = (
         img(src=thumb, alt="", loading="lazy")
         if thumb
@@ -68,6 +74,12 @@ def _card(
                 a(href=full, target="_blank", rel="noopener")[t("maps.full")] if full else None,
                 a(href=player, target="_blank", rel="noopener")[t("maps.player")]
                 if player
+                else None,
+                a(href=shared, class_="maps-share")[
+                    icon("send", "sm"),
+                    span[t("maps.share_player") if player else t("journal.share")],
+                ]
+                if shared
                 else None,
                 span(class_="muted")[t("maps.areas", count=found.regions)]
                 if found.regions and here

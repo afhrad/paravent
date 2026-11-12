@@ -2414,3 +2414,4 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .maps-card figcaption{ display:grid; gap:2px; font-family:var(--font-ui); font-size:13px; }
 .maps-title{ font-weight:600; color:var(--text); }
 .maps-links{ display:flex; flex-wrap:wrap; gap:4px 10px; font-size:12px; }
+.maps-share{ display:inline-flex; align-items:center; gap:4px; }

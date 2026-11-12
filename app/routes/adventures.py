@@ -297,7 +297,8 @@ def _maps(page: Page, registry: StoreRegistry, view: AdventureView) -> Node:
     body = registry.published.body(view.book.id) if maps else None
     if body is None:
         return None
-    chapters = {c.section: chapter_url(c.id) for c in view.chapters if c.section}
+    sections = {c.section: c.id for c in view.chapters if c.section}
+    chapters = {section: chapter_url(ident) for section, ident in sections.items()}
 
     def where(found: BookMap) -> str | None:
         if not 0 <= found.chapter < len(body.sections):
@@ -307,7 +308,16 @@ def _maps(page: Page, registry: StoreRegistry, view: AdventureView) -> Node:
             return None
         return f"{url}#{anchor_id(found.id)}" if found.id else url
 
-    return maps_panel(page, maps, where, book_picture(registry.settings.images_root))
+    def share(found: BookMap, path: str) -> str | None:
+        """Handed out from the chapter that shows the map, back to this page."""
+        if not 0 <= found.chapter < len(body.sections):
+            return None
+        chapter = sections.get(body.sections[found.chapter].id)
+        back = adventure_url(view.adventure.id)
+        return share_href(chapter, "bookimage", path, back) if chapter else None
+
+    picture = book_picture(registry.settings.images_root)
+    return maps_panel(page, maps, where, picture, share)
 
 
 def _own_creatures(registry: StoreRegistry, adventure: Adventure) -> list[str]:

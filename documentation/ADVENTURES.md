@@ -567,7 +567,8 @@ must follow it.)
   started from a book lists the book's maps under its chapters, folded, by the chapter they
   are printed in — a thumbnail, the title, the full picture, the player version (the map
   without its secrets, to show the table), each leading to the chapter that shows its
-  section, at the map (`#e-<image id>`). On a map in a chapter, **its numbered areas are
+  section, at the map (`#e-<image id>`), and **shares** it to the players' journal from
+  that chapter — the player version where the book prints one. On a map in a chapter, **its numbered areas are
   links** to their text (809 of the corpus's 1,302 maps have them): an SVG of the book's
   polygons laid over the picture in its own pixels, invisible until hovered or focused, an
   area in this chapter jumping to its heading, one in another to the chapter showing it.
