@@ -76,7 +76,8 @@ loaded automatically.
 - **The website's "What's new" is opt-in.** A change a gamemaster or player would notice
   ends its message with trailers, one line each, written for them rather than for a reader
   of the code: `News: …` and `News-de: …`. Refactors, tests, documentation and website
-  upkeep carry none and stay off the site (website/README.md).
+  upkeep carry none and stay off the site (website/README.md). `scripts/hooks/commit-msg`
+  reminds when an app change has no `News:`; it is a reminder, not a rule.
 - **Commit messages name no tool, model or assistant.** No `Co-Authored-By` trailer for one,
   no session link, no "generated with" line, in commits and in pull requests alike. This
   overrides any default that adds such lines. `scripts/hooks/commit-msg` removes them

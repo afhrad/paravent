@@ -396,7 +396,21 @@
   "updates": {
     "eyebrow": "Neues",
     "title": "Frisch aus der Entwicklung",
-    "intro": "Die letzten Änderungen, so wie sie gemacht wurden, darum auf Englisch. Stand:",
+    "intro": "Die letzten Änderungen, so wie sie gemacht wurden. Stand:",
+    "_lines": "lines: was „Neu“ zu einem Commit von vor dem News:-Trailer zeigt (commit: sein kurzer Hash). Neuere Commits tragen ihre Zeile in der Commit-Nachricht.",
+    "lines": [
+      {"commit": "dc4fba6", "text": "Claude nutzt auch die fertigen Merkmale und Aktionen des Kreaturenbaukastens, in der Sprache eurer Welt."},
+      {"commit": "374ae47", "text": "Die fertigen Merkmale, Aktionen und Monstermerkmale des Kreaturenbaukastens lassen sich übersetzen: Eine deutsche Kreatur liest sich deutsch."},
+      {"commit": "3ba679d", "text": "Claude kann Änderungen an einer angenommenen Kreatur vorschlagen; es ändert sich nichts, bis ihr sie annehmt."},
+      {"commit": "5986643", "text": "Der Kreaturenbaukasten schreibt seine Angriffe in der Sprache und den Maßeinheiten eurer Welt."},
+      {"commit": "f6f327d", "text": "Der Kreaturenbaukasten zeigt und nimmt Entfernungen in Metern oder Fuß, wie ihr lest, und eine Begegnung öffnet ihre Kreaturen im Baukasten."},
+      {"commit": "3442393", "text": "Claudes eigene Kreaturen kämpfen in den Abenteuern, die Claude entwirft, bewertet nach ihrem Wertekasten."},
+      {"commit": "d1634c5", "text": "Eine Kreatur aus dem Baukasten kann ein Bild haben, das die Spieler im Kampf sehen."},
+      {"commit": "5448e7a", "text": "Ist die Rolle oder Kampfweise einer Kreatur noch offen, fragt Claude nach, bevor die Kreatur entsteht."},
+      {"commit": "22d83ee", "text": "Claude entwirft Kreaturen im Kreaturenbaukasten, als Entwürfe, die ihr annehmt."},
+      {"commit": "f99a52b", "text": "Claude sieht, welchen Völkern einer Welt noch ein Namensstil fehlt."},
+      {"commit": "b078fca", "text": "Eine neue Installation sagt klar, dass noch keine 5eTools-Daten da sind, statt leere Seiten zu zeigen."}
+    ],
     "_pinned": "pinned: von Hand geschrieben, unter den Änderungen aus git gezeigt. date ist der Tag (JJJJ-MM-TT), shown, wie er dasteht.",
     "pinned": [
       {

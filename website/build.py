@@ -114,15 +114,8 @@ SYNCED = {
 #     News: Claude can suggest changes to a creature you accepted.
 #     News-de: Claude kann Änderungen an einer angenommenen Kreatur vorschlagen.
 #
-# Commits up to and including LEGACY_UNTIL came before the trailer, so their subject is the
-# line, unless QUIET (or a "Website:" subject) says it tells a reader nothing. The release
-# commit that started the public history ("Paravent 0.1.x") says nothing either; the
-# content files' pinned item tells that story instead.
-LEGACY_UNTIL = "dc4fba640fbadd1c74326a53fb3e8b9ee81b75f2"
-QUIET = re.compile(
-    r"^(?:(?:merge|bump|wip|fixup|squash|revert|format|lint|typo)\b|paravent \d|website:)",
-    re.IGNORECASE,
-)
+# Commits made before the trailer came get their line from the content files instead
+# (``updates.lines``: a commit's short hash and its text, per language).
 NEWS_LOG = (
     "--pretty=format:%H%x1f%ad%x1f%s"
     "%x1f%(trailers:key=News,valueonly,separator=%x1d)"
@@ -342,32 +335,48 @@ def icons(text: str) -> str:
 # -- 2. update --------------------------------------------------------------------------
 
 
-def news(log: str, lang: str = "en", limit: int = UPDATES) -> list[tuple[str, str]]:
+def news(
+    log: str, lang: str = "en", lines: dict[str, str] | None = None, limit: int = UPDATES
+) -> list[tuple[str, str]]:
     """``(day, line)`` of the commits a reader cares about, newest first, from ``git log``
     in :data:`NEWS_LOG`'s format: a commit's ``News:`` (``News-de:`` on the German page),
-    or before :data:`LEGACY_UNTIL` its subject unless :data:`QUIET`."""
+    or the line ``lines`` gives its short hash. Any other commit is left out."""
+    written = {k.lower(): v for k, v in (lines or {}).items() if k.strip()}
     rows: list[tuple[str, str]] = []
-    legacy = False
     for record in log.split("\x1e"):
         parts = record.strip("\n").split("\x1f")
         if len(parts) != 5:
             continue
-        commit, day, subject, english, german = parts
-        legacy = legacy or commit == LEGACY_UNTIL
+        commit, day, _subject, english, german = parts
         first = [x.strip() for x in (german if lang == "de" else "").split("\x1d") if x.strip()]
         first = first or [x.strip() for x in english.split("\x1d") if x.strip()]
-        if first:
-            rows.append((day, first[0]))
-        elif legacy and subject and not QUIET.match(subject):
-            rows.append((day, subject))
+        line = (
+            first[0]
+            if first
+            else next(
+                (text for short, text in written.items() if commit.lower().startswith(short)), ""
+            )
+        )
+        if line:
+            rows.append((day, line))
         if len(rows) == limit:
             break
     return rows
 
 
+def news_lines(lang: str) -> dict[str, str]:
+    """The content file's lines for commits made before the ``News:`` trailer."""
+    entries = read_content(SITE / "content" / f"{lang}.json").get("updates.lines") or []
+    return {
+        str(e.get("commit", "")): str(e.get("text", ""))
+        for e in entries
+        if isinstance(e, dict) and e.get("text")
+    }
+
+
 def updates(lang: str = "en") -> str:
     """The newest commits a reader cares about, as list items, newest first."""
-    rows = news(git("log", "--no-merges", "--date=short", NEWS_LOG), lang)
+    rows = news(git("log", "--no-merges", "--date=short", NEWS_LOG), lang, news_lines(lang))
     items = [
         f'      <li class="update reveal"><time datetime="{day}">{_day(day, lang)}</time>'
         f"<span>{html.escape(subject, quote=False)}</span></li>"

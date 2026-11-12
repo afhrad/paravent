@@ -44,3 +44,36 @@ def test_a_message_without_any_is_left_alone(tmp_path: Path) -> None:
 def test_the_hook_can_run() -> None:
     """Git only runs a hook it may execute."""
     assert HOOK.stat().st_mode & 0o100
+
+
+def _hook_module() -> object:
+    import importlib.util
+    from importlib.machinery import SourceFileLoader
+
+    loader = SourceFileLoader("commit_msg", str(HOOK))
+    spec = importlib.util.spec_from_loader("commit_msg", loader)
+    assert spec is not None
+    module = importlib.util.module_from_spec(spec)
+    loader.exec_module(module)
+    return module
+
+
+def test_news_is_asked_for_when_the_app_changes() -> None:
+    hook = _hook_module()
+    remind = hook.news_reminder  # type: ignore[attr-defined]
+    plain = "Tracker sorts by initiative\n\nBecause ties broke oddly.\n"
+    assert "No News: trailer" in remind(plain, ["app/services/combat.py"])
+    assert remind(plain, ["tests/test_combat.py", "documentation/COMBAT.md"]) == ""
+    told = plain + "\nNews: The tracker sorts ties by Dexterity.\n"
+    assert "News-de" in remind(told, ["app/services/combat.py"])
+    both = told + "News-de: Der Tracker ordnet Gleichstände nach Geschicklichkeit.\n"
+    assert remind(both, ["app/services/combat.py"]) == ""
+    # A News: line in git's comment block does not count.
+    assert "No News" in remind(plain + "# News: x\n", ["static/js/ui.js"])
+
+
+def test_the_reminder_never_refuses_a_commit(tmp_path: Path) -> None:
+    file = tmp_path / "COMMIT_EDITMSG"
+    file.write_text("Anything\n", encoding="utf-8")
+    done = subprocess.run([sys.executable, str(HOOK), str(file)], capture_output=True)
+    assert done.returncode == 0

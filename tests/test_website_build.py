@@ -341,45 +341,45 @@ def test_the_check_ignores_what_moves_with_every_commit() -> None:
     assert build._settled(page) != build._settled(page.replace("Text", "Other"))
 
 
-def test_the_release_commit_and_housekeeping_stay_out_of_the_news() -> None:
-    for quiet in ("Paravent 0.1.x", "paravent 1.0", "Merge branch x", "bump version"):
-        assert build.QUIET.match(quiet), quiet
-    assert build.QUIET.match("Website: news brought up to date")
-    for news in ("Paravent's tracker names creatures", "Draft styles for every people"):
-        assert not build.QUIET.match(news), news
-
-
 def _log(*commits: tuple[str, str, str, str, str]) -> str:
     return "".join("\x1f".join(c) + "\x1e\n" for c in commits)
 
 
-def test_news_is_opt_in_after_the_trailer_came() -> None:
+def test_news_is_opt_in() -> None:
     log = _log(
-        ("c4", "2026-11-14", "Refactor the store", "", ""),
+        ("c4ffee", "2026-11-14", "Refactor the store", "", ""),
         (
-            "c3",
+            "c3a",
             "2026-11-13",
             "Creatures revised",
             "Claude revises creatures.",
             "Claude überarbeitet.",
         ),
-        ("c2", "2026-11-13", "Tracker sorted", "The tracker sorts.\x1dSecond line.", ""),
-        (build.LEGACY_UNTIL, "2026-11-12", "Old feature", "", ""),
-        ("c0", "2026-11-11", "Website: brought up to date", "", ""),
-        ("b9", "2026-11-10", "Older feature", "", ""),
+        ("c2b", "2026-11-13", "Tracker sorted", "The tracker sorts.\x1dSecond line.", ""),
+        ("0ldfeat", "2026-11-12", "Old feature", "", ""),
+        ("0ldsite", "2026-11-11", "Website: brought up to date", "", ""),
     )
-    assert build.news(log) == [
+    # A commit made before the trailer counts when the content files give it a line.
+    lines = {"0LDFEAT": "An old feature, told for readers."}
+    assert build.news(log, lines=lines) == [
         ("2026-11-13", "Claude revises creatures."),
         ("2026-11-13", "The tracker sorts."),
-        ("2026-11-12", "Old feature"),
-        ("2026-11-10", "Older feature"),
+        ("2026-11-12", "An old feature, told for readers."),
     ]
     # The German page reads News-de, the English line where there is none.
-    assert [line for _day, line in build.news(log, "de")][:2] == [
+    assert [line for _day, line in build.news(log, "de")] == [
         "Claude überarbeitet.",
         "The tracker sorts.",
     ]
     assert len(build.news(log, limit=1)) == 1
+
+
+def test_the_written_lines_name_commits_in_both_languages() -> None:
+    english, german = build.news_lines("en"), build.news_lines("de")
+    assert english and english.keys() == german.keys()
+    known = build.git("log", "--format=%h", "-n", "500").split()
+    if known:  # a checkout without its history cannot tell
+        assert all(any(h.startswith(short) for h in known) for short in english)
 
 
 def test_git_reads_the_trailers(tmp_path: Path) -> None:

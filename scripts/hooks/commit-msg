@@ -7,12 +7,17 @@ a link to the session, a "generated with" line. This hook removes them from ever
 commit, whoever wrote the message, and leaves everything else as it is, a
 ``Co-Authored-By`` for a person included.
 
+It also reminds, without refusing anything, that the website's "What's new" is opt-in
+(website/README.md): a commit changing the app that carries no ``News:`` trailer stays
+off the site, and one with ``News:`` but no ``News-de:`` shows English on the German page.
+
 Enable once per clone:  git config core.hooksPath scripts/hooks
 """
 
 from __future__ import annotations
 
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -40,6 +45,42 @@ def clean(message: str) -> str:
     return "\n".join(kept) + "\n"
 
 
+# What a gamemaster or player could notice: a commit touching these may deserve news.
+NOTICEABLE = ("app/", "static/")
+NEWS = re.compile(r"^News:\s*\S", re.MULTILINE)
+NEWS_DE = re.compile(r"^News-de:\s*\S", re.MULTILINE)
+
+
+def staged() -> list[str]:
+    """The paths this commit changes, empty when git cannot say."""
+    try:
+        out = subprocess.run(
+            ["git", "diff", "--cached", "--name-only"],
+            capture_output=True,
+            check=True,
+            text=True,
+        ).stdout
+    except (OSError, subprocess.CalledProcessError):
+        return []
+    return out.splitlines()
+
+
+def news_reminder(message: str, paths: list[str]) -> str:
+    """What to remind the author of about the website's news, or ""."""
+    text = "\n".join(line for line in message.splitlines() if not line.startswith("#"))
+    if NEWS.search(text):
+        if not NEWS_DE.search(text):
+            return "News: without News-de: — the German page shows the English line."
+        return ""
+    if any(path.startswith(NOTICEABLE) for path in paths):
+        return (
+            "No News: trailer — this commit stays off the website's \"What's new\". "
+            "Fine for refactors and tests; for a change players or gamemasters notice, "
+            "end the message with News: … and News-de: … (amend to add them)."
+        )
+    return ""
+
+
 def main(argv: list[str]) -> int:
     if len(argv) < 2:
         return 0
@@ -48,6 +89,9 @@ def main(argv: list[str]) -> int:
     after = clean(before)
     if after != before:
         path.write_text(after, encoding="utf-8")
+    reminder = news_reminder(after, staged())
+    if reminder:
+        print(f"commit-msg: {reminder}", file=sys.stderr)
     return 0
 
 

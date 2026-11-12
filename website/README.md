@@ -43,10 +43,11 @@ python website/build.py --check    # exit 1 when the pages lag their text or tem
    app's sprite by name; the next build brings it in.
 2. **Update**: "What's new" from the git history, **opt-in**: a commit appears only when
    its message ends with a `News:` trailer, the line the site shows, and `News-de:` for
-   the German page (the English line where it is missing). Commits up to `LEGACY_UNTIL`
-   in `build.py` came before the trailer and show their subject, unless it is
-   housekeeping (merges, bumps, "Website: …", the release commit "Paravent 0.1.x").
-   Followed by the hand-written items of `updates.pinned` in the content files (the first
+   the German page (the English line where it is missing). Commits made before the
+   trailer appear only when the content files give them a line (`updates.lines`: the
+   commit's short hash and its text). The commit-msg hook reminds, never refuses, when a
+   commit changes `app/` or `static/` without `News:`, or has `News:` without
+   `News-de:`. Followed by the hand-written items of `updates.pinned` in the content files (the first
    public release), and the facts strip: version, number of tests, date. Each lives
    between `<!-- name:start/end -->` markers.
 3. **Pack** — `dist/site/` and the zip, without `build.py`, this README and dotfiles.
