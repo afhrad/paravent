@@ -237,9 +237,12 @@ quantity, plus the coins (50 to the pound), against the carrying capacity — St
 twice that with Powerful Build (every species the books print is Small or Medium, which carry
 alike) — and push, drag or lift twice the capacity. The gear pane shows it in the reader's
 units; past the capacity it says the load can only be pushed or dragged, at 5 ft. Items whose
-weight the books do not give are counted and named in its title, not guessed.
+weight the books do not give are counted and named in its title, not guessed. **Variant
+encumbrance**, where the world ticks it (`variant_encumbrance`, `encumbrance: true` in its
+front matter): past Strength × 5 lb. (doubled with Powerful Build) speed −10 ft., past × 10
+−20 ft. and disadvantage on Strength, Dexterity and Constitution checks, saves and weapon
+attacks, logged as "heavily encumbered".
 
 ## 5. Not yet
 
-- Variant encumbrance (the PHB's optional rule: speed −10 ft. past Strength × 5, −20 ft. and
-  disadvantage past × 10) is not applied: it would be a world's choice.
+- Nothing listed.

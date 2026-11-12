@@ -389,11 +389,23 @@ class Load:
     push: int
     powerful_build: bool = False
     unweighed: int = 0  # entries whose weight the books do not give
+    # The PHB's variant encumbrance, where the world plays it: past ``encumbered`` lb.
+    # speed −10 ft., past ``heavy`` −20 ft. and disadvantage on STR, DEX and CON rolls.
+    variant: bool = False
+    encumbered: int = 0
+    heavy: int = 0
 
     @property
     def carried(self) -> float:
         """Everything carried, in pounds."""
         return self.items + self.coins
+
+    @property
+    def burden(self) -> int:
+        """Under the variant: 0 unencumbered, 1 encumbered, 2 heavily encumbered."""
+        if not self.variant:
+            return 0
+        return 2 if self.carried > self.heavy else 1 if self.carried > self.encumbered else 0
 
     @property
     def over(self) -> bool:
@@ -677,8 +689,10 @@ def build_sheet(
     source_set: SourceSet | None = None,
     revision: str | None = None,
     file_error: str | None = None,
+    variant_encumbrance: bool = False,
 ) -> Sheet:
-    """Derive the whole sheet for ``character``."""
+    """Derive the whole sheet for ``character``; ``variant_encumbrance`` where its world
+    plays the PHB's optional rule."""
     corpus = _Corpus(compendium, source_set)
     sheet = Sheet(character=character, revision=revision, file_error=file_error)
     level = character.total_level
@@ -720,7 +734,7 @@ def build_sheet(
         ),
     )
     sheet.speed = _value(character, "speed", _speed(species, subspecies))
-    sheet.load = _load(sheet, character, species, subspecies)
+    sheet.load = _load(sheet, character, species, subspecies, variant_encumbrance)
     _hit_points(sheet, character, classes, mods["con"])
     _spellcasting(sheet, character, corpus, classes, mods, prof_bonus)
     _features(sheet, character, corpus, classes, species, subspecies, background)
@@ -731,6 +745,7 @@ def build_sheet(
     apply_traits(sheet)
     sheet.edition = "2024" if (primary or {}).get("edition") == "one" else "2014"
     _exhaustion(sheet, character.state.exhaustion)
+    _burden(sheet)
     _play_state(sheet, character, corpus)
     _proficiencies(sheet, character, classes, training)
     _weapon_master(sheet, character, corpus, classes, training[1])
@@ -1213,6 +1228,7 @@ def _load(
     character: PlayerCharacter,
     species: dict[str, Any] | None,
     subspecies: dict[str, Any] | None,
+    variant: bool = False,
 ) -> Load | None:
     """Carried weight and carrying capacity. Every species the books print is Small or
     Medium, which carry alike; Powerful Build counts as one size larger (twice as
@@ -1225,7 +1241,32 @@ def _load(
     items = sum(i.weight * i.quantity for i in sheet.inventory if i.weight is not None)
     unweighed = sum(1 for i in sheet.inventory if i.weight is None)
     coins = sum(character.currency.model_dump().values()) / COINS_PER_POUND
-    return Load(round(items, 2), round(coins, 2), capacity, capacity * 2, powerful, unweighed)
+    size = 2 if powerful else 1
+    return Load(
+        round(items, 2),
+        round(coins, 2),
+        capacity,
+        capacity * 2,
+        powerful,
+        unweighed,
+        variant,
+        strength * 5 * size,
+        strength * 10 * size,
+    )
+
+
+def _burden(sheet: Sheet) -> None:
+    """Variant encumbrance's speed: −10 ft. encumbered, −20 ft. heavily (its disadvantage
+    is the roll's, ``condition_rolls``)."""
+    load, speed = sheet.load, sheet.speed
+    if load is None or not load.burden or speed.value is None or speed.overridden:
+        return
+    less = 10 * load.burden
+    note = "heavily encumbered" if load.burden == 2 else "encumbered"
+    sheet.speed = Value(
+        max(0, speed.value - less),
+        f"{speed.explanation} · {note} −{less} ft" if speed.explanation else note,
+    )
 
 
 def _has_entry(record: dict[str, Any] | None, name: str) -> bool:

@@ -141,6 +141,17 @@ class TestWorlds:
         await gm.post(f"/gm/worlds/{world.id}", data={"name": "Ashen Vale", "language": "xx"})
         assert registry.gamestate.worlds.find(world.id).language == "en"  # type: ignore[union-attr]
 
+    async def test_variant_encumbrance_is_a_world_s_choice(
+        self, gm: AsyncClient, registry: StoreRegistry
+    ) -> None:
+        await gm.post("/gm/worlds", data={"name": "Heavy Hills", "encumbrance": "1"})
+        world = next(w for w in registry.gamestate.worlds.list() if w.name == "Heavy Hills")
+        assert world.variant_encumbrance
+        form = (await gm.get(f"/gm/worlds/{world.id}/edit")).text
+        assert 'name="encumbrance"' in form and "Variant encumbrance" in form
+        await gm.post(f"/gm/worlds/{world.id}", data={"name": "Heavy Hills"})
+        assert not registry.gamestate.worlds.get(world.id).variant_encumbrance
+
     async def test_a_name_is_required(self, gm: AsyncClient) -> None:
         response = await gm.post("/gm/worlds", data={"name": "  ", "sources": ["PHB"]})
         assert response.status_code == 422

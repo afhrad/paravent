@@ -22,6 +22,14 @@ _EFFECTS: dict[str, tuple[tuple[str, int], ...]] = {
     "prone": (("attack", -1),),
     "restrained": (("attack", -1), ("save:dex", -1)),
     "invisible": (("attack", 1),),
+    # Variant encumbrance's heavy load: passed only for rolls of STR, DEX or CON.
+    "encumbered": (
+        ("attack", -1),
+        ("check", -1),
+        ("save:str", -1),
+        ("save:dex", -1),
+        ("save:con", -1),
+    ),
 }
 
 

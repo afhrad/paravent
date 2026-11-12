@@ -529,3 +529,27 @@ class TestCarrying:
         ).load
         assert heavy is not None and not heavy.powerful_build
         assert heavy.capacity == 120 and heavy.carried == 195 and heavy.over
+
+
+class TestVariantEncumbrance:
+    """The PHB's optional rule, where the world plays it: speed −10 ft. past Strength × 5,
+    −20 ft. past × 10 (coins weigh too: 50 to the pound)."""
+
+    @requires_corpus
+    def test_speed_follows_the_load(self, loaded_compendium: CompendiumStore) -> None:
+        def carrying(gp: int, variant: bool = True) -> Any:
+            pc = _pc(
+                species="Human|XPHB",
+                abilities={"str": 10},
+                classes=[{"class": "Fighter|XPHB", "level": 1}],
+                currency={"gp": gp},
+            )
+            return build_sheet(pc, loaded_compendium, variant_encumbrance=variant)
+
+        light, encumbered, heavy = carrying(1000), carrying(3000), carrying(6000)
+        assert [s.load.burden for s in (light, encumbered, heavy)] == [0, 1, 2]
+        assert [s.speed.value for s in (light, encumbered, heavy)] == [30, 20, 10]
+        assert "heavily encumbered" in heavy.speed.explanation
+        # Without the rule only the capacity counts.
+        plain = carrying(6000, variant=False)
+        assert plain.load is not None and plain.load.burden == 0 and plain.speed.value == 30

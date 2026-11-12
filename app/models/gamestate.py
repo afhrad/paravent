@@ -204,6 +204,9 @@ class World(Record):
     # Whether rolled ability scores may be rolled again in the wizard. Off: a roll is a
     # commitment (documentation/CHARGEN-WIZARD.md §0).
     allow_rerolls: bool = False
+    # The PHB's optional variant encumbrance: past Strength × 5 lb. speed −10 ft., past
+    # × 10 −20 ft. and disadvantage on Strength, Dexterity and Constitution rolls.
+    variant_encumbrance: bool = False
     # The declared books players may read (documentation/PLAYER-VIEW.md). None: the
     # player's handbooks and the supplements among them.
     player_sources: list[str] | None = None

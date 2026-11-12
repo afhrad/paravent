@@ -518,9 +518,12 @@ class PlayService:
         # The character's own conditions bend the roll (Poisoned: disadvantage on attacks
         # and checks); the reasons go into the log line as "[poisoned]".
         roll_kind = {"check": "check", "skill": "check", "initiative": "check", "attack": "attack"}
+        conditions = list(pc.state.conditions)
+        if sheet.load is not None and sheet.load.burden == 2 and _physical(sheet, kind, subject):
+            conditions.append("encumbered")  # variant encumbrance, heavily
         bent = bend(
             chosen,
-            pc.state.conditions,
+            conditions,
             f"save:{subject}" if kind == "save" else roll_kind.get(kind, ""),
             pc.state.exhaustion,
             sheet.edition,
@@ -708,6 +711,21 @@ class PlayService:
         """Start the character's log afresh: views of it begin after a ``clear`` entry;
         nothing is deleted from the log itself (PROTOCOL.md §3)."""
         self._stage(pc, actor, EntryKind.CLEAR)
+
+
+PHYSICAL = frozenset({"str", "dex", "con"})
+
+
+def _physical(sheet: Sheet, kind: str, subject: str) -> bool:
+    """True for a roll of Strength, Dexterity or Constitution: those saves and checks,
+    skills of them, initiative, and weapon attacks (which use STR or DEX)."""
+    if kind in ("save", "check"):
+        return subject in PHYSICAL
+    if kind == "skill":
+        return any(s.key == subject and s.ability in PHYSICAL for s in sheet.skills)
+    if kind == "attack":
+        return any(a.name == subject for a in sheet.attacks)
+    return kind == "initiative"
 
 
 __all__ = ["Actor", "PlayError", "PlayService"]

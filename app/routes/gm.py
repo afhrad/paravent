@@ -252,6 +252,7 @@ def _world_input(
     players: list[str] | None,
     rerolls: str,
     language: str,
+    encumbrance: str = "",
 ) -> WorldInput:
     """What the world form posted; the players' ticks stored only where they differ from
     the defaults."""
@@ -262,6 +263,7 @@ def _world_input(
         description,
         declared,
         allow_rerolls=bool(rerolls),
+        variant_encumbrance=bool(encumbrance),
         language=_language(registry, language),
         player_sources=tuple(chosen) if chosen is not None else None,
     )
@@ -297,9 +299,12 @@ async def create_world(
     players: Annotated[list[str] | None, Form()] = None,
     rerolls: Annotated[str, Form()] = "",
     language: Annotated[str, Form()] = "",
+    encumbrance: Annotated[str, Form()] = "",
 ) -> Response:
     """Create a world, or show the form again with the reason it was refused."""
-    data = _world_input(registry, name, description, sources, players, rerolls, language)
+    data = _world_input(
+        registry, name, description, sources, players, rerolls, language, encumbrance
+    )
     try:
         world = worlds.create(data)
     except AuthError as exc:
@@ -312,6 +317,7 @@ async def create_world(
             sources=data.sources,
             players=frozenset(p.upper() for p in players or ()),
             rerolls=data.allow_rerolls,
+            encumbrance=data.variant_encumbrance,
             language=data.language,
             languages=_languages(registry),
             error=page.t.error(exc),
@@ -350,6 +356,7 @@ async def edit_world(
             sources=world.source_set.sources,
             players=player_ticks(world, _groups(registry)),
             rerolls=world.allow_rerolls,
+            encumbrance=world.variant_encumbrance,
             language=world.language,
             languages=_languages(registry),
             extra=[notice(notice_text), alert(message), images],
@@ -370,10 +377,13 @@ async def update_world(
     players: Annotated[list[str] | None, Form()] = None,
     rerolls: Annotated[str, Form()] = "",
     language: Annotated[str, Form()] = "",
+    encumbrance: Annotated[str, Form()] = "",
 ) -> Response:
     """Save a world's name, description and books."""
     world = worlds.get(world_id)
-    data = _world_input(registry, name, description, sources, players, rerolls, language)
+    data = _world_input(
+        registry, name, description, sources, players, rerolls, language, encumbrance
+    )
     try:
         worlds.update(world_id, data)
     except AuthError as exc:
@@ -386,6 +396,7 @@ async def update_world(
             sources=data.sources,
             players=frozenset(p.upper() for p in players or ()),
             rerolls=data.allow_rerolls,
+            encumbrance=data.variant_encumbrance,
             language=data.language,
             languages=_languages(registry),
             error=page.t.error(exc),

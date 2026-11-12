@@ -940,6 +940,20 @@ def _load_line(page: Page, sheet: Sheet) -> Node:
         parts.append(t("sheet.load_powerful"))
     if load.unweighed:
         parts.append(t.plural("sheet.load_unweighed", load.unweighed))
+    if load.variant:
+        parts.append(
+            t("sheet.load_variant", light=u.weight(load.encumbered), heavy=u.weight(load.heavy))
+        )
+    burden = (
+        span(class_="tag warn")[
+            t(
+                "sheet.load_heavy" if load.burden == 2 else "sheet.load_encumbered",
+                speed=u.distance(10 * load.burden),
+            )
+        ]
+        if load.burden and not load.over
+        else None
+    )
     return p(class_=f"cs-load {'over' if load.over else ''}", title=" · ".join(parts))[
         span[
             t(
@@ -951,6 +965,7 @@ def _load_line(page: Page, sheet: Sheet) -> Node:
         " · ",
         span(class_="muted")[t("sheet.load_push", weight=u.weight(load.push))],
         span(class_="tag warn")[t("sheet.load_over", speed=u.distance(5))] if load.over else None,
+        burden,
     ]
 
 

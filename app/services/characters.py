@@ -111,12 +111,14 @@ class CharacterService:
     def sheet(self, character: PlayerCharacter) -> Sheet:
         """The derived sheet, with the file's revision and any error reading it."""
         store = self._store.characters
+        world = self._store.worlds.find(character.world_id) if character.world_id else None
         sheet = build_sheet(
             character,
             self._compendium,
             source_set=self.source_set(character),
             revision=store.revision(character.id),
             file_error=store.error(character.id),
+            variant_encumbrance=world is not None and world.variant_encumbrance,
         )
         if self._protocol is not None:
             sheet.last_roll = self._protocol.newest(

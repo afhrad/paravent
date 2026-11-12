@@ -489,6 +489,8 @@ def bonus_word(page: Page, source: str) -> str:
 def reason_word(page: Page, reason: str) -> str:
     """Why a roll had advantage or disadvantage: "the switch", "Poisoned"."""
     head, _, rest = reason.partition(":")
+    if head == "condition" and rest == "encumbered":  # variant encumbrance, not a condition
+        return _word(page, "protocol.reason.encumbered", rest)
     if head == "condition" and rest:
         return _word(page, f"condition.{rest}", rest)
     return _word(page, f"protocol.reason.{head}", head)

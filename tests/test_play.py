@@ -223,6 +223,26 @@ class TestRolls:
         fighter.roll(10).act("roll", kind="save", subject="con")
         assert _total(fighter) == 12  # no proficiency known for a homebrew class
 
+    def test_a_heavy_load_bends_strength_dexterity_and_constitution(self, fighter: Table) -> None:
+        """Variant encumbrance: 180 lb. of coins on STR 16 is past × 10 (160 lb.)."""
+        fighter.store.update(fighter.pc.id, currency={"gp": 9000})
+
+        def rolled(**params: Any) -> Any:
+            current = fighter.store.get(fighter.pc.id)
+            sheet = build_sheet(current, None, variant_encumbrance=True)
+            fighter.roll(15, 5)
+            fighter.play.act(
+                fighter.pc.id, "roll", {k: str(v) for k, v in params.items()}, sheet, ACTOR
+            )
+            return fighter.latest.roll
+
+        save = rolled(kind="save", subject="str")
+        assert save.mode == "disadvantage" and "condition:encumbered" in save.reasons
+        skill = rolled(kind="skill", subject="athletics")
+        assert skill.mode == "disadvantage"
+        wisdom = rolled(kind="save", subject="wis")
+        assert wisdom.mode != "disadvantage" and not wisdom.reasons
+
     def test_natural_twenty_is_marked(self, fighter: Table) -> None:
         fighter.roll(20).act("roll", kind="check", subject="str")
         assert fighter.latest.outcome == "crit"

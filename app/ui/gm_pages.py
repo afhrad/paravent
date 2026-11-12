@@ -427,6 +427,7 @@ def world_form_page(
     sources: Sequence[str],
     players: frozenset[str] = frozenset(),
     rerolls: bool = False,
+    encumbrance: bool = False,
     language: str = "en",
     languages: Sequence[tuple[str, str]] = (),
     error: str | None = None,
@@ -514,6 +515,12 @@ def world_form_page(
                         t("worlds.rerolls"),
                         checked=rerolls,
                         hint=t("worlds.rerolls_hint"),
+                    ),
+                    checkbox_field(
+                        "encumbrance",
+                        t("worlds.encumbrance"),
+                        checked=encumbrance,
+                        hint=t("worlds.encumbrance_hint"),
                     ),
                     div(class_="form-actions")[
                         button(type="submit", class_="btn btn-primary")[

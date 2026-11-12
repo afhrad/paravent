@@ -186,6 +186,7 @@ class WorldFront(_Front):
     # The books players may read (documentation/PLAYER-VIEW.md); absent: the defaults.
     player_books: list[str] | None = None
     rerolls: bool = False
+    encumbrance: bool = False
     # The naming styles names come from (documentation/NAMES.md §5b); absent: every one.
     names: list[str] = Field(default_factory=list)
 
@@ -231,6 +232,7 @@ def to_file(record: Record) -> tuple[dict[str, Any], str]:
             "cover": record.cover,
             "books": list(record.source_set.sources),
             "rerolls": record.allow_rerolls or None,
+            "encumbrance": record.variant_encumbrance or None,
             "names": list(record.naming_styles),
         }
         front = _clean(fields)
@@ -455,6 +457,7 @@ class ProseStore:
                 cover=w.cover,
                 source_set=SourceSet(sources=w.books),
                 allow_rerolls=w.rerolls,
+                variant_encumbrance=w.encumbrance,
                 player_sources=w.player_books,
                 naming_styles=w.names,
             )

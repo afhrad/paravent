@@ -126,6 +126,7 @@ class WorldInput:
     description: str = ""
     sources: tuple[str, ...] = ()
     allow_rerolls: bool = False
+    variant_encumbrance: bool = False
     # What the world's own texts are written in; Claude writes drafts in it (MCP.md §5).
     language: str = "en"
     # The declared books players may read; None: the defaults (PLAYER-VIEW.md).
@@ -174,6 +175,7 @@ class WorldService:
             description=data.description.strip(),
             source_set=sources,
             allow_rerolls=data.allow_rerolls,
+            variant_encumbrance=data.variant_encumbrance,
             language=data.language,
             player_sources=_players(data),
         )
@@ -189,6 +191,7 @@ class WorldService:
             description=data.description.strip(),
             source_set=sources,
             allow_rerolls=data.allow_rerolls,
+            variant_encumbrance=data.variant_encumbrance,
             language=data.language,
             player_sources=_players(data),
         )
