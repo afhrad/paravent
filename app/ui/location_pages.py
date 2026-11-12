@@ -237,6 +237,8 @@ def location_page(
                 page.token_of("place", location.scope.world_id, location.id),
                 "place",
                 location.id,
+                world_id=location.scope.world_id,
+                has_picture=bool(location.picture),
             ),
         ],
         world_id=world.id,

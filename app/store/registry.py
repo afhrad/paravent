@@ -19,6 +19,7 @@ from typing import Any
 from app.config import Settings
 from app.models.gamestate import Combat, Combatant
 from app.models.protocol import EntryKind, ProtocolEntry
+from app.services import media
 from app.services.adventures import AdventureService
 from app.services.auth import AuthService, Identity
 from app.services.backlinks import BacklinkIndex
@@ -36,7 +37,7 @@ from app.services.creature_builder import (
     CreatureService,
     Wording,
 )
-from app.services.creature_pictures import CreaturePictures
+from app.services.creature_pictures import CreaturePictures, design_ref, slug
 from app.services.creature_sight import Sight, fluff_image, sight
 from app.services.difficulty import DifficultyRules
 from app.services.encounters import EncounterService
@@ -250,8 +251,43 @@ class StoreRegistry:
     def tokens(self) -> Tokens:
         """Round tokens for every element (documentation/TOKENS.md)."""
         return Tokens(
-            self.gamestate.prose, self.settings.media_dir, lambda: self.settings.images_root
+            self.gamestate.prose,
+            self.settings.media_dir,
+            lambda: self.settings.images_root,
+            self._own_picture,
         )
+
+    def _own_picture(self, kind: str, ident: str) -> Path | None:
+        """An element's own picture, which its token is made from (documentation/TOKENS.md):
+        an NPC's portrait, a place's picture, a builder creature's picture."""
+        store = self.gamestate
+        if kind == "npc":
+            npc = store.npcs.find(ident)
+            if npc is not None and npc.portrait:
+                return media.resolve(store.prose, npc.scope.record_id, npc.portrait)
+        elif kind == "place":
+            place = store.locations.find(ident)
+            if place is not None and place.picture:
+                return media.resolve(store.prose, place.scope.record_id, place.picture)
+        elif kind == "creature":
+            design = store.creatures.find(ident)
+            if design is not None:
+                return self.creature_pictures.find(design.world_id, design_ref(design.name))
+        return None
+
+    def set_own_picture(self, kind: str, ident: str, filename: str, data: bytes) -> bool:
+        """Make an upload the element's own picture (the token follows); False for a kind
+        without one. Raises :class:`~app.services.media.MediaError`."""
+        if kind == "npc":
+            self.npcs.upload_portrait(ident, filename, data)
+        elif kind == "place":
+            self.locations.upload_picture(ident, filename, data)
+        elif kind == "creature":
+            design = self.creatures.get(ident)
+            self.creature_pictures.set(design.world_id, design_ref(design.name), filename, data)
+        else:
+            return False
+        return True
 
     def _combatant_token(self, combatant: Combatant, world_id: str | None) -> Token:
         """A combatant's token: its character's, its creature's, or a creature disc."""
@@ -279,6 +315,18 @@ class StoreRegistry:
                 own = self.tokens.own(design.world_id, "creature", design.id)
                 if own is not None:
                     return own
+        else:
+            # The table's own picture of a book creature, set in the tracker, is its token.
+            ref = f"{name}|{source}"
+            picture = self.creature_pictures.find(world_id, ref, shared=False)
+            ident = f"book-{slug(ref)}"
+            made = (
+                self.tokens.from_picture(world_id, "creature", ident, picture)
+                if picture is not None
+                else None
+            )
+            if made is not None:
+                return self.tokens.served(world_id, "creature", ident, made)
         return self.tokens.of_entry("monster", name, source, token)
 
     @cached_property

@@ -14,8 +14,12 @@ the lists and cards, and on reference pages and their previews.
 
 In this order, the first that exists:
 
-1. **The table's own token** — uploaded for an NPC, a player character, a creature of the
-   builder, a place, an encounter or a treasure (§3).
+1. **The table's own token** — for an NPC, a place or a creature, **made from its own
+   picture** (one picture for both, the user's decision of 2026-11-12): the NPC's portrait,
+   the place's picture, a builder creature's picture, or the picture the table gave a book
+   creature in the tracker. Made again whenever the picture changes, placed where it was
+   last set. A player character, an encounter or a treasure has no picture of its own and
+   takes an uploaded token (§3).
 2. **A 5eTools token** — for a creature, a vehicle or an object, from the 5eTools image
    folder (`PARAVENT_IMAGE_DIR`, read in place, never copied): `bestiary/tokens/<SOURCE>/
    <Name>.webp`, `vehicles/tokens/…`, `objects/tokens/…`, the name as 5eTools writes it
@@ -23,8 +27,18 @@ In this order, the first that exists:
    another creature's token, as 5eTools does; `tokenUrl`/`tokenHref` are not followed. The
    files are round already (560×560, transparent corners); they are 5eTools art, so like the
    corpus they are the user's to bring, and Paravent ships none.
-3. **The kind's default disc** — the kind's icon on a disc in the kind's colours from the
-   theme's tokens, drawn inline (so it follows the theme and needs no file).
+3. **The kind's empty frame** — the kind's ring (§1a) with the kind's icon in its opening,
+   the opening filled in the kind's colour from the theme's tokens.
+
+### 1a. Frames (2026-11-12, the user's request)
+
+Every kind has an empty token frame, `static/tokens/frame-<kind>.png` (512 px): a bevelled
+ring in the kind's colour, its centre see-through. They are drawn by
+`python scripts/token_frames.py` from `FRAME_COLOURS` in `app/services/tokens.py`; the
+ring's inner edge is `FRAME_INNER` (0.82) of the radius. An uploaded picture is placed in
+its kind's frame: scaled so its shorter side fills the opening, times the zoom, the chosen
+point at the centre, cut round to the opening, the ring on top — and saved so, one file.
+5eTools tokens keep their own ring.
 
 | Kind | Icon | Colours |
 | --- | --- | --- |
@@ -52,9 +66,17 @@ In this order, the first that exists:
 
 ## 3. The table's own tokens
 
-Uploaded on the element's page (the NPC's, place's, encounter's, treasure's, character's
-sheet, a builder creature's), as any image the world's media accepts. Paravent crops the
-centre square, scales it to 512 px, masks it round and stores it as WebP:
+Set on the element's page (the NPC's, place's, encounter's, treasure's, character's
+sheet, a builder creature's), as any image the world's media accepts: dropped on the panel
+or chosen. For an NPC, a place or a builder creature the picture chosen **becomes its
+picture too** (portrait, place picture, creature picture), and **Adjust** reopens the
+dialog with the picture it has, where it sits, to place it anew without uploading
+(`GET /tokens/<world>/<kind>/<id>/picture` serves it to the dialog). Where it sits is kept
+in `<id>.json` beside the token, with the picture it was made from. **The dialog** (`static/js/token_editor.js`) shows it under the kind's frame,
+cut to the opening as it will be saved: drag to move it, the slider or mouse wheel to zoom
+(1–4, the server takes up to 8). Save sends the picture with `x`, `y` (the point of the
+picture at the centre, 0–1) and `zoom`; the server places it the same way (§1a). Without
+the script the form still uploads, centred. Stored as WebP:
 `media/tokens/<kind>/<id>.webp` in the element's world folder (a character or builder
 creature of no world: the library's `media/tokens/`). Removing it returns to §1's next
 source. Served at `/tokens/<kind>/<id>`, the address carrying the file's version.

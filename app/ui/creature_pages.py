@@ -820,6 +820,8 @@ def builder_page(
                         page.token_of("creature", view.design.world_id, view.design.id),
                         "creature",
                         view.design.id,
+                        world_id=view.design.world_id,
+                        has_picture=bool(view.picture),
                     ),
                     section(class_="cb-preview", aria_label=t("creatures.preview"))[
                         statblock(page, view.preview, ctx)

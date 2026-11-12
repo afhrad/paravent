@@ -10,7 +10,7 @@ from app.services.auth import Identity
 from app.services.i18n import Translator
 from app.services.player_view import Reader
 from app.services.themes import Theme
-from app.services.tokens import Token
+from app.services.tokens import Placement, Token
 from app.services.units import UnitFormat
 
 
@@ -36,6 +36,8 @@ class Page:
     # The table's own token of an element (documentation/TOKENS.md): ``(kind, world,
     # id)`` → Token; without it every element shows its kind's disc.
     tokens: Callable[[str, str | None, str], Token] | None = None
+    # Where an element's picture sits in its token's frame: ``(world, kind, id)``.
+    token_placement: Callable[[str | None, str, str], Placement] | None = None
 
     def token_of(self, kind: str, world_id: str | None, ident: str) -> Token:
         """An NPC's, character's, place's, encounter's or treasure's token."""

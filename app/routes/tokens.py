@@ -1,8 +1,9 @@
 """The table's own tokens (documentation/TOKENS.md §3).
 
 * ``GET  /tokens/{world}/{kind}/{id}`` — an uploaded token (``-`` for no world)
-* ``POST /tokens/{kind}/{id}``          — upload one (``token``), or ``do=remove``; then
-  back to ``next``
+* ``GET  /tokens/{world}/{kind}/{id}/picture`` — the element's own picture, for the dialog
+* ``POST /tokens/{kind}/{id}``          — upload one (``token``, placed in the kind's
+  frame at ``x``, ``y``, ``zoom``), or ``do=remove``; then back to ``next``
 
 The gamemaster sets any; a player only their own character's.
 """
@@ -18,7 +19,7 @@ from app.models.gamestate import Location, Npc, Treasure
 from app.routes.auth import redirect, safe_next
 from app.services.auth import Identity
 from app.services.media import MediaError
-from app.services.tokens import TOKEN_URL
+from app.services.tokens import PICTURE_KINDS, TOKEN_URL, Placement
 from app.store.registry import StoreRegistry
 
 router = APIRouter(tags=["tokens"])
@@ -80,17 +81,40 @@ async def set_token(
         raise HTTPException(status_code=403)
     form = await request.form()
     back = safe_next(str(form.get("next") or "")) or "/"
+    tokens = registry.tokens
     if form.get("do") == "remove":
-        registry.tokens.remove(world_id, kind, ident)
+        tokens.remove(world_id, kind, ident)
         return redirect(back)
+    placement = Placement.parse(form.get("x", 0.5), form.get("y", 0.5), form.get("zoom", 1))
     upload = form.get("token")
     if not isinstance(upload, UploadFile) or not upload.filename:
+        # No new picture: the element's own picture placed anew, if it has one.
+        if kind in PICTURE_KINDS and tokens.place(world_id, kind, ident, placement):
+            return redirect(back)
         return redirect(_with(back, "token_error", "none"))
+    data = await upload.read()
     try:
-        registry.tokens.set(world_id, kind, ident, upload.filename, await upload.read())
+        # One picture for both: an element with a picture of its own gets the upload as
+        # that picture, and its token is made from it.
+        if registry.set_own_picture(kind, ident, upload.filename, data):
+            tokens.place(world_id, kind, ident, placement)
+        else:
+            tokens.set(world_id, kind, ident, upload.filename, data, placement)
     except MediaError:
         return redirect(_with(back, "token_error", "image"))
     return redirect(back)
+
+
+@router.get(f"{TOKEN_URL}/{{world}}/{{kind}}/{{ident}}/picture")
+async def token_picture(
+    identity: IdentityDep, registry: RegistryDep, world: str, kind: str, ident: str
+) -> FileResponse:
+    """The element's own picture, for the dialog that places it in the frame."""
+    found = owner(registry, kind, ident)
+    picture = registry.tokens.picture(kind, ident) if found is not None else None
+    if found is None or picture is None or not may_set(identity, kind, found[1]):
+        raise HTTPException(status_code=404)
+    return FileResponse(picture, headers={"Cache-Control": "private, no-cache"})
 
 
 def _with(url: str, key: str, value: str) -> str:

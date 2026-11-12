@@ -1,6 +1,6 @@
 [project]
 name = "paravent"
-version = "0.1.189"
+version = "0.1.190"
 description = "D&D 5e tool for players and dungeon masters"
 license = "MIT"
 license-files = ["LICENSE", "NOTICE.md"]

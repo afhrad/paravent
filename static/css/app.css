@@ -2331,13 +2331,17 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .tok{ --tok:34px; position:relative; flex:none; display:inline-grid; place-items:center; width:var(--tok); height:var(--tok); border-radius:50%; vertical-align:middle; }
 .tok-sm{ --tok:24px; } .tok-md{ --tok:34px; } .tok-lg{ --tok:56px; } .tok-xl{ --tok:96px; }
 .tok-img img{ width:100%; height:100%; border-radius:50%; object-fit:cover; display:block; }
-.tok-disc{ background:var(--surface-3); color:var(--text-2); border:1px solid var(--border-strong); }
-.tok-disc .ic{ width:calc(var(--tok) * .5); height:calc(var(--tok) * .5); }
-.tok-creature.tok-disc, .tok-encounter.tok-disc{ background:var(--dmg-weak); color:var(--dmg-text); }
-.tok-npc.tok-disc, .tok-vehicle.tok-disc, .tok-object.tok-disc{ background:var(--accent-weak); color:var(--accent-text); }
-.tok-character.tok-disc{ background:var(--heal-weak); color:var(--heal-text); }
-.tok-item.tok-disc, .tok-spell.tok-disc{ background:var(--magic-weak); color:var(--magic-text); }
-.tok-place.tok-disc, .tok-treasure.tok-disc{ background:var(--cond-weak); color:var(--cond-text); }
+.tok-disc{ color:var(--text-2); }
+/* The empty frame: its opening filled in the kind's colour, the icon there, the ring on top. */
+.tok-disc::before{ content:""; position:absolute; inset:9%; border-radius:50%; background:var(--tok-fill, var(--surface-3)); }
+.tok-disc .ic{ position:relative; }
+.tok-disc .tok-ring{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.tok-disc .ic{ width:calc(var(--tok) * .42); height:calc(var(--tok) * .42); }
+.tok-creature.tok-disc, .tok-encounter.tok-disc{ --tok-fill:var(--dmg-weak); color:var(--dmg-text); }
+.tok-npc.tok-disc, .tok-vehicle.tok-disc, .tok-object.tok-disc{ --tok-fill:var(--accent-weak); color:var(--accent-text); }
+.tok-character.tok-disc{ --tok-fill:var(--heal-weak); color:var(--heal-text); }
+.tok-item.tok-disc, .tok-spell.tok-disc{ --tok-fill:var(--magic-weak); color:var(--magic-text); }
+.tok-place.tok-disc, .tok-treasure.tok-disc{ --tok-fill:var(--cond-weak); color:var(--cond-text); }
 .tok-badge{ position:absolute; right:-4px; bottom:-3px; min-width:16px; height:16px; padding:0 4px; border-radius:8px; background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font:600 10px/14px var(--font-ui); text-align:center; }
 .tok-sm .tok-badge{ display:none; }
 .enc-line.is-foe .tok{ box-shadow:0 0 0 2px color-mix(in srgb, var(--dmg) 55%, transparent); }
@@ -2348,3 +2352,17 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .tip-head .tok{ margin-right:2px; }
 .token-panel-body{ display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
 .token-panel-forms{ display:grid; gap:8px; flex:1; min-width:200px; }
+.tok-drop{ display:flex; align-items:center; gap:10px; padding:14px; border:2px dashed var(--border-strong); border-radius:var(--r-md, 10px); cursor:pointer; color:var(--text-2); }
+.tok-drop.is-over{ border-color:var(--accent); background:var(--accent-weak); color:var(--accent-text); }
+.tok-drop input[type="file"]{ font-size:12px; max-width:100%; }
+.tok-dialog{ width:min(92vw, 380px); border:1px solid var(--border-strong); border-radius:var(--r-lg, 14px); background:var(--surface); color:var(--text); padding:18px; }
+.tok-dialog::backdrop{ background:rgba(0,0,0,.45); }
+.tok-dialog h2{ margin:0 0 4px; font-size:17px; }
+.tok-stage{ position:relative; width:100%; aspect-ratio:1; margin:12px 0; border-radius:50%; overflow:hidden; background:var(--surface-3); touch-action:none; cursor:grab; user-select:none; }
+.tok-stage:active{ cursor:grabbing; }
+.tok-hole{ position:absolute; inset:0; clip-path:circle(41% at 50% 50%); }
+.tok-src{ position:absolute; max-width:none; pointer-events:none; }
+.tok-frame-over{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.tok-zoom-row{ display:flex; align-items:center; gap:10px; }
+.tok-zoom{ flex:1; }
+.token-panel[data-ready] .tok-plain{ display:none; }
