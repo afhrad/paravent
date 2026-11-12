@@ -385,8 +385,8 @@ def npcs_page(
     ordered = sorted(rows, key=lambda r: ("boss" not in r[0].roles, r[0].name.casefold()))
     items = [
         li(class_="list-row")[
+            # The token is made from the portrait: one picture, shown once.
             token(page.token_of("npc", npc.scope.world_id, npc.id)),
-            _portrait(npc) if npc.portrait else None,
             div(class_="list-main")[
                 a(href=npc_url(npc.id), class_="list-title list-link")[npc.name],
                 span(class_="list-meta")[role_pills(page, npc.roles), " ", _place_text(names)],

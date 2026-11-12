@@ -123,8 +123,8 @@ def locations_page(
     t = page.t
     items = [
         li(class_="list-row")[
+            # The token is made from the picture: one picture, shown once.
             token(page.token_of("place", location.scope.world_id, location.id)),
-            _picture(location) if location.picture else None,
             div(class_="list-main")[
                 a(href=location_url(location.id), class_="list-title list-link")[location.name],
                 span(class_="list-meta")[role_pills(page, location.tags), " ", _where(names)],
