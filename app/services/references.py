@@ -7,10 +7,12 @@ the page that linked to it used (documentation/TECHSTACK.md §6c).
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
 from app.models.gamestate import SourceSet
+from app.services.tokens import Token
 from app.store.gamestate import GameStateStore
 from app.store.published import PublishedBooks, table_anchor
 
@@ -36,6 +38,8 @@ class ReferenceEntry:
     # More text about an item type from a later book in the world's books, for the type
     # and its items: (book, entries).
     more: tuple[tuple[str, list[Any]], ...] = ()
+    # Its round token (documentation/TOKENS.md); None where nobody asked for one.
+    token: Token | None = None
 
     @property
     def name(self) -> str:
@@ -64,10 +68,16 @@ class ReferenceService:
     """Entries by category/source/name, and how to render links inside them."""
 
     def __init__(
-        self, compendium: Any, store: GameStateStore, books: PublishedBooks | None = None
+        self,
+        compendium: Any,
+        store: GameStateStore,
+        books: PublishedBooks | None = None,
+        token: Callable[[str, dict[str, Any], str | None], Token] | None = None,
     ) -> None:
-        """Bind to the loaded compendium, the library (for worlds) and the rulebooks (for
-        where a table is printed)."""
+        """Bind to the loaded compendium, the library (for worlds), the rulebooks (for
+        where a table is printed) and ``token(category, data, world)`` for the entry's
+        round token."""
+        self._token = token
         self._compendium = compendium
         self._store = store
         self._books = books
@@ -106,7 +116,8 @@ class ReferenceService:
         cards = self.deck_cards(data) if category == "deck" else ()
         printed = self.printed_in(data) if category == "table" else None
         more = self.type_entries(category, data, world_id)
-        return ReferenceEntry(category, data, world_id, lair, cards, printed, more)
+        token = self._token(category, data, world_id) if self._token else None
+        return ReferenceEntry(category, data, world_id, lair, cards, printed, more, token)
 
     def type_entries(
         self, category: str, data: dict[str, Any], world_id: str | None

@@ -116,6 +116,7 @@ def build_page(request: Request, identity: Identity | None = None) -> Page:
         path=current_url(request),
         identity=identity,
         theme=registry.themes.for_user(identity.user if identity is not None else None),
+        tokens=registry.tokens.of_record,
         # Logged in, the memory is the user's own, kept on the server; the cookie is
         # this browser's, for when it has none.
         nav_memory=(registry.places.nav(identity.user.id) if identity is not None else {})

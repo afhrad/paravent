@@ -71,6 +71,7 @@ from app.services.protocol import (
 )
 from app.services.protocol import verdict as attack_verdict
 from app.services.sheet import CONDITIONS, damage_at, spell_view
+from app.services.tokens import Token
 from app.store.gamestate import GameStateStore
 from app.store.projections import MonsterProjection
 
@@ -346,6 +347,8 @@ class CombatView:
     reminders: Reminders = Reminders()
     # How hard the fight still is: those standing on each side (§3, friend and foe).
     rating: Rating | None = None
+    # Each combatant's round token, by id (documentation/TOKENS.md).
+    tokens: Mapping[str, Token] = field(default_factory=dict)
 
     @property
     def current(self) -> TurnView | None:
@@ -384,6 +387,8 @@ class SeenCombatant:
     fill: int | None = None
     # The combatant's id, so a player can pick it as a target.
     id: str = ""
+    # Its round token (documentation/TOKENS.md).
+    token: Token | None = None
 
 
 @dataclass(frozen=True)
@@ -771,8 +776,10 @@ class CombatService:
         sight: Callable[[MonsterProjection, str], Sight] | None = None,
         known: Callable[[str | None, str], Mapping[str, KnownFact]] | None = None,
         spell: Callable[[str, str | None, str | None], dict[str, Any] | None] | None = None,
+        token: Callable[[Combatant, str | None], Token] | None = None,
     ) -> None:
-        """``monster(name, source)`` looks up a creature exactly, as the encounters do.
+        """``monster(name, source)`` looks up a creature exactly, as the encounters do;
+        ``token(combatant, world)`` its round token (documentation/TOKENS.md).
 
         ``legendary_group(pointer)`` finds the lair a creature's ``legendaryGroup``
         points at; without it there are no lair turns.
@@ -785,6 +792,7 @@ class CombatService:
         ``spell(name, source, world)`` a spell's record in the world's books.
         """
         self._store = store
+        self._token = token
         self._sight = sight
         self._known = known
         self._spell = spell
@@ -1515,12 +1523,14 @@ class CombatService:
             for turn in self.order(combat)
         )
         snapshots = {row.combatant.id: row.character for turn in turns for row in turn.rows}
+        token = self._token
         return CombatView(
             combat,
             turns,
             lair_available=bool(self.lair_creatures(combat)),
             reminders=self.reminders(combat) if combat.running else Reminders(),
             rating=self.difficulty(combat, snapshots),
+            tokens={c.id: token(c, combat.world_id) for c in combat.combatants} if token else {},
         )
 
     def difficulty(
@@ -1577,7 +1587,8 @@ class CombatService:
         """What the players see: hidden combatants left out, no numbers but the round
         and the hit points friends have left (as a share, for the bar)."""
         turns = []
-        for turn in self.view(combat).turns:
+        view = self.view(combat)
+        for turn in view.turns:
             members = tuple(
                 SeenCombatant(
                     row.label,
@@ -1588,6 +1599,7 @@ class CombatService:
                     row.combatant.is_friend,
                     round(row.ratio * 100) if row.combatant.is_friend and row.hp_max else None,
                     row.combatant.id,
+                    view.tokens.get(row.combatant.id),
                 )
                 for row in turn.rows
                 if not row.combatant.hidden

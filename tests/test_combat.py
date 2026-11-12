@@ -820,6 +820,7 @@ class TestPlayerView:
             "friend",  # on the characters' side
             "fill",  # hit points left in percent — friends only, never a foe's
             "id",  # the combatant's id, to pick it as a target — not a number
+            "token",  # its round token: a picture's address, or its kind
         }
 
     def test_hidden_combatants_are_left_out(self, table: Table) -> None:

@@ -36,14 +36,16 @@ from htpy import (
 from app.models.gamestate import KnownFact
 from app.services.combat import PlayerView, SeenCombatant, SeenDetails, SeenTurn
 from app.services.protocol_view import Filter
+from app.services.tokens import Token
 from app.store.projections import coerce_type
 from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
 from app.ui.knowledge_text import fact_detail, fact_kind, fact_label, ordered
-from app.ui.layout import app_shell, initials
+from app.ui.layout import app_shell
 from app.ui.names import ITEM, monster_label, named
 from app.ui.rules_text import kind_text, speed
+from app.ui.tokens import token
 
 PLAY_COMBAT_URL = "/play/combat"
 SCRIPTS = ("/static/js/htmx.min.js", "/static/js/combat.js")
@@ -108,6 +110,12 @@ def _fill(member: SeenCombatant) -> str:
     return "--hp:0%" if member.health == "down" else "--hp:100%"
 
 
+def _number(label: str) -> str | None:
+    """The number of a numbered label ("Goblin 2" → "2"), shown on its token."""
+    head, _, last = label.rpartition(" ")
+    return last if head and last.isdigit() else None
+
+
 def _member(page: Page, view: PlayerView, member: SeenCombatant, mine: frozenset[str]) -> Element:
     """A row of the order. A tap opens what can be done with it: aim at it, read about it."""
     t = page.t
@@ -116,7 +124,10 @@ def _member(page: Page, view: PlayerView, member: SeenCombatant, mine: frozenset
     names = _names(page, view)
     aimed_by = sorted(c for c in mine if view.targets.get(c) == member.id)
     row = [
-        span(class_="avatar", aria_hidden="true")[initials(_label(page, member))],
+        token(
+            member.token or Token("character" if member.character_id else "creature"),
+            badge=_number(_label(page, member)),
+        ),
         b[_label(page, member)],
         span(class_="pill accent")[t("combat.you")] if you else None,
         [

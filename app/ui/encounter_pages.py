@@ -43,6 +43,7 @@ from app.services.encounter_gen import bands_of
 from app.services.encounters import EncounterView, PlannedMonster
 from app.services.naming import StyleEntry
 from app.services.search import SearchResult
+from app.services.tokens import Token
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
 from app.ui.creature_links import creature_url
@@ -64,6 +65,7 @@ from app.ui.name_roller import name_roller
 from app.ui.names import name_text
 from app.ui.palette import SearchTarget, search_form
 from app.ui.tags import ref_url
+from app.ui.tokens import token, token_panel
 
 ENCOUNTERS_URL = "/gm/encounters"
 
@@ -144,7 +146,7 @@ def encounters_page(
     t = page.t
     rows = [
         li(class_="list-row")[
-            span(class_="avatar", aria_hidden="true")[icon("skull")],
+            token(page.token_of("encounter", v.encounter.world_id, v.encounter.id)),
             div(class_="list-main")[
                 a(href=encounter_url(v.encounter.id), class_="list-title list-link")[
                     v.encounter.name
@@ -252,9 +254,7 @@ def _line(
         name_node = a(href=creature_url(design_id), class_="ref creature")[shown]
     side = "friend" if planned.ally else "foe"
     return li(class_=f"enc-line is-{side}")[
-        span(class_="res-ico " + ("heal" if planned.ally else "dmg"), aria_hidden="true")[
-            icon("shield" if planned.ally else "skull")
-        ],
+        token(view.tokens.get(line.index, Token("creature"))),
         div(class_="enc-line-main")[
             b[planned.label, " ", span(class_="enc-reskin")[t("encounters.as"), " "]]
             if planned.label
@@ -678,6 +678,12 @@ def encounter_page(
                     _roll_table(page, view, environments),
                     _fought(page, fought),
                     _settings(page, view, scopes),
+                    token_panel(
+                        page,
+                        page.token_of("encounter", enc.world_id, enc.id),
+                        "encounter",
+                        enc.id,
+                    ),
                 ],
             ],
         ],

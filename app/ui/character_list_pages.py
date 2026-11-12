@@ -31,6 +31,7 @@ from app.ui.forms import alert
 from app.ui.home_pages import delete_link, empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
+from app.ui.tokens import token
 
 
 def _player_select(
@@ -75,7 +76,7 @@ def _row(
     }[pc.status]
     assign_id = f"assign-{pc.id}"
     return li(class_="list-row list-row-wrap")[
-        span(class_="avatar", aria_hidden="true")[(pc.name or "?")[:1].upper()],
+        token(page.token_of("character", pc.world_id, pc.id)),
         div(class_="list-main")[
             a(href=f"/characters/{pc.id}", class_="list-title list-link")[
                 pc.name or t("play.unnamed")

@@ -36,10 +36,11 @@ from app.ui.context import Page
 from app.ui.forms import alert, checkbox_field, notice, select_field, text_field
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
-from app.ui.layout import app_shell, initials
+from app.ui.layout import app_shell
 from app.ui.names import class_line
 from app.ui.protocol_pages import headline
 from app.ui.sheet_pages import speed_text
+from app.ui.tokens import token
 
 PARTY_URL = "/gm"
 WORLDS_URL = "/gm/worlds"
@@ -185,7 +186,7 @@ def party_card(
         if flash
         else None,
         div(class_="pc-head")[
-            span(class_="avatar", aria_hidden="true")[initials(pc.name or "?")],
+            token(page.token_of("character", pc.world_id, pc.id)),
             div(class_="pc-who")[
                 a(href=f"/characters/{pc.id}", class_="pc-name")[pc.name or t("play.unnamed")],
                 span(class_="pc-meta")[

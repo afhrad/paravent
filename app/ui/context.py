@@ -10,6 +10,7 @@ from app.services.auth import Identity
 from app.services.i18n import Translator
 from app.services.player_view import Reader
 from app.services.themes import Theme
+from app.services.tokens import Token
 from app.services.units import UnitFormat
 
 
@@ -32,6 +33,13 @@ class Page:
     as_player: bool = False
     # The look the reader sees (documentation/THEMES.md); None is Paravent's own.
     theme: Theme | None = None
+    # The table's own token of an element (documentation/TOKENS.md): ``(kind, world,
+    # id)`` → Token; without it every element shows its kind's disc.
+    tokens: Callable[[str, str | None, str], Token] | None = None
+
+    def token_of(self, kind: str, world_id: str | None, ident: str) -> Token:
+        """An NPC's, character's, place's, encounter's or treasure's token."""
+        return self.tokens(kind, world_id, ident) if self.tokens else Token(kind)
 
     @property
     def readable(self) -> Callable[[str, Any], bool] | None:

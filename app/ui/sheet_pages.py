@@ -71,11 +71,12 @@ from app.ui import rules_text
 from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
-from app.ui.layout import app_shell, initials
+from app.ui.layout import app_shell
 from app.ui.names import ITEM, name_span, name_text, origin_text, training_text
 from app.ui.names import summary as summary_line
 from app.ui.protocol_pages import log_embed_slot
 from app.ui.tags import RenderContext, localized_context, plain, ref_url, render_entries
+from app.ui.tokens import token, token_panel
 from app.ui.translate_pages import translate_url
 from app.ui.translated import localized_data
 
@@ -1062,6 +1063,7 @@ def _features_pane(page: Page, sheet: Sheet, ctx: RenderContext | None = None) -
             for label, text in identity
             if text
         ],
+        token_panel(page, page.token_of("character", pc.world_id, pc.id), "character", pc.id),
     ]
 
 
@@ -1255,7 +1257,7 @@ def _head(page: Page, sheet: Sheet, *, file_label: str | None) -> Element:
     t = page.t
     pc = sheet.character
     return header(class_="cs-head")[
-        span(class_="avatar cs-avatar", aria_hidden="true")[initials(pc.name or "?")],
+        token(page.token_of("character", pc.world_id, pc.id), "lg"),
         div(class_="cs-who")[
             h2(class_="cs-name")[pc.name or t("play.unnamed")],
             span(class_="cs-summary")[

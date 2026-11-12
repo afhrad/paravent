@@ -71,6 +71,7 @@ from app.ui.markdown import Rendered
 from app.ui.palette import SearchTarget, search_form
 from app.ui.ref_pages import statblock
 from app.ui.tags import RenderContext, ref_url
+from app.ui.tokens import token, token_panel
 
 DENOMINATIONS = ("pp", "gp", "ep", "sp", "cp")
 # The delete button's name per kind of object (the holdings panel's rows).
@@ -384,7 +385,8 @@ def npcs_page(
     ordered = sorted(rows, key=lambda r: ("boss" not in r[0].roles, r[0].name.casefold()))
     items = [
         li(class_="list-row")[
-            _portrait(npc),
+            token(page.token_of("npc", npc.scope.world_id, npc.id)),
+            _portrait(npc) if npc.portrait else None,
             div(class_="list-main")[
                 a(href=npc_url(npc.id), class_="list-title list-link")[npc.name],
                 span(class_="list-meta")[role_pills(page, npc.roles), " ", _place_text(names)],
@@ -437,7 +439,7 @@ def treasures_page(
     t = page.t
     items = [
         li(class_="list-row")[
-            span(class_="avatar", aria_hidden="true")[icon("gem")],
+            token(page.token_of("treasure", x.scope.world_id, x.id)),
             div(class_="list-main")[
                 a(href=treasure_url(x.id), class_="list-title list-link")[x.name],
                 span(class_="list-meta")[
@@ -535,6 +537,7 @@ def npc_page(
             ],
             div(class_="md-body")[notes.html] if notes.html.strip() else None,
             statblock(page, creature, ctx) if creature is not None else None,
+            token_panel(page, page.token_of("npc", npc.scope.world_id, npc.id), "npc", npc.id),
             p(class_="ref-roll-result", aria_live="polite", hidden=True),
         ],
         extra_scripts=("/static/js/roll.js",),
@@ -917,6 +920,12 @@ def treasure_page(
                     div(class_="md-body")[notes.html] if notes.html.strip() else None,
                 ],
                 div(class_="enc-side")[
+                    token_panel(
+                        page,
+                        page.token_of("treasure", treasure.scope.world_id, treasure.id),
+                        "treasure",
+                        treasure.id,
+                    ),
                     _roll_panel(page, url, roll) if roll is not None else None,
                     details(class_="panel enc-settings", open=True)[
                         summary(class_="panel-head")[icon("pencil"), b[t("encounters.settings")]],

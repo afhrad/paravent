@@ -10,8 +10,10 @@ from collections.abc import Sequence
 from htpy import Element, Node, a, b, div, p, span
 
 from app.services.text import strip_tags
+from app.services.tokens import Token
 from app.ui.context import Page
 from app.ui.icons import icon
+from app.ui.tokens import token as draw_token
 
 EXCERPT_LIMIT = 280
 # Markdown that means nothing in one line of plain text: callout heads, block quotes,
@@ -42,11 +44,15 @@ def library_card(
     meta: Sequence[str] = (),
     pills: Node = None,
     text: str = "",
+    token: Token | None = None,
 ) -> Element:
-    """The card of one object."""
+    """The card of one object, headed by its round token where it has a kind of one."""
     t = page.t
     return div(class_=f"tip-card tip-lib tip-{kind}", data_close=t("tip.close"))[
-        div(class_="tip-head")[icon(glyph, "sm"), b(class_="tip-name")[name]],
+        div(class_="tip-head")[
+            draw_token(token, "sm") if token else icon(glyph, "sm"),
+            b(class_="tip-name")[name],
+        ],
         div(class_="tip-body")[
             div(class_="tip-pills")[pills] if pills else None,
             [p(class_="tip-meta")[line] for line in meta if line],

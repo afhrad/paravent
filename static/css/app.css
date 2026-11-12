@@ -1092,7 +1092,7 @@ h2.book-heading{ font-size:22px; } h3.book-heading{ font-size:18px; } h4.book-he
   .cb-turn{ grid-template-columns:48px minmax(0, 1fr); }
   .cb-init-input{ width:46px; }
   .cb-members .combatant{ grid-template-columns:minmax(0, 1fr); }
-  .cb-members .combatant .token{ display:none; }
+  .cb-members .combatant .token, .cb-members .combatant .tok{ display:none; }
   .c-actions{ justify-content:flex-start; }
 }
 .cb-aside{ min-width:0; }
@@ -1126,6 +1126,9 @@ h2.book-heading{ font-size:22px; } h3.book-heading{ font-size:18px; } h4.book-he
    background is the hit points, the stripe the health word. */
 .combatant.is-foe .token{ background:var(--dmg-weak); color:var(--dmg-text); border-color:color-mix(in srgb, var(--dmg) 40%, transparent); }
 .combatant.is-friend .token{ background:var(--heal-weak); color:var(--heal-text); border-color:color-mix(in srgb, var(--heal) 40%, transparent); }
+.combatant.is-foe .tok{ box-shadow:0 0 0 2px color-mix(in srgb, var(--dmg) 55%, transparent); }
+.combatant.is-friend .tok{ box-shadow:0 0 0 2px color-mix(in srgb, var(--heal) 55%, transparent); }
+.combatant.is-dead .tok{ filter:grayscale(1); opacity:.6; }
 .pill.side-foe{ background:var(--dmg-weak); color:var(--dmg-text); border-color:color-mix(in srgb, var(--dmg) 30%, transparent); }
 .pill.side-friend{ background:var(--heal-weak); color:var(--heal-text); border-color:color-mix(in srgb, var(--heal) 30%, transparent); }
 button.pill.cb-side-switch{ font:inherit; font-size:11.5px; cursor:pointer; gap:4px; }
@@ -2323,3 +2326,25 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 @media (max-width: 640px){
   .enc-label input{ height:44px; font-size:15px; }
 }
+
+/* Tokens (documentation/TOKENS.md): round, the picture or the kind's disc. */
+.tok{ --tok:34px; position:relative; flex:none; display:inline-grid; place-items:center; width:var(--tok); height:var(--tok); border-radius:50%; vertical-align:middle; }
+.tok-sm{ --tok:24px; } .tok-md{ --tok:34px; } .tok-lg{ --tok:56px; } .tok-xl{ --tok:96px; }
+.tok-img img{ width:100%; height:100%; border-radius:50%; object-fit:cover; display:block; }
+.tok-disc{ background:var(--surface-3); color:var(--text-2); border:1px solid var(--border-strong); }
+.tok-disc .ic{ width:calc(var(--tok) * .5); height:calc(var(--tok) * .5); }
+.tok-creature.tok-disc, .tok-encounter.tok-disc{ background:var(--dmg-weak); color:var(--dmg-text); }
+.tok-npc.tok-disc, .tok-vehicle.tok-disc, .tok-object.tok-disc{ background:var(--accent-weak); color:var(--accent-text); }
+.tok-character.tok-disc{ background:var(--heal-weak); color:var(--heal-text); }
+.tok-item.tok-disc, .tok-spell.tok-disc{ background:var(--magic-weak); color:var(--magic-text); }
+.tok-place.tok-disc, .tok-treasure.tok-disc{ background:var(--cond-weak); color:var(--cond-text); }
+.tok-badge{ position:absolute; right:-4px; bottom:-3px; min-width:16px; height:16px; padding:0 4px; border-radius:8px; background:var(--surface); border:1px solid var(--border-strong); color:var(--text); font:600 10px/14px var(--font-ui); text-align:center; }
+.tok-sm .tok-badge{ display:none; }
+.enc-line.is-foe .tok{ box-shadow:0 0 0 2px color-mix(in srgb, var(--dmg) 55%, transparent); }
+.enc-line.is-friend .tok{ box-shadow:0 0 0 2px color-mix(in srgb, var(--heal) 55%, transparent); }
+.sb-head.has-token{ grid-template-columns:auto 1fr; column-gap:14px; align-items:center; }
+.sb-head.has-token > .tok{ grid-row:1 / span 4; }
+.sb-head.has-token > :not(.tok){ grid-column:2; }
+.tip-head .tok{ margin-right:2px; }
+.token-panel-body{ display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
+.token-panel-forms{ display:grid; gap:8px; flex:1; min-width:200px; }

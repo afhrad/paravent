@@ -57,7 +57,21 @@ def _with_sounds(registry: StoreRegistry, view: EncounterView) -> EncounterView:
     names = registry.sounds.names()
     if view.encounter.sound and view.encounter.sound not in names:
         names.insert(0, view.encounter.sound)
-    return replace(view, sound_names=tuple(names))
+    return _with_tokens(registry, replace(view, sound_names=tuple(names)))
+
+
+def _with_tokens(registry: StoreRegistry, view: EncounterView) -> EncounterView:
+    """Each planned line's round token (documentation/TOKENS.md)."""
+    world_id = view.world.id if view.world else None
+    tokens = {}
+    for line in view.lines:
+        entry = line.monster.entry if line.monster is not None else None
+        extra = (getattr(entry, "model_extra", None) or {}) if entry is not None else {}
+        planned = line.planned
+        tokens[line.index] = registry.monster_token(
+            planned.name, planned.source, world_id, extra.get("token")
+        )
+    return replace(view, tokens=tokens)
 
 
 def _refused(
@@ -493,7 +507,7 @@ async def roll_label(
     if swapping and 0 <= index < len(encounter.monsters):
         line = encounter_line(
             page,
-            service.view(encounter),
+            _with_tokens(registry, service.view(encounter)),
             index,
             registry.naming_for(encounter.world_id).entries(),
             style,

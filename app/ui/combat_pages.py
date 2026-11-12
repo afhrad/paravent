@@ -65,6 +65,7 @@ from app.services.protocol_view import Filter
 from app.services.references import ReferenceEntry
 from app.services.search import SearchResult
 from app.services.sheet import CONDITIONS, Sheet
+from app.services.tokens import Token
 from app.ui import rules_text
 from app.ui.context import Page
 from app.ui.encounter_pages import level_pill
@@ -72,7 +73,7 @@ from app.ui.forms import alert, hidden
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.knowledge_text import action_names, fact_detail, fact_label, ordered
-from app.ui.layout import app_shell, initials
+from app.ui.layout import app_shell
 from app.ui.markdown import Rendered
 from app.ui.names import classes_text, monster_label, name_text
 from app.ui.palette import SearchTarget, search_form
@@ -81,6 +82,7 @@ from app.ui.ref_pages import statblock
 from app.ui.rulebook_pages import screen_url
 from app.ui.sheet_pages import defenses, speed_text
 from app.ui.tags import RenderContext, render, render_entries
+from app.ui.tokens import token
 
 COMBATS_URL = "/gm/combat"
 # The add panel's choice, ``side=friend``: added on the characters' side.
@@ -95,12 +97,12 @@ def combat_url(combat_id: str, **query: str) -> str:
     return f"{COMBATS_URL}/{combat_id}" + (f"?{urlencode(kept)}" if kept else "")
 
 
-def _token(label: str) -> str:
-    """ "G2" for "Goblin 2", "MU" for "Mudmaw"."""
+def _row_token(view: CombatView, row: Row, label: str) -> Element:
+    """A combatant's round token, a numbered label's number on its edge ("Goblin 2")."""
+    c = row.combatant
+    fallback = Token("character" if c.character_id else "creature")
     match = NUMBERED.match(label)
-    if match:
-        return f"{match['base'][:1].upper()}{match['n']}"
-    return initials(label)
+    return token(view.tokens.get(c.id, fallback), badge=match["n"] if match else None)
 
 
 # -- forms ---------------------------------------------------------------------------
@@ -702,7 +704,7 @@ def combatant_row(page: Page, view: CombatView, turn: TurnView, row: Row, sel: s
     )
     running = view.combat.running
     return li(id=f"c-{c.id}", class_=classes, style=_hp_fill(row))[
-        span(class_="token", aria_hidden="true")[_token(shown_label(page, row))],
+        _row_token(view, row, shown_label(page, row)),
         div(class_="c-body")[
             div(class_="c-name")[
                 a(

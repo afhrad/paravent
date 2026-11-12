@@ -69,6 +69,7 @@ from app.services.sheet import CONDITIONS
 from app.services.sound import SoundDesk, SoundLibrary
 from app.services.style_drafts import ApiAgent, StyleDrafts
 from app.services.themes import ThemeLibrary, ThemeService
+from app.services.tokens import Token, Tokens
 from app.services.translation_coverage import TranslationCoverage, TranslationJobs
 from app.services.translation_targets import FLUFF_OF, TranslationTargets, fluff_category
 from app.services.translations import TranslationStore, record_key
@@ -244,6 +245,41 @@ class StoreRegistry:
     def creature_pictures(self) -> CreaturePictures:
         """The gamemaster's own pictures of creature kinds, per world."""
         return CreaturePictures(self.gamestate.prose, self.settings.media_dir)
+
+    @cached_property
+    def tokens(self) -> Tokens:
+        """Round tokens for every element (documentation/TOKENS.md)."""
+        return Tokens(
+            self.gamestate.prose, self.settings.media_dir, lambda: self.settings.images_root
+        )
+
+    def _combatant_token(self, combatant: Combatant, world_id: str | None) -> Token:
+        """A combatant's token: its character's, its creature's, or a creature disc."""
+        if combatant.character_id:
+            pc = self.gamestate.characters.find(combatant.character_id)
+            return self.tokens.of_record(
+                "character", pc.world_id if pc else None, combatant.character_id
+            )
+        if combatant.ref:
+            name, _, source = combatant.ref.partition("|")
+            found = self.encounters.monster(name, source)
+            extra = (getattr(found.entry, "model_extra", None) or {}) if found else {}
+            token = extra.get("token")
+            return self.monster_token(name, source, world_id, token)
+        return Token("creature")
+
+    def monster_token(
+        self, name: str, source: str, world_id: str | None = None, token: object = None
+    ) -> Token:
+        """A creature's token: a builder creature's own upload, else 5eTools's, else the
+        creature disc."""
+        if source == HOMEBREW_SOURCE:
+            design = self.creatures.named(name, world_id) or self.creatures.named(name)
+            if design is not None:
+                own = self.tokens.own(design.world_id, "creature", design.id)
+                if own is not None:
+                    return own
+        return self.tokens.of_entry("monster", name, source, token)
 
     @cached_property
     def name_suggestions(self) -> NameSuggestions:
@@ -542,7 +578,17 @@ class StoreRegistry:
     @cached_property
     def references(self) -> ReferenceService:
         """Reference entries for the reference page."""
-        return ReferenceService(self.compendium, self.gamestate, self.rulebooks)
+        return ReferenceService(
+            self.compendium, self.gamestate, self.rulebooks, token=self._entry_token
+        )
+
+    def _entry_token(self, category: str, data: dict[str, Any], world_id: str | None) -> Token:
+        """A reference entry's token: a creature's as the tracker shows it, else 5eTools's
+        for a vehicle or object, else its kind's disc."""
+        name, source = str(data.get("name", "")), str(data.get("source", ""))
+        if category == "monster":
+            return self.monster_token(name, source, world_id, data.get("token"))
+        return self.tokens.of_entry(category, name, source, data.get("token"))
 
     @cached_property
     def search(self) -> SearchService:
@@ -580,6 +626,7 @@ class StoreRegistry:
             sight=self._sight,
             known=lambda world_id, ref: self.knowledge.of(world_id, ref),
             spell=self._spell_data,
+            token=self._combatant_token,
         )
 
     def _spell_data(

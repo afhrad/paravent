@@ -19,6 +19,7 @@ loaded automatically.
 - Read documentation/MCP.md before touching the MCP server (`app/mcp/`) or its keys
 - Read documentation/PLAYER-VIEW.md before touching what players may read: player books, hidden kinds
 - Read documentation/JOURNAL.md before touching handouts: sharing boxes and pictures, the players' journal
+- Read documentation/TOKENS.md before touching tokens: the round token of every element
 - Read documentation/DESIGN.md for UI/UX elements
 - Read documentation/THEMES.md before touching themes, tokens or `static/css/tokens.css`
 - Read @documentation/TRANSLATION.md for the multilingual design

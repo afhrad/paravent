@@ -21,6 +21,7 @@ from app.services import scope
 from app.services.difficulty import DifficultyRules, Rating, rules_for
 from app.services.i18n import Translatable
 from app.services.naming import Naming, NamingError, creature_races
+from app.services.tokens import Token
 from app.store.gamestate import GameStateStore
 from app.store.projections import MonsterProjection, project_monster
 
@@ -80,6 +81,8 @@ class EncounterView:
     # The creature-builder designs it plans, by name (casefolded) to design id, so each
     # line can open its creature in the builder.
     designs: Mapping[str, str] = field(default_factory=dict)
+    # Each line's round token, by its index (documentation/TOKENS.md).
+    tokens: Mapping[int, Token] = field(default_factory=dict)
 
     @property
     def unrated(self) -> int:

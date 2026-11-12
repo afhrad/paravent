@@ -368,6 +368,13 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         (`![[tavern.jpg|torn sepia]]`, `cover: media/x.jpg|fade`), rendered once with
         Pillow into the cache as WebP with transparency, so it fits every theme; the cover's
         effects ticked in the images panel
+  - [x] **Tokens** (2026-11-12, documentation/TOKENS.md, `app/services/tokens.py`): a round
+        token for every element — the table's own upload (an NPC, character, builder
+        creature, place, encounter or treasure; any picture, cropped round), else a
+        5eTools token from the image folder (creatures, vehicles, objects), else the
+        kind's disc in the theme's colours. In the tracker and the players' fight view
+        (a numbered label's number on the token), the encounter builder, the lists and
+        party cards, the campaign link previews, and on reference pages and previews
   - [x] **Themes** (2026-11-04, documentation/THEMES.md): the whole look as a folder —
         `theme.json`, `tokens.css`, `skin.css`, fonts, pictures, optionally a complete icon
         sprite — shipped in `app/themes/` or dropped into `library/themes/`; the table's

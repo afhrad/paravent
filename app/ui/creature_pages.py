@@ -65,6 +65,7 @@ from app.ui.library_links import delete_link
 from app.ui.ref_pages import statblock
 from app.ui.rules_text import senses_shown
 from app.ui.tags import RenderContext, ref_url
+from app.ui.tokens import token, token_panel
 from app.ui.translations_pages import BUILDER_URL
 
 
@@ -104,7 +105,7 @@ def creatures_page(
     draft = draft or {}
     items = [
         li(class_="list-row")[
-            span(class_="avatar", aria_hidden="true")[icon("skull")],
+            token(page.token_of("creature", r.design.world_id, r.design.id)),
             div(class_="list-main")[
                 a(href=creature_url(r.design.id), class_="list-title list-link")[r.design.name],
                 span(class_="list-meta")[
@@ -814,6 +815,12 @@ def builder_page(
                 div(class_="cb-side")[
                     _estimate(page, view),
                     _picture(page, view, picture_error),
+                    token_panel(
+                        page,
+                        page.token_of("creature", view.design.world_id, view.design.id),
+                        "creature",
+                        view.design.id,
+                    ),
                     section(class_="cb-preview", aria_label=t("creatures.preview"))[
                         statblock(page, view.preview, ctx)
                     ],

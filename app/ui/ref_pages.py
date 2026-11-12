@@ -56,6 +56,7 @@ from app.ui.library_links import chapter_url, location_url, npc_url, treasure_ur
 from app.ui.names import name_text
 from app.ui.player_view import view_switch
 from app.ui.tags import RenderContext, card_anchor, plain, ref_url, render, render_entries
+from app.ui.tokens import token
 from app.ui.translate_pages import translate_url
 from app.ui.translated import coverage_note, localized, table_written
 
@@ -1085,7 +1086,7 @@ def preview_card(
     glyph = PREVIEW_ICON.get(entry.category, "book-open")
     return div(class_=f"tip-card tip-{entry.category}", data_close=t("tip.close"))[
         div(class_="tip-head")[
-            icon(glyph, "sm"),
+            token(entry.token, "sm") if entry.token else icon(glyph, "sm"),
             b(class_="tip-name")[t.term(entry.category, entry.name) or entry.name],
             span(class_="tip-en muted")[entry.name] if t.term(entry.category, entry.name) else None,
             span(class_="tip-source mono")[entry.source],
@@ -1134,7 +1135,8 @@ def statblock(page: Page, entry: ReferenceEntry, ctx: RenderContext) -> Element:
     kind = t(CATEGORY_KEY.get(entry.category, "ref.kind.rule"))
     where = f"{entry.source}{' p. ' + str(data['page']) if data.get('page') else ''}"
     return div(class_=f"panel statblock ref-{entry.category}")[
-        header(class_="sb-head")[
+        header(class_="sb-head" + (" has-token" if entry.token else ""))[
+            token(entry.token, "lg") if entry.token else None,
             span(class_="eyebrow")[kind],
             h1(class_="sb-name")[
                 t.term(entry.category, entry.name) or entry.name,

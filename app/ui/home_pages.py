@@ -15,6 +15,7 @@ from app.models.pc import DraftStatus, PlayerCharacter
 from app.ui.context import Page
 from app.ui.icons import icon
 from app.ui.layout import app_shell
+from app.ui.tokens import token
 
 
 def page_head(eyebrow: str, heading: str, lede: str, action: Node = None) -> Element:
@@ -48,7 +49,7 @@ def _character_row(page: Page, pc: PlayerCharacter) -> Element:
     # A draft begun in the wizard goes back there; one made by hand opens its sheet.
     in_wizard = is_draft and pc.wizard_step is not None
     return li(class_="list-row")[
-        span(class_="avatar", aria_hidden="true")[(pc.name or "?")[:1].upper()],
+        token(page.token_of("character", pc.world_id, pc.id)),
         div(class_="list-main")[
             a(
                 href=f"/chargen/{pc.id}" if in_wizard else f"/characters/{pc.id}",

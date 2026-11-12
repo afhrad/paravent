@@ -52,6 +52,7 @@ from app.ui.library_links import (
 )
 from app.ui.markdown import Rendered
 from app.ui.name_roller import name_roller
+from app.ui.tokens import token, token_panel
 
 
 @dataclass(frozen=True)
@@ -122,7 +123,8 @@ def locations_page(
     t = page.t
     items = [
         li(class_="list-row")[
-            _picture(location),
+            token(page.token_of("place", location.scope.world_id, location.id)),
+            _picture(location) if location.picture else None,
             div(class_="list-main")[
                 a(href=location_url(location.id), class_="list-title list-link")[location.name],
                 span(class_="list-meta")[role_pills(page, location.tags), " ", _where(names)],
@@ -230,6 +232,12 @@ def location_page(
             ]
             if here
             else None,
+            token_panel(
+                page,
+                page.token_of("place", location.scope.world_id, location.id),
+                "place",
+                location.id,
+            ),
         ],
         world_id=world.id,
     )
