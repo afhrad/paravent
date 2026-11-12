@@ -251,9 +251,7 @@ def test_every_page_renders_with_every_icon(lang: str, template: str, page: str)
     assert "{{" not in text
 
 
-def _settled(text: str) -> str:
-    """A page without what moves with every commit: the news and the numbers."""
-    return re.sub(r"<!-- (updates|fact-[\w]+):start -->.*?<!-- \1:end -->", "", text, flags=re.S)
+_settled = build._settled  # the news and the facts move with every commit
 
 
 @pytest.mark.parametrize(("lang", "template", "page"), build.PAGES)
@@ -331,6 +329,16 @@ def test_the_site_as_it_ships_passes_the_check(tmp_path: Path) -> None:
     )
     errors, _warnings = build.verify(shipped)
     assert errors == []
+
+
+def test_the_check_ignores_what_moves_with_every_commit() -> None:
+    page = (
+        "<p>Text</p><!-- fact-version:start -->0.1.5<!-- fact-version:end -->"
+        "<!-- updates:start --><li>old</li><!-- updates:end -->"
+    )
+    moved = page.replace("0.1.5", "0.1.6").replace("old", "new")
+    assert build._settled(page) == build._settled(moved)
+    assert build._settled(page) != build._settled(page.replace("Text", "Other"))
 
 
 def test_the_release_commit_and_housekeeping_stay_out_of_the_news() -> None:

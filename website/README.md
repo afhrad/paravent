@@ -26,7 +26,7 @@ nothing outside it is needed.
 ```sh
 python website/build.py            # sync from the app + update the pages, in place
 python website/build.py --dist     # … and website/dist/paravent-website-<version>.zip
-python website/build.py --check    # exit 1 when the pages are behind the app
+python website/build.py --check    # exit 1 when the pages lag their text or templates
 ```
 
 `build.py` (standard library only):

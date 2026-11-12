@@ -25,7 +25,7 @@ folder runs as it is on any web server. This script keeps it in step with Parave
 
     python website/build.py            # sync + update, in place
     python website/build.py --dist     # … and the zip to upload
-    python website/build.py --check    # exit 1 if the pages are not up to date
+    python website/build.py --check    # exit 1 if the pages lag their text or templates
     python website/build.py --preview  # … what an upload would change on the server
     python website/build.py --deploy   # build, check, zip and upload
 
@@ -598,8 +598,11 @@ def extras() -> dict[str, str]:
     }
 
 
-def _undated(text: str) -> str:
-    return re.sub(r"<!-- fact-updated:start -->.*?<!-- fact-updated:end -->", "", text, flags=re.S)
+def _settled(text: str) -> str:
+    """A page without what moves with every commit: the news and the facts (version,
+    tests, date). The committed pages lag them by a commit, as the version is raised in
+    the commit itself; ``--deploy`` writes them fresh."""
+    return re.sub(r"<!-- (updates|fact-[\w]+):start -->.*?<!-- \1:end -->", "", text, flags=re.S)
 
 
 def main() -> int:
@@ -626,8 +629,9 @@ def main() -> int:
         except ContentError as exc:
             print("Cannot build:", exc)
             return 1
-        # The date always moves; a page is stale only when something else changed.
-        if _undated(after) != _undated(before) or (after != before and not args.check):
+        # The news and the facts move with every commit; a page is stale for --check only
+        # when its text or template changed.
+        if _settled(after) != _settled(before) or (after != before and not args.check):
             stale.append(name)
             if not args.check:
                 page.parent.mkdir(parents=True, exist_ok=True)
