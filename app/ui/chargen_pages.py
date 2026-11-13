@@ -745,10 +745,10 @@ def _grant_label(page: Page, grant: Grant) -> str:
     return _term(page, grant.kind, _name(grant.value))
 
 
-def _grants(page: Page, step: Step) -> Element:
+def _grants(page: Page, step: Step, heading: str = "chargen.granted") -> Element:
     t = page.t
     return div(class_="cg-grants")[
-        span(class_="eyebrow")[t("chargen.granted")],
+        span(class_="eyebrow")[t(heading)],
         ul[
             [
                 li[span[_grant_label(page, g)], span(class_="chip-src")[_origin(page, g.origin)]]
@@ -1991,6 +1991,8 @@ def _spells_step(v: View) -> Node:
                 else t("chargen.cantrips_only")
             ]
         )
+    if v.step.grants:  # what the class and subclass always have prepared
+        out.append(_grants(v.page, v.step, "prepare.always"))
     for pick in v.step.picks:
         hint = None
         if pick.kind in ("variant", "casting"):

@@ -1352,18 +1352,23 @@ class Planner:
         )
         if plan.known:
             picks.append(Pick("spells.known", "spell", cls.name, count=plan.known, options=listed))
+        # What the class and subclass always have prepared, each with who gives it.
+        subclass = chosen["subclass"]
+        spell_list = _first(pc.choices, "featopt.spells")
+        always_given = [
+            Grant("spell", self._spell_reference(spell), cls.name)
+            for spell in granted_spells.always_prepared(cls.data, None, levels.level)
+        ]
+        if subclass is not None:
+            always_given += [
+                Grant("spell", self._spell_reference(spell), subclass.name)
+                for spell in granted_spells.always_prepared(
+                    None, subclass.data, levels.level, spell_list
+                )
+            ]
         if plan.prepared:
             # Spells the class or subclass always has prepared are not chosen again.
-            subclass = chosen["subclass"]
-            always = {
-                spell.partition("|")[0].lower()
-                for spell in granted_spells.always_prepared(
-                    cls.data,
-                    subclass.data if subclass else None,
-                    levels.level,
-                    _first(pc.choices, "featopt.spells"),
-                )
-            }
+            always = {g.value.partition("|")[0].lower() for g in always_given}
             if not plan.known:
                 listed = tuple(
                     r for r in listed if ChosenOption.model_validate(r).name.lower() not in always
@@ -1371,7 +1376,13 @@ class Planner:
             book = tuple(pc.choices.get("spells.known") or ()) if plan.known else listed
             count = min(plan.prepared, len(book)) if plan.known and book else plan.prepared
             picks.append(Pick("spells.prepared", "prepared", cls.name, count=count, options=book))
-        return [*picks, *granted], [], [], []
+        return [*picks, *granted], always_given, [], []
+
+    def _spell_reference(self, spell: str) -> str:
+        """``"divine smite|xphb"`` as the books print it, ``Divine Smite|XPHB``; as
+        written when the world's books lack it."""
+        found = self.catalogue.find("spell", spell)
+        return found.reference if found is not None else spell
 
     def _details_step(
         self,

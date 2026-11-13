@@ -765,6 +765,8 @@ class TestSpells:
         prepared = step.pick("spells.prepared")
         assert prepared is not None and "Bless|XPHB" in prepared.options
         assert "Divine Smite|XPHB" not in prepared.options
+        # but named on the step, with who gives it
+        assert [(g.value, g.origin) for g in step.grants] == [("Divine Smite|XPHB", "Paladin")]
 
     def test_a_wizard_prepares_from_the_book(
         self, loaded_compendium: CompendiumStore, lookups: LookupTables
@@ -787,6 +789,16 @@ class TestSpells:
         page = (await ac.get(f"{url}/spells")).text
         assert "0 / 3" in page and 'class="ref cg-option-name"' in page
         assert "/ref/spell/XPHB/Fire%20Bolt" in page and 'data-level-chip="1"' in page
+
+    async def test_the_screen_names_the_spells_always_prepared(
+        self, client: tuple[AsyncClient, StoreRegistry]
+    ) -> None:
+        ac, registry = client
+        started = await ac.post("/chargen", data={"world": registry.gamestate.worlds.list()[0].id})
+        url = started.headers["location"]
+        await ac.post(f"{url}/class", data={"class": "Paladin|XPHB", "level": "2"})
+        page = (await ac.get(f"{url}/spells")).text
+        assert "Always prepared" in page and "Divine Smite" in page
 
 
 class TestFinish:
