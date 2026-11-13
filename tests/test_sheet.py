@@ -283,6 +283,41 @@ class TestOtherCasters:
         assert [s.total for s in sheet.slots] == [4, 2]
         assert sheet.spellcasting_ability == "int"
 
+    def test_the_class_s_own_spells_are_always_prepared(
+        self, loaded_compendium: CompendiumStore
+    ) -> None:
+        def always(level: int) -> set[str]:
+            pc = _pc(classes=[{"class": "Paladin|XPHB", "level": level}])
+            sheet = build_sheet(pc, loaded_compendium)
+            return {s.name for s in sheet.spells if s.always}
+
+        assert always(1) == set()
+        assert always(2) == {"Divine Smite"}
+        assert always(5) == {"Divine Smite", "Find Steed"}
+        pc = _pc(classes=[{"class": "Paladin|XPHB", "level": 5}], spells={"prepared": ["Bless"]})
+        assert build_sheet(pc, loaded_compendium).prepared_count == 1  # not counted
+
+    def test_a_class_spell_cast_once_a_day_is_a_resource(
+        self, loaded_compendium: CompendiumStore
+    ) -> None:
+        """A class that grants a spell to cast without a slot once a day: the spell is
+        always prepared and its free casting a resource the rest restores."""
+        found = 0
+        for cls in loaded_compendium.all("class"):
+            data = cls.model_dump(by_alias=True)
+            for block in data.get("additionalSpells") or []:
+                for at, value in (block.get("prepared") or {}).items():
+                    if not (isinstance(value, dict) and value.get("daily")):
+                        continue
+                    pc = _pc(classes=[{"class": f"{cls.name}|{cls.source}", "level": int(at)}])
+                    sheet = build_sheet(pc, loaded_compendium)
+                    free = {s.name: s.free for s in sheet.spells if s.always and s.free}
+                    assert free, cls.name
+                    resources = {r.name for r in sheet.resources}
+                    assert set(free.values()) <= resources
+                    found += 1
+        assert found
+
     def test_monk_unarmoured_defence(self, loaded_compendium: CompendiumStore) -> None:
         pc = _pc(classes=[{"class": "Monk|PHB", "level": 1}], abilities={"dex": 16, "wis": 14})
         assert build_sheet(pc, loaded_compendium).armor_class.value == 10 + 3 + 2

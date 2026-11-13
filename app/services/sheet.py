@@ -1485,6 +1485,7 @@ def _spellcasting(
 
     always = _always_prepared(corpus, classes)
     always_names = {o.name.lower() for o in always}
+    free = _class_spell_uses(sheet, character, corpus, classes)
     sheet.prepared_count = sum(
         1 for o in character.spells.prepared if o.name.lower() not in always_names
     )
@@ -1498,15 +1499,16 @@ def _spellcasting(
         named.add(option.name.lower())
         view = _spell_view(option, corpus.resolve("spell", option), sheet.level)
         if option.name.lower() in always_names:
-            view = replace(view, always=True)
+            view = replace(view, always=True, free=free.get(option.name.lower(), ""))
         sheet.spells.append(view)
-    # The subclass's own spells, unless the file already lists them (by any printing).
+    # The class's and subclass's own spells, unless the file already lists them (by any
+    # printing).
     for option in always:
         if option.name.lower() in named:
             continue
         named.add(option.name.lower())
         view = _spell_view(option, corpus.resolve("spell", option), sheet.level)
-        sheet.spells.append(replace(view, always=True))
+        sheet.spells.append(replace(view, always=True, free=free.get(option.name.lower(), "")))
     for option in _subclass_cantrips(corpus, classes):
         if option.name.lower() in named:
             continue
@@ -1636,14 +1638,18 @@ def _preparing(
 def _always_prepared(
     corpus: _Corpus, classes: list[tuple[ClassLevel, dict[str, Any] | None]]
 ) -> list[ChosenOption]:
-    """The spells a subclass always has prepared, up to the class's level.
+    """The spells a class and its subclass always have prepared, up to the class's level.
 
-    ``additionalSpells[].prepared`` keyed by class level (``"3": ["bless", …]``). A
-    subclass with several named blocks (the Circle of the Land's terrains) leaves the
+    ``additionalSpells[].prepared`` keyed by class level (``"3": ["bless", …]``). The
+    class's own come first (the 2024 paladin's Divine Smite, a ranger's Hunter's Mark).
+    A subclass with several named blocks (the Circle of the Land's terrains) leaves the
     choice to the player, and is not guessed. ``#c`` marks a cantrip; it is dropped.
     """
     out: list[ChosenOption] = []
-    for cls, _record in classes:
+    for cls, record in classes:
+        for line in _class_lines(cls, record):
+            spell, _sep, source = line.spell.partition("|")
+            out.append(ChosenOption(name=spell, source=source.upper() or None))
         sub = corpus.subclass(cls)
         blocks = [b for b in (sub or {}).get("additionalSpells") or [] if isinstance(b, dict)]
         if len(blocks) > 1:  # a list to choose (a Circle of the Land's terrain): the one taken
@@ -1660,6 +1666,44 @@ def _always_prepared(
                     continue
                 spell, _sep, source = name.split("#")[0].partition("|")
                 out.append(ChosenOption(name=spell, source=source.upper() or None))
+    return out
+
+
+def _class_lines(cls: ClassLevel, record: dict[str, Any] | None) -> list[granted_spells.Line]:
+    """The spells the class record itself grants outright by ``cls``'s level: its
+    ``additionalSpells`` blocks' fixed prepared and innate spells. Choices (the 2014
+    bard's Magical Secrets) and expanded lists are not grants."""
+    return [
+        line
+        for block in granted_spells.blocks(record)
+        for line in block.fixed(cls.level)
+        if line.kind in ("prepared", "innate")
+    ]
+
+
+def _class_spell_uses(
+    sheet: Sheet,
+    character: PlayerCharacter,
+    corpus: _Corpus,
+    classes: list[tuple[ClassLevel, dict[str, Any] | None]],
+) -> dict[str, str]:
+    """A class spell castable without a slot so many times a day (a death knight's
+    Rune Strike once per long rest), by lowercased name: its resource, added to the
+    sheet, as ``SpellView.free``; ``"will"`` for one cast at will."""
+    out: dict[str, str] = {}
+    for cls, record in classes:
+        for line in _class_lines(cls, record):
+            option = ChosenOption.model_validate(line.spell)
+            name = str((corpus.resolve("spell", option) or {}).get("name") or option.name)
+            if line.use == "will":
+                out[name.lower()] = "will"
+            elif line.use in ("daily", "rest") and not line.cantrip:
+                label = f"{name} ({cls.name})"
+                times = (sheet.proficiency.value or 2) if line.times < 0 else max(1, line.times)
+                used = min(times, character.state.resources_used.get(label, 0))
+                recharge = Recharge.SHORT if line.use == "rest" else Recharge.LONG
+                sheet.resources.append(ResourceView(label, times, used, recharge))
+                out[name.lower()] = label
     return out
 
 
