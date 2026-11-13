@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from app.models.compendium import Item, Monster, Race, Spell
+from app.models.compendium import Item, Monster, Race, Spell, score_of, score_text
 from app.models.values import ArmorClass, format_alignment, format_size
 from app.store.compendium import CATEGORIES, CompendiumStore
 from tests.conftest import requires_corpus
@@ -99,6 +99,19 @@ class TestBuiltinShadowing:
         assert monster.is_unresolved_copy
         assert monster.copy_from is not None
         assert monster.copy_from.name == "Y"
+
+
+class TestTextAbilityScores:
+    def test_a_score_given_as_text_is_kept_and_counts_as_none(self) -> None:
+        """Some creatures of 2.41.0 write a score as text, not a number."""
+        special = {"special": "Your Strength and Dexterity scores are equal to your Wisdom score."}
+        bear = Monster.model_validate(
+            {"name": "Shaped Bear", "source": "Homebrew", "str": special, "dex": special, "con": 14}
+        )
+        assert bear.abilities["str"] is None and bear.abilities["con"] == 14
+        assert bear.model_dump(by_alias=True)["str"] == special  # lossless
+        assert score_of(special) is None and score_of(14) == 14 and score_of(True) is None
+        assert score_text(special) == special["special"] and score_text(14) is None
 
 
 class TestNullHandling:

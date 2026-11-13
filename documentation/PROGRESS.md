@@ -18,9 +18,12 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] **Load the full corpus.** Every one of the corpus's 93 top-level keys is accounted for
       (2026-11-12): 89 read, four not content (`languageScript`'s fonts, `linkedLootTables`, the
       card maker's `reducedItemProperty`/`reducedItemType`), each named by the corpus check.
-      47 categories + 19 fluff keys load — 21,392 entries
-      (3,559 of them the specific magic items made from variants) from 176 files, plus
-      5,984 fluff records.
+      47 categories + 19 fluff keys load — 21,981 entries
+      (3,559 of them the specific magic items made from variants) from 186 files, plus
+      6,725 fluff records (5eTools 2.41.0).
+      **2.41.0** (2026-11-13): a new book with 13 classes of its own; some creatures
+      write ability scores as text (`{"special": …}`), which the models now keep (`score_of`, a dash on the statblock with the text beneath);
+      no new top-level keys, the same 8 dead references upstream.
       Phased in TECHSTACK.md §6b:
   - [x] **Phase 1 complete.** `class` (30), `subclass` (315), `classFeature` (677),
         `subclassFeature` (1,397), `legendaryGroup` (171), both `generated/` lookups, and
@@ -293,7 +296,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       players' saves, dice sounds and the party card read the log
 - [x] JSON Database handling (CRUD) service — `app/store/jsonfile.py`, `app/store/gamestate.py`
 - [x] Generate datamodel (Pydantic) for all 5eTools JSON files — `app/models/`: 43 lossless
-      models for the 47 compendium categories (21,392 entries, 0 failures), fluff joined onto
+      models for the 47 compendium categories (21,981 entries, 0 failures), fluff joined onto
       its entry, and typed readers for the books, adventures, treasure, encounter, name and
       creature-builder files. Every top-level key of the corpus is read or named as not
       content by the corpus check (2026-11-12)
@@ -872,7 +875,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2236 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2240 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the
@@ -887,7 +890,7 @@ to 26 sheets for four characters, and took 60–134 ms; now 25–37 ms.
 ## What was built in the data layer
 
 - **Pydantic models for 47 compendium categories** (43 models) plus the library's schema.
-  Validated against the full corpus: 21,392 entries, 0 failures.
+  Validated against the full corpus: 21,981 entries, 0 failures (5eTools 2.41.0).
   The compendium models are deliberately *lossless*: unknown upstream fields are preserved
   rather than dropped, because the 5eTools schema grows with every published book.
 - **`_copy` inheritance resolution.** 25% of the bestiary (1,144 entries) is a patch against
@@ -904,8 +907,8 @@ to 26 sheets for four characters, and took 60–134 ms; now 25–37 ms.
 | --- | --- |
 | Corpus size | 499 files, ~114 MB, 94 entry keys, 26,918 entries |
 | Entry keys loaded | 89 of 93 read, the other four not content (2026-11-12) |
-| Entries loaded | 21,392 distinct in 47 categories (3,559 made from magic variants), from 176 files |
-| Fluff records | 5,984 from 129 files, 19 categories, 0 failures |
+| Entries loaded | 21,981 distinct in 47 categories (3,559 made from magic variants), from 186 files (2.41.0) |
+| Fluff records | 6,725 from 144 files, 19 categories, 0 failures |
 | Class group | 30 classes, 315 subclasses, 677 + 1,397 features — every count matches the files |
 | Validation failures | 0 |
 | Unresolved `_copy` directives | 0 |

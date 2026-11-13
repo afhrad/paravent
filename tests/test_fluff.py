@@ -295,7 +295,7 @@ class TestAgainstTheRealCorpus:
     def test_every_fluff_record_loads(self, corpus: Path) -> None:
         store = FluffStore()
         report = store.load(corpus)
-        assert report.total == 6339
+        assert report.total == 6725
         assert report.errors == []
         assert report.unresolved_copies == []
 
@@ -304,9 +304,9 @@ class TestAgainstTheRealCorpus:
         store = FluffStore()
         store.load(corpus)
         assert len(store.categories) == 19
-        assert store.count("monster") == 4180
-        assert store.count("item") == 980
-        assert store.count("race") == 223
+        assert store.count("monster") == 4300
+        assert store.count("item") == 1212
+        assert store.count("race") == 240
 
     def test_prose_reaches_the_entry(self, corpus: Path) -> None:
         """The point of the whole exercise: a tooltip can show a description."""

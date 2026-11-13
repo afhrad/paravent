@@ -34,6 +34,7 @@ from datetime import UTC, datetime, timedelta
 from fractions import Fraction
 from typing import TYPE_CHECKING, Any, Literal, Protocol
 
+from app.models.compendium import score_of
 from app.models.gamestate import (
     Combat,
     Combatant,
@@ -1245,7 +1246,7 @@ class CombatService:
                 return int(str(listed).replace("+", "").strip())
             except ValueError:
                 pass
-        return (int(data.get(ability, 10)) - 10) // 2
+        return ((score_of(data.get(ability, 10)) or 10) - 10) // 2
 
     def _impose(self, combat_id: str, combatant_id: str, entry: CombatLogEntry, by: str) -> None:
         """Put a save effect's condition on, unless the target has it or its statblock is

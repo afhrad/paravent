@@ -40,7 +40,7 @@ from htpy import (
 )
 from htpy import input as input_el
 
-from app.models.compendium import subrace_name
+from app.models.compendium import score_of, score_text, subrace_name
 from app.services.backlinks import Backlinks, Owner
 from app.services.references import Printing, ReferenceEntry
 from app.services.sheet import spell_view
@@ -251,11 +251,16 @@ def _section(
 
 def _creature(page: Page, data: dict[str, Any], ctx: RenderContext) -> list[Node]:
     t = page.t
+    # A score given as text (a Wild Shape form's "equal to your Wisdom score") shows as a
+    # dash, its text written once beneath the scores.
+    special = list(dict.fromkeys(filter(None, (score_text(data.get(k)) for k in ABILITIES))))
     abilities = div(class_="sb-abilities")[
         [
             div(class_="sb-ability")[
                 span(class_="k")[t(f"abbr.{key}")],
-                _ability_chip(int(data.get(key, 10)), ctx),
+                _ability_chip(score, ctx)
+                if (score := score_of(data.get(key, 10))) is not None
+                else span(class_="v")["—"],
             ]
             for key in ABILITIES
         ]
@@ -277,6 +282,7 @@ def _creature(page: Page, data: dict[str, Any], ctx: RenderContext) -> list[Node
             _line(t("ref.speed"), rules_text.speed(page, data)),
         ],
         abilities,
+        [p(class_="sb-note muted")[render(text, ctx)] for text in special],
         div(class_="sb-core")[
             _line(t("ref.saves"), saves) if saves else None,
             _line(t("ref.skills"), skills) if skills else None,
@@ -996,7 +1002,9 @@ def _preview_body(page: Page, entry: ReferenceEntry, ctx: RenderContext) -> list
                     div[
                         span(class_="k")[t(f"abbr.{key}")],
                         span(class_="v mono")[
-                            f"{data.get(key, 10)} ({_mod(int(data.get(key, 10)))})"
+                            f"{score} ({_mod(score)})"
+                            if (score := score_of(data.get(key, 10))) is not None
+                            else "—"
                         ],
                     ]
                     for key in ABILITIES

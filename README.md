@@ -82,7 +82,7 @@ data. See TECHSTACK.md §8 for the reasoning.
 
 The corpus is **not copied into the project** — it is read in place from wherever you keep
 it. Copy `.env.example` to `.env` and set `PARAVENT_REFERENCE_DIR`, either to a whole
-5eTools release (`data/5etools-v2.39.0`, whose corpus is its `data/` folder) or to the
+5eTools release (`data/5etools-v2.41.0`, whose corpus is its `data/` folder) or to the
 corpus folder itself. The expected layout is the 5eTools one, unmodified:
 
 ```text
@@ -101,8 +101,8 @@ in `PARAVENT_IMAGE_DIR`:
 
 ```text
 data/
-├── 5etools-v2.39.0/        PARAVENT_REFERENCE_DIR=data/5etools-v2.39.0
-└── 5etools-img-v2.39.0/    PARAVENT_IMAGE_DIR=data/5etools-img-v2.39.0
+├── 5etools-v2.41.0/        PARAVENT_REFERENCE_DIR=data/5etools-v2.41.0
+└── 5etools-img-2.41.0/     PARAVENT_IMAGE_DIR=data/5etools-img-2.41.0
     ├── bestiary/
     │   └── MM/
     │       └── Goblin.webp

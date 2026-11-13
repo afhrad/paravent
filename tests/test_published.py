@@ -41,7 +41,7 @@ class Reader:
 class TestStore:
     def test_the_index(self, published: PublishedAdventures) -> None:
         books = published.all()
-        assert len(books) == 102
+        assert len(books) == 104
         lmop = published.get("lmop")
         assert lmop is not None and (lmop.name, lmop.source) == ("Lost Mine of Phandelver", "LMoP")
         assert (lmop.level_start, lmop.level_end) == (1, 5)

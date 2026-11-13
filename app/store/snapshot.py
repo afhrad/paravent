@@ -5,9 +5,11 @@ entry and making the magic-variant items; the fluff alone takes a second. The re
 kept in ``reference-cache/`` (derived data, disposable) as one pickle, and the next start
 takes it when nothing it was made from has changed: every JSON file under the
 compendium's roots (the corpus and homebrew) by path, size and modification time, the
-app's version and Python's. Anything else — a new release, a published creature, an
-edited file, an update of Paravent — makes a new one. A snapshot that cannot be read is
-ignored and replaced; writing one that fails costs nothing but the next start's time.
+app's version and Python's, and the code that reads the corpus (its models and stores, by
+content, so a change in development counts before any commit raises the version).
+Anything else — a new release, a published creature, an edited file, an update of
+Paravent — makes a new one. A snapshot that cannot be read is ignored and replaced;
+writing one that fails costs nothing but the next start's time.
 
 Only this app writes and reads it, in its own cache folder: the pickle is never taken
 from anywhere else.
@@ -30,10 +32,17 @@ logger = logging.getLogger(__name__)
 PREFIX = "corpus-snapshot-"
 
 
-def fingerprint(roots: Iterable[Path], version: str) -> str:
+def fingerprint(roots: Iterable[Path], version: str, code: Iterable[Path] = ()) -> str:
     """What a snapshot is made from, as one key: every JSON file under ``roots`` (path,
-    size, modification time), the app's version and Python's."""
+    size, modification time), the app's version and Python's, and the content of every
+    Python file under ``code``."""
     digest = hashlib.sha256(f"{version}|{platform.python_version()}".encode())
+    for folder in code:
+        for path in sorted(folder.rglob("*.py")):
+            try:
+                digest.update(f"code|{path.name}|".encode() + path.read_bytes())
+            except OSError:
+                continue
     for root in roots:
         if not root.is_dir():
             continue

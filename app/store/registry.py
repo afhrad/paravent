@@ -93,6 +93,9 @@ from app.store.published import PublishedAdventures, PublishedBooks, ReferenceSc
 from app.store.snapshot import Snapshot, fingerprint
 from app.store.watcher import JsonWatcher
 
+# The code that reads the corpus, part of the snapshot's key (app/store/snapshot.py).
+CORPUS_CODE = (Path(__file__).resolve().parent.parent / "models", Path(__file__).resolve().parent)
+
 logger = logging.getLogger(__name__)
 
 
@@ -987,7 +990,8 @@ class StoreRegistry:
         roots = self.compendium_roots
         snapshot = None
         if self.settings.reference_snapshot:
-            snapshot = Snapshot(self.settings.reference_cache_dir, fingerprint(roots, __version__))
+            key = fingerprint(roots, __version__, CORPUS_CODE)
+            snapshot = Snapshot(self.settings.reference_cache_dir, key)
             state = snapshot.read()
             if isinstance(state, tuple) and len(state) == 2:
                 report = self.compendium.restore(state[0])

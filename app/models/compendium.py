@@ -25,6 +25,19 @@ from app.models.values import (
 )
 
 
+def score_of(value: Any) -> int | None:
+    """An ability score as a number, or None. Most creatures give a number; a few give
+    text instead — a druid's Wild Shape forms (2.41.0) write ``{"special": "Your Strength
+    … equal to your Wisdom score."}`` — which no arithmetic can use."""
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def score_text(value: Any) -> str | None:
+    """What a creature writes instead of an ability score, if it writes text."""
+    special = value.get("special") if isinstance(value, dict) else None
+    return special if isinstance(special, str) else None
+
+
 class Monster(Named, Copyable):
     """A bestiary entry.
 
@@ -48,12 +61,12 @@ class Monster(Named, Copyable):
     # suffixed and the upstream JSON keys kept as aliases. Without this, a bare
     # ``str`` field shadows the builtin and breaks every later ``str | None``
     # annotation in the class body.
-    str_: int | None = Field(default=None, alias="str")
-    dex: int | None = None
-    con: int | None = None
-    int_: int | None = Field(default=None, alias="int")
-    wis: int | None = None
-    cha: int | None = None
+    str_: int | dict[str, Any] | None = Field(default=None, alias="str")
+    dex: int | dict[str, Any] | None = None
+    con: int | dict[str, Any] | None = None
+    int_: int | dict[str, Any] | None = Field(default=None, alias="int")
+    wis: int | dict[str, Any] | None = None
+    cha: int | dict[str, Any] | None = None
 
     # Proficiencies and senses
     save: dict[str, Any] = Field(default_factory=dict)
@@ -110,14 +123,15 @@ class Monster(Named, Copyable):
 
     @property
     def abilities(self) -> dict[str, int | None]:
-        """The six ability scores keyed by their canonical 5e abbreviations."""
+        """The six ability scores keyed by their canonical 5e abbreviations; None for one
+        the creature has none of, or gives as text (:func:`score_of`)."""
         return {
-            "str": self.str_,
-            "dex": self.dex,
-            "con": self.con,
-            "int": self.int_,
-            "wis": self.wis,
-            "cha": self.cha,
+            "str": score_of(self.str_),
+            "dex": score_of(self.dex),
+            "con": score_of(self.con),
+            "int": score_of(self.int_),
+            "wis": score_of(self.wis),
+            "cha": score_of(self.cha),
         }
 
     @property

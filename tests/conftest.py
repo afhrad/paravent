@@ -25,7 +25,7 @@ from app.store.gamestate import GameStateStore
 # user's copy), which the app reads too; overridable for CI or another checkout. The
 # expectations in the tests are this release's: a new one means updating them.
 CORPUS_ENV = "PARAVENT_TEST_CORPUS"
-DEFAULT_CORPUS = Path(__file__).resolve().parent.parent / "data" / "5etools-v2.39.0" / "data"
+DEFAULT_CORPUS = Path(__file__).resolve().parent.parent / "data" / "5etools-v2.41.0" / "data"
 
 
 def corpus_path() -> Path | None:

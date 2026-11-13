@@ -75,7 +75,8 @@ project's version control.
   **A parsed snapshot** (2026-11-12, `app/store/snapshot.py`): the compendium and fluff, as
   a load made them, are pickled into `reference-cache/`, and a start takes them when no JSON
   file under the corpus and homebrew roots (path, size, modification time), the app's
-  version and Python's have changed — about 1 s instead of 3.8. Any change makes a new one;
+  version and Python's have changed, nor the code that reads the corpus (`app/models/`,
+  `app/store/`, by content) — about 1 s instead of 3.8. Any change makes a new one;
   an unreadable one is read past. `PARAVENT_REFERENCE_SNAPSHOT=false` switches it off.
 - **The upstream layout is read as-is**, not normalised onto disk first. The 5eTools file and
   key layout *is* the on-disk schema; an import step would add a build phase and break lossless
@@ -143,7 +144,8 @@ the data splits into **94 entry keys / 26,918 array rows**. The first implementa
 24 of those keys, reading 140 of 499 files for 10,491 distinct entries — roughly half the corpus
 by row count, and the missing half includes the parts the planned features depend on most.
 
-> **Done 2026-11-12.** Every one of the 93 top-level keys of the 2.39 release is accounted
+> **Done 2026-11-12.** Every one of the 93 top-level keys of the 2.39 release (and of 2.41,
+> which adds none) is accounted
 > for: 89 are read (47 compendium categories, 19 fluff keys, and the book, adventure,
 > treasure, encounter, NPC and creature-builder loaders), and four are not content —
 > `languageScript` (font files), `linkedLootTables` (which loot table a variant sits on;

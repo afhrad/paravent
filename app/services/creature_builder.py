@@ -39,6 +39,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from app.models.compendium import score_of
 from app.models.gamestate import (
     CreatureBlock,
     CreatureDesign,
@@ -792,7 +793,7 @@ def feature_block(feature: MonsterFeature) -> CreatureBlock:
 def from_monster(raw: dict[str, Any], pb: int) -> dict[str, Any]:
     """A design's fields from a printed creature (as the corpus wrote it, ``_copy``
     resolved), with its numbers linked to its scores where they match."""
-    mods = {a: modifier(int(raw.get(a) or 10)) for a in ABILITIES}
+    mods = {a: modifier(score_of(raw.get(a)) or 10) for a in ABILITIES}
     kind = raw.get("type")
     type_name, tags = "humanoid", []
     if isinstance(kind, str):
@@ -851,7 +852,7 @@ def from_monster(raw: dict[str, Any], pb: int) -> dict[str, Any]:
         "ac_from": ac_from,
         "hit_dice": max(1, min(200, hit_dice)),
         "speed": speed or {"walk": 30},
-        "abilities": {a: int(raw.get(a) or 10) for a in ABILITIES},
+        "abilities": {a: score_of(raw.get(a)) or 10 for a in ABILITIES},
         "saves": [a for a in ABILITIES if a in (raw.get("save") or {})],
         "skills": [s for s in (raw.get("skill") or {}) if s != "other"],
         "senses": ", ".join(str(s) for s in raw.get("senses") or [] if isinstance(s, str)),

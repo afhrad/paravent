@@ -103,3 +103,14 @@ class TestSnapshot:
         (tmp_path / "a.json").write_text('{"x": 1}')
         assert fingerprint([tmp_path], "1.0") != key
         assert Snapshot(tmp_path / "none", key).read() is None
+
+    def test_the_key_follows_the_code_that_reads_the_corpus(self, tmp_path: Path) -> None:
+        """A model changed in development makes a new snapshot before any commit raises
+        the version: an old one would bring back what the old code made."""
+        (tmp_path / "a.json").write_text("{}")
+        code = tmp_path / "models"
+        code.mkdir()
+        (code / "monster.py").write_text("score: int\n")
+        key = fingerprint([tmp_path], "1.0", [code])
+        (code / "monster.py").write_text("score: int | dict\n")
+        assert fingerprint([tmp_path], "1.0", [code]) != key

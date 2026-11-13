@@ -261,11 +261,11 @@ class TestAgainstTheRealCorpus:
     """The claims that only real data can settle."""
 
     def test_every_class_record_loads(self, loaded_compendium: CompendiumStore) -> None:
-        assert loaded_compendium.count("class") == 30
-        assert loaded_compendium.count("subclass") == 330
-        assert loaded_compendium.count("classFeature") == 677
-        assert loaded_compendium.count("subclassFeature") == 1499
-        assert loaded_compendium.count("legendaryGroup") == 188
+        assert loaded_compendium.count("class") == 43
+        assert loaded_compendium.count("subclass") == 367
+        assert loaded_compendium.count("classFeature") == 691
+        assert loaded_compendium.count("subclassFeature") == 1564
+        assert loaded_compendium.count("legendaryGroup") == 191
 
     def test_no_validation_failures_and_no_unresolved_copies(
         self, loaded_compendium: CompendiumStore
@@ -328,8 +328,15 @@ class TestAgainstTheRealCorpus:
             for name in spells
             if not tables.spell_sources.classes_for(name, source)
         ]
-        # 16 Graviturgy/Chronurgy and background-granted spells legitimately have none.
-        assert len(empty) <= 16
+        # Those without a class list come some other way: a subclass (Graviturgy and
+        # Chronurgy in 2.39, more in 2.41), a feat, a background or a species. None is lost.
+        unreached = [
+            (name, source)
+            for name, source in empty
+            if not set(raw[source][name]) - {"class", "classVariant"}
+        ]
+        assert unreached == []
+        assert len(empty) <= 39
 
     def test_fireball_is_a_wizard_spell_and_not_a_cleric_one(self, corpus: Path) -> None:
         tables = LookupTables()
