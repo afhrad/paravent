@@ -92,6 +92,25 @@ class TestPassages:
         accepted, rejected, _ = _accepted(batch, [{"id": 0, "text": kept}, {"id": 1, "text": lost}])
         assert accepted == {"a": kept} and rejected == 1
 
+    def test_a_formatting_tag_keeps_its_kind_not_its_words(self) -> None:
+        """Bold or italic words are translated: the tag must be there, its words may
+        differ. What sits inside it still counts, and the machine stays strict."""
+        from app.services.machine_translation import _accepted
+
+        english = "{@b Dungeon Master (DM):} The road turns east."
+        assert missing_tags(english, "{@b Spieleleiter (SL):} Der Weg biegt ab.") == []
+        assert missing_tags(english, "Spieleleiter (SL): Der Weg biegt ab.") == [
+            "{@b Dungeon Master (DM):}"
+        ]
+        assert missing_tags(english, "{@i Spieleleiter:} Der Weg biegt ab.") == [
+            "{@b Dungeon Master (DM):}"
+        ]
+        nested = "{@i see {@spell fireball}}"
+        assert missing_tags(nested, "{@i siehe {@spell fireball}}") == []
+        assert missing_tags(nested, "{@i siehe Feuerball}") == ["{@spell fireball}"]
+        _, rejected, _ = _accepted([("a", english)], [{"id": 0, "text": "{@b Spieleleiter:} x"}])
+        assert rejected == 1
+
     def test_the_creatures_name_as_often_as_the_language_needs(self) -> None:
         """<$short_name$> and <$title_short_name$> are the creature's name, capitalised or
         not; German names it where English says "it", or leaves out a repeat. Any number,

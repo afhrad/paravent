@@ -435,7 +435,10 @@ Translation is a **first-class feature of the tool**, not an offline import step
 > themselves at the cursor, "only open passages" for long chapters. A saved change is
 > reviewed; a draft is confirmed by its "reviewed" tick or "Confirm all drafts" — text
 > merely sent back unchanged is never taken as a review. A passage that lost a tag of
-> the English says so ("1 tag missing"), but is kept: it may be deliberate.
+> the English says so ("1 tag missing"), but is kept: it may be deliberate. A formatting
+> tag (`{@b}`, `{@i}` …) counts by its kind, its words being translated — `{@b
+> Spieleleiter (SL):}` keeps `{@b Dungeon Master (DM):}` — and the tags inside it count
+> as well (2026-11-13). Machine drafts still copy every tag exactly.
 >
 > **Leaving the editor** (2026-11-01): it remembers the page it was opened from
 > (`back`), through its language and filter links too, the overview included, and "Save

@@ -153,6 +153,15 @@ def _set(data: dict[str, Any], path: str, text: str) -> dict[str, Any]:
     return result
 
 
+# Tags that only format their text: a translator translates what they hold.
+FORMATTING = frozenset(
+    {
+        "b", "bold", "i", "italic", "s", "strike", "u", "underline", "sup", "sub", "kbd",
+        "code", "style", "font", "color", "highlight", "help", "note", "tip", "unit",
+    }
+)  # fmt: skip
+
+
 def tags_in(text: str) -> list[str]:
     """The ``{@...}`` tags of a text, outermost only, nested braces included."""
     found: list[str] = []
@@ -194,21 +203,47 @@ def comparable_marks(text: str) -> list[str]:
     return ["<$short_name$>", *rest] if named else rest
 
 
+def _format_name(tag: str) -> str | None:
+    """A formatting tag's name (``b`` for ``{@b …}``); None for any other mark."""
+    if not tag.startswith("{@"):
+        return None
+    name = tag[2:-1].strip().partition(" ")[0].lower()
+    return name if name in FORMATTING else None
+
+
+def _held(text: str) -> list[tuple[str, str]]:
+    """``(key, shown)`` for every mark a translation must keep: a tag or placeholder as
+    it is, but a formatting tag by its name alone (``{@b}``, its words translated), and
+    the marks inside it as well."""
+    out: list[tuple[str, str]] = []
+    for mark in marks_in(text):
+        name = _format_name(mark)
+        if name is None:
+            out.append((mark, mark))
+            continue
+        out.append((f"{{@{name}}}", mark))
+        inner = mark[2:-1].strip().partition(" ")[2]
+        out.extend(_held(inner))
+    return out
+
+
 def missing_tags(english: str, translated: str) -> list[str]:
     """Tags (and placeholders) of the English that the translation lacks (§3: tags come
     from the source, so a missing one is a lost link or roll — worth saying, not worth
-    refusing). The creature's name is missing only when the translation never names it."""
-    have = marks_in(translated)
-    named = any(mark in NAME_PLACEHOLDERS for mark in have)
+    refusing). A formatting tag counts by its kind, as its words are translated
+    (``{@b Spieleleiter:}`` keeps ``{@b Dungeon Master:}``); the creature's name is
+    missing only when the translation never names it."""
+    have = [key for key, _shown in _held(translated)]
+    named = any(key in NAME_PLACEHOLDERS for key in have)
     missing: list[str] = []
-    for tag in marks_in(english):
-        if tag in NAME_PLACEHOLDERS:
-            if not named and tag not in missing:
-                missing.append(tag)
-        elif tag in have:
-            have.remove(tag)
+    for key, shown in _held(english):
+        if key in NAME_PLACEHOLDERS:
+            if not named and shown not in missing:
+                missing.append(shown)
+        elif key in have:
+            have.remove(key)
         else:
-            missing.append(tag)
+            missing.append(shown)
     return missing
 
 
@@ -622,6 +657,7 @@ __all__ = [
     "COMPOSITE",
     "CHAPTER_FIELDS",
     "ENTRY_FIELDS",
+    "FORMATTING",
     "Coverage",
     "Overlaid",
     "Passage",

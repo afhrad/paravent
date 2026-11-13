@@ -36,6 +36,7 @@ from app.services.i18n import Translatable
 from app.services.translations import (
     CHAPTER_FIELDS,
     ENTRY_FIELDS,
+    FORMATTING,
     TranslationStore,
     passages,
     tags_in,
@@ -56,13 +57,6 @@ logger = logging.getLogger(__name__)
 BY = "import"
 # What marks a folder as a 5eTools corpus, any one of them.
 CORPUS_SIGNS = ("books.json", "spells", "bestiary", "book", "adventure")
-# Tags that only format their text: a translator translates what they hold.
-FORMATTING = frozenset(
-    {
-        "b", "bold", "i", "italic", "s", "strike", "u", "underline", "sup", "sub", "kbd",
-        "code", "style", "font", "color", "highlight", "help", "note", "tip", "unit",
-    }
-)  # fmt: skip
 # The fields a translated corpus names in English beside its own spelling.
 ENGLISH_FIELDS = ("name", "className", "subclassShortName")
 
