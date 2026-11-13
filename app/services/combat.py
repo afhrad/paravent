@@ -1624,7 +1624,7 @@ class CombatService:
                 if c.character_id is not None and c.initiative is None
             ),
             self._save_calls(combat),
-            self._repeat_calls(combat),
+            self._repeat_calls(combat, view),
             self._targets(combat),
         )
 
@@ -1675,10 +1675,11 @@ class CombatService:
 
         return self._mutate(combat_id, apply)
 
-    def _repeat_calls(self, combat: Combat) -> tuple[tuple[str, str, str], ...]:
+    def _repeat_calls(self, combat: Combat, view: CombatView) -> tuple[tuple[str, str, str], ...]:
+        """The saves characters owe on this turn, from the fight's view already made."""
         if not combat.running or not combat.round:
             return ()
-        current = self.view(combat).current
+        current = view.current
         if current is None:
             return ()
         return tuple(
