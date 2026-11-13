@@ -163,25 +163,30 @@ def import_fragment(page: Page, run: ImportRun | None, lang: str) -> Element:
             )
             body.append(
                 div(class_="tr-table-wrap")[
-                    table(class_="tr-table")[
-                        thead[
-                            tr[
-                                th[t("translations.import.kind")],
-                                [th(class_="num")[t(f"translations.import.{h}")] for h in heads],
-                            ]
-                        ],
-                        tbody[
-                            [
+                    div(class_="tr-scroll")[
+                        table(class_="tr-table")[
+                            thead[
                                 tr[
-                                    td[_import_kind(page, kind)],
+                                    th[t("translations.import.kind")],
                                     [
-                                        td(class_="num mono")[str(getattr(report, h)[kind])]
+                                        th(class_="num")[t(f"translations.import.{h}")]
                                         for h in heads
                                     ],
                                 ]
-                                for kind in report.kinds
-                            ]
-                        ],
+                            ],
+                            tbody[
+                                [
+                                    tr[
+                                        td[_import_kind(page, kind)],
+                                        [
+                                            td(class_="num mono")[str(getattr(report, h)[kind])]
+                                            for h in heads
+                                        ],
+                                    ]
+                                    for kind in report.kinds
+                                ]
+                            ],
+                        ]
                     ]
                 ]
             )
@@ -317,33 +322,40 @@ def _wanted(page: Page, wanted: Sequence[WantedEntry], lang: str) -> Element:
     return section(class_="panel")[
         h2[t("translations.wanted")],
         p(class_="muted")[t("translations.wanted_hint")],
-        table(class_="tr-table")[
-            thead[
-                tr[
-                    th[t("translations.entry")],
-                    th[t("translations.category")],
-                    th[t("translations.links")],
-                    th,
-                ]
-            ],
-            tbody[
-                [
+        div(class_="tr-scroll")[
+            table(class_="tr-table")[
+                thead[
                     tr[
-                        td[name_text(page, w.category, w.name)],
-                        td(class_="muted")[_kind(page, w.category)],
-                        td(class_="mono")[str(w.links)],
-                        td[
-                            a(
-                                href=translate_url(
-                                    "ref", w.category, w.source, w.name, lang=lang, back=page.path
-                                ),
-                                class_="btn btn-sm",
-                            )[t("translate.open")]
-                        ],
+                        th[t("translations.entry")],
+                        th[t("translations.category")],
+                        th[t("translations.links")],
+                        th,
                     ]
-                    for w in wanted
-                ]
-            ],
+                ],
+                tbody[
+                    [
+                        tr[
+                            td[name_text(page, w.category, w.name)],
+                            td(class_="muted")[_kind(page, w.category)],
+                            td(class_="mono")[str(w.links)],
+                            td[
+                                a(
+                                    href=translate_url(
+                                        "ref",
+                                        w.category,
+                                        w.source,
+                                        w.name,
+                                        lang=lang,
+                                        back=page.path,
+                                    ),
+                                    class_="btn btn-sm",
+                                )[t("translate.open")]
+                            ],
+                        ]
+                        for w in wanted
+                    ]
+                ],
+            ]
         ]
         if wanted
         else p[t("translations.wanted_none")],
@@ -356,26 +368,28 @@ def _categories(page: Page, counts: Sequence[CategoryCount]) -> Node:
         return None
     return section(class_="panel")[
         h2[t("translations.categories")],
-        table(class_="tr-table")[
-            thead[
-                tr[
-                    th[t("translations.category")],
-                    th[t("translations.started_col")],
-                    th[t("translations.drafts")],
-                    th[t("translations.stale")],
-                ]
-            ],
-            tbody[
-                [
+        div(class_="tr-scroll")[
+            table(class_="tr-table")[
+                thead[
                     tr[
-                        td[_kind(page, c.category)],
-                        td(class_="mono")[f"{c.translated} / {c.entries}"],
-                        td(class_="mono")[str(c.drafts) if c.drafts else "–"],
-                        td(class_="mono")[str(c.stale) if c.stale else "–"],
+                        th[t("translations.category")],
+                        th[t("translations.started_col")],
+                        th[t("translations.drafts")],
+                        th[t("translations.stale")],
                     ]
-                    for c in counts
-                ]
-            ],
+                ],
+                tbody[
+                    [
+                        tr[
+                            td[_kind(page, c.category)],
+                            td(class_="mono")[f"{c.translated} / {c.entries}"],
+                            td(class_="mono")[str(c.drafts) if c.drafts else "–"],
+                            td(class_="mono")[str(c.stale) if c.stale else "–"],
+                        ]
+                        for c in counts
+                    ]
+                ],
+            ]
         ],
     ]
 
@@ -388,26 +402,28 @@ def _books(page: Page, books: Sequence[BookCount]) -> Node:
         return None
     return section(class_="panel")[
         h2[t("translations.books")],
-        table(class_="tr-table")[
-            thead[
-                tr[
-                    th[t("translations.book")],
-                    th[t("translations.chapters")],
-                    th[t("translations.drafts")],
-                    th[t("translations.stale")],
-                ]
-            ],
-            tbody[
-                [
+        div(class_="tr-scroll")[
+            table(class_="tr-table")[
+                thead[
                     tr[
-                        td[_book_link(page, x)],
-                        td(class_="mono")[f"{x.started} / {x.chapters}"],
-                        td(class_="mono")[str(x.drafts) if x.drafts else "–"],
-                        td(class_="mono")[str(x.stale) if x.stale else "–"],
+                        th[t("translations.book")],
+                        th[t("translations.chapters")],
+                        th[t("translations.drafts")],
+                        th[t("translations.stale")],
                     ]
-                    for x in begun
-                ]
-            ],
+                ],
+                tbody[
+                    [
+                        tr[
+                            td[_book_link(page, x)],
+                            td(class_="mono")[f"{x.started} / {x.chapters}"],
+                            td(class_="mono")[str(x.drafts) if x.drafts else "–"],
+                            td(class_="mono")[str(x.stale) if x.stale else "–"],
+                        ]
+                        for x in begun
+                    ]
+                ],
+            ]
         ],
     ]
 
