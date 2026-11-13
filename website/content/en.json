@@ -33,6 +33,12 @@
     "faq": "FAQ",
     "legal": "Legal"
   },
+  "alpha": {
+    "title": "Early alpha",
+    "text": "Paravent will still change a lot, sometimes drastically. Playtesters are very welcome.",
+    "short": "Playtesters welcome.",
+    "link": "Give feedback"
+  },
   "hero": {
     "_comment": "title_words: shown one after the other; the last entry is where it stops. Change any, add or remove entries.",
     "eyebrow": "For Dungeons & Dragons 5e at a real table",

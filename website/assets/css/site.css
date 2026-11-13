@@ -15,7 +15,8 @@
   --glow-blend: multiply;
   --glow-opacity: .22;
   scroll-behavior: smooth;
-  scroll-padding-top: 72px;
+  scroll-padding-top: calc(72px + var(--ribbon));
+  --ribbon: 46px;         /* the early-alpha ribbon across the top */
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){ --glow-blend: screen; --glow-opacity: .28; }
@@ -38,8 +39,44 @@ a{ color:var(--accent-text); }
   background:linear-gradient(90deg, var(--accent), var(--magic));
 }
 
+/* The early-alpha ribbon: a red-brown band across the very top, an unrolled parchment
+   scroll on it carrying the text, the bar beneath it. */
+.alpha-ribbon{
+  position:fixed; inset:0 0 auto 0; z-index:55; height:var(--ribbon);
+  display:flex; align-items:center; justify-content:center; padding:0 var(--gutter);
+  background:linear-gradient(180deg, #7E3624, #5B2216);
+  border-bottom:1px solid #3B150D; box-shadow:0 1px 6px rgba(0,0,0,.3);
+}
+.alpha-scroll{
+  position:relative; display:flex; align-items:center; gap:10px; min-width:0;
+  height:32px; padding:0 26px; margin:0 10px;
+  background:linear-gradient(180deg, #F7E9CC, #EAD5A9 55%, #DCC08C);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 0 rgba(90,50,20,.18);
+  color:#4A2614; font-family:var(--font-ui); font-size:14px; line-height:1; white-space:nowrap;
+}
+/* the rolled ends: a little taller than the sheet, shaded round */
+.alpha-scroll::before, .alpha-scroll::after{
+  content:""; position:absolute; top:-4px; bottom:-4px; width:15px; border-radius:7px;
+  background:linear-gradient(90deg, #8F6A3D, #D9B97F 35%, #F4E1B8 50%, #C9A36B 72%, #7E5A31);
+  box-shadow:0 1px 2px rgba(0,0,0,.4);
+}
+.alpha-scroll::before{ left:-9px; }
+.alpha-scroll::after{ right:-9px; }
+.alpha-scroll b{ text-transform:uppercase; letter-spacing:.12em; font-size:13px; color:#7A2014; }
+.alpha-scroll b::after{ content:"·"; margin-left:10px; color:#8A6A48; }
+.alpha-scroll span{ overflow:hidden; text-overflow:ellipsis; }
+.alpha-scroll a{ color:#7A2014; font-weight:700; text-underline-offset:3px; }
+.alpha-short{ display:none; }
+@media (max-width: 760px){
+  .alpha-long{ display:none; }
+  .alpha-short{ display:inline; }
+  .alpha-ribbon{ padding:0 12px; }
+  .alpha-scroll{ gap:7px; height:30px; padding:0 16px; font-size:12px; }
+  .alpha-scroll b{ letter-spacing:.06em; font-size:11px; }
+  .alpha-scroll b::after{ margin-left:7px; }
+}
 .site-top{
-  position:fixed; inset:0 0 auto 0; z-index:50;
+  position:fixed; inset:var(--ribbon) 0 auto 0; z-index:50;
   display:flex; align-items:center; gap:16px;
   padding:12px var(--gutter);
   transition:background .3s, box-shadow .3s, border-color .3s;
@@ -81,7 +118,7 @@ svg.ic-moon{ display:none; }
   .menu-btn{ display:inline-grid; }
   .site-top-end{ margin-left:auto; }
   .site-nav{
-    position:fixed; inset:62px 12px auto 12px; flex-direction:column; gap:2px;
+    position:fixed; inset:calc(62px + var(--ribbon)) 12px auto 12px; flex-direction:column; gap:2px;
     padding:8px; background:var(--surface); border:1px solid var(--border);
     border-radius:var(--r-lg); box-shadow:var(--shadow-lg);
     opacity:0; transform:translateY(-8px); pointer-events:none;
@@ -110,7 +147,7 @@ svg.ic-moon{ display:none; }
      above, room for the scroll cue below. */
   position:relative; display:grid; align-items:center;
   grid-template-columns:minmax(0, 1.05fr) minmax(0, 1fr); gap:clamp(24px, 5vw, 64px);
-  padding:clamp(84px, 9vw, 112px) var(--gutter) 96px; max-width:calc(var(--wrap) + 2 * var(--gutter)); margin:0 auto;
+  padding:calc(clamp(84px, 9vw, 112px) + var(--ribbon)) var(--gutter) 96px; max-width:calc(var(--wrap) + 2 * var(--gutter)); margin:0 auto;
   isolation:isolate;
 }
 .hero-glow{ position:absolute; inset:-10% -20% 0; z-index:-1; pointer-events:none; overflow:hidden; }
@@ -254,7 +291,7 @@ svg.ic-moon{ display:none; }
 }
 
 @media (max-width: 900px){
-  .hero{ grid-template-columns:1fr; padding-top:72px; padding-bottom:56px; text-align:left; }
+  .hero{ grid-template-columns:1fr; padding-top:calc(72px + var(--ribbon)); padding-bottom:56px; text-align:left; }
   .screen3d{ height:300px; order:-1; margin:0; }
   .screen3d-stage{ width:190px; }
   .scroll-cue{ display:none; }

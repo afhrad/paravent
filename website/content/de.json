@@ -33,6 +33,12 @@
     "faq": "Fragen",
     "legal": "Rechtliches"
   },
+  "alpha": {
+    "title": "Frühe Alpha",
+    "text": "Paravent wird sich noch stark ändern, manchmal grundlegend. Wer mittesten möchte, ist herzlich willkommen.",
+    "short": "Testspieler willkommen.",
+    "link": "Feedback geben"
+  },
   "hero": {
     "_comment": "title_words: eins nach dem anderen gezeigt; beim letzten Eintrag bleibt es stehen. Deutsch braucht je Wort sein Verhältniswort, darum ganze Wendungen.",
     "eyebrow": "Für Dungeons & Dragons 5e am echten Tisch",
