@@ -244,12 +244,21 @@ class Catalogue:
         return [o for o in self.rows("class") if o.data.get("hd")]
 
     def subclasses(self, cls: Offer) -> list[Offer]:
-        """The subclasses of ``cls`` the books allow, from whichever book prints them."""
+        """The subclasses of ``cls`` the books allow, from whichever book prints them,
+        and those of the classes it takes subclasses from (``includeSubclassesFrom``: a
+        class on the 2024 paladin's frame may swear any of its oaths)."""
+        owners = {(cls.name.lower(), cls.source.lower())}
+        for ref in cls.data.get("includeSubclassesFrom") or []:
+            name, _, source = str(ref).partition("|")
+            owners.add((name.lower(), (source or "phb").lower()))
         return [
             o
             for o in self.rows("subclass")
-            if str(o.data.get("className", "")).lower() == cls.name.lower()
-            and str(o.data.get("classSource", "")).lower() == cls.source.lower()
+            if (
+                str(o.data.get("className", "")).lower(),
+                str(o.data.get("classSource", "")).lower(),
+            )
+            in owners
         ]
 
     # -- species and backgrounds -----------------------------------------------------
@@ -443,9 +452,13 @@ class Catalogue:
         if subclass is None:
             return False
         entry = self.lookups.spell_sources.entry(spell.name, spell.source) or {}
-        by_book = (entry.get("subclass") or {}).get(cls.source) or {}
+        # Filed under the subclass's own class, which a class that takes subclasses from
+        # another (includeSubclassesFrom) does not share.
+        class_name = str(subclass.data.get("className") or cls.name)
+        class_source = str(subclass.data.get("classSource") or cls.source)
+        by_book = (entry.get("subclass") or {}).get(class_source) or {}
         by_class: dict[str, Any] = next(
-            (v for k, v in by_book.items() if k.lower() == cls.name.lower()), {}
+            (v for k, v in by_book.items() if k.lower() == class_name.lower()), {}
         )
         lists = by_class.get(subclass.source) or {}
         short = str(subclass.data.get("shortName") or subclass.name).lower()

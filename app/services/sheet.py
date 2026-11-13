@@ -49,6 +49,13 @@ from app.services.character import (
     spell_attack_bonus,
     spell_save_dc,
 )
+from app.services.class_refs import (
+    FeatureRef,
+    feature_refs,
+    files_under,
+    is_variant,
+    subclass_owner,
+)
 from app.services.text import first_dice, paragraphs, strip_tags
 from app.services.translations import translation_key
 
@@ -674,10 +681,19 @@ class _Corpus:
         if wanted is None:
             return None
         name = wanted.name.lower()
+        # Its own class's, or one of a class it takes subclasses from.
+        owners = [(cls.name.lower(), (cls.source or "").lower())]
+        record = self.resolve("class", ChosenOption(name=cls.name, source=cls.source)) or {}
+        for ref in record.get("includeSubclassesFrom") or []:
+            other, _, source = str(ref).partition("|")
+            owners.append((other.lower(), (source or "phb").lower()))
         for data in self.all_data("subclass"):
-            if str(data.get("className", "")).lower() != cls.name.lower():
-                continue
-            if cls.source and str(data.get("classSource", "")).lower() != cls.source.lower():
+            class_name = str(data.get("className", "")).lower()
+            class_source = str(data.get("classSource", "")).lower()
+            if not any(
+                class_name == o_name and (not o_source or class_source == o_source)
+                for o_name, o_source in owners
+            ):
                 continue
             if name not in (
                 str(data.get("name", "")).lower(),
@@ -1884,40 +1900,27 @@ def _features(
         if record is None:
             continue
         source = str(record.get("source", cls.source or "")).lower()
-        wanted: list[tuple[str, int, bool]] = []
+        wanted: list[tuple[str, FeatureRef]] = []
         first_subclass_pointer = True
         opted_in = {o.name.lower() for o in character.optional_features}
-        for ref in record.get("classFeatures") or []:
-            text = ref.get("classFeature") if isinstance(ref, dict) else ref
-            parts = str(text).split("|")
-            if len(parts) < 4 or not parts[3].isdigit():
-                continue
-            name, lvl = parts[0], int(parts[3])
-            pointer = isinstance(ref, dict) and bool(ref.get("gainSubclassFeature"))
+        for fref in feature_refs(record):
+            name, lvl, pointer = fref.name, fref.level, fref.gains_subclass
             if lvl > cls.level or name.lower() in _SKIP_FEATURES:
                 continue
             # A feature from another book than the class (Tasha's "Cantrip Formulas" on
             # the PHB wizard) is an optional variant: shown only when the character
             # took it, listed in optional_features.
-            feature_source = parts[4].lower() if len(parts) > 4 and parts[4] else source
-            if feature_source != source and name.lower() not in opted_in:
+            if is_variant(fref, record) and name.lower() not in opted_in:
                 continue
             if pointer and not first_subclass_pointer:
                 continue  # "Arcane Tradition feature" — the subclass's own features follow
             first_subclass_pointer = first_subclass_pointer and not pointer
-            wanted.append((name, lvl, pointer))
-        for name, lvl, _pointer in wanted:
-            match = next(
-                (
-                    f
-                    for f in class_features
-                    if str(f.get("name")).lower() == name.lower()
-                    and f.get("level") == lvl
-                    and str(f.get("className", "")).lower() == cls.name.lower()
-                    and str(f.get("classSource", "")).lower() == source
-                ),
-                None,
-            )
+            wanted.append((name, fref))
+        for name, fref in wanted:
+            lvl = fref.level
+            # Filed under the class the reference names: a class on another's frame
+            # borrows its features (class_refs).
+            match = next((f for f in class_features if fref.matches(f)), None)
             sheet.features.append(
                 FeatureView(
                     name,
@@ -1944,7 +1947,7 @@ def _features(
                         if ref is not None
                         and str(f.get("name")) == ref.name
                         and f.get("level") == ref.level
-                        and str(f.get("className", "")).lower() == cls.name.lower()
+                        and str(f.get("className", "")).lower() == fref.class_name
                     ),
                     None,
                 )
@@ -1965,16 +1968,12 @@ def _features(
         sub = corpus.subclass(cls)
         if sub is not None:
             short = str(sub.get("shortName", sub.get("name", ""))).lower()
-            sub_source = str(sub.get("source", "")).lower()
+            owner = subclass_owner(sub, cls.name, source)
             picked = sorted(
                 (
                     f
                     for f in subclass_features
-                    if str(f.get("className", "")).lower() == cls.name.lower()
-                    and str(f.get("classSource", "")).lower() == source
-                    and str(f.get("subclassShortName", "")).lower() == short
-                    and str(f.get("subclassSource", "")).lower() == sub_source
-                    and int(f.get("level", 99)) <= cls.level
+                    if files_under(f, owner) and int(f.get("level", 99)) <= cls.level
                 ),
                 key=lambda f: int(f.get("level", 0)),
             )

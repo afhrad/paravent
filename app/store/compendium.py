@@ -172,9 +172,11 @@ CATEGORIES: tuple[Category, ...] = (
     # Tables printed together under one name, which a {@table …} tag names as one.
     Category("tableGroup", TableGroup, "tableGroup", ("generated/gendata-tables.json",)),
     # Classes: one file per class, each holding all four keys. Subclasses and subclass
-    # features carry ``_copy`` (124 and 75 records respectively), so resolution must run
+    # features carry ``_copy`` (152 and 76 records respectively), so resolution must run
     # before validation — an unresolved shell lacks the ``source`` the model requires.
-    Category("class", ClassEntry, "class", ("class/class-*.json",)),
+    # Since 2.41 classes do too (13): a class made on a 2024 class's frame, which an
+    # unresolved copy left without its hit die, and so out of the wizard.
+    Category("class", ClassEntry, "class", ("class/class-*.json",), supports_copy=True),
     Category("subclass", Subclass, "subclass", ("class/class-*.json",), supports_copy=True),
     Category("classFeature", ClassFeature, "classFeature", ("class/class-*.json",)),
     Category(

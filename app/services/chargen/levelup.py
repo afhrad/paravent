@@ -62,6 +62,7 @@ from app.services.chargen.plan import (
 )
 from app.services.chargen.prereq import Context, Verdict, check
 from app.services.chargen.rules import Requirement, meets, multiclass_requirement
+from app.services.class_refs import files_under, subclass_owner
 from app.services.dice import Dice
 from app.services.i18n import Translatable
 from app.services.protocol import for_character
@@ -721,17 +722,11 @@ class LevelUpPlanner:
     ) -> tuple[tuple[str, int], ...]:
         if subclass is None:
             return ()
-        short = str(subclass.data.get("shortName") or subclass.name).lower()
+        owner = subclass_owner(subclass.data, cls.name, cls.source)
         out = []
         for entry in self.catalogue.rows("subclassFeature"):
             data = entry.data
-            if (
-                str(data.get("className", "")).lower() == cls.name.lower()
-                and str(data.get("classSource", "")).lower() == cls.source.lower()
-                and str(data.get("subclassShortName", "")).lower() == short
-                and str(data.get("subclassSource", "")).lower() == subclass.source.lower()
-                and data.get("level") == level
-            ):
+            if files_under(data, owner) and data.get("level") == level:
                 out.append((entry.name, level))
         return tuple(out)
 

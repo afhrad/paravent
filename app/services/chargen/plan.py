@@ -61,6 +61,13 @@ from app.services.chargen.catalogue import (
 from app.services.chargen.feat_choices import feat_choice_picks, feat_weapons, repeatable
 from app.services.chargen.prereq import Context, Verdict, check
 from app.services.chargen.rules import ability_problem, expertise_grants, starting_gold
+from app.services.class_refs import (
+    feature_owners,
+    feature_refs,
+    files_under,
+    is_variant,
+    subclass_owner,
+)
 from app.services.i18n import Translatable
 from app.services.naming import StyleEntry
 from app.services.sheet import Sheet, build_sheet
@@ -256,16 +263,12 @@ def _progression_at(progression: Any, level: int) -> int:
 
 
 def _features(cls: Offer, level: int) -> list[tuple[str, int]]:
-    out = []
-    for ref in cls.data.get("classFeatures") or []:
-        text = ref.get("classFeature") if isinstance(ref, Mapping) else ref
-        parts = str(text).split("|")
-        if len(parts) >= 4 and parts[3].isdigit() and int(parts[3]) <= level:
-            # A feature from another book than the class is an optional variant.
-            if len(parts) > 4 and parts[4] and parts[4].lower() != cls.source.lower():
-                continue
-            out.append((parts[0], int(parts[3])))
-    return out
+    # A feature from another book than the class is an optional variant.
+    return [
+        (r.name, r.level)
+        for r in feature_refs(cls.data)
+        if r.level <= level and not is_variant(r, cls.data)
+    ]
 
 
 def level_plan(cls: Offer, subclass: Offer | None, level: int, sheet: Sheet | None) -> LevelPlan:
@@ -799,24 +802,27 @@ class Planner:
         """Every counted choice in the class's and subclass's features, with the option
         records by lower-case name."""
         cat = self.catalogue
+        # Filed under the classes the references name: a class on another's frame
+        # borrows its features (class_refs). Choices come from the features it lists.
+        owners = feature_owners(cls.data)
+        refs = feature_refs(cls.data)
         own = [
             o.data
             for o in cat.rows("classFeature")
-            if str(o.data.get("className", "")).lower() == cls.name.lower()
-            and str(o.data.get("classSource", "")).lower() == cls.source.lower()
+            if (
+                str(o.data.get("className", "")).lower(),
+                str(o.data.get("classSource", "")).lower(),
+            )
+            in owners
         ]
+        listed = [f for f in own if any(r.matches(f) for r in refs)]
         if subclass is not None:
-            short = str(subclass.data.get("shortName") or subclass.name).lower()
-            own += [
-                o.data
-                for o in cat.rows("subclassFeature")
-                if str(o.data.get("className", "")).lower() == cls.name.lower()
-                and str(o.data.get("classSource", "")).lower() == cls.source.lower()
-                and str(o.data.get("subclassShortName", "")).lower() == short
-                and str(o.data.get("subclassSource", "")).lower() == subclass.source.lower()
-            ]
+            owner = subclass_owner(subclass.data, cls.name, cls.source)
+            sub_own = [o.data for o in cat.rows("subclassFeature") if files_under(o.data, owner)]
+            own += sub_own
+            listed += sub_own
         out = []
-        for feature in own:
+        for feature in listed:
             for block in feature_options.option_blocks(feature.get("entries")):
                 records = {
                     str(r.get("name", "")).lower(): r
