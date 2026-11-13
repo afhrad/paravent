@@ -34,7 +34,8 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       features, which the sheet had left out: an empty source in a reference is the PHB.
       **A class's own spells** (2026-11-13): those a class record grants (the 2024 paladin's
       Divine Smite and Find Steed, a ranger's Hunter's Mark) are always prepared on the
-      sheet, uncounted, and one cast without a slot once a day is a resource Cast spends.
+      sheet, uncounted, and one cast without a slot once a day is a resource Cast spends;
+      the wizard no longer offers them to prepare (`granted_spells.always_prepared`).
       Phased in TECHSTACK.md §6b:
   - [x] **Phase 1 complete.** `class` (30), `subclass` (315), `classFeature` (677),
         `subclassFeature` (1,397), `legendaryGroup` (171), both `generated/` lookups, and
@@ -886,7 +887,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2255 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2256 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the

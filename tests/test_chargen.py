@@ -752,6 +752,20 @@ class TestSpells:
         assert prepared is not None and prepared.count == 3 + 3
         assert "Cure Wounds|PHB" in prepared.options
 
+    def test_spells_always_prepared_are_not_offered(
+        self, loaded_compendium: CompendiumStore, lookups: LookupTables
+    ) -> None:
+        """A 2024 paladin always has Divine Smite from 2nd level: it is not a choice."""
+        planner = _planner(loaded_compendium, lookups, BOOKS_2024)
+        pc = PlayerCharacter()
+        planner.answer(pc, "class", ["Paladin|XPHB"])
+        planner.answer(pc, "level", ["2"])
+        step = planner.plan(pc).step("spells")
+        assert step is not None
+        prepared = step.pick("spells.prepared")
+        assert prepared is not None and "Bless|XPHB" in prepared.options
+        assert "Divine Smite|XPHB" not in prepared.options
+
     def test_a_wizard_prepares_from_the_book(
         self, loaded_compendium: CompendiumStore, lookups: LookupTables
     ) -> None:

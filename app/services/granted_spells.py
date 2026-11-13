@@ -133,6 +133,39 @@ def cantrip_choice(data: Mapping[str, Any] | None) -> tuple[str, ...]:
     return tuple(str(b.lines[0].spell) for b in found)
 
 
+def class_grants(data: Mapping[str, Any] | None, level: int) -> list[Line]:
+    """The spells a class record itself grants outright by class ``level``: its blocks'
+    fixed prepared and innate spells (the 2024 paladin's Divine Smite). Choices (the 2014
+    bard's Magical Secrets) and expanded lists are not grants."""
+    return [
+        line
+        for block in blocks(data)
+        for line in block.fixed(level)
+        if line.kind in ("prepared", "innate")
+    ]
+
+
+def always_prepared(
+    class_data: Mapping[str, Any] | None,
+    subclass_data: Mapping[str, Any] | None,
+    level: int,
+    spell_list: str | None = None,
+) -> list[str]:
+    """The spells a class and its subclass always have prepared by class ``level``, as
+    ``name`` or ``name|source`` (``#c`` dropped): the class's own grants, then the
+    subclass's ``prepared`` spells. A subclass with several named lists (the Circle of
+    the Land's terrains) gives only the list ``spell_list`` names; none is guessed."""
+    out = [line.spell for line in class_grants(class_data, level)]
+    raw = [b for b in (subclass_data or {}).get("additionalSpells") or [] if isinstance(b, Mapping)]
+    if len(raw) > 1:
+        raw = [b for b in raw if spell_list and b.get("name") == spell_list]
+    if len(raw) == 1:
+        for key, names in (raw[0].get("prepared") or {}).items():
+            if str(key).isdigit() and int(key) <= level and isinstance(names, list):
+                out.extend(n.split("#")[0] for n in names if isinstance(n, str))
+    return out
+
+
 def _block(raw: Mapping[str, Any]) -> Block:
     ability = raw.get("ability")
     fixed = ability if isinstance(ability, str) and ability in ABILITIES else None
@@ -202,4 +235,12 @@ def _filter(spec: str) -> SpellFilter:
     )
 
 
-__all__ = ["Block", "Line", "SpellFilter", "blocks", "chosen_block"]
+__all__ = [
+    "Block",
+    "Line",
+    "SpellFilter",
+    "always_prepared",
+    "blocks",
+    "chosen_block",
+    "class_grants",
+]

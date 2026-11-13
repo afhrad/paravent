@@ -1638,47 +1638,16 @@ def _preparing(
 def _always_prepared(
     corpus: _Corpus, classes: list[tuple[ClassLevel, dict[str, Any] | None]]
 ) -> list[ChosenOption]:
-    """The spells a class and its subclass always have prepared, up to the class's level.
-
-    ``additionalSpells[].prepared`` keyed by class level (``"3": ["bless", …]``). The
-    class's own come first (the 2024 paladin's Divine Smite, a ranger's Hunter's Mark).
-    A subclass with several named blocks (the Circle of the Land's terrains) leaves the
-    choice to the player, and is not guessed. ``#c`` marks a cantrip; it is dropped.
-    """
+    """The spells each class and its subclass always have prepared, up to the class's
+    level (``granted_spells.always_prepared``)."""
     out: list[ChosenOption] = []
     for cls, record in classes:
-        for line in _class_lines(cls, record):
-            spell, _sep, source = line.spell.partition("|")
-            out.append(ChosenOption(name=spell, source=source.upper() or None))
-        sub = corpus.subclass(cls)
-        blocks = [b for b in (sub or {}).get("additionalSpells") or [] if isinstance(b, dict)]
-        if len(blocks) > 1:  # a list to choose (a Circle of the Land's terrain): the one taken
-            wanted = cls.options.get("spells")
-            blocks = [b for b in blocks if wanted and b.get("name") == wanted]
-        if len(blocks) != 1:
-            continue
-        prepared = blocks[0].get("prepared") or {}
-        for key, names in prepared.items():
-            if not str(key).isdigit() or int(key) > cls.level:
-                continue
-            for name in names if isinstance(names, list) else []:
-                if not isinstance(name, str):
-                    continue
-                spell, _sep, source = name.split("#")[0].partition("|")
-                out.append(ChosenOption(name=spell, source=source.upper() or None))
+        for spell in granted_spells.always_prepared(
+            record, corpus.subclass(cls), cls.level, cls.options.get("spells")
+        ):
+            name, _sep, source = spell.partition("|")
+            out.append(ChosenOption(name=name, source=source.upper() or None))
     return out
-
-
-def _class_lines(cls: ClassLevel, record: dict[str, Any] | None) -> list[granted_spells.Line]:
-    """The spells the class record itself grants outright by ``cls``'s level: its
-    ``additionalSpells`` blocks' fixed prepared and innate spells. Choices (the 2014
-    bard's Magical Secrets) and expanded lists are not grants."""
-    return [
-        line
-        for block in granted_spells.blocks(record)
-        for line in block.fixed(cls.level)
-        if line.kind in ("prepared", "innate")
-    ]
 
 
 def _class_spell_uses(
@@ -1692,7 +1661,7 @@ def _class_spell_uses(
     sheet, as ``SpellView.free``; ``"will"`` for one cast at will."""
     out: dict[str, str] = {}
     for cls, record in classes:
-        for line in _class_lines(cls, record):
+        for line in granted_spells.class_grants(record, cls.level):
             option = ChosenOption.model_validate(line.spell)
             name = str((corpus.resolve("spell", option) or {}).get("name") or option.name)
             if line.use == "will":

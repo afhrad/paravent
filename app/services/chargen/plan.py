@@ -1353,6 +1353,21 @@ class Planner:
         if plan.known:
             picks.append(Pick("spells.known", "spell", cls.name, count=plan.known, options=listed))
         if plan.prepared:
+            # Spells the class or subclass always has prepared are not chosen again.
+            subclass = chosen["subclass"]
+            always = {
+                spell.partition("|")[0].lower()
+                for spell in granted_spells.always_prepared(
+                    cls.data,
+                    subclass.data if subclass else None,
+                    levels.level,
+                    _first(pc.choices, "featopt.spells"),
+                )
+            }
+            if not plan.known:
+                listed = tuple(
+                    r for r in listed if ChosenOption.model_validate(r).name.lower() not in always
+                )
             book = tuple(pc.choices.get("spells.known") or ()) if plan.known else listed
             count = min(plan.prepared, len(book)) if plan.known and book else plan.prepared
             picks.append(Pick("spells.prepared", "prepared", cls.name, count=count, options=book))
