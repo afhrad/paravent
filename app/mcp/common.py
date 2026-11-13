@@ -31,8 +31,9 @@ def tool_errors() -> Iterator[None]:
         yield
     except EditConflict as exc:
         raise ToolError(
-            "The text changed since you read it (the gamemaster edited it). Nothing was "
-            "saved. Merge your change into the current text below and write again with "
+            "The text changed since the version you named (the gamemaster edited it, or "
+            "you wrote it again since). Nothing was saved. Merge your change into the "
+            "current text below and write again with "
             f"its version.\n\n--- current text ---\n{exc.current}"
         ) from exc
     except Translatable as exc:
