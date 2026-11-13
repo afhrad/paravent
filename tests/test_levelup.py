@@ -174,6 +174,22 @@ class TestSpellsChangingOnLevelUp:
         levels.answer(pc, "spells.prepared", list(grown.options[: grown.count]))
         assert "spells.prepared" not in levels.plan(pc).missing
 
+    def test_a_spell_the_class_gives_is_not_offered(
+        self, loaded_compendium: CompendiumStore, lookups: LookupTables
+    ) -> None:
+        """A 2024 warlock always has Contact Other Plane from 9th level."""
+        levels = _levels(loaded_compendium, lookups, BOOKS_2024)
+        pc = _character(
+            {
+                "classes": [{"class": "Warlock|XPHB", "level": 8, "subclass": "Fiend Patron|XPHB"}],
+                "abilities": {"str": 8, "dex": 14, "con": 14, "int": 10, "wis": 10, "cha": 18},
+                "spells": {"prepared": ["Hex|XPHB"]},
+            }
+        )
+        grown = next(p for p in levels.plan(pc).picks if p.id == "spells.prepared")
+        assert "Dream|XPHB" in grown.options  # another 5th-level warlock spell
+        assert "Contact Other Plane|XPHB" not in grown.options
+
     def test_a_known_spell_may_be_replaced(
         self, loaded_compendium: CompendiumStore, lookups: LookupTables
     ) -> None:

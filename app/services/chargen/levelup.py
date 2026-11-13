@@ -41,6 +41,7 @@ from app.models.pc import (
     PlayerCharacter,
 )
 from app.models.protocol import EntryKind
+from app.services import granted_spells
 from app.services.auth import Identity
 from app.services.chargen.blocks import (
     ABILITY_LIMIT,
@@ -547,10 +548,21 @@ class LevelUpPlanner:
             more_prepared > 0
             and _caster_record(cls, subclass).get("preparedSpellsChange") == "level"
         ):
+            # Spells the class or subclass always has prepared are not chosen again.
+            entry = next((c for c in pc.classes if c.name.lower() == cls.name.lower()), None)
+            always = {
+                spell.partition("|")[0].lower()
+                for spell in granted_spells.always_prepared(
+                    cls.data,
+                    subclass.data if subclass else None,
+                    new.level,
+                    entry.options.get("spells") if entry else None,
+                )
+            }
             offers = [
                 o
                 for o in self.catalogue.class_spells(cls, new.spells.max_level, subclass)
-                if o.data.get("level", 0) >= 1 and o.name.lower() not in had
+                if o.data.get("level", 0) >= 1 and o.name.lower() not in had | always
             ]
             picks.append(
                 Pick(
