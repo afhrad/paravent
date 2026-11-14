@@ -30,6 +30,8 @@ _MAX_CR = ((8, Fraction(1)), (4, Fraction(1, 2)), (2, Fraction(1, 4)))
 _KNOWN = ((8, 8), (4, 6), (2, 4))
 SWIM_FROM = 4  # 2014 only
 FLY_FROM = 8
+# Beast Spells (both editions): from this druid level a form may cast.
+BEAST_SPELLS = 18
 
 
 @dataclass(frozen=True)
@@ -54,7 +56,8 @@ class WildShapeRules:
         """Whether a beast fits these rules (its type is checked by the caller)."""
         if cr is None or cr > self.max_cr:
             return False
-        speed = beast.get("speed") if isinstance(beast.get("speed"), dict) else {}
+        raw = beast.get("speed")
+        speed: dict[str, Any] = raw if isinstance(raw, dict) else {}
         if not self.fly and speed.get("fly"):
             return False
         return self.swim or not speed.get("swim")
@@ -174,6 +177,7 @@ def find(forms: Iterable[Form], option: ChosenOption | None) -> Form | None:
 
 
 __all__ = [
+    "BEAST_SPELLS",
     "RESOURCE",
     "Form",
     "WildShapeRules",

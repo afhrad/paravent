@@ -58,7 +58,7 @@ from app.services.class_refs import (
 )
 from app.services.text import first_dice, paragraphs, strip_tags
 from app.services.translations import translation_key
-from app.services.wild_shape import Form, WildShapeRules
+from app.services.wild_shape import BEAST_SPELLS, Form, WildShapeRules
 
 ABILITY_NAMES = {
     "str": "Strength",
@@ -269,6 +269,9 @@ class SpellView:
     # How many creatures one casting heals (Mass Cure Wounds: up to six).
     heal_targets: int = 1
     material: str | None = None
+    # "costly" for a material component with a price or one the spell consumes, "plain"
+    # for any other, "" for none: what a druid in Wild Shape at level 18 may still cast.
+    material_kind: str = ""
     text: tuple[str, ...] = ()
     # The 5eTools entries themselves, for the tag renderer (links, roll chips).
     entries: tuple[Any, ...] = ()
@@ -453,11 +456,27 @@ class WildShapeView:
     form: Form | None = None
     # The 2014 form's hit points now; its maximum is the beast's.
     form_hp: int | None = None
+    # Spells castable in a form all the same, by lowercased name: the 2024 Circle of the
+    # Moon's circle spells.
+    form_spells: frozenset[str] = frozenset()
 
     @property
     def choices(self) -> tuple[Form, ...]:
         """The forms the druid may take now: its known ones (2024), else every one."""
         return self.known if self.rules.known is not None else self.forms
+
+    def can_cast(self, spell: SpellView) -> bool:
+        """Whether the druid may cast ``spell`` now. A form casts nothing, but for its
+        circle's spells (2024 Moon) and, from level 18, Beast Spells: in 2014 any spell
+        without a material component, in 2024 any whose material has no price and is
+        not consumed."""
+        if self.form is None or spell.name.lower() in self.form_spells:
+            return True
+        if self.rules.level < BEAST_SPELLS:
+            return False
+        if self.rules.edition == "2024":
+            return spell.material_kind != "costly"
+        return not spell.material_kind
 
     @property
     def form_hp_now(self) -> tuple[int, int] | None:
@@ -547,6 +566,10 @@ class Sheet:
         """The spellcasting ability modifier, from the spell save DC (8 + prof + mod)."""
         dc = self.spell_save_dc.value if self.spell_save_dc is not None else None
         return 0 if dc is None else dc - 8 - (self.proficiency.value or 0)
+
+    def can_cast(self, spell: SpellView) -> bool:
+        """Whether the character may cast ``spell`` now (not, mostly, in Wild Shape)."""
+        return self.wild_shape is None or self.wild_shape.can_cast(spell)
 
     def save_dc_for(self, spell: SpellView) -> Value | None:
         """The save DC ``spell`` is cast with: its grant's ability's, else the class's."""
@@ -1817,6 +1840,8 @@ def _spell_view(option: ChosenOption, data: dict[str, Any] | None, level: int) -
         if isinstance(material, str)
         else None
     )
+    costly = isinstance(material, dict) and bool(material.get("cost") or material.get("consume"))
+    material_kind = "costly" if costly else "plain" if material else ""
     concentration = False
     duration = ""
     for d in data.get("duration") or []:
@@ -1887,6 +1912,7 @@ def _spell_view(option: ChosenOption, data: dict[str, Any] | None, level: int) -
         heal_targets=heal_targets,
         damage_types=tuple(data.get("damageInflict") or ()),
         material=material_text,
+        material_kind=material_kind,
         text=tuple(text),
         entries=(*(data.get("entries") or []), *(data.get("entriesHigherLevel") or [])),
         higher_from=len(data.get("entries") or []),
@@ -2156,16 +2182,17 @@ def _wild_shape(
     """Wild Shape: its uses as a resource, the forms, and the form the druid is in —
     whose AC and speed the sheet then shows (the 2024 Circle of the Moon's 13 + WIS where
     that is higher)."""
-    rules = next(
+    druid = next(
         (
-            found
+            (cls, record, found)
             for cls, record in classes
             if (found := wild_shape.rules_for(cls, record, corpus.subclass(cls))) is not None
         ),
         None,
     )
-    if rules is None:
+    if druid is None:
         return
+    cls, record, rules = druid
     state = character.state
     used = min(rules.uses, state.resources_used.get(wild_shape.RESOURCE, 0))
     sheet.resources.append(
@@ -2192,6 +2219,9 @@ def _wild_shape(
         min(state.wild_shape_hp, form.hp)
         if form is not None and state.wild_shape_hp is not None
         else None,
+        _circle_spells(corpus, cls, record)
+        if rules.moon and rules.edition == "2024"
+        else frozenset(),
     )
     if form is None:
         return
@@ -2208,6 +2238,17 @@ def _wild_shape(
     walk = walk.get("number") if isinstance(walk, dict) else walk
     if isinstance(walk, int):
         sheet.speed = Value(walk, f"{form.name} form")
+
+
+def _circle_spells(
+    corpus: _Corpus, cls: ClassLevel, record: dict[str, Any] | None
+) -> frozenset[str]:
+    """The spells the druid's circle keeps prepared, by lowercased name: the 2024 Circle
+    of the Moon may cast them in a form."""
+    options = cls.options.get("spells")
+    with_circle = granted_spells.always_prepared(record, corpus.subclass(cls), cls.level, options)
+    without = set(granted_spells.always_prepared(record, None, cls.level, options))
+    return frozenset(s.partition("|")[0].lower() for s in with_circle if s not in without)
 
 
 def _outside_form(corpus: _Corpus, option: ChosenOption) -> wild_shape.Form | None:

@@ -11,12 +11,13 @@ import pytest
 from app.models.pc import ChosenOption, ClassLevel, PlayerCharacter
 from app.services.i18n import UiCatalogue
 from app.services.play import PlayError
-from app.services.sheet import build_sheet
-from app.services.wild_shape import RESOURCE, find, rules_for
+from app.services.sheet import SpellView, WildShapeView, build_sheet
+from app.services.wild_shape import RESOURCE, Form, find, rules_for
 from app.store.compendium import CompendiumStore
 from app.ui.combat_pages import character_block
 from app.ui.context import Page
 from app.ui.gm_pages import party_card
+from app.ui.sheet_pages import _spell_row
 from app.ui.tags import RenderContext
 from tests.conftest import requires_corpus
 from tests.test_play import Table
@@ -214,3 +215,87 @@ class TestAtTheTable:
         assert sheet.wild_shape is not None and sheet.wild_shape.form_hp_now is None
         page = Page(UiCatalogue().translator("de"))
         assert "Gestalt: " in str(party_card(page, sheet, owner=None, world=None))
+
+
+def _spell(name: str, material: str = "") -> SpellView:
+    return SpellView(f"{name}|PHB", name, found=True, level=1, material_kind=material)
+
+
+def _in_form(record: dict[str, Any], level: int, circle: frozenset[str] = frozenset()):
+    rules = _rules(record, level)
+    assert rules is not None
+    wolf = Form("Wolf", "MM", "1/4", {})
+    return WildShapeView(rules, (wolf,), form=wolf, form_spells=circle)
+
+
+class TestNoSpellsInAForm:
+    def test_a_form_casts_nothing(self) -> None:
+        assert not _in_form(TABLE_2014, 4).can_cast(_spell("Thunderwave"))
+        assert not _in_form(TABLE_2024, 4).can_cast(_spell("Thunderwave"))
+
+    def test_outside_a_form_anything(self) -> None:
+        rules = _rules(TABLE_2014, 4)
+        assert rules is not None
+        assert WildShapeView(rules, ()).can_cast(_spell("Goodberry", "plain"))
+
+    def test_beast_spells_at_level_18(self) -> None:
+        old, new = _in_form(TABLE_2014, 18), _in_form(TABLE_2024, 18)
+        assert old.can_cast(_spell("Thunderwave"))
+        assert not old.can_cast(_spell("Goodberry", "plain"))  # 2014: no material at all
+        assert new.can_cast(_spell("Goodberry", "plain"))
+        assert not new.can_cast(_spell("Stoneskin", "costly"))  # 2024: priced or consumed
+
+    def test_the_moons_circle_spells(self) -> None:
+        moon = _in_form(TABLE_2024, 3, frozenset({"moonbeam"}))
+        assert moon.can_cast(_spell("Moonbeam")) and not moon.can_cast(_spell("Thunderwave"))
+
+
+@requires_corpus
+class TestCastingInAForm:
+    def test_a_druid_in_a_form_is_refused_and_casts_again_outside(
+        self, tmp_path: Path, loaded_compendium: CompendiumStore
+    ) -> None:
+        table = _druid(
+            tmp_path,
+            loaded_compendium,
+            "PHB",
+            level=4,
+            spells={
+                "known": ["Produce Flame|PHB", "Cure Wounds|PHB"],
+                "prepared": ["Cure Wounds|PHB"],
+            },
+        )
+        table.act("wild_shape", op="assume", form=_wolf(table))
+        with pytest.raises(PlayError) as refused:
+            table.act("cast", spell="Cure Wounds|PHB", level=1)
+        assert refused.value.key == "play.error.wild_shape_no_spells"
+        with pytest.raises(PlayError):  # a cantrip's attack too
+            table.act("roll", kind="attack", subject="Produce Flame|PHB")
+        sheet = build_sheet(table.now, loaded_compendium)
+        page = Page(UiCatalogue().translator("de"))
+        assert "Keine Zauber in Tiergestalt" in str(_spell_row(page, sheet, sheet.spells[-1]))
+        ctx = RenderContext(resolver=loaded_compendium.resolver())
+        assert "Keine Zauber in Tiergestalt" in str(character_block(page, sheet, table.pc.id, ctx))
+        table.act("wild_shape", op="revert")
+        table.act("cast", spell="Cure Wounds|PHB", level=1)
+        assert table.now.state.slots_used == {"1": 1}
+
+    def test_the_2024_moon_casts_its_circle_spells_in_a_form(
+        self, tmp_path: Path, loaded_compendium: CompendiumStore
+    ) -> None:
+        table = Table(
+            tmp_path / "c",
+            loaded_compendium,
+            name="Sanna",
+            classes=[{"class": "Druid|XPHB", "level": 3, "subclass": "Circle of the Moon|XPHB"}],
+            abilities={"con": 12, "wis": 16},
+            wild_shapes=["Wolf|XMM"],
+            spells={"prepared": ["Thunderwave|XPHB"]},
+        )
+        table.act("wild_shape", op="assume", form="Wolf|XMM")
+        sheet = build_sheet(table.now, loaded_compendium)
+        assert sheet.wild_shape is not None and "moonbeam" in sheet.wild_shape.form_spells
+        moonbeam = sheet.spell("Moonbeam")
+        thunderwave = sheet.spell("Thunderwave|XPHB")
+        assert moonbeam is not None and sheet.can_cast(moonbeam)
+        assert thunderwave is not None and not sheet.can_cast(thunderwave)

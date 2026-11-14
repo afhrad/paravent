@@ -824,6 +824,12 @@ def _spell_row(
             )
         )
     buttons.append(_cast_form(page, sheet, spell))
+    if not sheet.can_cast(spell):  # a druid in Wild Shape
+        buttons = [
+            span(class_="pill neutral cs-no-cast")[
+                icon("footprints", "xs"), t("sheet.wild_shape.no_spells")
+            ]
+        ]
     meta = [
         f"{level_label} {rules_text.school(page, spell.school_code) or spell.school}".strip(),
         rules_text.spell_time(page, spell),

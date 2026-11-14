@@ -1732,6 +1732,16 @@ def _form_actions(
     ]
 
 
+def _no_spells_in_form(sheet: Sheet) -> bool:
+    """A druid in a form who casts nothing at all now (no circle spells, no Beast Spells)."""
+    wild = sheet.wild_shape
+    return (
+        wild is not None
+        and wild.form is not None
+        and not any(sheet.can_cast(spell) for spell in sheet.spells if spell.found)
+    )
+
+
 def character_block(
     page: Page,
     sheet: Sheet,
@@ -1869,6 +1879,11 @@ def character_block(
         form_actions,
         section(class_="sb-section")[
             h3(class_="sb-heading")[t("combat.pc_spellcasting")],
+            p(class_="cb-pc-note muted")[
+                icon("footprints", "xs"), " ", t("sheet.wild_shape.no_spells")
+            ]
+            if _no_spells_in_form(sheet)
+            else None,
             _sb_line(
                 t("sheet.spell_dc"),
                 sheet.spell_save_dc.text if sheet.spell_save_dc else "—",

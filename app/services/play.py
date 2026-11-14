@@ -50,6 +50,13 @@ class PlayError(Translatable):
     """An action the rules do not allow right now: no slot left, no hit die to spend."""
 
 
+def _castable(sheet: Sheet, spell: SpellView) -> None:
+    """Refuse a spell the character cannot cast now: a druid in Wild Shape casts none,
+    but for a circle's spells and Beast Spells (``WildShapeView.can_cast``)."""
+    if not sheet.can_cast(spell):
+        raise PlayError("play.error.wild_shape_no_spells", name=spell.name)
+
+
 @dataclass(frozen=True)
 class Actor:
     """Who pressed the button, as the log names them.
@@ -361,6 +368,7 @@ class PlayService:
         spell = sheet.spell(params.get("spell", ""))
         if spell is None:
             raise PlayError("play.error.unknown_spell")
+        _castable(sheet, spell)
         if params.get("level") == "free":
             self._cast_free(pc, sheet, spell)
             level = spell.level
@@ -472,13 +480,13 @@ class PlayService:
             if state.wild_shape is not None:  # no form lasts through a long rest
                 self._leave_form(pc, actor)
             total = sum(pool.total for pool in sheet.hit_dice)
-            regain = max(1, total // 2)
+            dice_back = max(1, total // 2)
             used = dict(state.hit_dice_used)
             for pool in sheet.hit_dice:  # largest dice back first
                 key = f"d{pool.faces}"
-                back = min(regain, used.get(key, 0))
+                back = min(dice_back, used.get(key, 0))
                 used[key] = used.get(key, 0) - back
-                regain -= back
+                dice_back -= back
             state.hit_dice_used = {k: v for k, v in used.items() if v > 0}
         self._log(pc, actor, LogKind.REST, kind)
 
@@ -641,6 +649,8 @@ class PlayService:
         if attack is not None:
             return attack.bonus
         spell = sheet.spell(subject)
+        if spell is not None:
+            _castable(sheet, spell)
         bonus = sheet.attack_for(spell) if spell is not None and spell.attack else None
         if bonus is not None:
             return bonus
@@ -654,6 +664,8 @@ class PlayService:
             found = attack.versatile if versatile and attack.versatile else attack.damage
         else:
             spell = sheet.spell(subject)
+            if spell is not None:
+                _castable(sheet, spell)
             # Cast with a higher slot, a spell's damage grows (Fireball: +1d6 a level).
             found = damage_at(spell, level) if spell is not None else None
         expression = (found or "").replace(" ", "")
