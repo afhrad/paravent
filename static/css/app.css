@@ -2372,7 +2372,7 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .tip-head .tok{ margin-right:2px; }
 .token-panel-body{ display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
 .token-panel-forms{ display:grid; gap:8px; flex:1; min-width:200px; }
-.tok-drop{ display:flex; align-items:center; gap:10px; padding:14px; border:2px dashed var(--border-strong); border-radius:var(--r-md, 10px); cursor:pointer; color:var(--text-2); }
+.tok-drop{ display:flex; align-items:center; gap:10px; padding:14px; border:2px dashed var(--border-strong); border-radius:var(--r); cursor:pointer; color:var(--text-2); }
 .tok-drop.is-over{ border-color:var(--accent); background:var(--accent-weak); color:var(--accent-text); }
 .tok-drop input[type="file"]{ font-size:12px; max-width:100%; }
 .tok-dialog{ width:min(92vw, 380px); border:1px solid var(--border-strong); border-radius:var(--r-lg, 14px); background:var(--surface); color:var(--text); padding:18px; }

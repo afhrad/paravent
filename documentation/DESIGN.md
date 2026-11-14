@@ -4,9 +4,7 @@
 standalone pages, openable straight from the filesystem, and a seventeenth,
 [`17-paravent-today.html`](../design-reference/17-paravent-today.html), showing the app as built.
 **Resuming this work?** Start with
-[`design-reference/HANDOFF.md`](../design-reference/HANDOFF.md). Published copies:
-[interface kit](https://claude.ai/code/artifact/ab903338-4dab-477f-ac41-913985686caf) ·
-[tooltip prototype](https://claude.ai/code/artifact/c8ad1412-03a2-4a3c-bf78-06c2bddab2ce)
+[`design-reference/HANDOFF.md`](../design-reference/HANDOFF.md).
 
 Visual language for Paravent. Styled by **token CSS served as-is**, rendered server-side
 via **htpy**, made dynamic with **HTMX**. Direction: neutral-professional, full light/dark
@@ -500,7 +498,7 @@ PHB+MM campaign *wants* a stray reference to a book nobody owns to stay inert.
 
 ## 7. Tooltips
 
-Prototype: https://claude.ai/code/artifact/c8ad1412-03a2-4a3c-bf78-06c2bddab2ce
+Prototype: [`design-reference/12-tooltips.html`](../design-reference/12-tooltips.html)
 
 Every entity tag (42 types, 143,053 occurrences) gets a hover preview. The tooltip answers the
 question *"what is that again?"* without leaving the sentence you are reading aloud.
