@@ -38,13 +38,13 @@ from htpy import (
 
 from app.services.translations import CHAPTER_FIELDS, Overlaid
 from app.store.published import Anchors, BookBody, PublishedBook, heading_anchor, is_heading
-from app.ui.book_pages import book_image
+from app.ui.book_pages import anchor_id, book_image
 from app.ui.context import Page
 from app.ui.home_pages import page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.player_view import view_switch
-from app.ui.tags import RenderContext, render, render_entries
+from app.ui.tags import RenderContext, plain, render, render_entries
 from app.ui.translate_pages import translate_url
 from app.ui.translated import coverage_note
 
@@ -161,11 +161,13 @@ def _contents(book: PublishedBook, world_id: str | None) -> Element:
 
 
 class _Headings:
-    """The chapter's anchors (the store's rule, shared with search) and its contents."""
+    """The chapter's anchors (the store's rule, shared with search) and its contents;
+    ``areas`` the entries a map's areas lead to, which are also reached by entry id."""
 
-    def __init__(self) -> None:
+    def __init__(self, areas: frozenset[str] = frozenset()) -> None:
         self.anchors = Anchors()
         self.toc: list[tuple[int, str, str]] = []
+        self.areas = areas
 
     def anchor(self, name: str, depth: int, shown: str | None = None) -> str:
         """The anchor of an English heading ``name``; the contents list ``shown``."""
@@ -188,14 +190,45 @@ def _book_block(
         name = entry["name"]
         anchor = headings.anchor(english["name"], depth, name)
         heading = HEADINGS[min(depth, len(HEADINGS)) - 1]
+        ident = english.get("id")
         return section(class_=f"bk-sec bk-d{depth}", id=anchor)[
-            heading(class_="bk-h")[render(name, ctx)],
+            heading(class_="bk-h", id=anchor_id(ident) if ident in headings.areas else None)[
+                render(name, ctx)
+            ],
             [
                 _book_block(child, ctx, depth + 1, headings, original)
                 for child, original in zip(entry["entries"], english["entries"], strict=True)
             ],
         ]
     return render_entries([entry], ctx)
+
+
+# A map's area: the chapter its entry is in, and the entry's name.
+_Area = tuple[int, str]
+
+
+def _map_areas(body: BookBody) -> dict[str, _Area]:
+    """The entries the book's maps name as their numbered areas, by entry id."""
+    named: dict[str, _Area] = {}
+    wanted: set[str] = set()
+
+    def walk(value: Any, index: int) -> None:
+        if isinstance(value, dict):
+            ident, name = value.get("id"), value.get("name")
+            if isinstance(ident, str) and isinstance(name, str):
+                named.setdefault(ident, (index, plain(name)))
+            for region in value.get("mapRegions") or []:
+                if isinstance(region, dict) and isinstance(region.get("area"), str):
+                    wanted.add(region["area"])
+            for child in value.values():
+                walk(child, index)
+        elif isinstance(value, list):
+            for child in value:
+                walk(child, index)
+
+    for index, chapter in enumerate(body.sections):
+        walk(chapter.entry, index)
+    return {ident: named[ident] for ident in wanted if ident in named}
 
 
 def _chapter_text(page: Page, book_id: str, index: int, chapter: Any) -> Overlaid:
@@ -217,21 +250,36 @@ def chapter_page(
     t = page.t
     book = body.book
     chapter = body.sections[index]
+    areas = _map_areas(body)
+
+    def area(entry_id: str) -> tuple[str, str] | None:
+        """Where a map's numbered area leads: its entry, in this chapter or another."""
+        if entry_id not in areas:
+            return None
+        where, name = areas[entry_id]
+        page_url = "" if where == index else book_url(book.id, where, world_id)
+        return f"{page_url}#{anchor_id(entry_id)}", name
+
+    def anchored(entry_id: str) -> str | None:
+        return anchor_id(entry_id) if entry_id in areas else None
 
     def pictures(entry: dict[str, Any], default: Callable[[], Node]) -> Node | None:
         kind = entry.get("type")
         if kind == "image":
-            return book_image(page, entry, picture)
+            return book_image(page, entry, picture, area=area)
         if kind == "gallery":
             return div(class_="book-gallery")[
-                [book_image(page, i, picture) for i in entry.get("images", [])]
+                [book_image(page, i, picture, area=area) for i in entry.get("images", [])]
             ]
+        ident = entry.get("id")
+        if isinstance(ident, str) and ident in areas:  # an area's text below its heading
+            return div(id=anchor_id(ident))[default()]
         return None
 
-    ctx = replace(ctx, block_hook=pictures)
+    ctx = replace(ctx, block_hook=pictures, item_anchor=anchored)
     shown = _chapter_text(page, book.id, index, chapter)
     title = str(shown.data.get("name") or chapter.name)
-    headings = _Headings()
+    headings = _Headings(frozenset(areas))
     text = [
         _book_block(child, ctx, 1, headings, original)
         for child, original in zip(

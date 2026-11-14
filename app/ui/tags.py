@@ -314,6 +314,9 @@ class RenderContext:
     # nodes to show instead, or None to render as usual. ``default()`` renders it as
     # usual, so a hook can wrap an entry or add after it (a book chapter's notes).
     block_hook: Callable[[dict[str, Any], Callable[[], Node]], Node | None] | None = None
+    # The HTML id a list item with an entry id is reached at (a map's area that names it),
+    # or None; list items do not pass through ``block_hook``.
+    item_anchor: Callable[[str], str | None] | None = None
     # A resolved entry's name in the reader's language (category, English name), from the
     # term glossary; the link still points at the English entry (TRANSLATION.md §3).
     term: Callable[[str, str], str | None] | None = None
@@ -859,7 +862,13 @@ def _list_item(item: Any, ctx: RenderContext) -> Element:
         lead = strong[render(str(item.get("name", "")), ctx), " "] if item.get("name") else None
         first = render(blocks[0], ctx) if blocks and isinstance(blocks[0], str) else None
         rest = blocks[1:] if first is not None else blocks
-        return li[lead, first, render_entries(rest, ctx) if rest else None]
+        ident = item.get("id")
+        anchor = (
+            ctx.item_anchor(ident)
+            if ctx.item_anchor is not None and isinstance(ident, str)
+            else None
+        )
+        return li(id=anchor)[lead, first, render_entries(rest, ctx) if rest else None]
     return li[_block(item, ctx)]
 
 

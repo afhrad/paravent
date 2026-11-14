@@ -375,3 +375,17 @@ class TestMaps:
             )
         ).text
         assert "#e-1ab" not in player and "/gm/chapters" not in player
+
+    async def test_a_rulebook_maps_areas_lead_to_their_text(
+        self, client: tuple[AsyncClient, StoreRegistry], tmp_path: Path
+    ) -> None:
+        ac, registry = client
+        _image_folder(registry, tmp_path, "book/XDMG/070-map-5.01-city-of-greyhawk.webp")
+        chapter = (await ac.get("/books/XDMG/4")).text
+        areas = chapter[chapter.index('class="map-areas"') :]
+        areas = areas[: areas.index("</svg>")]
+        assert areas.count("<polygon") == 17  # every numbered area of the City of Greyhawk
+        assert 'href="#e-320"' in areas and "<title>Grand Citadel</title>" in areas
+        # Each leads to an anchor: a heading, or a named list item (the city's quarters).
+        assert 'id="e-320"' in chapter and '<li id="e-12e">' in chapter
+        assert chapter.count('id="e-12d"') == 1  # an area drawn twice has one anchor

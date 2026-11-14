@@ -177,7 +177,8 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         **Maps** (2026-11-12, `generated/gendata-maps.json`, ADVENTURES.md §7): the 1,302 maps
         of the adventures and rulebooks, by chapter, on an adventure started from a book and
         a rulebook's contents, each leading to where it sits, with its player version; a
-        map's numbered areas link to their text; rulebook chapters show their pictures;
+        map's numbered areas link to their text, in rulebook chapters too (2026-11-14);
+        rulebook chapters show their pictures;
         search finds them by title, leading to the world's chapter at the map.
         For reading, not play
 - [x] **Corpus check** — 2026-10-26, `app/services/corpus_check.py`: `python -m app.cli
@@ -897,7 +898,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2274 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2275 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the
