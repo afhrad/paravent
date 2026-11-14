@@ -459,6 +459,13 @@ class WildShapeView:
         """The forms the druid may take now: its known ones (2024), else every one."""
         return self.known if self.rules.known is not None else self.forms
 
+    @property
+    def form_hp_now(self) -> tuple[int, int] | None:
+        """A 2014 form's hit points now and at most; None outside one or in 2024."""
+        if self.form is None or self.form_hp is None:
+            return None
+        return self.form_hp, self.form.hp
+
 
 @dataclass
 class Sheet:

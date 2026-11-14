@@ -80,7 +80,7 @@ from app.ui.palette import SearchTarget, search_form
 from app.ui.protocol_pages import log_embed_slot
 from app.ui.ref_pages import statblock
 from app.ui.rulebook_pages import screen_url
-from app.ui.sheet_pages import defenses, speed_text
+from app.ui.sheet_pages import defenses, form_pill, speed_text
 from app.ui.tags import RenderContext, render, render_entries
 from app.ui.tokens import token
 
@@ -404,6 +404,8 @@ def _pills(page: Page, view: CombatView, row: Row, sel: str) -> list[Node]:
                 small(class_="mono")[f" {rounds}"] if rounds else None,
             ]
         )
+    if row.character is not None and row.character.form:
+        pills.append(form_pill(page, row.character.form, row.character.form_hp))
     if row.concentration:
         pills.append(
             span(class_="pill magic")[
@@ -1692,6 +1694,19 @@ def _joined_nodes(parts: Sequence[Node]) -> list[Node]:
     return out
 
 
+def _wild_line(page: Page, sheet: Sheet, ctx: RenderContext) -> Node:
+    """The beast a druid is in, linked to its statblock, with a 2014 form's hit points."""
+    wild = sheet.wild_shape
+    if wild is None or wild.form is None:
+        return None
+    hp = wild.form_hp_now
+    return _sb_line(
+        page.t("sheet.wild_shape"),
+        render(f"{{@creature {wild.form.reference}}}", ctx),
+        span(class_="mono")[f" {hp[0]}/{hp[1]}"] if hp else None,
+    )
+
+
 def character_block(
     page: Page, sheet: Sheet, character_id: str, ctx: RenderContext, rage: Node = None
 ) -> Element:
@@ -1761,6 +1776,7 @@ def character_block(
                 if sheet.temp_hp
                 else None,
             ),
+            _wild_line(page, sheet, ctx),
             _sb_line(t("sheet.speed"), speed_text(page, sheet.speed)),
             _sb_line(t("sheet.initiative"), sheet.initiative.signed),
             _sb_line(t("sheet.proficiency"), sheet.proficiency.signed),

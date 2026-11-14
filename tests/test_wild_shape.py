@@ -9,10 +9,15 @@ from typing import Any
 import pytest
 
 from app.models.pc import ChosenOption, ClassLevel, PlayerCharacter
+from app.services.i18n import UiCatalogue
 from app.services.play import PlayError
 from app.services.sheet import build_sheet
 from app.services.wild_shape import RESOURCE, find, rules_for
 from app.store.compendium import CompendiumStore
+from app.ui.combat_pages import character_block
+from app.ui.context import Page
+from app.ui.gm_pages import party_card
+from app.ui.tags import RenderContext
 from tests.conftest import requires_corpus
 from tests.test_play import Table
 
@@ -179,3 +184,33 @@ class TestPlaying:
         with pytest.raises(PlayError):
             table.act("wild_forms", op="learn", form=fifth)
         assert find(sheet_forms.forms, ChosenOption.model_validate(fifth)) is not None
+
+
+@requires_corpus
+class TestAtTheTable:
+    """The gamemaster sees the form on the party card and in the tracker's panel."""
+
+    def test_a_2014_form_shows_with_its_hit_points(
+        self, tmp_path: Path, loaded_compendium: CompendiumStore
+    ) -> None:
+        table = _druid(tmp_path, loaded_compendium, "PHB")
+        table.act("wild_shape", op="assume", form=_wolf(table))
+        table.act("hp", mode="damage", amount=4)
+        sheet = build_sheet(table.now, loaded_compendium)
+        assert sheet.wild_shape is not None and sheet.wild_shape.form_hp_now == (7, 11)
+        page = Page(UiCatalogue().translator("en"))
+        card = str(party_card(page, sheet, owner=None, world=None))
+        assert "Wolf form" in card and "7/11" in card
+        ctx = RenderContext(resolver=loaded_compendium.resolver())
+        panel = str(character_block(page, sheet, table.pc.id, ctx))
+        assert "Wild Shape" in panel and "Wolf" in panel and "7/11" in panel
+
+    def test_a_2024_form_has_no_hit_points_of_its_own(
+        self, tmp_path: Path, loaded_compendium: CompendiumStore
+    ) -> None:
+        table = _druid(tmp_path, loaded_compendium, "XPHB", wild_shapes=["Wolf|XMM"])
+        table.act("wild_shape", op="assume", form="Wolf|XMM")
+        sheet = build_sheet(table.now, loaded_compendium)
+        assert sheet.wild_shape is not None and sheet.wild_shape.form_hp_now is None
+        page = Page(UiCatalogue().translator("de"))
+        assert "Gestalt: " in str(party_card(page, sheet, owner=None, world=None))

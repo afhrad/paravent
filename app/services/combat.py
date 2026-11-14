@@ -210,6 +210,9 @@ class CharacterSnapshot:
     level: int = 0
     # (class, level, subclass or ""): ``line``'s parts, for a page to name in its language.
     classes: tuple[tuple[str, int, str], ...] = ()
+    # A druid's Wild Shape: the beast's name, and a 2014 form's hit points (now, most).
+    form: str = ""
+    form_hp: tuple[int, int] | None = None
 
     @property
     def dead(self) -> bool:
@@ -725,6 +728,8 @@ class SheetCharacters:
             return None
         sheet = self._characters.sheet(pc)
         saves = pc.state.death_saves
+        wild = sheet.wild_shape
+        form = wild.form if wild is not None else None
         return CharacterSnapshot(
             name=pc.name or "?",
             line=sheet.class_line,
@@ -742,6 +747,8 @@ class SheetCharacters:
                 (c.name, c.level, c.subclass.name if c.subclass is not None else "")
                 for c in pc.classes
             ),
+            form=form.name if form is not None else "",
+            form_hp=wild.form_hp_now if wild is not None else None,
         )
 
     def award_xp(self, character_id: str, xp: int, reason: str, by: str) -> None:

@@ -39,7 +39,7 @@ from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.names import class_line
 from app.ui.protocol_pages import headline
-from app.ui.sheet_pages import speed_text
+from app.ui.sheet_pages import form_pill, speed_text
 from app.ui.tokens import token
 
 PARTY_URL = "/gm"
@@ -165,6 +165,8 @@ def party_card(
     chips: list[Node] = [span(class_="pill cond")[t(f"condition.{c.key}")] for c in active]
     if pc.state.exhaustion:
         chips.append(span(class_="pill cond")[f"{t('sheet.exhaustion')} {pc.state.exhaustion}"])
+    if (wild := sheet.wild_shape) is not None and wild.form is not None:
+        chips.append(form_pill(page, wild.form.name, wild.form_hp_now))
     if sheet.concentration is not None:
         chips.append(span(class_="pill magic")[icon("hourglass"), sheet.concentration.name])
     if pc.state.inspiration:

@@ -44,6 +44,7 @@ from htpy import (
     p,
     section,
     select,
+    small,
     span,
     summary,
     ul,
@@ -298,6 +299,15 @@ def _hp_box(page: Page, sheet: Sheet) -> Element:
         div(class_="cs-hd-line")[span(class_="eyebrow")[t("sheet.hit_dice")], hit_dice]
         if sheet.hit_dice
         else None,
+    ]
+
+
+def form_pill(page: Page, beast: str, hp: tuple[int, int] | None = None) -> Element:
+    """A druid in Wild Shape, as a pill: the beast, and a 2014 form's hit points."""
+    return span(class_="pill magic", title=page.t("sheet.wild_shape"))[
+        icon("footprints", "xs"),
+        page.t("sheet.wild_shape.form_hp", form=name_text(page, "monster", beast)),
+        small(class_="mono")[f" {hp[0]}/{hp[1]}"] if hp else None,
     ]
 
 
