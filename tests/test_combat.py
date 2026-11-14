@@ -24,7 +24,7 @@ from app.models.gamestate import (
     World,
 )
 from app.models.naming import ListPart, NamingStyle
-from app.models.pc import PlayerCharacter
+from app.models.pc import ChosenOption, ClassLevel, PlayerCharacter
 from app.models.protocol import EntryKind, ProtocolEntry, RollRecord, Scope
 from app.services.characters import CharacterService
 from app.services.combat import (
@@ -52,6 +52,7 @@ from app.store.protocol import ProtocolStore
 from app.store.registry import StoreRegistry
 from app.ui.combat_pages import combat_log
 from app.ui.context import Page
+from app.ui.play_combat_pages import _member
 from app.ui.protocol_pages import headline, log_rows
 from tests.conftest import corpus_path
 from tests.test_dice_text_events import Scripted
@@ -821,7 +822,21 @@ class TestPlayerView:
             "fill",  # hit points left in percent — friends only, never a foe's
             "id",  # the combatant's id, to pick it as a target — not a number
             "token",  # its round token: a picture's address, or its kind
+            "form",  # the beast a druid's Wild Shape made it, by name — no hit points
         }
+
+    def test_a_druid_in_wild_shape_shows_the_beast(self, table: Table) -> None:
+        def wolf(pc: PlayerCharacter) -> None:
+            pc.classes = [ClassLevel.model_validate({"class": "Druid|PHB", "level": 4})]
+            pc.state.wild_shape = ChosenOption.model_validate("Wolf|MM")
+            pc.state.wild_shape_hp = 9
+
+        table.store.characters.mutate(table.lyra.id, wolf)
+        view = table.combats.player_view(table.start())
+        seen = next(m for t in view.turns for m in t.members if m.character_id)
+        assert seen.form == "Wolf"
+        board = str(_member(Page(UiCatalogue().translator("de")), view, seen, frozenset()))
+        assert "Gestalt: Wolf" in board and "9/11" not in board
 
     def test_hidden_combatants_are_left_out(self, table: Table) -> None:
         combat = table.start()

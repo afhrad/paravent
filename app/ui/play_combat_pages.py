@@ -46,6 +46,7 @@ from app.ui.knowledge_text import fact_detail, fact_kind, fact_label, ordered
 from app.ui.layout import app_shell
 from app.ui.names import ITEM, monster_label, named
 from app.ui.rules_text import kind_text, speed
+from app.ui.sheet_pages import form_pill
 from app.ui.tags import RenderContext, render
 from app.ui.tokens import token
 
@@ -147,6 +148,7 @@ def _member(page: Page, view: PlayerView, member: SeenCombatant, mine: frozenset
         ]
         if member.health != "unhurt"
         else None,
+        form_pill(page, member.form) if member.form else None,
         [span(class_="pill cond")[t(f"condition.{c}")] for c in member.conditions],
     ]
     aims = _aim_forms(page, view, member, mine, names) if view.running else []

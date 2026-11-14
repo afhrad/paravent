@@ -45,7 +45,8 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       and shows its statblock, rolling into the character's log, with its AC and speed;
       a 2024 form gives temporary HP (the Moon's AC 13 + WIS), a 2014 form has its own
       hit points that take damage first, the rest carrying over. The form shows on
-      the party card, the tracker's row and its character panel.
+      the party card, the tracker's row and its character panel, and by name alone on
+      the players' fight view.
       Phased in TECHSTACK.md §6b:
   - [x] **Phase 1 complete.** `class` (30), `subclass` (315), `classFeature` (677),
         `subclassFeature` (1,397), `legendaryGroup` (171), both `generated/` lookups, and
@@ -898,7 +899,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2275 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2276 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the

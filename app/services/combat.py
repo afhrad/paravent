@@ -393,6 +393,8 @@ class SeenCombatant:
     id: str = ""
     # Its round token (documentation/TOKENS.md).
     token: Token | None = None
+    # The beast a druid's Wild Shape made it, by its English name; no hit points.
+    form: str = ""
 
 
 @dataclass(frozen=True)
@@ -1612,6 +1614,7 @@ class CombatService:
                     round(row.ratio * 100) if row.combatant.is_friend and row.hp_max else None,
                     row.combatant.id,
                     view.tokens.get(row.combatant.id),
+                    row.character.form if row.character is not None else "",
                 )
                 for row in turn.rows
                 if not row.combatant.hidden
