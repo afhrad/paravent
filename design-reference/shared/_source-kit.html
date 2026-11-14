@@ -205,7 +205,7 @@ button{ font:inherit; color:inherit; }
 }
 
 /* ============================================================
-   ICONS — Lucide 1.39.0 (ISC). One contract, applied globally.
+   ICONS — Lucide 0.x (ISC). One contract, applied globally.
    Lucide is a stroke set: fill:none + stroke:currentColor is
    mandatory, or every glyph renders as a black blob.
    ============================================================ */
@@ -659,7 +659,7 @@ section.block{ padding-top:64px; }
 </style>
 
 <svg style="display:none" aria-hidden="true">
-  <!-- Lucide 1.39.0 — ISC. Canonical names only, no deprecated aliases. -->
+  <!-- Lucide 0.x — ISC. Canonical names only, no deprecated aliases. -->
   <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
   <symbol id="i-map" viewBox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15M9 3.236v15"/></symbol>
   <symbol id="i-swords" viewBox="0 0 24 24"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6M16 16l4 4M19 21l2-2"/><path d="M9.5 6.5 21 18v3h-3L6.5 9.5"/><path d="M5 13 3 15l2 2M3 21l2-2"/></symbol>
@@ -718,7 +718,7 @@ section.block{ padding-top:64px; }
     </div>
   </div>
   <h1>An interface for the table, not the rulebook</h1>
-  <p class="lede">Paravent is a D&amp;D 5e tool used live, mid-session, by two very different people: a gamemaster on a laptop or iPad with everything visible at once, and a player on a phone under the table who needs three numbers and a dice button. This is the shared visual language for both — built for FastAPI + htpy + HTMX, styled with Tailwind CSS 3 and DaisyUI.</p>
+  <p class="lede">Paravent is a D&amp;D 5e tool used live, mid-session, by two very different people: a gamemaster on a laptop or iPad with everything visible at once, and a player on a phone under the table who needs three numbers and a dice button. This is the shared visual language for both — built for FastAPI + htpy + HTMX, styled with token CSS served as-is from <span class="mono">static/css/</span>.</p>
 </header>
 
 <!-- ═══════════════════════════════ 1. PRINCIPLES ═══════════════════════════ -->
@@ -726,6 +726,12 @@ section.block{ padding-top:64px; }
   <span class="eyebrow">01 · Position</span>
   <h2>Five decisions everything else follows from</h2>
   <p class="intro">These are the rules that resolve the arguments later. Each one is a real constraint from PROJECT.md, TECHSTACK.md or the way this game is actually played at a table.</p>
+  <div class="note warn" style="margin:14px 0 22px;">
+    <h5>As built · 2026-11-14</h5>
+    <p>One accent, semantic colours, 13px text, 44px targets, tabular numbers, two roles in one shell and English as the fallback all hold.</p>
+    <ul style="margin:6px 0 0 18px; font-size:13px; color:var(--text-2);"><li>There is no reference drawer: a reference opens as a preview (a floating card with a mouse, a bottom sheet on touch) or as its full reference page.</li><li>The combat tracker keeps its statblock in a side panel of its own.</li><li>Light / System / Dark became a sun / moon switch in the user menu; until one is chosen the device decides.</li><li>A role colour marks the top edge of the bar: orange for the gamemaster, blue for a player.</li><li>The look is a theme: Paravent's own is the default, "Tome" is opt-in.</li></ul>
+    <p>See <a href="17-paravent-today.html#shell">Paravent today</a> · <a href="../documentation/THEMES.md">THEMES.md</a></p>
+  </div>
   <div class="notes">
     <div class="note">
       <h5>Color is information, never decoration</h5>
@@ -755,6 +761,12 @@ section.block{ padding-top:64px; }
   <span class="eyebrow">02 · Gamemaster</span>
   <h2>Combat tracker</h2>
   <p class="intro">The screen that has to work when six people are talking at once. Initiative descends, the active combatant is unmissable, and HP state is readable from the left-edge stripe before you parse a single digit. Every control here is one tap from the resting position of a hand on a trackpad.</p>
+  <div class="note warn" style="margin:14px 0 22px;">
+    <h5>As built · 2026-11-14</h5>
+    <p>The row classes and the HP stripe, the AC · kind · CR line, condition pills, the statblock beside the order (372px from 1024px) and groups sharing one initiative all hold.</p>
+    <ul style="margin:6px 0 0 18px; font-size:13px; color:var(--text-2);"><li>No rail or breadcrumbs: the top bar serves everyone. The round head offers Begin while initiative is rolled, then ← and Next, the live difficulty, the lair switch, Rules, How it works and End; Add is a panel under the board.</li><li>One initiative field per turn group; round tokens (own picture, else the corpus token, else the kind's disc) tinted friend or foe, the number on the edge; the row's background is its HP bar.</li><li>Each row has an amount field with − + Temp and a ⋯ menu: conditions with rounds, concentration, label / AC / HP, name each, split, hide, sheet, remove.</li><li>Pills for friend or foe, Dead (a skull), Hidden, concentration naming the spell and Wild Shape; an owed concentration save offers Roll, Kept or Lost.</li><li>The side panel (not a drawer) holds Translate, "What the players know", the cast form and the statblock with Attack / Adv / Dis and save effects, then "Attacks to resolve" with Hit or Miss.</li><li>Repeated saves, turn-start reminders, the fight's log folded under the order, the recap and XP; a druid in Wild Shape fights with the beast's actions.</li></ul>
+    <p>See <a href="17-paravent-today.html#tracker">Paravent today</a> · <a href="../documentation/COMBAT.md">COMBAT.md</a></p>
+  </div>
 
   <div class="frames split">
     <div class="frame">
@@ -985,6 +997,12 @@ section.block{ padding-top:64px; }
   <span class="eyebrow">03 · Everywhere</span>
   <h2>One search for the whole compendium</h2>
   <p class="intro">Not a page you navigate to — a layer you summon with <span class="kbd">⌘K</span> from anywhere, including mid-combat. Type-ahead filters across bestiary, spells, items and your own homebrew at once, because when a player asks "what does <em>hold person</em> do again", you do not want to be choosing a category first.</p>
+  <div class="note warn" style="margin:14px 0 22px;">
+    <h5>As built · 2026-11-14</h5>
+    <p>The native dialog, ⌘K / Ctrl+K and <span class="mono">/</span>, results grouped best first with icon, detail, pill and source, ↑↓ and Esc, and one endpoint <span class="mono">/search</span> all hold.</p>
+    <ul style="margin:6px 0 0 18px; font-size:13px; color:var(--text-2);"><li>Chips are All · Spells · Bestiary · Items · Options · Rules · World · Books (<span class="mono">group=</span>); there is no Homebrew chip.</li><li>One row per entry: the glossary name with the English name beneath.</li><li>↵ opens the reference page, ⌘↵ a new tab; there is no ⇧↵. A picker mode instead adds with + buttons into an encounter, a fight or a treasure.</li><li>Scoped to the world's books, with "N more … Search all imported books"; players see only what they may read.</li><li>In editors it is an insert pop-up (the Campaign group first), plus a drop-down while typing <span class="mono">{@</span>.</li><li>Full screen on a phone.</li></ul>
+    <p>See <a href="17-paravent-today.html#palette">Paravent today</a> · <a href="../documentation/DESIGN.md">DESIGN.md</a></p>
+  </div>
 
   <div class="dialog">
     <div class="dialog-search">
@@ -1065,7 +1083,7 @@ section.block{ padding-top:64px; }
       <span><span class="kbd">⌘↵</span> roll it</span>
     </div>
   </div>
-  <p class="caption">The searchable combobox pattern generalizes: the same component backs "add a monster to this encounter", "pick a spell for this NPC" and "link an item into adventure Markdown". One htpy fragment, one HTMX endpoint, filtered by a <span class="mono">type=</span> query parameter.</p>
+  <p class="caption">The searchable combobox pattern generalizes: the same component backs "add a monster to this encounter", "pick a spell for this NPC" and "link an item into adventure Markdown". One htpy fragment, one HTMX endpoint, filtered by a <span class="mono">group=</span> query parameter.</p>
 </section>
 
 <!-- ═══════════════════════════════ 4. MOBILE ══════════════════════════════ -->
@@ -1073,6 +1091,12 @@ section.block{ padding-top:64px; }
   <span class="eyebrow">04 · Player</span>
   <h2>The phone under the table</h2>
   <p class="intro">A player looks at their phone maybe eight times a session, for five seconds each. So the player app is not a shrunken gamemaster screen — it is three things large enough to hit without looking: current HP, the dice, and the one ability you are about to use. Everything else is a tab away.</p>
+  <div class="note warn" style="margin:14px 0 22px;">
+    <h5>As built · 2026-11-14</h5>
+    <p>Three-state advantage, HP with damage and healing, upcasting that spends a slot and the German name with the English beneath all hold.</p>
+    <ul style="margin:6px 0 0 18px; font-size:13px; color:var(--text-2);"><li>The sheet's own bottom bar is Play · Stats · Track · Gear; the log opens from the top bar's log button, and "Look up" is the search in the top bar. Outside the sheet a player's bar is Characters · Books · Journal.</li><li>There is no Dice screen: rolls start from attack, save and skill rows, roll chips in text and a free "2d6+3" field; results go to the log, toasts and dice sounds, with a Private switch.</li><li>A spell is an expandable row with its cast form and slot choice; references open as a bottom-sheet preview.</li><li>The HP box has −5 −1 +1 +5, an amount with Damage / Heal / Temp, a temp pill, death-save pips, hit dice and a Wild Shape form's HP.</li><li>Conditions are toggle chips, with exhaustion and Rage.</li><li>New: the combat strip above the sheet and the players' fight view (<span class="mono">/play/combat/{id}</span>: "Your turn!", tokens, HP-filled rows, tap a row for Target or Details), one tap apart through the character | fight switch.</li></ul>
+    <p>See <a href="17-paravent-today.html#sheet">Paravent today</a> · <a href="../documentation/CHARACTER-FORMAT.md">CHARACTER-FORMAT.md</a> · <a href="17-paravent-today.html#fight-phone">fight view</a></p>
+  </div>
 
   <div class="frames" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));">
 
@@ -1255,6 +1279,12 @@ section.block{ padding-top:64px; }
   <span class="eyebrow">05 · Flow</span>
   <h2>Wizards that survive a closed tab</h2>
   <p class="intro">Character creation is eight steps and twenty minutes, done on a phone, interrupted by dinner. State persists server-side after every step, so going back never re-asks and closing the tab never loses anything. The step rail is the progress indicator and the navigation — completed steps are always clickable.</p>
+  <div class="note warn" style="margin:14px 0 22px;">
+    <h5>As built · 2026-11-14</h5>
+    <p>The rail as progress and navigation, four ability methods, a server-side draft that survives a closed tab, Back as a GET and the saved indicator all hold.</p>
+    <ul style="margin:6px 0 0 18px; font-size:13px; color:var(--text-2);"><li>Up to nine steps, Species through Features to Details; Features and Spells are skipped when they ask nothing.</li><li>"Race" is "Species".</li><li>Footer buttons carry just the step's name; the indicator reads "Saved".</li><li>Continue is disabled with its reason beneath it.</li><li>A derived panel is always beside the step; every change posts the whole form and gets it back.</li><li>Page 13 shows the wizard in detail.</li></ul>
+    <p>See <a href="17-paravent-today.html#wizard">Paravent today</a> · <a href="../documentation/CHARGEN-WIZARD.md">CHARGEN-WIZARD.md</a> (§8) · <a href="13-chargen-wizard.html">13 · Character generation</a></p>
+  </div>
 
   <div class="wizard">
     <div class="steps" role="tablist">
@@ -1309,6 +1339,12 @@ section.block{ padding-top:64px; }
   <span class="eyebrow">06 · Rendering</span>
   <h2>The <span class="mono" style="font-size:.8em">{@tag}</span> renderer has a visual grammar</h2>
   <p class="intro">TECHSTACK.md calls the 5eTools tag renderer the most involved and most valuable part of the import. Visually it needs exactly one rule: <b>a dashed underline means it opens something, a boxed monospace chip means it rolls something.</b> Two affordances, learned once. The Lucide glyph in front states the <em>category</em>, so the link text can stay the bare game term — <span class="mono">fireball</span>, not "spell: fireball".</p>
+  <div class="note warn" style="margin:14px 0 22px;">
+    <h5>As built · 2026-11-14</h5>
+    <p>Dashed underline for a link, a boxed chip for a roll, the category icons, the bare term as label, and an unresolved tag as grey dotted text with its reason all hold: never a dead link or a raw brace.</p>
+    <ul style="margin:6px 0 0 18px; font-size:13px; color:var(--text-2);"><li>A link goes to the reference page; with JavaScript a click first opens a pinned preview. There are no add-to-encounter, add-to-treasure or apply offers.</li><li><span class="mono">{@dc}</span> is a static chip. <span class="mono">{@damage}</span> and <span class="mono">{@hit}</span> roll into the character's log on a sheet, elsewhere into the log privately.</li><li>Both unresolved cases explain themselves; there is no Import button.</li><li>Labels come from the glossary while the link target stays English; German reads "2W6" and "SG 15".</li><li>A reader in metres sees metric hints such as "60 feet (18 m)"; entries hidden from players render as plain text for them.</li><li>Campaign links (<span class="mono">{@npc}</span>, <span class="mono">{@place}</span> …) render too; all 110 catalogued tags are handled.</li></ul>
+    <p>See <a href="17-paravent-today.html#previews">Paravent today</a> · <a href="../documentation/TRANSLATION.md">TRANSLATION.md</a></p>
+  </div>
 
   <div class="tablewrap">
     <table class="spec">
@@ -1368,12 +1404,18 @@ section.block{ padding-top:64px; }
 <section class="block">
   <span class="eyebrow">07 · Icons</span>
   <h2>One icon library, used sparingly</h2>
-  <p class="intro"><b>Lucide 1.39.0</b>, ISC licensed, 1,792 icons. Chosen over a fantasy set on purpose: this is an instrument, and a consistent 2px stroke reads better at 13px on a phone than a detailed silhouette does. Game meaning is carried by <em>color and label</em>; the icon only ever says which <em>category</em> a thing belongs to.</p>
+  <p class="intro"><b>Lucide 0.x</b>, ISC licensed; the app vendors only the symbols it uses. Chosen over a fantasy set on purpose: this is an instrument, and a consistent 2px stroke reads better at 13px on a phone than a detailed silhouette does. Game meaning is carried by <em>color and label</em>; the icon only ever says which <em>category</em> a thing belongs to.</p>
+  <div class="note warn" style="margin:14px 0 22px;">
+    <h5>As built · 2026-11-14</h5>
+    <p>Lucide only, canonical names, the xs–xl size ramp, one sprite per page used through <span class="mono">&lt;use&gt;</span>, and unknown names raising (always) all hold.</p>
+    <ul style="margin:6px 0 0 18px; font-size:13px; color:var(--text-2);"><li>The sprite is vendored as <span class="mono">static/icons.svg</span>: 68 symbols, among them the own logo glyph <span class="mono">i-paravent</span>; there is no python-lucide.</li><li>A theme may replace the sprite, but only with a complete one.</li><li>Navigation departs from the semantic map: Combat is <span class="mono">zap</span>, Encounters <span class="mono">skull</span>, Table <span class="mono">swords</span>.</li><li>On a phone the navigation is icon-over-label tabs or the player's bottom bar; there is no icon rail.</li></ul>
+    <p>See <a href="17-paravent-today.html#shell">Paravent today</a> · <a href="../documentation/THEMES.md">THEMES.md</a></p>
+  </div>
 
   <div class="notes" style="margin-bottom:26px;">
     <div class="note">
       <h5>Server-side, no build step</h5>
-      <p><span class="mono">python-lucide</span> on PyPI returns raw SVG strings from a bundled SQLite index — no Node, no npm, no network at runtime. It drops straight into an htpy component, which is exactly what TECHSTACK.md's "no build tooling" requires.</p>
+      <p>The symbols live in one vendored sprite, <span class="mono">static/icons.svg</span>, committed with the code — no Node, no npm, no network at runtime. It drops straight into an htpy component, which is exactly what TECHSTACK.md's "no build tooling" requires.</p>
     </div>
     <div class="note">
       <h5>Optical sizing, not just scaling</h5>
@@ -1435,7 +1477,13 @@ section.block{ padding-top:64px; }
 <section class="block">
   <span class="eyebrow">08 · Foundation</span>
   <h2>Tokens</h2>
-  <p class="intro">Every value below is a CSS custom property that maps directly onto a Tailwind theme extension, so DaisyUI components inherit the palette without per-component overrides. Both themes are defined at the token layer — no component ever contains a theme-conditional color.</p>
+  <p class="intro">Every value below is a CSS custom property in the token CSS the app serves as-is (<span class="mono">static/css/</span>), so every component inherits the palette without per-component overrides. Both themes are defined at the token layer — no component ever contains a theme-conditional color.</p>
+  <div class="note warn" style="margin:14px 0 22px;">
+    <h5>As built · 2026-11-14</h5>
+    <p>Every colour value, the 5 / 8 / 12 radii and the 18 contrast pairs hold for the default look.</p>
+    <ul style="margin:6px 0 0 18px; font-size:13px; color:var(--text-2);"><li>Fonts fall back to system faces; no font files ship for the default look.</li><li>Tokens the app added in <span class="mono">app.css</span>: <span class="mono">--font-display</span>, <span class="mono">--backdrop</span>, <span class="mono">--role-gm</span>, <span class="mono">--role-player</span>.</li><li>The Tome theme adds <span class="mono">--gilt</span>, <span class="mono">--gilt-weak</span>, <span class="mono">--texture</span> and its own palette, outside the contrast claim.</li><li>There is no 236px rail.</li></ul>
+    <p>See <a href="17-paravent-today.html#themes">Paravent today</a> · <a href="../documentation/THEMES.md">THEMES.md</a></p>
+  </div>
 
   <h3 style="font-size:15px; margin:0 0 12px;">Semantic color</h3>
   <div class="tablewrap" style="margin-bottom:26px;">
@@ -1483,6 +1531,12 @@ section.block{ padding-top:64px; }
   <span class="eyebrow">08 · Detail</span>
   <h2>Scrollbars belong to the theme</h2>
   <p class="intro">A default scrollbar is the one element that still says "browser chrome" on an otherwise finished page — and on a dark theme the OS paints a light one, which is worse. These are themed, but they behave exactly like system scrollbars: same drag, same click-track, same wheel. Only the paint changes.</p>
+  <div class="note warn" style="margin:14px 0 22px;">
+    <h5>As built · 2026-11-14</h5>
+    <p>This section is essentially current.</p>
+    <ul style="margin:6px 0 0 18px; font-size:13px; color:var(--text-2);"><li>The quiet horizontal bar also covers <span class="mono">.tablewrap</span>, the box around wide tables.</li></ul>
+    <p>See <a href="17-paravent-today.html#shell">Paravent today</a> · <a href="../documentation/DESIGN.md">DESIGN.md</a></p>
+  </div>
 
   <div class="notes" style="margin-bottom:26px;">
     <div class="note">
@@ -1558,6 +1612,12 @@ section.block{ padding-top:64px; }
   <span class="eyebrow">09 · Adaptation</span>
   <h2>One layout, three widths</h2>
   <p class="intro">The same htpy fragments render at every size. What changes is the shell around them — and critically, <em>what the reference layer is</em>: a drawer beside the content on desktop, a sheet over it on mobile. The content behind never unmounts, so an HTMX swap in the tracker keeps working while a reference is open.</p>
+  <div class="note warn" style="margin:14px 0 22px;">
+    <h5>As built · 2026-11-14</h5>
+    <p>The same fragments still render at every size; the shell around them changed.</p>
+    <ul style="margin:6px 0 0 18px; font-size:13px; color:var(--text-2);"><li>There is no rail at any width: a top bar for every role. At 760px and below the navigation gets its own row, at 640px and below icon-over-label tabs.</li><li>Players at 640px and below get a compact top row and a bottom bar (Characters, Books, Journal); the sheet and the wizard have bars of their own.</li><li>The tracker's 372px side panel appears from 1024px.</li><li>Previews are chosen by pointer type, never by width.</li><li>The sheet has three columns on a desktop and two on an iPad (up to 1180px).</li><li>Breakpoints are mostly 640 and 767px, with 760, 860, 900, 1024 and 1180 where needed. A heading link keeps room for the bar (<span class="mono">--bar-h</span>).</li></ul>
+    <p>See <a href="17-paravent-today.html#shell">Paravent today</a> · <a href="../documentation/DESIGN.md">DESIGN.md</a></p>
+  </div>
   <div class="tablewrap">
     <table class="spec">
       <thead><tr><th>Breakpoint</th><th>Navigation</th><th>Reference layer</th><th>Combat tracker</th></tr></thead>
@@ -1574,10 +1634,16 @@ section.block{ padding-top:64px; }
 <section class="block">
   <span class="eyebrow">10 · Implementation</span>
   <h2>How this maps onto the stack</h2>
+  <div class="note warn" style="margin:14px 0 22px;">
+    <h5>As built · 2026-11-14</h5>
+    <p>One htpy function per component, used both as a fragment and inside the page, wizard state on the server, and the role choosing the shell all hold.</p>
+    <ul style="margin:6px 0 0 18px; font-size:13px; color:var(--text-2);"><li>Token CSS without a build step (four stylesheets) and themes as folders.</li><li>A vendored icon sprite, <span class="mono">static/icons.svg</span>.</li><li><span class="mono">layout.document()</span> and <span class="mono">app_shell()</span> instead of a <span class="mono">base.html</span>.</li><li>htmx 2.0.4 vendored and loaded per page; live updates over Server-Sent Events, so sheets, boards, party cards and chapters update in place.</li><li>Toasts come from the shared log.</li><li>The role is also a guard that answers 403, and every response carries a Content Security Policy.</li></ul>
+    <p>See <a href="17-paravent-today.html#shell">Paravent today</a> · <a href="../documentation/TECHSTACK.md">TECHSTACK.md</a></p>
+  </div>
   <div class="notes">
     <div class="note">
-      <h5>Tailwind theme, not utility soup</h5>
-      <p>The tokens above go into <span class="mono">tailwind.config.js</span> as a theme extension and into a DaisyUI theme pair named <span class="mono">paravent-light</span> / <span class="mono">paravent-dark</span>. Components then use DaisyUI class names — <span class="mono">btn</span>, <span class="mono">badge</span>, <span class="mono">modal</span>, <span class="mono">drawer</span> — and inherit the palette.</p>
+      <h5>Token CSS, no build step</h5>
+      <p>The tokens above are served as-is from <span class="mono">static/css/</span> (<span class="mono">tokens.css</span>, <span class="mono">components.css</span>, <span class="mono">app.css</span>, <span class="mono">sheet.css</span>), light and dark in the same file. Components use the kit's own class names and inherit the palette. A theme is a folder with its own tokens and skin.</p>
     </div>
     <div class="note">
       <h5>Every component is one htpy function</h5>
@@ -1585,15 +1651,15 @@ section.block{ padding-top:64px; }
     </div>
     <div class="note">
       <h5>Icons resolve at render, cached forever</h5>
-      <p>An <span class="mono">icon(name, size)</span> htpy helper calls <span class="mono">python-lucide</span> behind an <span class="mono">@lru_cache</span> and emits a <span class="mono">&lt;use&gt;</span> reference into one sprite injected in <span class="mono">base.html</span>. An unknown name raises in development and renders nothing in production — never a broken-image box.</p>
+      <p>An <span class="mono">icon(name, size)</span> htpy helper emits a <span class="mono">&lt;use&gt;</span> reference into the vendored sprite <span class="mono">static/icons.svg</span>, inlined once per page by <span class="mono">layout.document()</span>. An unknown name always raises — never a broken-image box.</p>
     </div>
     <div class="note">
-      <h5>The drawer is a swap target, not a route</h5>
-      <p>Every <span class="mono">.ref</span> is an <span class="mono">hx-get</span> into <span class="mono">#reference</span> with <span class="mono">hx-push-url="false"</span>. Opening a spell mid-combat never touches history and never re-renders the tracker.</p>
+      <h5>A reference opens as a preview, not a swap</h5>
+      <p>Every <span class="mono">.ref</span> is a link to its reference page; with JavaScript, <span class="mono">static/js/tooltips.js</span> fetches its preview instead. Opening a spell mid-combat never touches history and never re-renders the tracker.</p>
     </div>
     <div class="note">
       <h5>Wizard state lives server-side</h5>
-      <p>Each step POSTs into the gamestate JSON and returns the next step fragment. Back is a GET of an earlier step — the data is already stored, so nothing is re-asked. Survives a closed tab by construction.</p>
+      <p>Each step POSTs into the draft's library file and returns the next step fragment. Back is a GET of an earlier step — the data is already stored, so nothing is re-asked. Survives a closed tab by construction.</p>
     </div>
     <div class="note warn">
       <h5>The JSON watcher needs a UI, not just a reload</h5>

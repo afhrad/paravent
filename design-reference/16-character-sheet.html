@@ -210,7 +210,7 @@ button{ font:inherit; color:inherit; }
 }
 
 /* ============================================================
-   ICONS — Lucide 1.39.0 (ISC). One contract, applied globally.
+   ICONS — Lucide 0.x (ISC). One contract, applied globally.
    Lucide is a stroke set: fill:none + stroke:currentColor is
    mandatory, or every glyph renders as a black blob.
    ============================================================ */
@@ -813,7 +813,7 @@ section.block{ padding-top:64px; }
 </head>
 <body>
 <svg style="display:none" aria-hidden="true">
-  <!-- Lucide 1.39.0 — ISC. Canonical names only, no deprecated aliases. -->
+  <!-- Lucide 0.x — ISC. Canonical names only, no deprecated aliases. -->
   <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
   <symbol id="i-map" viewBox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15M9 3.236v15"/></symbol>
   <symbol id="i-swords" viewBox="0 0 24 24"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6M16 16l4 4M19 21l2-2"/><path d="M9.5 6.5 21 18v3h-3L6.5 9.5"/><path d="M5 13 3 15l2 2M3 21l2-2"/></symbol>
@@ -861,7 +861,7 @@ section.block{ padding-top:64px; }
 </svg>
 <nav class="dr-nav" aria-label="Design reference">
   <a class="dr-home" href="index.html">Paravent design reference</a>
-  <div class="dr-links"><a href="01-principles.html">Principles</a><a href="02-combat-tracker.html">Combat Tracker</a><a href="03-command-palette.html">Command Palette</a><a href="04-player-mobile.html">Player on Mobile</a><a href="05-wizard.html">Wizard</a><a href="06-tag-renderer.html">Tag Renderer</a><a href="07-icons.html">Icons</a><a href="08-tokens.html">Tokens</a><a href="09-scrollbars.html">Scrollbars</a><a href="10-responsive.html">Responsive</a><a href="11-implementation.html">Implementation</a><a href="12-tooltips.html">Tooltips</a><a href="13-chargen-wizard.html">Character Generation</a><a href="14-chargen-demo-desktop.html">Demo &middot; Desktop</a><a href="15-chargen-demo-mobile.html">Demo &middot; Mobile</a><a href="16-character-sheet.html" class="here" aria-current="page">Character Sheet</a></div>
+  <div class="dr-links"><a href="01-principles.html">Principles</a><a href="02-combat-tracker.html">Combat Tracker</a><a href="03-command-palette.html">Command Palette</a><a href="04-player-mobile.html">Player on Mobile</a><a href="05-wizard.html">Wizard</a><a href="06-tag-renderer.html">Tag Renderer</a><a href="07-icons.html">Icons</a><a href="08-tokens.html">Tokens</a><a href="09-scrollbars.html">Scrollbars</a><a href="10-responsive.html">Responsive</a><a href="11-implementation.html">Implementation</a><a href="12-tooltips.html">Tooltips</a><a href="13-chargen-wizard.html">Character Generation</a><a href="14-chargen-demo-desktop.html">Demo &middot; Desktop</a><a href="15-chargen-demo-mobile.html">Demo &middot; Mobile</a><a href="16-character-sheet.html" class="here" aria-current="page">Character Sheet</a><a href="17-paravent-today.html">Paravent today</a></div>
 </nav>
 
 <header class="masthead" style="padding:34px 0 26px;">
@@ -874,10 +874,17 @@ section.block{ padding-top:64px; }
     </div>
   </div>
   <h1 style="font-size:clamp(26px,4vw,34px); margin:8px 0 10px;">Playing the character</h1>
-  <p class="lede" style="font-size:15.5px;"><b>Clickable.</b> Lyra Mooncaller, a level&nbsp;10 evocation wizard &mdash; the build from <a href="14-chargen-demo-desktop.html">page&nbsp;14</a>, now at the table. Spend slots, take damage, roll saves, cast spells, rest. Spell mechanics come from the real PHB data.</p>
+  <p class="lede" style="font-size:15.5px;"><b>Clickable.</b> Lyra Mooncaller, a level&nbsp;10 evocation wizard at the table. Spend slots, take damage, roll saves, cast spells, rest. Spell mechanics come from the corpus, within the world&rsquo;s books.</p>
 </header>
 
 <div class="doc">
+
+<div class="note warn" style="margin:14px 0 22px;">
+  <h5>As built · 2026-11-14</h5>
+  <p>The three columns (who you are, what you do, what you spend), the stats on the left, ±1 / ±5, slot pips, casting that spends a slot, concentration, rests, three-state advantage, the tooltip rule and cantrip scaling all hold.</p>
+  <ul style="margin:6px 0 0 18px; font-size:13px; color:var(--text-2);"><li>On a desktop the middle column has tabs Actions · Spells · Skills · Gear · Features (links; Spells only for casters); on a phone the views are Play · Stats · Track · Gear, and the log opens from the top bar.</li><li>The header has a round token, a Passive pill, an Inspiration toggle and a Live indicator; the rests moved to the right column.</li><li>The Actions tab holds attack rows, initiative, Wild Shape, weapon mastery and a free roll field; the HP box has an amount field, death saves and hit dice.</li><li>The right column: a concentration banner with Drop, slots including pact magic, resources, conditions with Rage and exhaustion, Rest, and the dice log as a slice of the shared log.</li><li>New: a level-up banner, an XP bar, prompts for open saves and resistances, a prepare-spells strip, a spell-level filter, a Private switch and the carried load.</li><li>New: the combat strip above the sheet, and live updates from every screen and from hand edits of the file.</li></ul>
+  <p>See <a href="17-paravent-today.html#sheet">Paravent today</a> · <a href="../documentation/CHARACTER-FORMAT.md">CHARACTER-FORMAT.md</a></p>
+</div>
 
 <section class="block">
   <h2>Desktop</h2>
@@ -933,7 +940,7 @@ section.block{ padding-top:64px; }
       <div class="note" style="margin-top:12px"><b>Tooltips follow the input, not the screen width</b>
         <p><code>matchMedia('(hover: hover) and (pointer: fine)')</code> decides. A mouse hovers after 350&nbsp;ms; a finger taps. <kbd>Esc</kbd> closes. An iPad in landscape is 1024px wide with no hover &mdash; width would get it wrong.</p></div>
       <div class="note" style="margin-top:12px"><b>Real spell data</b>
-        <p>Casting time, range, components, duration, concentration, save type and scaling dice all come from <code>spells-phb.json</code>. Fire Bolt shows <b>2d10</b> because the character is level&nbsp;10 &mdash; the next step up is 3d10 at level&nbsp;11. Read from <code>scalingLevelDice</code>, not typed in.</p></div>
+        <p>Casting time, range, components, duration, concentration, save type and scaling dice all come from the corpus, read within the world&rsquo;s books. Fire Bolt shows <b>2d10</b> because the character is level&nbsp;10 &mdash; the next step up is 3d10 at level&nbsp;11. Read from <code>scalingLevelDice</code>, not typed in.</p></div>
     </div>
   </div>
 </section>

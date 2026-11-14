@@ -23,7 +23,7 @@ they carry almost all the visible value.
 
 | Category | Occurrences | Share | Handler |
 | --- | ---: | ---: | --- |
-| Entity reference | 143,053 | 57.3% | Opens the reference drawer |
+| Entity reference | 143,053 | 57.3% | Opens a preview and the reference page |
 | Rollable | 49,230 | 19.7% | Produces a number |
 | Navigation | 28,967 | 11.6% | Jumps to book/adventure/area |
 | Inline formatting | 14,858 | 6.0% | Emphasis only, no icon |
@@ -52,7 +52,8 @@ Slot 3 is a display override used heavily for pluralization and inflection — `
 
 ## 1. Entity references — 143,053 uses (57.3%)
 
-Dashed underline + category icon. Click opens the reference drawer; the tracker never re-renders.
+Dashed underline + category icon. Hovering or tapping opens a preview; its Open (or a click without
+JavaScript) leads to the reference page. The tracker never re-renders.
 
 | Tag | Uses | Icon | Renders / behaviour |
 | --- | ---: | --- | --- |

@@ -296,14 +296,14 @@ round 1, turn 0 → Next → … → last turn → round 2, turn 0 …
 ### The tracker (gamemaster) — `/gm/combat/{id}`
 
 The design reference's layout: a header with round, whose turn, **Next turn**, **Add**; the
-order as combatant rows; the selected combatant's statblock in the drawer (desktop), a sheet
-(iPad, phone).
+order as combatant rows; the selected combatant's statblock in a side panel beside the board
+at ≥1024px, stacked below the board on narrower screens.
 
 - **`combatant_row(c)`** is one htpy function, returned in the page and alone from every
   action (`POST /gm/combat/{id}/c/{cid}/{action}`) — DESIGN.md §4.
 - The row: initiative, a token (initials or "G2"), label, pills (side, dead, conditions,
-  concentrating, boss), a metadata line (AC · kind · CR, or death saves), HP as a number and
-  bar, and **one compact line at the bottom**: the amount field, **−**, **+**, Temp and the
+  concentrating, boss), a metadata line (AC · kind · CR, or death saves), HP as a number with
+  the row's background as its bar, and **one compact line at the bottom**: the amount field, **−**, **+**, Temp and the
   ⋯ row menu at its end (moved there 2026-10-21, so the name and pills keep the width). It
   never wraps: 36px targets with a mouse, 44px on touch (DESIGN.md §2), Temp included on a
   phone, where it used to hide in the menu.

@@ -36,7 +36,7 @@ SECTIONS = [
         "2. COMBAT TRACKER",
         "02-combat-tracker.html",
         "Combat Tracker",
-        "The gamemaster's live encounter screen, with the reference drawer.",
+        "The gamemaster's live encounter screen; built with a side panel instead of a drawer.",
     ),
     (
         "3. COMMAND PALETTE",
@@ -94,7 +94,7 @@ SECTIONS = [
     ),
 ]
 
-# 12-tooltips.html and 13-chargen-wizard.html are maintained separately (each carries
+# Pages 12-17 are maintained separately (each carries
 # its own markup rather than living in the kit), but every generated page must still
 # link to them.
 EXTRA_NAV = [
@@ -103,6 +103,7 @@ EXTRA_NAV = [
     ("14-chargen-demo-desktop.html", "Demo · Desktop"),
     ("15-chargen-demo-mobile.html", "Demo · Mobile"),
     ("16-character-sheet.html", "Character Sheet"),
+    ("17-paravent-today.html", "Paravent today"),
 ]
 
 

@@ -199,7 +199,7 @@ button{ font:inherit; color:inherit; }
 }
 
 /* ============================================================
-   ICONS — Lucide 1.39.0 (ISC). One contract, applied globally.
+   ICONS — Lucide 0.x (ISC; there is no 1.x). One contract, applied globally.
    Lucide is a stroke set: fill:none + stroke:currentColor is
    mandatory, or every glyph renders as a black blob.
    ============================================================ */

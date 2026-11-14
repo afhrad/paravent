@@ -340,7 +340,7 @@ section.block{ padding-top:56px; }
   <symbol id="i-hourglass" viewBox="0 0 24 24"><path d="M5 22h14M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></symbol>
 </svg>
 
-<nav class="dr-nav" aria-label="Design reference"><a class="dr-home" href="index.html">Paravent design reference</a><div class="dr-links"><a href="01-principles.html">Principles</a><a href="02-combat-tracker.html">Combat Tracker</a><a href="03-command-palette.html">Command Palette</a><a href="04-player-mobile.html">Player on Mobile</a><a href="05-wizard.html">Wizard</a><a href="06-tag-renderer.html">Tag Renderer</a><a href="07-icons.html">Icons</a><a href="08-tokens.html">Tokens</a><a href="09-scrollbars.html">Scrollbars</a><a href="10-responsive.html">Responsive</a><a href="11-implementation.html">Implementation</a><a href="12-tooltips.html" class="here" aria-current="page">Tooltips</a><a href="13-chargen-wizard.html">Character Generation</a><a href="14-chargen-demo-desktop.html">Demo &middot; Desktop</a><a href="15-chargen-demo-mobile.html">Demo &middot; Mobile</a><a href="16-character-sheet.html">Character Sheet</a></div></nav>
+<nav class="dr-nav" aria-label="Design reference"><a class="dr-home" href="index.html">Paravent design reference</a><div class="dr-links"><a href="01-principles.html">Principles</a><a href="02-combat-tracker.html">Combat Tracker</a><a href="03-command-palette.html">Command Palette</a><a href="04-player-mobile.html">Player on Mobile</a><a href="05-wizard.html">Wizard</a><a href="06-tag-renderer.html">Tag Renderer</a><a href="07-icons.html">Icons</a><a href="08-tokens.html">Tokens</a><a href="09-scrollbars.html">Scrollbars</a><a href="10-responsive.html">Responsive</a><a href="11-implementation.html">Implementation</a><a href="12-tooltips.html" class="here" aria-current="page">Tooltips</a><a href="13-chargen-wizard.html">Character Generation</a><a href="14-chargen-demo-desktop.html">Demo &middot; Desktop</a><a href="15-chargen-demo-mobile.html">Demo &middot; Mobile</a><a href="16-character-sheet.html">Character Sheet</a><a href="17-paravent-today.html">Paravent today</a></div></nav>
 <div class="doc">
 <header class="masthead">
   <div class="mast-row">
@@ -354,6 +354,13 @@ section.block{ padding-top:56px; }
   <h1>Hover anything underlined</h1>
   <p class="lede">A working tooltip system for every referenceable tag. <b>Mouse hovers, touch taps</b> — the two never share a code path, and the device is judged by what its pointer can do rather than how wide the screen is. Every preview below uses real content pulled from the 5eTools corpus; nothing here is invented.</p>
 </header>
+
+<div class="note warn" style="margin:14px 0 22px;">
+  <h5>As built · 2026-11-14</h5>
+  <p>The whole interaction contract holds: capability detection, pointerType, 350 / 180 ms, pinning, the bottom sheet on touch, focus and Esc, one preview at a time, flip and clamp, inert nested tags, content per type, an unresolved tag explaining itself, and navigation without JavaScript.</p>
+  <ul style="margin:6px 0 0 18px; font-size:13px; color:var(--text-2);"><li>The footer has only Open, plus buttons such as "PHB version" for other printings in the world's books; there are no Encounter, Apply or Import buttons.</li><li>The source sits in the header, with the token and the English name beneath.</li><li>Translated text shows with a note on how much of it is translated.</li><li>The route is <span class="mono">/ref/{category}/{source}/{name}/preview?world=</span>; it answers 404 to a player for what players may not read.</li><li><span class="mono">static/js/tooltips.js</span> fetches the preview and keeps a browser cache keyed by its URL, so by the world too.</li><li>Campaign links (NPC, place, encounter, treasure, chapter, character) preview through <span class="mono">/library/preview?href=</span>.</li><li>The touch sheet closes with ✕ or a tap on the backdrop.</li></ul>
+  <p>See <a href="17-paravent-today.html#previews">Paravent today</a> · <a href="../documentation/DESIGN.md">DESIGN.md</a></p>
+</div>
 
 <!-- ═══════════════ 1. LIVE PROSE ═══════════════ -->
 <section class="block">
@@ -459,11 +466,11 @@ section.block{ padding-top:56px; }
   <div class="notes">
     <div class="note">
       <h5>One endpoint, one fragment</h5>
-      <p><span class="mono">GET /ref/{type}/{slug}/preview</span> returns the tooltip fragment. The renderer emits <span class="mono">hx-get</span> with <span class="mono">hx-trigger="mouseenter delay:350ms, focus"</span> and <span class="mono">hx-target="#tip"</span>. No bespoke fetch code.</p>
+      <p><span class="mono">GET /ref/{category}/{source}/{name}/preview?world=</span> returns the tooltip fragment. <span class="mono">static/js/tooltips.js</span> fetches it after the 350 ms hover delay or on focus and shows it in one shared card.</p>
     </div>
     <div class="note">
       <h5>Cached, because prose repeats</h5>
-      <p><span class="mono">{@creature goblin}</span> appears 54,753 times in the corpus. Preview fragments are pure functions of the compendium — <span class="mono">@lru_cache</span> them and invalidate on the JSON watcher's reload signal.</p>
+      <p><span class="mono">{@creature goblin}</span> appears 54,753 times in the corpus. Preview fragments depend on the compendium and the world's books, so the browser caches each by its URL, which carries the world.</p>
     </div>
     <div class="note">
       <h5>The preview is a different projection</h5>

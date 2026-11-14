@@ -1,0 +1,967 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paravent today · Paravent</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+
+/* ============================================================
+   PARAVENT — token layer
+   Light palette on bare :root. Dark redefines TOKENS ONLY.
+   ============================================================ */
+:root{
+  /* neutrals — grey with a faint blue bias toward the indigo accent */
+  --bg:        #FFFFFF;
+  --bg-sunken: #F4F6F9;
+  --surface:   #FFFFFF;
+  --surface-2: #F7F8FA;
+  --surface-3: #EDF0F4;
+  --border:    #E1E5EB;
+  --border-strong:#CBD2DB;
+  --text:      #14171C;
+  --text-2:    #545C68;
+  --text-3:    #646C79;
+
+  /* accent */
+  --accent:      #4F6BED;
+  /* Accent used as a FILLED surface needs more depth than accent-as-a-line,
+     so white label text clears 4.5:1 with margin. */
+  --accent-solid:#4560DC;
+  --accent-hover:#3A51C4;
+  --accent-weak: #EDF0FE;
+  --accent-text: #3247B8;
+  --on-accent:   #FFFFFF;
+
+  /* semantic — meaning, never decoration */
+  --dmg:      #D93A3F;  --dmg-weak:  #FDECEC;  --dmg-text:  #B32227;
+  --heal:     #1F8A55;  --heal-weak: #E7F5ED;  --heal-text: #14663D;
+  --magic:    #8144B8;  --magic-weak:#F4EBFB;  --magic-text:#6A2F9C;
+  --cond:     #B57500;  --cond-weak: #FDF3E0;  --cond-text: #8A5A00;
+
+  --shadow-sm: 0 1px 2px rgba(15,20,30,.06), 0 1px 3px rgba(15,20,30,.04);
+  --shadow-md: 0 4px 12px rgba(15,20,30,.08), 0 1px 3px rgba(15,20,30,.05);
+  --shadow-lg: 0 16px 48px rgba(15,20,30,.16), 0 2px 8px rgba(15,20,30,.08);
+
+  --r-sm: 5px; --r: 8px; --r-lg: 12px;
+
+  --font-ui:   'Inter Tight', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-body: 'Source Sans 3', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --rail: 236px;
+  --tap: 44px;
+
+  /* Scrollbars. Track is transparent so it inherits whatever surface it sits
+     on; thumb is a neutral that reads on every surface in both themes. */
+  --sb-size: 10px;
+  --sb-thumb: #98A1B0;
+  --sb-thumb-hover: #7C8595;
+  --sb-thumb-active: #656E7E;
+
+  /* Tells the browser which way to paint native UI it still owns:
+     the caret, form controls, and the scrollbar corner. Without this a dark
+     page gets light system scrollbars. */
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:        #0E1013;
+    --bg-sunken: #090B0D;
+    --surface:   #171A1F;
+    --surface-2: #1D2127;
+    --surface-3: #252A31;
+    --border:    #282D35;
+    --border-strong:#3A414B;
+    --text:      #E9ECF1;
+    --text-2:    #A0A8B4;
+    --text-3:    #949DAB;
+
+    --accent:      #7B92F5;
+    --accent-solid:#7B92F5;
+    --accent-hover:#93A6F8;
+    --accent-weak: #1B2140;
+    --accent-text: #A7B7FA;
+    --on-accent:   #0E1013;
+
+    --dmg:   #F0656A; --dmg-weak:  #33191B; --dmg-text:  #F79A9D;
+    --heal:  #45C083; --heal-weak: #12291F; --heal-text: #7BD9AC;
+    --magic: #B678E6; --magic-weak:#2A1B38; --magic-text:#CFA3F0;
+    --cond:  #E5A73C; --cond-weak: #302411; --cond-text: #F0C578;
+
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.5);
+    --shadow-md: 0 4px 12px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.4);
+    --shadow-lg: 0 16px 48px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.5);
+
+    --sb-thumb: #5D6776;
+    --sb-thumb-hover: #737D8E;
+    --sb-thumb-active: #8A94A5;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:        #0E1013;
+  --bg-sunken: #090B0D;
+  --surface:   #171A1F;
+  --surface-2: #1D2127;
+  --surface-3: #252A31;
+  --border:    #282D35;
+  --border-strong:#3A414B;
+  --text:      #E9ECF1;
+  --text-2:    #A0A8B4;
+  --text-3:    #949DAB;
+
+  --accent:      #7B92F5;
+  --accent-solid:#7B92F5;
+  --accent-hover:#93A6F8;
+  --accent-weak: #1B2140;
+  --accent-text: #A7B7FA;
+  --on-accent:   #0E1013;
+
+  --dmg:   #F0656A; --dmg-weak:  #33191B; --dmg-text:  #F79A9D;
+  --heal:  #45C083; --heal-weak: #12291F; --heal-text: #7BD9AC;
+  --magic: #B678E6; --magic-weak:#2A1B38; --magic-text:#CFA3F0;
+  --cond:  #E5A73C; --cond-weak: #302411; --cond-text: #F0C578;
+
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.5);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.4);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,.6), 0 2px 8px rgba(0,0,0,.5);
+
+  --sb-thumb: #5D6776;
+  --sb-thumb-hover: #737D8E;
+  --sb-thumb-active: #8A94A5;
+  color-scheme: dark;
+}
+
+/* ============================================================ base */
+*{ box-sizing:border-box; }
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:var(--font-body); font-size:15px; line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,h5{ font-family:var(--font-ui); font-weight:600; margin:0; text-wrap:balance; letter-spacing:-.011em; }
+p{ margin:0; }
+button{ font:inherit; color:inherit; }
+:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:3px; }
+@media (prefers-reduced-motion:reduce){ *{ animation-duration:.01ms!important; transition-duration:.01ms!important; } }
+
+/* ============================================================
+   SCROLLBARS
+   Firefox gets scrollbar-color (thin, two colours, no pseudo-elements).
+   Chromium/Safari get ::-webkit-scrollbar, which allows a rounded thumb
+   inset from a transparent track. Both read from the same tokens, so a
+   theme switch moves them with everything else.
+   ============================================================ */
+*{ scrollbar-color: var(--sb-thumb) transparent; scrollbar-width: thin; }
+
+::-webkit-scrollbar{ width: var(--sb-size); height: var(--sb-size); }
+::-webkit-scrollbar-track{ background: transparent; }
+::-webkit-scrollbar-thumb{
+  background-color: var(--sb-thumb);
+  border-radius: 999px;
+  /* Transparent border + background-clip insets the thumb without a track,
+     so it floats clear of the content edge. */
+  border: 2.5px solid transparent;
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover{ background-color: var(--sb-thumb-hover); }
+::-webkit-scrollbar-thumb:active{ background-color: var(--sb-thumb-active); }
+::-webkit-scrollbar-corner{ background: transparent; }
+
+/* Horizontal strips — filter chips, the wizard step rail, wide tables — are
+   short. A 10px bar would crowd them, so they get a slimmer one that only
+   appears while the strip is hovered or focused within. */
+.filterbar, .steps, .tablewrap{ scrollbar-width: none; }
+.filterbar::-webkit-scrollbar,
+.steps::-webkit-scrollbar,
+.tablewrap::-webkit-scrollbar{ height: 6px; }
+.filterbar::-webkit-scrollbar-thumb,
+.steps::-webkit-scrollbar-thumb,
+.tablewrap::-webkit-scrollbar-thumb{
+  background-color: transparent; border-width: 1.5px;
+  transition: background-color .15s;
+}
+.filterbar:hover::-webkit-scrollbar-thumb, .filterbar:focus-within::-webkit-scrollbar-thumb,
+.steps:hover::-webkit-scrollbar-thumb, .steps:focus-within::-webkit-scrollbar-thumb,
+.tablewrap:hover::-webkit-scrollbar-thumb, .tablewrap:focus-within::-webkit-scrollbar-thumb{
+  background-color: var(--sb-thumb);
+}
+.filterbar:hover, .steps:hover, .tablewrap:hover,
+.filterbar:focus-within, .steps:focus-within, .tablewrap:focus-within{
+  scrollbar-width: thin;
+}
+
+/* Touch devices draw their own overlay scrollbar that fades out on its own.
+   Ours would sit under a thumb and steal 10px of a narrow screen. */
+@media (hover: none){
+  *{ scrollbar-width: auto; }
+  ::-webkit-scrollbar{ width: 0; height: 0; }
+}
+
+.mono{ font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+.eyebrow{
+  font-family:var(--font-ui); font-size:10.5px; font-weight:600;
+  letter-spacing:.09em; text-transform:uppercase; color:var(--text-3);
+}
+
+/* ============================================================
+   ICONS — Lucide 0.x (ISC; there is no 1.x). One contract, applied globally.
+   Lucide is a stroke set: fill:none + stroke:currentColor is
+   mandatory, or every glyph renders as a black blob.
+   ============================================================ */
+svg.ic{
+  fill:none; stroke:currentColor; stroke-width:2;
+  stroke-linecap:round; stroke-linejoin:round;
+  width:1em; height:1em; flex-shrink:0;
+  vertical-align:-.125em; display:inline-block;
+}
+/* Optical sizing: stroke-width is scaled DOWN as the icon grows,
+   so weight stays visually constant across sizes. */
+.ic-xs{ font-size:13px; stroke-width:2.25; }
+.ic-sm{ font-size:15px; stroke-width:2; }
+.ic-md{ font-size:18px; stroke-width:1.85; }
+.ic-lg{ font-size:22px; stroke-width:1.7; }
+.ic-xl{ font-size:28px; stroke-width:1.6; }
+
+/* Icons inside a text run sit at the text's own weight, never louder. */
+.ic-muted{ opacity:.62; }
+
+/* ============================================================ doc shell */
+.doc{ max-width:1180px; margin:0 auto; padding:0 24px 120px; }
+.masthead{ padding:56px 0 40px; border-bottom:1px solid var(--border); }
+.masthead h1{ font-size:clamp(30px,5vw,44px); font-weight:700; letter-spacing:-.03em; margin:10px 0 12px; }
+.masthead .lede{ color:var(--text-2); max-width:64ch; font-size:16.5px; }
+.mast-row{ display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap; }
+
+.themetoggle{
+  display:inline-flex; gap:2px; padding:3px; background:var(--surface-2);
+  border:1px solid var(--border); border-radius:var(--r); font-family:var(--font-ui);
+}
+.themetoggle button{
+  border:0; background:transparent; color:var(--text-2); cursor:pointer;
+  padding:6px 12px; border-radius:var(--r-sm); font-size:12.5px; font-weight:500;
+}
+.themetoggle button[aria-pressed="true"]{ background:var(--surface); color:var(--text); box-shadow:var(--shadow-sm); }
+
+section.block{ padding-top:64px; }
+.block > .eyebrow{ display:block; margin-bottom:8px; }
+.block > h2{ font-size:25px; letter-spacing:-.02em; margin-bottom:8px; }
+.block > .intro{ color:var(--text-2); max-width:70ch; margin-bottom:26px; }
+
+/* ============================================================ device frames */
+.frames{ display:grid; grid-template-columns:1fr; gap:28px; }
+@media (min-width:1000px){ .frames.split{ grid-template-columns:1fr 372px; align-items:start; } }
+
+.frame{
+  background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-md);
+}
+.frame-bar{
+  display:flex; align-items:center; gap:8px; padding:9px 12px;
+  background:var(--surface-2); border-bottom:1px solid var(--border);
+}
+.frame-dots{ display:flex; gap:5px; }
+.frame-dots i{ width:9px; height:9px; border-radius:50%; background:var(--border-strong); display:block; }
+.frame-label{
+  font-family:var(--font-ui); font-size:11.5px; font-weight:500; color:var(--text-3);
+  letter-spacing:.01em; margin-left:4px;
+}
+.frame-body{ background:var(--bg); }
+
+/* phone */
+.phone{
+  width:100%; max-width:372px; margin:0 auto;
+  border:1px solid var(--border-strong); border-radius:26px; padding:9px;
+  background:var(--surface-2); box-shadow:var(--shadow-md);
+}
+.phone-screen{
+  background:var(--bg); border-radius:18px; overflow:hidden;
+  border:1px solid var(--border); height:668px; display:flex; flex-direction:column;
+}
+
+/* ============================================================ app chrome */
+.app{ display:flex; min-height:520px; }
+.rail{
+  width:var(--rail); flex-shrink:0; background:var(--surface-2);
+  border-right:1px solid var(--border); padding:14px 10px;
+  display:flex; flex-direction:column; gap:2px;
+}
+.rail-brand{ display:flex; align-items:center; gap:9px; padding:6px 8px 16px; }
+.mark{
+  width:26px; height:26px; border-radius:7px; background:var(--accent-solid);
+  display:grid; place-items:center; flex-shrink:0;
+}
+.mark svg{ font-size:15px; }
+.rail-brand b{ font-family:var(--font-ui); font-size:15px; font-weight:600; letter-spacing:-.015em; }
+.rail-group{ margin-top:14px; }
+.rail-group .eyebrow{ padding:0 8px 6px; display:block; }
+.navitem{
+  display:flex; align-items:center; gap:10px; width:100%; text-align:left;
+  padding:7px 8px; border:0; background:transparent; border-radius:var(--r-sm);
+  color:var(--text-2); font-family:var(--font-ui); font-size:13.5px; font-weight:500;
+  cursor:pointer; min-height:34px;
+}
+.navitem:hover{ background:var(--surface-3); color:var(--text); }
+.navitem[aria-current="page"]{ background:var(--accent-weak); color:var(--accent-text); font-weight:600; }
+.navitem svg{ font-size:16px; opacity:.8; }
+.navitem .count{
+  margin-left:auto; font-family:var(--font-mono); font-size:10.5px; color:var(--text-3);
+  font-variant-numeric:tabular-nums;
+}
+.rail-foot{ margin-top:auto; padding-top:14px; border-top:1px solid var(--border); }
+.userchip{ display:flex; align-items:center; gap:9px; padding:6px 8px; }
+.avatar{
+  width:26px; height:26px; border-radius:50%; background:var(--surface-3);
+  border:1px solid var(--border-strong); display:grid; place-items:center;
+  font-family:var(--font-ui); font-size:11px; font-weight:600; color:var(--text-2); flex-shrink:0;
+}
+.userchip div{ min-width:0; }
+.userchip b{ display:block; font-family:var(--font-ui); font-size:12.5px; font-weight:500; }
+.userchip span{ font-size:11px; color:var(--text-3); }
+
+.main{ flex:1; min-width:0; display:flex; flex-direction:column; }
+.topbar{
+  display:flex; align-items:center; gap:12px; padding:11px 16px;
+  border-bottom:1px solid var(--border); background:var(--surface);
+}
+.crumbs{ font-family:var(--font-ui); font-size:13px; color:var(--text-3); display:flex; align-items:center; gap:6px; min-width:0; }
+.crumbs b{ color:var(--text); font-weight:600; }
+.crumbs .sep{ opacity:.5; }
+
+/* ============================================================ controls */
+.btn{
+  display:inline-flex; align-items:center; justify-content:center; gap:7px;
+  padding:7px 13px; min-height:34px; border-radius:var(--r-sm);
+  border:1px solid var(--border-strong); background:var(--surface); color:var(--text);
+  font-family:var(--font-ui); font-size:13px; font-weight:500; cursor:pointer;
+  white-space:nowrap; transition:background .12s, border-color .12s;
+}
+.btn:hover{ background:var(--surface-2); border-color:var(--text-3); }
+.btn svg{ font-size:15px; }
+.btn-primary{ background:var(--accent-solid); border-color:var(--accent-solid); color:var(--on-accent); font-weight:600; }
+.btn-primary:hover{ background:var(--accent-hover); border-color:var(--accent-hover); }
+.btn-ghost{ border-color:transparent; background:transparent; color:var(--text-2); }
+.btn-ghost:hover{ background:var(--surface-3); color:var(--text); }
+.btn-sm{ padding:4px 9px; min-height:28px; font-size:12px; }
+.btn-dmg{ color:var(--dmg-text); border-color:var(--dmg-weak); background:var(--dmg-weak); font-weight:600; }
+.btn-heal{ color:var(--heal-text); border-color:var(--heal-weak); background:var(--heal-weak); font-weight:600; }
+
+.search{
+  display:flex; align-items:center; gap:8px; flex:1; max-width:420px;
+  padding:0 11px; min-height:34px; background:var(--surface-2);
+  border:1px solid var(--border); border-radius:var(--r-sm); color:var(--text-3);
+  font-size:13px; cursor:pointer; transition:border-color .12s;
+}
+.search:hover{ border-color:var(--border-strong); }
+.search svg{ font-size:15px; }
+.search .kbd{ margin-left:auto; }
+.kbd{
+  font-family:var(--font-mono); font-size:10.5px; padding:2px 5px; border-radius:4px;
+  background:var(--surface-3); border:1px solid var(--border); color:var(--text-3);
+  line-height:1.4; white-space:nowrap;
+}
+
+/* pills / chips */
+.pill{
+  display:inline-flex; align-items:center; gap:5px; padding:2px 8px;
+  border-radius:999px; font-family:var(--font-ui); font-size:11px; font-weight:600;
+  letter-spacing:.01em; border:1px solid transparent; white-space:nowrap;
+}
+.pill.dmg  { background:var(--dmg-weak);   color:var(--dmg-text);   border-color:color-mix(in srgb,var(--dmg) 22%, transparent); }
+.pill.heal { background:var(--heal-weak);  color:var(--heal-text);  border-color:color-mix(in srgb,var(--heal) 22%, transparent); }
+.pill.magic{ background:var(--magic-weak); color:var(--magic-text); border-color:color-mix(in srgb,var(--magic) 22%,transparent); }
+.pill.cond { background:var(--cond-weak);  color:var(--cond-text);  border-color:color-mix(in srgb,var(--cond) 25%, transparent); }
+.pill.neutral{ background:var(--surface-3); color:var(--text-2); border-color:var(--border); }
+.pill.accent{ background:var(--accent-weak); color:var(--accent-text); border-color:color-mix(in srgb,var(--accent) 22%,transparent); }
+.pill .dot{ width:5px; height:5px; border-radius:50%; background:currentColor; flex-shrink:0; }
+.pill svg{ font-size:12px; stroke-width:2.4; margin-left:-1px; }
+
+/* Icon-prefixed reference links. The icon states the CATEGORY, so the
+   dashed underline can stay quiet and the label stays readable. */
+.ref svg{ font-size:12px; stroke-width:2.3; margin-right:1px; vertical-align:-.1em; opacity:.85; }
+.ref.dice svg{ opacity:1; }
+
+/* reference link — the {@spell fireball} renderer output */
+.ref{
+  font-family:inherit; font-weight:600; cursor:pointer; background:none;
+  border:0; padding:0 1px; border-bottom:1px dashed currentColor; line-height:inherit;
+}
+.ref.spell{ color:var(--magic-text); }
+.ref.creature{ color:var(--dmg-text); }
+.ref.item{ color:var(--accent-text); }
+.ref.cond{ color:var(--cond-text); }
+.ref.dice{
+  font-family:var(--font-mono); font-size:.92em; font-weight:500; color:var(--text);
+  background:var(--surface-3); border:1px solid var(--border); border-bottom-style:solid;
+  padding:1px 5px; border-radius:4px;
+}
+.ref:hover{ border-bottom-style:solid; }
+.ref.dice:hover{ background:var(--accent-weak); border-color:var(--accent); color:var(--accent-text); }
+
+/* ============================================================ combat tracker */
+.tracker{ padding:14px 16px; display:flex; flex-direction:column; gap:8px; background:var(--bg); }
+.round-head{
+  display:flex; align-items:center; gap:12px; padding-bottom:12px;
+  border-bottom:1px solid var(--border); margin-bottom:4px; flex-wrap:wrap;
+}
+.round-n{ display:flex; align-items:baseline; gap:7px; }
+.round-n .big{ font-family:var(--font-mono); font-size:20px; font-weight:700; letter-spacing:-.02em; }
+
+.combatant{
+  display:grid; grid-template-columns:auto 34px 1fr auto; gap:12px; align-items:center;
+  padding:10px 12px 10px 0; background:var(--surface); border:1px solid var(--border);
+  border-radius:var(--r); position:relative; overflow:hidden;
+}
+/* severity stripe: state readable at a glance, before any number is parsed */
+.combatant::before{
+  content:''; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--border-strong);
+}
+.combatant.is-active{ border-color:var(--accent); background:var(--accent-weak); }
+.combatant.is-active::before{ background:var(--accent); width:4px; }
+.combatant.is-bloodied::before{ background:var(--cond); }
+.combatant.is-critical::before{ background:var(--dmg); }
+.combatant.is-down{ opacity:.62; }
+.combatant.is-down::before{ background:var(--text-3); }
+
+.init{
+  font-family:var(--font-mono); font-size:16px; font-weight:700; text-align:center;
+  color:var(--text-2); font-variant-numeric:tabular-nums; padding-left:12px;
+}
+.combatant.is-active .init{ color:var(--accent-text); }
+.token{
+  width:34px; height:34px; border-radius:var(--r-sm); background:var(--surface-3);
+  border:1px solid var(--border-strong); display:grid; place-items:center;
+  font-family:var(--font-ui); font-size:13px; font-weight:600; color:var(--text-2);
+}
+.c-body{ min-width:0; }
+.c-name{ display:flex; align-items:center; gap:7px; flex-wrap:wrap; }
+.c-name b{ font-family:var(--font-ui); font-size:14.5px; font-weight:600; letter-spacing:-.01em; }
+.c-meta{ display:flex; align-items:center; gap:8px; margin-top:3px; flex-wrap:wrap; font-size:12px; color:var(--text-3); }
+
+.hpbar{ height:4px; border-radius:2px; background:var(--surface-3); overflow:hidden; margin-top:7px; max-width:220px; }
+.hpbar i{ display:block; height:100%; border-radius:2px; background:var(--heal); }
+.hpbar.warn i{ background:var(--cond); }
+.hpbar.crit i{ background:var(--dmg); }
+
+.hp{ display:flex; align-items:center; gap:6px; }
+.hp-val{ font-family:var(--font-mono); font-size:14px; font-weight:700; font-variant-numeric:tabular-nums; min-width:56px; text-align:right; }
+.hp-val small{ font-weight:400; color:var(--text-3); font-size:11.5px; }
+.c-actions{ display:flex; align-items:center; gap:5px; }
+
+/* ============================================================ statblock / reference drawer */
+.drawer{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
+  overflow:hidden; box-shadow:var(--shadow-md); display:flex; flex-direction:column;
+}
+.drawer-head{
+  padding:13px 15px; border-bottom:1px solid var(--border); background:var(--surface-2);
+  display:flex; align-items:flex-start; gap:10px;
+}
+.drawer-head h3{ font-size:17px; letter-spacing:-.02em; }
+.drawer-head .sub{ font-size:12.5px; color:var(--text-3); font-style:italic; margin-top:1px; }
+.drawer-body{ padding:15px; display:flex; flex-direction:column; gap:13px; font-size:13.5px; overflow:auto; }
+
+.statrow{ display:grid; grid-template-columns:repeat(6,1fr); gap:6px; }
+.stat{
+  background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-sm);
+  padding:7px 4px; text-align:center;
+}
+.stat .ab{ font-family:var(--font-ui); font-size:10px; font-weight:600; letter-spacing:.07em; color:var(--text-3); }
+.stat .sc{ font-family:var(--font-mono); font-size:15px; font-weight:700; line-height:1.25; }
+.stat .md{ font-family:var(--font-mono); font-size:11px; color:var(--accent-text); font-weight:500; cursor:pointer; }
+
+.defline{ display:flex; gap:16px; flex-wrap:wrap; padding-bottom:12px; border-bottom:1px solid var(--border); }
+.defline > div{ display:flex; align-items:baseline; gap:6px; }
+.defline .eyebrow{ font-size:10px; }
+.defline .v{ font-family:var(--font-mono); font-size:13.5px; font-weight:600; }
+
+.trait{ padding-top:2px; }
+.trait h5{ font-size:13.5px; display:inline; font-style:italic; font-weight:700; }
+.trait p{ display:inline; color:var(--text-2); }
+.sect-rule{
+  font-family:var(--font-ui); font-size:11.5px; font-weight:700; letter-spacing:.08em;
+  text-transform:uppercase; color:var(--accent-text); padding-bottom:5px;
+  border-bottom:1px solid color-mix(in srgb,var(--accent) 28%, transparent); margin-top:4px;
+}
+
+/* ============================================================ command palette / dialog */
+.dialog{
+  background:var(--surface); border:1px solid var(--border-strong);
+  border-radius:var(--r-lg); box-shadow:var(--shadow-lg); overflow:hidden;
+  max-width:600px; margin:0 auto;
+}
+.dialog-search{
+  display:flex; align-items:center; gap:10px; padding:13px 15px;
+  border-bottom:1px solid var(--border);
+}
+.dialog-search svg{ font-size:18px; color:var(--text-3); stroke-width:1.9; }
+.dialog-search .q{ font-size:15px; flex:1; }
+.dialog-search .q .caret{
+  display:inline-block; width:1.5px; height:16px; background:var(--accent);
+  vertical-align:-3px; animation:blink 1.1s step-end infinite;
+}
+@keyframes blink{ 50%{ opacity:0; } }
+
+.filterbar{ display:flex; gap:5px; padding:9px 15px; border-bottom:1px solid var(--border); overflow-x:auto; }
+.chip{
+  padding:3px 10px; border-radius:999px; border:1px solid var(--border);
+  background:var(--surface-2); color:var(--text-2); font-family:var(--font-ui);
+  font-size:11.5px; font-weight:500; cursor:pointer; white-space:nowrap;
+}
+.chip[aria-pressed="true"]{ background:var(--accent-solid); border-color:var(--accent-solid); color:var(--on-accent); font-weight:600; }
+
+.results{ max-height:330px; overflow:auto; padding:6px; }
+.res-group{ padding:9px 9px 4px; }
+.res{
+  display:grid; grid-template-columns:26px 1fr auto; gap:11px; align-items:center;
+  padding:8px 9px; border-radius:var(--r-sm); cursor:pointer; border:1px solid transparent;
+}
+.res:hover{ background:var(--surface-2); }
+.res[aria-selected="true"]{ background:var(--accent-weak); border-color:color-mix(in srgb,var(--accent) 30%,transparent); }
+.res-ico{
+  width:26px; height:26px; border-radius:var(--r-sm); display:grid; place-items:center;
+}
+.res-ico svg{ font-size:15px; stroke-width:2.1; }
+.res-ico.magic{ background:var(--magic-weak); color:var(--magic-text); }
+.res-ico.dmg{ background:var(--dmg-weak); color:var(--dmg-text); }
+.res-ico.item{ background:var(--accent-weak); color:var(--accent-text); }
+.res b{ font-family:var(--font-ui); font-size:13.5px; font-weight:600; display:block; }
+.res .rsub{ font-size:12px; color:var(--text-3); }
+.res .rmeta{ display:flex; align-items:center; gap:7px; }
+.dialog-foot{
+  display:flex; align-items:center; gap:14px; padding:8px 15px;
+  border-top:1px solid var(--border); background:var(--surface-2); font-size:11.5px; color:var(--text-3);
+}
+.dialog-foot span{ display:flex; align-items:center; gap:5px; }
+
+/* the multilingual line — 5eTools cross-referencing across languages */
+.langline{
+  display:flex; align-items:center; gap:7px; padding:7px 15px; font-size:11.5px;
+  background:var(--surface-2); border-top:1px solid var(--border); color:var(--text-3);
+}
+.langline b{ color:var(--text-2); font-family:var(--font-ui); font-weight:600; }
+
+/* ============================================================ wizard */
+.wizard{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); overflow:hidden; box-shadow:var(--shadow-md); }
+.steps{ display:flex; gap:0; padding:0; border-bottom:1px solid var(--border); background:var(--surface-2); overflow-x:auto; }
+.step{
+  display:flex; align-items:center; gap:8px; padding:11px 15px; border:0; background:transparent;
+  cursor:pointer; font-family:var(--font-ui); font-size:12.5px; font-weight:500; color:var(--text-3);
+  white-space:nowrap; border-bottom:2px solid transparent; min-height:var(--tap);
+}
+.step:hover{ color:var(--text); }
+.step .num{
+  width:19px; height:19px; border-radius:50%; display:grid; place-items:center;
+  font-family:var(--font-mono); font-size:10.5px; font-weight:700;
+  background:var(--surface-3); color:var(--text-3); border:1px solid var(--border);
+}
+.step.done{ color:var(--text-2); }
+.step.done .num{ background:var(--heal-weak); color:var(--heal-text); border-color:transparent; }
+.step[aria-current="step"]{ color:var(--text); font-weight:600; border-bottom-color:var(--accent); background:var(--surface); }
+.step[aria-current="step"] .num{ background:var(--accent-solid); color:var(--on-accent); border-color:transparent; }
+
+.wizard-body{ padding:20px; }
+.wizard-foot{
+  display:flex; align-items:center; gap:10px; padding:12px 20px;
+  border-top:1px solid var(--border); background:var(--surface-2);
+}
+.autosave{ margin-left:auto; font-size:11.5px; color:var(--text-3); display:flex; align-items:center; gap:6px; }
+.autosave .dot{ width:6px; height:6px; border-radius:50%; background:var(--heal); }
+
+.cardgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(158px,1fr)); gap:10px; }
+.pick{
+  text-align:left; padding:12px; border-radius:var(--r); border:1px solid var(--border);
+  background:var(--surface); cursor:pointer; display:flex; flex-direction:column; gap:5px;
+  min-height:var(--tap); transition:border-color .12s, background .12s;
+}
+.pick:hover{ border-color:var(--border-strong); background:var(--surface-2); }
+.pick[aria-pressed="true"]{ border-color:var(--accent); background:var(--accent-weak); box-shadow:inset 0 0 0 1px var(--accent); }
+.pick b{ font-family:var(--font-ui); font-size:13.5px; font-weight:600; }
+.pick .pd{ font-size:12px; color:var(--text-3); line-height:1.45; }
+
+/* ============================================================ mobile app */
+.m-top{
+  display:flex; align-items:center; gap:10px; padding:11px 13px;
+  border-bottom:1px solid var(--border); background:var(--surface); flex-shrink:0;
+}
+.m-top h4{ font-size:15px; letter-spacing:-.015em; flex:1; min-width:0; }
+.m-scroll{ flex:1; overflow:auto; padding:13px; display:flex; flex-direction:column; gap:11px; }
+.m-tabs{
+  display:flex; border-top:1px solid var(--border); background:var(--surface);
+  padding:5px 4px 7px; flex-shrink:0;
+}
+.m-tab{
+  flex:1; display:flex; flex-direction:column; align-items:center; gap:3px;
+  border:0; background:transparent; cursor:pointer; padding:5px 2px;
+  font-family:var(--font-ui); font-size:10px; font-weight:500; color:var(--text-3);
+  min-height:var(--tap); border-radius:var(--r-sm);
+}
+.m-tab svg{ font-size:21px; stroke-width:1.8; }
+.m-tab[aria-current="page"]{ color:var(--accent-text); font-weight:600; }
+
+.hpcard{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
+  padding:15px; display:flex; flex-direction:column; gap:12px;
+}
+.hpbig{ display:flex; align-items:baseline; justify-content:center; gap:4px; font-family:var(--font-mono); }
+.hpbig .n{ font-size:44px; font-weight:700; line-height:1; letter-spacing:-.03em; }
+.hpbig .d{ font-size:18px; color:var(--text-3); font-weight:500; }
+.hprow{ display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.hprow .btn{ min-height:var(--tap); font-size:14px; }
+
+.diceset{ display:grid; grid-template-columns:repeat(4,1fr); gap:7px; }
+.die{
+  aspect-ratio:1; border:1px solid var(--border); border-radius:var(--r);
+  background:var(--surface); cursor:pointer; display:grid; place-items:center;
+  font-family:var(--font-mono); font-size:13px; font-weight:700; color:var(--text-2);
+  min-height:var(--tap);
+}
+.die:hover{ border-color:var(--accent); color:var(--accent-text); background:var(--accent-weak); }
+
+.rollout{
+  background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r);
+  padding:11px 13px; display:flex; align-items:center; gap:11px;
+}
+.rollout .tot{ font-family:var(--font-mono); font-size:26px; font-weight:700; letter-spacing:-.02em; }
+.rollout .brk{ font-family:var(--font-mono); font-size:11.5px; color:var(--text-3); }
+
+/* advantage toggle — three-state, the AD&D-correct control */
+.advset{ display:flex; padding:3px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-sm); gap:2px; }
+.advset button{
+  flex:1; border:0; background:transparent; cursor:pointer; padding:7px 4px;
+  border-radius:4px; font-family:var(--font-ui); font-size:11.5px; font-weight:600;
+  color:var(--text-3); min-height:36px;
+}
+.advset button[aria-pressed="true"]{ background:var(--surface); color:var(--text); box-shadow:var(--shadow-sm); }
+.advset button.adv[aria-pressed="true"]{ color:var(--heal-text); }
+.advset button.dis[aria-pressed="true"]{ color:var(--dmg-text); }
+
+.sheetgrid{ display:grid; grid-template-columns:repeat(3,1fr); gap:7px; }
+
+/* ============================================================ spec tables */
+.spec{ width:100%; border-collapse:collapse; font-size:13px; }
+.spec th, .spec td{ text-align:left; padding:9px 12px; border-bottom:1px solid var(--border); vertical-align:top; }
+.spec th{ font-family:var(--font-ui); font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:var(--text-3); }
+.spec td:first-child{ font-family:var(--font-mono); font-size:12px; color:var(--text); white-space:nowrap; }
+.spec td .sw{ display:inline-block; width:13px; height:13px; border-radius:3px; border:1px solid var(--border-strong); vertical-align:-2px; margin-right:7px; }
+.tablewrap{ overflow-x:auto; border:1px solid var(--border); border-radius:var(--r); background:var(--surface); }
+
+.notes{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); }
+.note{
+  background:var(--surface); border:1px solid var(--border); border-left:2px solid var(--accent);
+  border-radius:var(--r); padding:13px 15px;
+}
+.note h5{ font-size:13.5px; margin-bottom:4px; }
+.note p{ font-size:13px; color:var(--text-2); }
+.note.warn{ border-left-color:var(--cond); }
+
+.caption{ font-size:12.5px; color:var(--text-3); margin-top:9px; }
+
+
+/* ── design-reference chrome (not part of the app) ── */
+.dr-nav{
+  position:sticky; top:0; z-index:50; background:var(--surface);
+  border-bottom:1px solid var(--border); padding:9px 24px;
+  display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+  box-shadow:var(--shadow-sm);
+}
+.dr-home{
+  font-family:var(--font-ui); font-size:13px; font-weight:600; color:var(--text);
+  text-decoration:none; white-space:nowrap;
+}
+.dr-links{ display:flex; gap:3px; overflow-x:auto; scrollbar-width:none; }
+.dr-links::-webkit-scrollbar{ height:0; }
+.dr-links a{
+  font-family:var(--font-ui); font-size:12.5px; font-weight:500; color:var(--text-2);
+  text-decoration:none; padding:5px 9px; border-radius:var(--r-sm); white-space:nowrap;
+}
+.dr-links a:hover{ background:var(--surface-3); color:var(--text); }
+.dr-links a.here{ background:var(--accent-weak); color:var(--accent-text); font-weight:600; }
+.dr-foot{
+  max-width:1180px; margin:0 auto; padding:60px 24px 40px;
+  border-top:1px solid var(--border); display:flex; justify-content:space-between;
+  gap:16px; flex-wrap:wrap; font-size:12.5px; color:var(--text-3);
+}
+.dr-foot a{ color:var(--accent-text); }
+
+</style>
+<style>
+/* ── page 17: the built screens ── */
+.pt-toc{ display:flex; flex-wrap:wrap; gap:6px; margin:22px 0 0; }
+.pt-toc a{ font-family:var(--font-ui); font-size:12.5px; font-weight:500; color:var(--text-2); text-decoration:none;
+  padding:4px 10px; border:1px solid var(--border); border-radius:999px; background:var(--surface); }
+.pt-toc a:hover{ background:var(--surface-3); color:var(--text); }
+.pt-shot{ margin:0 0 18px; border:1px solid var(--border); border-radius:var(--r-lg); overflow:hidden;
+  box-shadow:var(--shadow-md); background:var(--surface); }
+.pt-shot img{ display:block; width:100%; height:auto; }
+.pt-shot figcaption{ font-size:13px; color:var(--text-2); padding:10px 12px; border-top:1px solid var(--border); }
+.pt-phones{ display:grid; gap:18px; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); align-items:start; }
+.pt-phones .pt-shot{ max-width:340px; }
+.pt-pair{ display:grid; gap:18px; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); align-items:start; }
+.pt-list{ margin:4px 0 0 18px; max-width:78ch; color:var(--text-2); }
+.pt-list li{ margin:0 0 7px; }
+.pt-list b{ color:var(--text); }
+.block .eyebrow a{ color:inherit; }
+/* the screenshot that matches the page's theme */
+.pt-dark{ display:none !important; }
+:root[data-theme="dark"] .pt-light{ display:none !important; }
+:root[data-theme="dark"] .pt-dark{ display:block !important; }
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]) .pt-light{ display:none !important; }
+  :root:not([data-theme="light"]) .pt-dark{ display:block !important; }
+}
+</style>
+</head>
+<body>
+<nav class="dr-nav" aria-label="Design reference">
+  <a class="dr-home" href="index.html">Paravent design reference</a>
+  <div class="dr-links"><a href="01-principles.html">Principles</a><a href="02-combat-tracker.html">Combat Tracker</a><a href="03-command-palette.html">Command Palette</a><a href="04-player-mobile.html">Player on Mobile</a><a href="05-wizard.html">Wizard</a><a href="06-tag-renderer.html">Tag Renderer</a><a href="07-icons.html">Icons</a><a href="08-tokens.html">Tokens</a><a href="09-scrollbars.html">Scrollbars</a><a href="10-responsive.html">Responsive</a><a href="11-implementation.html">Implementation</a><a href="12-tooltips.html">Tooltips</a><a href="13-chargen-wizard.html">Character Generation</a><a href="14-chargen-demo-desktop.html">Demo &middot; Desktop</a><a href="15-chargen-demo-mobile.html">Demo &middot; Mobile</a><a href="16-character-sheet.html">Character Sheet</a><a href="17-paravent-today.html" class="here" aria-current="page">Paravent today</a></div>
+</nav>
+<div class="doc">
+<header class="masthead" style="padding:34px 0 26px;">
+  <div class="mast-row">
+    <span class="eyebrow">17 · Design reference</span>
+    <div class="themetoggle" role="group" aria-label="Theme">
+      <button type="button" data-set="light" aria-pressed="false">Light</button>
+      <button type="button" data-set="system" aria-pressed="true">System</button>
+      <button type="button" data-set="dark" aria-pressed="false">Dark</button>
+    </div>
+  </div>
+  <h1 style="font-size:clamp(26px,4vw,34px); margin:8px 0 10px;">Paravent today</h1>
+  <p class="lede" style="font-size:15.5px;">What the design became. Pages 01&ndash;16 were drawn in September 2026, before there was an app; they keep the reasoning, and each now opens with a note on what changed. This page shows the screens as they are built (2026-11-14), and the parts of Paravent that no page ever drew.</p>
+</header>
+
+<div class="note" style="margin:22px 0 0;">
+  <h5>About the pictures</h5>
+  <p>They are the website's screenshots of a demo table, made by <code>website/shots.py</code>: our own world and texts, creatures from the System Reference Document. They are taken in the <b>Tome</b> theme (parchment, oxblood accent, book fonts), which a table switches on; Paravent's own look uses the neutral colours of <a href="08-tokens.html">page 08</a>. The pictures follow this page's Light / Dark switch.</p>
+</div>
+
+<nav class="pt-toc" aria-label="On this page">
+  <a href="#shell">The shell</a><a href="#tracker">Combat tracker</a><a href="#fight-phone">Players' fight view</a><a href="#sheet">Character sheet</a><a href="#wizard">Wizard</a><a href="#palette">Search</a><a href="#previews">Previews</a><a href="#log">The log</a><a href="#adventures">Adventures</a><a href="#encounters">Encounters</a><a href="#journal">Journal</a><a href="#sound">Sound desk</a><a href="#names">Names</a><a href="#themes">Themes</a><a href="#tokens">Tokens</a><a href="#more">Also built</a>
+</nav>
+
+<section class="block" id="shell">
+  <span class="eyebrow">Replaces the rail of pages 02, 04 and 10</span>
+  <h2>The shell</h2>
+  <p class="intro">No rail was built. Every role gets the same sticky top bar, which the screens below all show.</p>
+  <ul class="pt-list">
+    <li><b>Sections:</b> Table, Characters, Encounters, Combat, Worlds, Books. Each remembers the last page read in it, and logging in again carries on where you left off.</li>
+    <li><b>To the right:</b> the sound desk, the log with a badge for new entries, search (⌘K), a settings gear for the gamemaster (players, glossary, translations, backups, themes, the corpus check), and the user menu: DE / EN (the units follow the language), sun / moon (the device decides until chosen), dice sounds on / off.</li>
+    <li><b>Role colour:</b> a thin edge on top of the bar, orange for the gamemaster, blue for a player.</li>
+    <li><b>Phone:</b> at 760px the sections get their own row, at 640px they become icon-over-label tabs. A player on a phone gets a compact top row and a bottom bar (Characters, Books, Journal); the sheet and the wizard bring bars of their own.</li>
+    <li><b>Links to a heading</b> land below the bar at any height: <code>ui.js</code> measures it into <code>--bar-h</code>.</li>
+  </ul>
+</section>
+
+<section class="block" id="tracker">
+  <span class="eyebrow">Replaces page 02 · <a href="../documentation/COMBAT.md">COMBAT.md</a></span>
+  <h2>Combat tracker</h2>
+  <p class="intro">The order on the left, the selected creature's statblock in a side panel on the right (372px from 1024px, stacked below on narrower screens). There is no reference drawer.</p>
+  <figure class="pt-shot wide">
+    <img class="pt-light" src="../website/assets/img/screens/en/combat.webp" alt="The combat tracker: the turn order with tokens and hit point bars, a troll's statblock beside it" loading="lazy">
+    <img class="pt-dark" src="../website/assets/img/screens/en/dark/combat.webp" alt="" loading="lazy">
+  </figure>
+  <ul class="pt-list">
+    <li><b>Rows:</b> a round token (the table's picture, else one from the image folder, else the kind's disc), tinted green for a friend and red for a foe. The row's background is its hit point bar. One initiative per turn group, an amount field with &minus;, +, Temp and a &hellip; menu.</li>
+    <li><b>Pills:</b> friend / foe (switching the whole group), conditions with their rounds, concentration naming the spell, a skull for the dead, Hidden, a druid's Wild Shape form, a concentration save still owed.</li>
+    <li><b>Round head:</b> Begin while initiative is rolled, then &larr; and Next; the difficulty rated live from who still stands; a lair turn on 20; the rules screen, How it works, End.</li>
+    <li><b>The statblock fights:</b> every attack has Attack / Adv / Dis, and the roll waits under &ldquo;Attacks to resolve&rdquo; for Hit (damage counted against the target's defences) or Miss. Breath weapons roll once and ask each target for its save; a creature's spells are cast with its slots. A druid in Wild Shape fights with the beast's actions.</li>
+    <li><b>Around it:</b> turn-start reminders, repeated saves, &ldquo;What the players know&rdquo;, the fight's slice of the log folded under the order, and at the end the summary with XP and a recap.</li>
+  </ul>
+</section>
+
+<section class="block" id="fight-phone">
+  <span class="eyebrow">New · <a href="../documentation/COMBAT.md">COMBAT.md</a> §5</span>
+  <h2>Players' fight view, the sheet and the journal on a phone</h2>
+  <p class="intro">A player's phone shows the fight without a single number of the monsters': state words and colours only.</p>
+  <div class="pt-phones">
+    <figure class="pt-shot phone" id="sheet">
+      <img class="pt-light" src="../website/assets/img/screens/en/sheet.webp" alt="A character sheet on a phone" loading="lazy">
+      <img class="pt-dark" src="../website/assets/img/screens/en/dark/sheet.webp" alt="" loading="lazy">
+      <figcaption>The sheet (replaces pages 04 and 16): views Play, Stats, Track, Gear; the combat strip above.</figcaption>
+    </figure>
+    <figure class="pt-shot phone">
+      <img class="pt-light" src="../website/assets/img/screens/en/fight-phone.webp" alt="The players' view of a fight on a phone, on their turn" loading="lazy">
+      <img class="pt-dark" src="../website/assets/img/screens/en/dark/fight-phone.webp" alt="" loading="lazy">
+      <figcaption>The fight: &ldquo;Your turn!&rdquo;, tokens, a foe's bar full in its state's colour; a tap picks a target or shows what the party knows.</figcaption>
+    </figure>
+    <figure class="pt-shot phone" id="journal">
+      <img class="pt-light" src="../website/assets/img/screens/en/journal.webp" alt="A handout in the players' journal" loading="lazy">
+      <img class="pt-dark" src="../website/assets/img/screens/en/dark/journal.webp" alt="" loading="lazy">
+      <figcaption>The journal: boxes and pictures the gamemaster handed out (<a href="../documentation/JOURNAL.md">JOURNAL.md</a>).</figcaption>
+    </figure>
+  </div>
+  <ul class="pt-list">
+    <li><b>Sheet, desktop:</b> three columns as on page 16, tabs Actions, Spells, Skills, Gear, Features. A round token in the head, Inspiration, a Live mark; rests in the right column with the slots, resources, conditions and the dice log.</li>
+    <li><b>No dice screen:</b> rolls start from the rows that have them and from roll chips in any text; a free &ldquo;2d6+3&rdquo; field sits on Actions; Disadvantage / Normal / Advantage and a Private switch apply. Results go to the log, a toast and the dice sounds.</li>
+    <li><b>Character | fight:</b> one switch heads both the sheet's strip and the fight view, so the two are a tap apart.</li>
+  </ul>
+</section>
+
+<section class="block" id="wizard">
+  <span class="eyebrow">Replaces pages 05 and 13 · 14 and 15 are historical · <a href="../documentation/CHARGEN-WIZARD.md">CHARGEN-WIZARD.md</a></span>
+  <h2>Character wizard</h2>
+  <p class="intro">Up to nine steps: Species, Class, Abilities, Background, Features, Skills, Equipment, Spells, Details (2024: Class, Species, Background, Abilities, &hellip;). Features and Spells are left out when they ask nothing.</p>
+  <figure class="pt-shot">
+    <img class="pt-light" src="../website/assets/img/screens/en/wizard.webp" alt="The character wizard at its class step, with the derived panel" loading="lazy">
+    <img class="pt-dark" src="../website/assets/img/screens/en/dark/wizard.webp" alt="" loading="lazy">
+  </figure>
+  <ul class="pt-list">
+    <li>A draft is saved from the first step; every change posts the whole step and comes back with the rail and the derived panel.</li>
+    <li>Cards carry the books' description and picture, and the glossary name with the English beneath.</li>
+    <li>Equipment: packages, or the class's gold rolled, and a shop with a purse. Spells: cantrips, spellbook and prepared together, &ldquo;Always prepared&rdquo; named.</li>
+    <li>Details: name (with a suggestion), appearance, backstory rolls, then a review with every derivation.</li>
+    <li>Levelling up is granted by the gamemaster and answered on one page; preparing spells is a page of its own.</li>
+  </ul>
+</section>
+
+<section class="block" id="palette">
+  <span class="eyebrow">Updates page 03</span>
+  <h2>Search</h2>
+  <p class="intro">The ⌘K palette is built as page 03 drew it, with these changes.</p>
+  <ul class="pt-list">
+    <li>Chips: All, Spells, Bestiary, Items, Options, Rules, World, Books (rulebook headings and maps).</li>
+    <li>One row per entry, the reader's name with the English beneath; ↵ opens the reference page, ⌘↵ a new tab.</li>
+    <li>Scoped to the world's books, one printing each: &ldquo;N more in books this world does not use&rdquo; leads to all imported books. Players see only what they may read.</li>
+    <li>As a picker it adds monsters to an encounter or a fight and items to a treasure; in an editor it inserts a reference (the campaign's own NPCs, places and chapters first), and typing <code>{@creature gob</code> opens a drop-down at the cursor.</li>
+  </ul>
+</section>
+
+<section class="block" id="previews">
+  <span class="eyebrow">Updates pages 06 and 12</span>
+  <h2>References and previews</h2>
+  <p class="intro">The interaction contract of page 12 holds to the millisecond (350ms open, 180ms close, click pins, a tap opens a bottom sheet). What a reference leads to changed.</p>
+  <ul class="pt-list">
+    <li>A link opens a preview, and the preview's Open leads to the full reference page. Another printing in the world's books gets its own button (&ldquo;PHB version&rdquo;). Nothing adds to an encounter from a preview.</li>
+    <li>The campaign's own links (NPCs, places, encounters, treasure, chapters, characters) preview too.</li>
+    <li>For a German reader: glossary names, dice as &ldquo;2W6&rdquo;, &ldquo;SG 15&rdquo;; a reader in metres sees &ldquo;60 feet (18 m)&rdquo; beside the prose.</li>
+    <li>What a player may not read is plain text, never a link.</li>
+  </ul>
+</section>
+
+<section class="block" id="log">
+  <span class="eyebrow">New · <a href="../documentation/PROTOCOL.md">PROTOCOL.md</a></span>
+  <h2>The log and toasts</h2>
+  <p class="intro">One log per world for every roll and change, newest on top: the dice, advantage and its reasons, every bonus by its source. It opens from the top bar on every page, as a side panel or, on a phone, a sheet from the bottom.</p>
+  <ul class="pt-list">
+    <li>Filters (All, Me, This fight, This character, Monsters), dividers by round, fight and session.</li>
+    <li>Players read results only for monsters, no DC or AC; the gamemaster's private rolls stay behind the screen until revealed.</li>
+    <li>Toasts: at most three, gone after about six seconds; mine / all / off per account. The sheet's dice log and the tracker's fold are views of the same log.</li>
+  </ul>
+</section>
+
+<section class="block" id="adventures">
+  <span class="eyebrow">New · <a href="../documentation/ADVENTURES.md">ADVENTURES.md</a></span>
+  <h2>Adventures and chapters</h2>
+  <p class="intro">Worlds, adventures and chapters are Markdown files. A chapter reads with read-aloud boxes, its encounters as cards and its pictures; the editor beside it has a live preview, a toolbar, the insert search and a check of every link.</p>
+  <figure class="pt-shot">
+    <img class="pt-light" src="../website/assets/img/screens/en/chapter.webp" alt="A chapter with its read-aloud box and an encounter card" loading="lazy">
+    <img class="pt-dark" src="../website/assets/img/screens/en/dark/chapter.webp" alt="" loading="lazy">
+  </figure>
+</section>
+
+<section class="block" id="encounters">
+  <span class="eyebrow">New · <a href="../documentation/COMBAT.md">COMBAT.md</a></span>
+  <h2>Encounter builder and recap</h2>
+  <p class="intro">A fight is planned and rated live for the party under the world's rules, 2014 or 2024; &ldquo;Build a fight&rdquo; fills one to a difficulty. After the fight, the recap tells who dealt, took and healed what.</p>
+  <div class="pt-pair">
+    <figure class="pt-shot">
+      <img class="pt-light" src="../website/assets/img/screens/en/encounter.webp" alt="The encounter builder rating a fight" loading="lazy">
+      <img class="pt-dark" src="../website/assets/img/screens/en/dark/encounter.webp" alt="" loading="lazy">
+    </figure>
+    <figure class="pt-shot">
+      <img class="pt-light" src="../website/assets/img/screens/en/recap.webp" alt="The recap of a fight" loading="lazy">
+      <img class="pt-dark" src="../website/assets/img/screens/en/dark/recap.webp" alt="" loading="lazy">
+    </figure>
+  </div>
+</section>
+
+<section class="block" id="sound">
+  <span class="eyebrow">New · <a href="../documentation/SOUND.md">SOUND.md</a></span>
+  <h2>Sound desk</h2>
+  <p class="intro">A slide-over of pads (ambience, music, effects) that plays on the device beside the loudspeaker: loops layered, music crossfaded, scenes, and <code>{@sound Name}</code> in a chapter.</p>
+  <figure class="pt-shot wide">
+    <img class="pt-light" src="../website/assets/img/screens/en/sound.webp" alt="The sound desk open beside a chapter" loading="lazy">
+    <img class="pt-dark" src="../website/assets/img/screens/en/dark/sound.webp" alt="" loading="lazy">
+  </figure>
+</section>
+
+<section class="block" id="names">
+  <span class="eyebrow">New · <a href="../documentation/NAMES.md">NAMES.md</a></span>
+  <h2>Names workshop</h2>
+  <p class="intro">Naming styles for peoples, creatures and places: a pattern and its parts, invented sounds or names learned from examples, thirty samples to judge. The wizard's &ldquo;Suggest a name&rdquo;, the NPC generator and the tracker's names come from here.</p>
+  <figure class="pt-shot">
+    <img class="pt-light" src="../website/assets/img/screens/en/names.webp" alt="The names workshop" loading="lazy">
+    <img class="pt-dark" src="../website/assets/img/screens/en/dark/names.webp" alt="" loading="lazy">
+  </figure>
+</section>
+
+<section class="block" id="themes">
+  <span class="eyebrow">New · <a href="../documentation/THEMES.md">THEMES.md</a></span>
+  <h2>Themes</h2>
+  <p class="intro">The whole look is a folder: <code>theme.json</code>, its tokens, a skin, fonts, pictures and optionally a complete icon sprite. A theme replaces token values and adds a skin; it never brings scripts.</p>
+  <ul class="pt-list">
+    <li><b>Paravent's own look</b> is the default: the tokens of page 08, unchanged, and the 18 contrast pairs still pass. No font files ship with it, so the faces fall back to the system's.</li>
+    <li><b>Tome</b> ships with the app: parchment and leather, an oxblood accent, gilt, the books' statblocks and read-aloud boxes, OFL fonts (Libre Baskerville, Alegreya Sans, Cinzel). Its colours are outside the contrast claim.</li>
+    <li>The gamemaster sets the table's theme; each reader may choose their own. A Content Security Policy keeps styles, fonts and pictures to the server.</li>
+  </ul>
+</section>
+
+<section class="block" id="tokens">
+  <span class="eyebrow">New · <a href="../documentation/TOKENS.md">TOKENS.md</a></span>
+  <h2>Tokens</h2>
+  <p class="intro">Every element has a round token: the table's own upload (cropped round), else a token from the image folder, else the kind's disc in the theme's colours. Tokens appear in the tracker and the players' view (a group's number on the edge), the encounter builder, lists and party cards, previews, the sheet and the journal, and print at true size on a 20, 25 or 30mm grid or go to a virtual tabletop as PNGs. The design's initials avatars became these.</p>
+</section>
+
+<section class="block" id="more">
+  <span class="eyebrow">Also built</span>
+  <h2>Screens no page drew</h2>
+  <ul class="pt-list">
+    <li><b>The gamemaster's table</b> (<code>/gm</code>): a live card per character, with damage, healing and conditions from the card.</li>
+    <li><b>Books</b>: the rulebooks to read, with contents, anchors, maps whose numbered areas lead to their text, and the reference screens.</li>
+    <li><b>Reference pages</b> for every entry, with &ldquo;Referenced by&rdquo; and, for the gamemaster, &ldquo;In your campaign&rdquo;.</li>
+    <li><b>Translation</b>: the glossary, a side-by-side editor with tag chips, machine drafts to review (<a href="../documentation/TRANSLATION.md">TRANSLATION.md</a>).</li>
+    <li><b>What a player may read</b>, per world (<a href="../documentation/PLAYER-VIEW.md">PLAYER-VIEW.md</a>), and &ldquo;View as player&rdquo;.</li>
+    <li><b>The creature builder</b>, NPCs, places and treasure, backups, and drafts written by Claude for review (<a href="../documentation/MCP.md">MCP.md</a>).</li>
+  </ul>
+</section>
+
+</div>
+<footer class="dr-foot">
+  <span>Paravent design reference &middot; the screens as built, 2026-11-14 &middot; see <a href="../documentation/PROGRESS.md">PROGRESS.md</a></span>
+  <span><a href="index.html">All sections</a></span>
+</footer>
+<script>
+(function(){
+  var root=document.documentElement, b=document.querySelectorAll('.themetoggle button');
+  b.forEach(function(x){ x.addEventListener('click',function(){
+    var v=x.dataset.set;
+    if(v==='system') root.removeAttribute('data-theme'); else root.setAttribute('data-theme',v);
+    b.forEach(function(o){ o.setAttribute('aria-pressed',String(o===x)); });
+    try{ localStorage.setItem('pv-theme',v); }catch(e){}
+  });});
+  try{ var s=localStorage.getItem('pv-theme');
+    if(s){ var t=document.querySelector('.themetoggle button[data-set="'+s+'"]'); if(t) t.click(); }
+  }catch(e){}
+  document.querySelectorAll('.chip, .pick, .advset button').forEach(function(el){
+    el.addEventListener('click',function(){
+      var g=el.closest('.filterbar, .cardgrid, .advset'); if(!g) return;
+      g.querySelectorAll('[aria-pressed]').forEach(function(o){ o.setAttribute('aria-pressed','false'); });
+      el.setAttribute('aria-pressed','true');
+    });
+  });
+  document.querySelectorAll('.res').forEach(function(el){
+    el.addEventListener('click',function(){
+      document.querySelectorAll('.res').forEach(function(o){ o.setAttribute('aria-selected','false'); });
+      el.setAttribute('aria-selected','true');
+    });
+  });
+})();
+</script>
+</body>
+</html>

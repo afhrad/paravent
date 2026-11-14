@@ -1,182 +1,142 @@
-# Design Session Handoff
+# Design Handoff
 
-Written 2026-09-01. Everything needed to pick this work up cold.
+Written 2026-09-01, brought up to date 2026-11-14. Everything needed to pick the design work
+up cold.
 
-Read this first, then [`../documentation/DESIGN.md`](../documentation/DESIGN.md) for the full spec and
-[`index.html`](index.html) for what it looks like.
-
----
-
-## What was asked, in order
-
-1. Design a modern D&D 5e UI — mobile and desktop, popups, searchable comboboxes, reference
-   windows, DaisyUI + Tailwind 3, deliberately *not* rulebook-styled.
-2. Pick a readable icon library; prefix tags with icons.
-3. Scan the real 5eTools corpus for every renderable tag and map icons to them.
-4. Build a clickable tooltip prototype for every underlined tag type.
-5. Make tooltips hover-only on desktop, touch-only on mobile.
-6. Redesign scrollbars to follow the theme.
-7. Split the designs into a `design-reference/` folder.
-
-## Two decisions the user made explicitly
-
-- **Visual direction: "Neutral pro (light + dark)."** Chosen over a "dark arcane" option and a
-  "faction color-coded" option. Notion/Linear-like neutrals, full light+dark parity, accent
-  reserved for state.
-- **Icon library: Lucide only.** Chosen over a Lucide + game-icons.net split. This means game
-  semantics are carried by **color and label**, not pictographs — a deliberate constraint, not
-  an oversight. Do not add a second icon library without asking.
+Read this first, then [`17-paravent-today.html`](17-paravent-today.html) for what Paravent looks
+like now, and [`../documentation/DESIGN.md`](../documentation/DESIGN.md) for the written spec.
 
 ---
 
-## Deliverables
+## Where things stand
 
-| Path | What it is |
+The design came before the app. Pages 01–16 were drawn in September 2026; the app was then
+built from them between October and November and diverged where building taught something.
+**The app is now the source of truth for how a screen looks.** The pages keep the reasoning,
+and each opens with a dated *As built* note saying what changed. Page 17 shows the real screens.
+
+| Page | Status |
 | --- | --- |
-| [`../documentation/DESIGN.md`](../documentation/DESIGN.md) | The written spec. 9 sections. Source of truth. |
-| [`index.html`](index.html) | Visual reference, 12 standalone pages |
-| [`12-tooltips.html`](12-tooltips.html) | Interactive prototype — real hover/tap/keyboard behaviour |
-| [`../data/reference/TAGS.md`](../data/reference/TAGS.md) | All 110 5eTools tags, categorised, icon-mapped |
-| [`../data/reference/5etools_tags.json`](../data/reference/5etools_tags.json) | Machine-readable; the renderer imports this |
-| [`../data/reference/scan_tags.py`](../data/reference/scan_tags.py) | Regenerates the catalogue from the corpus |
+| 01 Principles, 08 Tokens, 09 Scrollbars | Hold. Colour values, contrast and scrollbars are what the app serves. |
+| 06 Tag renderer, 12 Tooltips | The rules and the interaction contract hold; what a link leads to changed (a preview, then the reference page; no drawer, no in-place actions). |
+| 03 Command palette | Built as drawn, plus world scoping, picker and insert modes. |
+| 02 Combat tracker, 04 Player on mobile, 16 Character sheet | Built differently in detail: no rail, no drawer, no dice screen; tokens, hit point bars as row backgrounds, statblock attacks with Hit/Miss, the shared log. |
+| 05 Wizard, 13 Character generation | The engine and its rules hold; nine steps, a shop, the books' descriptions on the cards. |
+| 07 Icons, 10 Responsive, 11 Implementation | Corrected in place: no python-lucide, no rail, no Tailwind. |
+| 14, 15 Demos | **Historical prototypes.** Their idea holds, their screens do not. Cut to SRD content. |
+| 17 Paravent today | The screens as built, from the website's screenshots. |
 
-Published copies (same content, shareable):
-[interface kit](https://claude.ai/code/artifact/ab903338-4dab-477f-ac41-913985686caf) ·
-[tooltip prototype](https://claude.ai/code/artifact/c8ad1412-03a2-4a3c-bf78-06c2bddab2ce)
+---
+
+## The decisions that still bind
+
+- **Visual direction: "Neutral pro (light + dark)."** Chosen over a "dark arcane" and a "faction
+  colour-coded" option. Neutrals, full light/dark parity, accent reserved for state. This is
+  Paravent's own look and the default. Themes (below) may restyle a table, never the rules of
+  the default.
+- **Icon library: Lucide only.** Game semantics ride on **colour and label**, not pictographs —
+  a deliberate constraint. Do not add a second icon library without asking. The one glyph of our
+  own is the logo.
+- **Multiuser with roles** (resolved 2026-09-01): a gamemaster and players, one codebase, the role
+  choosing the composition and guarding the routes (403).
+- **Translation is a text-only overlay** (resolved 2026-09-14) on the English records; a German
+  reader sees glossary names with the English beneath, and nothing waits for a translated corpus.
+- **No battle maps or grid play.** Paravent is not a virtual tabletop; exporting tokens to one is
+  fine.
+
+## Decisions that changed when the app was built
+
+| Designed | Built | Where it is recorded |
+| --- | --- | --- |
+| Tailwind 3 + DaisyUI themes `paravent-light`/`-dark` | The token CSS served as-is: `static/css/tokens.css` and `components.css` (the files in `shared/`), `app.css`, `sheet.css`. No build step. | TECHSTACK.md, "Styling, as built (2026-10-15)" |
+| python-lucide at runtime | A vendored sprite, `static/icons.svg` (67 Lucide 0.x glyphs and the logo), inlined once per page by `app/ui/icons.py`; unknown names raise, always | DESIGN.md §5 |
+| A 236px rail, a 56px icon rail, a bottom tab bar | A sticky top bar for every role; tabs at 640px; a bottom bar for players on a phone | DESIGN.md §3, page 10 |
+| A reference drawer (desktop) or sheet (phone) | Previews (a card with a mouse, a bottom sheet on touch) and full reference pages; the tracker keeps a side panel | DESIGN.md §3, §7 |
+| Light / System / Dark buttons | Sun / moon in the user menu; the device decides until a reader chooses | page 01 note |
+| Initials avatars | Round tokens: own picture, else one from the image folder, else the kind's disc | TOKENS.md |
+| A dice screen, per-screen logs, a watcher toast | Rolls from the rows and chips, one shared log with toasts and dice sounds | PROTOCOL.md |
+| One look | Exchangeable theme folders; Paravent's own look by default, **Tome** shipped | THEMES.md |
+| System fonts named Inter Tight, Source Sans 3, JetBrains Mono | No font files ship with the default look (no network requests); faces fall back to the system's. Tome brings OFL fonts. | TECHSTACK.md |
 
 ---
 
 ## Findings that came from real data, not assumption
 
-These were measured or verified. Do not re-derive them; do not contradict them without
-re-checking.
+Measured or verified; do not contradict them without re-checking.
 
 ### The tag corpus
 
-Scanned `../../GameMaster Tool/5etools-data`: **499 JSON files, 109,857,630 bytes, 110 distinct
-tags, 249,546 occurrences.**
+Scanned at the time: **499 JSON files, 109,857,630 bytes, 110 distinct tags, 249,546
+occurrences.** The catalogue is `data/library/tags/` (`TAGS.md`, `5etools_tags.json`,
+`scan_tags.py`), moved there from `data/reference/` on 2026-11-02.
 
-- **8 tags cover 65.4%** of all occurrences: `creature` (54,753), `spell` (25,118), `item`
-  (19,666), `dc` (15,462), `dice` (14,254), `area` (13,494), `damage` (11,645), `condition`
-  (11,634). Build these first.
-- **Tags nest.** `{@footnote text|{@note inner}}` occurs. The parser must be recursive; a flat
-  regex will silently corrupt output.
-- **Slot 3 is a display override**, used heavily for inflection: `{@creature troll||trolls}`
-  means *empty source, plural display*. Always render slot 3 when present.
-- **`{@h}` is 5,468 uses with no payload** — it expands to *"Hit:"*. Twelve such shorthand tags
-  total 12,232 uses. Missing `{@h}` breaks every attack line in the bestiary.
-- **`{@color text|#ff0000}`** (104 uses) hardcodes hex. Remap to the nearest semantic token —
-  raw hex breaks dark mode.
+- **8 tags cover 65.4%** of all occurrences: `creature`, `spell`, `item`, `dc`, `dice`, `area`,
+  `damage`, `condition`.
+- **Tags nest** (`{@footnote text|{@note inner}}`): the parser is recursive (`app/ui/tags.py`).
+- **Slot 3 is a display override** (`{@creature troll||trolls}`), and the glossary's name comes
+  before it for a translated reader. Not for every tag: `{@area}`, `{@book}`, `{@deity}` and
+  `{@card}` use their slots differently.
+- **`{@h}` and the other shorthand tags** (12,232 uses) expand to labels in the reader's language.
+- **`{@color text|#ff0000}`** is remapped to the nearest semantic token; raw hex breaks dark mode.
 
 ### Icons
 
-- Lucide ships **`0.x` versions** (current ~`0.539.0`). **There is no 1.x.** An earlier draft of
-  DESIGN.md said "1.39.0"; that was wrong and is corrected.
-- **Does not exist in Lucide:** `treasure-chest`, `chest`, `d20`, singular `dice`, `campfire`.
-  Substitutes in use: `vault`, `dices`, `flame-kindling`.
-- **Deprecated aliases** that still resolve but will break on a major — use the canonical name:
-  `alert-triangle`→`triangle-alert`, `edit`→`pencil`, `user-circle`→`circle-user`,
-  `wand-2`→`wand-sparkles`, `globe-2`→`globe`.
-- All 45 icon names in the semantic map were verified against the shipped icon list.
-- `python-lucide` on PyPI returns raw SVG strings from a bundled SQLite index — no Node, no npm,
-  no network at runtime. This is why Lucide fits a "no build tooling" stack.
+- Lucide ships **`0.x` versions; there is no 1.x.** An early draft said "1.39.0"; that was wrong
+  and is corrected everywhere.
+- **Not in Lucide:** `treasure-chest`, `chest`, `d20`, singular `dice`, `campfire`. Use `vault`,
+  `dices`, `flame-kindling`.
+- **Deprecated aliases** — use the canonical name: `alert-triangle`→`triangle-alert`,
+  `edit`→`pencil`, `user-circle`→`circle-user`, `wand-2`→`wand-sparkles`, `globe-2`→`globe`.
+- **The navigation departs from the semantic map** on purpose: Combat is `zap`, Encounters
+  `skull`, the Table `swords` (`app/ui/nav.py`).
 
 ### Contrast
 
-A comment on the published artifact ("Bad contrast") surfaced a **systemic** failure, not a
-local one. The flagged button was fine; the token behind it was not.
-
-- `--text-3` was failing **4.5:1 on every surface in both themes** (2.97–4.21:1). It carries
-  eyebrows, ability labels, combatant metadata, search subtitles, captions.
-- Fixed to `#646C79` light / `#949DAB` dark → **4.64–6.96:1** everywhere.
-- Added **`--accent-solid`** (`#4560DC`): accent-as-a-fill needs more depth than
-  accent-as-a-line. White on `#4F6BED` was 4.51:1 — passing but with no margin. Now 5.30:1.
-- **All 18 palette pairs now pass 4.5:1 in both themes.** Re-run the check when a token changes.
+- `--text-3` once failed 4.5:1 on every surface; fixed to `#646C79` light / `#949DAB` dark.
+- **`--accent-solid`** (`#4560DC`) carries accent as a fill: white on it is 5.30:1.
+- **All 18 palette pairs pass 4.5:1 in both modes** of the default look, re-computed
+  2026-11-14 (worst: `--text-3` on `--surface-3`, 4.64 light / 5.27 dark). The role colours
+  (`--role-gm`, `--role-player`) are marks, held to 3:1. Tome's palette is outside this claim.
 
 ### Scrollbars
 
-- The root cause of "system-looking" scrollbars was a **missing `color-scheme` declaration**, not
-  missing thumb styling. Without it the browser paints light native scrollbars on a dark page
-  regardless of what else you style.
-- Thumb ramp is deliberate: **rest sits below 3:1** (it should recede), **hover clears 3:1**
-  (WCAG 1.4.11 for a non-text control), measured against `--surface-3`, the worst surface.
+- The root cause of system-looking scrollbars was a **missing `color-scheme`**, not thumb styling.
+- Thumb ramp: rest below 3:1 (it recedes), hover above 3:1 against `--surface-3`.
 
 ---
 
 ## Things that are true and easy to get wrong
 
-- **Hover and touch never share a code path.** Detection is
-  `matchMedia('(hover: hover) and (pointer: fine)')` — *capability, not screen width*. Width gets
-  two real cases backwards: an iPad in landscape (1024px, no hover) and a narrow desktop window
-  (phone-width, has mouse). Do not "simplify" this back to a breakpoint.
-- **Touch browsers replay a synthetic `mouseenter` after a tap.** Listeners use
-  `pointerenter`/`pointerleave` and check `e.pointerType === 'mouse'` so the replay is ignored.
-  Plain mouse events cannot distinguish it.
-- **Pages 01–11 are generated.** Edit `shared/_source-kit.html` and run `python3
-  shared/split.py`. Editing a generated page directly gets overwritten. Verified idempotent.
-- **`12-tooltips.html` is maintained separately** from `shared/_source-tooltips.html` — it carries
-  its own behavioural JS rather than the shared demo script.
-- **Components never hardcode a color.** Every value comes from a token defined in all three
-  theme blocks (bare `:root`, the `prefers-color-scheme` media query, and `[data-theme="dark"]`).
-  A color defined only inside a media block renders one theme's text on the other's ground.
+- **Hover and touch never share a code path.** `matchMedia('(hover: hover) and (pointer: fine)')`
+  — capability, not width. An iPad in landscape has no hover; a narrow desktop window has one.
+  `static/js/tooltips.js` decides by it alone.
+- **Touch browsers replay a synthetic `mouseenter` after a tap.** Listen to `pointerenter` /
+  `pointerleave` and check `e.pointerType === 'mouse'`.
+- **Components never hardcode a colour.** Every value is a token defined in all three theme blocks
+  (bare `:root`, the `prefers-color-scheme` query, `[data-theme="dark"]`). A theme overrides
+  tokens, so a hardcoded colour is also one no theme can reach.
+- **The sticky top bar wraps on a phone.** Anything that scrolls to an anchor must leave room for
+  it: the page's scroll padding reads `--bar-h`, which `ui.js` measures.
+- **Public repo.** No pictures, prose or tables of the rulebooks beyond the System Reference
+  Documents in these pages, the docs or the website's screenshots (NOTICE.md).
 
 ---
 
-## Open questions
+## How the pages are made
 
-### 1. Multiuser contradiction — RESOLVED 2026-09-01
-
-Resolved in favour of **multiuser**, the superset: login with a gamemaster/player role, session
-persistence, state shared between clients. TECHSTACK.md §7 now says this. The design already
-assumed it, so nothing in these pages changes.
-
-### 2. Translation — RESOLVED 2026-09-14, no longer blocked
-
-Earlier drafts said cross-language work was blocked until a German corpus appeared, and pointed at
-Foundry VTT files as the only candidate. **Both points are superseded.**
-
-Foundry and other VTT formats are **out of scope** — Paravent works with pure 5eTools data only.
-And the dependency is gone: a translation is a **text-only overlay** on the English record
-(TRANSLATION.md), so tags in translated prose resolve through the English keyspace. Cross-
-referencing works at 0% coverage and at 100%, with no code path waiting on a corpus.
-
-The design in DESIGN.md holds unchanged; it simply no longer needs validating against a
-translation that does not exist yet.
-
----
-
-## Not yet built
-
-> **Stale as of 2026-09-14.** `app/` now exists — models, stores, watcher and read endpoints are
-> built (see PROGRESS.md). The UI items below are still accurate and still unbuilt. Two things
-> changed underneath them:
->
-> - **Data now lives in two roots.** Reference (the 5eTools corpus) is external and read-only;
->   everything authored in Paravent is under `library/`. Paths in these pages that say
->   `compendium/`, `homebrew/` or `gamestate/` predate that split.
-> - **The corpus is only half loaded.** 24 of 94 entry keys. Classes, subclasses and all fluff
->   are not in memory yet, which matters for any page previewing them (TECHSTACK.md §6b).
-
-Nearest next steps, roughly in dependency order:
-
-1. **`tailwind.config.js` + DaisyUI theme pair** (`paravent-light` / `paravent-dark`) generated
-   from DESIGN.md §2 tokens. Currently the reference pages use hand-written CSS with the same
-   token *names*, so the mapping is specified but not written.
-2. **`app/ui/icons.py`** — `icon(name, size)` helper wrapping `python-lucide` behind
-   `@lru_cache`, emitting `<use>` into one sprite in `base.html`. Unknown name should raise in
-   dev, render nothing in prod.
-3. **`app/services/tags.py`** — the recursive `{@...}` parser plus a handler table driven by
-   `data/reference/5etools_tags.json`. Phase 1 = the 8 tags covering 65%.
-4. **`GET /ref/{type}/{slug}/preview`** — the tooltip fragment endpoint. Layouts and timings are
-   specified in DESIGN.md §7; the endpoint does not exist.
-5. **`base.html` + `combatant_card()`** in htpy — the first real components.
-
----
+- **Pages 01–11 are generated.** Edit `shared/_source-kit.html`, then run
+  `python3 design-reference/shared/split.py`. A generated page edited directly is overwritten.
+- **Pages 12–17 are kept by hand.** `12-tooltips.html` and `shared/_source-tooltips.html` are the
+  same content; keep them in step.
+- **`shared/tokens.css` and `shared/components.css` are the app's files** (`static/css/`). When a
+  token changes in the app, copy it here and re-run `split.py`.
+- **Page 17's pictures** are the website's (`website/assets/img/screens/`, made by
+  `website/shots.py` from a demo table of SRD creatures and our own texts). New screenshots there
+  update page 17 without touching it.
 
 ## How to resume
 
-> Read `design-reference/HANDOFF.md`, then `DESIGN.md`. Continue with <task>.
+> Read `design-reference/HANDOFF.md`, then page 17 and `DESIGN.md`. Continue with <task>.
 
-The handoff carries the decisions and their reasons; DESIGN.md carries the spec; the HTML pages
-carry the visual intent. All three are in the repo — nothing important lives only in the
-conversation.
+A design change now starts from the built screen (page 17, or the app itself) and ends in the
+app's code and CSS; update the page's *As built* note or page 17 when a screen changes visibly.

@@ -210,7 +210,7 @@ button{ font:inherit; color:inherit; }
 }
 
 /* ============================================================
-   ICONS — Lucide 1.39.0 (ISC). One contract, applied globally.
+   ICONS — Lucide 0.x (ISC). One contract, applied globally.
    Lucide is a stroke set: fill:none + stroke:currentColor is
    mandatory, or every glyph renders as a black blob.
    ============================================================ */
@@ -693,7 +693,7 @@ section.block{ padding-top:64px; }
 </head>
 <body>
 <svg style="display:none" aria-hidden="true">
-  <!-- Lucide 1.39.0 — ISC. Canonical names only, no deprecated aliases. -->
+  <!-- Lucide 0.x — ISC. Canonical names only, no deprecated aliases. -->
   <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
   <symbol id="i-map" viewBox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15M9 3.236v15"/></symbol>
   <symbol id="i-swords" viewBox="0 0 24 24"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6M16 16l4 4M19 21l2-2"/><path d="M9.5 6.5 21 18v3h-3L6.5 9.5"/><path d="M5 13 3 15l2 2M3 21l2-2"/></symbol>
@@ -741,7 +741,7 @@ section.block{ padding-top:64px; }
 </svg>
 <nav class="dr-nav" aria-label="Design reference">
   <a class="dr-home" href="index.html">Paravent design reference</a>
-  <div class="dr-links"><a href="01-principles.html">Principles</a><a href="02-combat-tracker.html">Combat Tracker</a><a href="03-command-palette.html">Command Palette</a><a href="04-player-mobile.html">Player on Mobile</a><a href="05-wizard.html">Wizard</a><a href="06-tag-renderer.html">Tag Renderer</a><a href="07-icons.html">Icons</a><a href="08-tokens.html">Tokens</a><a href="09-scrollbars.html">Scrollbars</a><a href="10-responsive.html">Responsive</a><a href="11-implementation.html" class="here" aria-current="page">Implementation</a><a href="12-tooltips.html">Tooltips</a><a href="13-chargen-wizard.html">Character Generation</a><a href="14-chargen-demo-desktop.html">Demo · Desktop</a><a href="15-chargen-demo-mobile.html">Demo · Mobile</a><a href="16-character-sheet.html">Character Sheet</a></div>
+  <div class="dr-links"><a href="01-principles.html">Principles</a><a href="02-combat-tracker.html">Combat Tracker</a><a href="03-command-palette.html">Command Palette</a><a href="04-player-mobile.html">Player on Mobile</a><a href="05-wizard.html">Wizard</a><a href="06-tag-renderer.html">Tag Renderer</a><a href="07-icons.html">Icons</a><a href="08-tokens.html">Tokens</a><a href="09-scrollbars.html">Scrollbars</a><a href="10-responsive.html">Responsive</a><a href="11-implementation.html" class="here" aria-current="page">Implementation</a><a href="12-tooltips.html">Tooltips</a><a href="13-chargen-wizard.html">Character Generation</a><a href="14-chargen-demo-desktop.html">Demo · Desktop</a><a href="15-chargen-demo-mobile.html">Demo · Mobile</a><a href="16-character-sheet.html">Character Sheet</a><a href="17-paravent-today.html">Paravent today</a></div>
 </nav>
 <div class="doc">
 <header class="masthead" style="padding:34px 0 26px;">
@@ -757,10 +757,16 @@ section.block{ padding-top:64px; }
   <p class="lede" style="font-size:15.5px;">How the design maps onto FastAPI, htpy and HTMX.</p>
 </header>
 <section class="block">
+  <div class="note warn" style="margin:14px 0 22px;">
+    <h5>As built · 2026-11-14</h5>
+    <p>One htpy function per component, used both as a fragment and inside the page, wizard state on the server, and the role choosing the shell all hold.</p>
+    <ul style="margin:6px 0 0 18px; font-size:13px; color:var(--text-2);"><li>Token CSS without a build step (four stylesheets) and themes as folders.</li><li>A vendored icon sprite, <span class="mono">static/icons.svg</span>.</li><li><span class="mono">layout.document()</span> and <span class="mono">app_shell()</span> instead of a <span class="mono">base.html</span>.</li><li>htmx 2.0.4 vendored and loaded per page; live updates over Server-Sent Events, so sheets, boards, party cards and chapters update in place.</li><li>Toasts come from the shared log.</li><li>The role is also a guard that answers 403, and every response carries a Content Security Policy.</li></ul>
+    <p>See <a href="17-paravent-today.html#shell">Paravent today</a> · <a href="../documentation/TECHSTACK.md">TECHSTACK.md</a></p>
+  </div>
   <div class="notes">
     <div class="note">
-      <h5>Tailwind theme, not utility soup</h5>
-      <p>The tokens above go into <span class="mono">tailwind.config.js</span> as a theme extension and into a DaisyUI theme pair named <span class="mono">paravent-light</span> / <span class="mono">paravent-dark</span>. Components then use DaisyUI class names — <span class="mono">btn</span>, <span class="mono">badge</span>, <span class="mono">modal</span>, <span class="mono">drawer</span> — and inherit the palette.</p>
+      <h5>Token CSS, no build step</h5>
+      <p>The tokens above are served as-is from <span class="mono">static/css/</span> (<span class="mono">tokens.css</span>, <span class="mono">components.css</span>, <span class="mono">app.css</span>, <span class="mono">sheet.css</span>), light and dark in the same file. Components use the kit's own class names and inherit the palette. A theme is a folder with its own tokens and skin.</p>
     </div>
     <div class="note">
       <h5>Every component is one htpy function</h5>
@@ -768,15 +774,15 @@ section.block{ padding-top:64px; }
     </div>
     <div class="note">
       <h5>Icons resolve at render, cached forever</h5>
-      <p>An <span class="mono">icon(name, size)</span> htpy helper calls <span class="mono">python-lucide</span> behind an <span class="mono">@lru_cache</span> and emits a <span class="mono">&lt;use&gt;</span> reference into one sprite injected in <span class="mono">base.html</span>. An unknown name raises in development and renders nothing in production — never a broken-image box.</p>
+      <p>An <span class="mono">icon(name, size)</span> htpy helper emits a <span class="mono">&lt;use&gt;</span> reference into the vendored sprite <span class="mono">static/icons.svg</span>, inlined once per page by <span class="mono">layout.document()</span>. An unknown name always raises — never a broken-image box.</p>
     </div>
     <div class="note">
-      <h5>The drawer is a swap target, not a route</h5>
-      <p>Every <span class="mono">.ref</span> is an <span class="mono">hx-get</span> into <span class="mono">#reference</span> with <span class="mono">hx-push-url="false"</span>. Opening a spell mid-combat never touches history and never re-renders the tracker.</p>
+      <h5>A reference opens as a preview, not a swap</h5>
+      <p>Every <span class="mono">.ref</span> is a link to its reference page; with JavaScript, <span class="mono">static/js/tooltips.js</span> fetches its preview instead. Opening a spell mid-combat never touches history and never re-renders the tracker.</p>
     </div>
     <div class="note">
       <h5>Wizard state lives server-side</h5>
-      <p>Each step POSTs into the gamestate JSON and returns the next step fragment. Back is a GET of an earlier step — the data is already stored, so nothing is re-asked. Survives a closed tab by construction.</p>
+      <p>Each step POSTs into the draft's library file and returns the next step fragment. Back is a GET of an earlier step — the data is already stored, so nothing is re-asked. Survives a closed tab by construction.</p>
     </div>
     <div class="note warn">
       <h5>The JSON watcher needs a UI, not just a reload</h5>

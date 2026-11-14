@@ -285,8 +285,11 @@ time the character exists as a whole.
 
 ## 6. State, persistence and going back
 
-Each step is `POST /chargen/{id}/step/{n}` returning the next fragment; Back is
-`GET /chargen/{id}/step/{n-1}`. The draft lives in its own file in `library/characters/` with
+Each step is a named route, `GET /chargen/{id}/{step}` (`species`, `class`, `abilities`, …),
+and `POST /chargen/{id}/{step}` saves its answers: from htmx (a change) the form comes back with
+the consequence shown, "Continue" goes to the next step once this one is done. Back is a `GET` of
+the earlier step by name, and `GET /chargen/{id}` resumes where the draft was left
+(`app/routes/chargen.py`). The draft lives in its own file in `library/characters/` with
 `status: "draft"` from the first step onward.
 
 **Changing an earlier answer invalidates what depended on it — visibly.** Changing class after

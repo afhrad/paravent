@@ -1,15 +1,25 @@
 # Paravent — UI/UX Design
 
-**Visual reference: [`design-reference/index.html`](../design-reference/index.html)** — twelve
-standalone pages, openable straight from the filesystem.
+**Visual reference: [`design-reference/index.html`](../design-reference/index.html)** — sixteen
+standalone pages, openable straight from the filesystem, and a seventeenth,
+[`17-paravent-today.html`](../design-reference/17-paravent-today.html), showing the app as built.
 **Resuming this work?** Start with
 [`design-reference/HANDOFF.md`](../design-reference/HANDOFF.md). Published copies:
 [interface kit](https://claude.ai/code/artifact/ab903338-4dab-477f-ac41-913985686caf) ·
 [tooltip prototype](https://claude.ai/code/artifact/c8ad1412-03a2-4a3c-bf78-06c2bddab2ce)
 
-Visual language for Paravent. Built on **Tailwind CSS 3 + DaisyUI**, rendered server-side
+Visual language for Paravent. Styled by **token CSS served as-is**, rendered server-side
 via **htpy**, made dynamic with **HTMX**. Direction: neutral-professional, full light/dark
 parity — a tool, not a scanned rulebook.
+
+> **As built (2026-11-14).** This document was written on 2026-09-01, before the app existed,
+> and planned Tailwind CSS 3 + DaisyUI. The app serves the token CSS instead —
+> `static/css/tokens.css`, `components.css`, `app.css` and `sheet.css` — with no build step
+> (TECHSTACK.md, "Styling, as built (2026-10-15)"). The look is an **exchangeable theme folder**
+> (THEMES.md): Paravent's own look, described here, is the default; **Tome** (parchment, an
+> oxblood accent, the OFL fonts Libre Baskerville, Alegreya Sans and Cinzel) is opt-in, for the
+> table or for one reader. No font files ship for the default look, so its faces fall back to
+> system fonts. The sections below are corrected where the app went another way.
 
 ---
 
@@ -24,7 +34,8 @@ or from how the game is actually played at a table.
 2. **The screen is dim and the room is loud.** Body text never below 13px, tap targets never
    below 44px, every changing number monospaced with `tabular-nums` so it does not jitter.
 3. **Reference never takes you away.** Looking up a spell mid-turn must not lose your place.
-   Cross-references open in a drawer (desktop) or sheet (mobile); the tracker stays mounted.
+   Cross-references open as a preview — a floating card with a mouse, a bottom sheet on touch —
+   and the tracker stays mounted; the full entry is one click further, on its own page.
 4. **Two roles, one codebase.** Gamemaster gets density, player gets focus. Same components
    and tokens, different composition and routes.
 5. **English is the fallback, always.** German is a second language, not a fork. A missing
@@ -34,9 +45,16 @@ or from how the game is actually played at a table.
 
 ## 2. Tokens
 
-Defined as CSS custom properties, mirrored into `tailwind.config.js` as a theme extension and
-into a DaisyUI theme pair `paravent-light` / `paravent-dark`. **No component ever contains a
-theme-conditional color** — components read tokens, tokens carry the theme.
+Defined as CSS custom properties in `static/css/tokens.css`, one block per theme mode.
+**No component ever contains a theme-conditional color** — components read tokens, tokens carry
+the theme.
+
+> **As built (2026-11-14).** There is no `tailwind.config.js` and no DaisyUI theme pair: the
+> token file is the stylesheet (§8). The values below are unchanged. `app.css` adds a few tokens
+> of its own: `--font-display` (headings, the UI face unless a theme sets one), `--backdrop`
+> (behind sheets and dialogs), and `--role-gm` (orange) / `--role-player` (blue), which colour
+> the top edge of the bar by role. A theme may add more; Tome adds `--gilt`, `--gilt-weak` and
+> `--texture`.
 
 ### Neutrals
 
@@ -80,6 +98,10 @@ Each has `-weak` (tinted background) and `-text` (contrast-safe foreground) vari
 Every foreground/background pair in the palette is verified at **WCAG AA 4.5:1** (all text is
 small text; nothing here qualifies for the 3:1 large-text exemption). Worst case is
 `--text-3` on `--surface-3` at 4.64:1 light and 5.27:1 dark.
+
+> **Rechecked 2026-11-14.** All 18 pairs still pass for the default look, with the same worst
+> case. The claim covers Paravent's own palette only; a theme's palette, Tome's included, is
+> outside it.
 
 Two rules follow, and both were learned from real failures:
 
@@ -145,21 +167,42 @@ Rules:
 | 13px | Minimum body text. Statblock prose 13.5px, adventure text 15px. |
 | `tabular-nums` | Mandatory on every changing number. |
 | 5 / 8 / 12px | The only three radii. Chips are the sole exception at 999px. |
-| 236px | Desktop rail width; collapses to bottom tab bar below 1024px. |
+
+(A 236px desktop rail was on this list; the app has no rail, §3.)
 
 ---
 
 ## 3. Layout
 
-| Breakpoint | Navigation | Reference layer | Combat tracker |
+| Width | Navigation | Reference layer | Combat tracker |
 | --- | --- | --- | --- |
-| `< 768px` phone | Bottom tab bar, 5 items | Full-height sheet, swipe or Esc | One row per combatant, HP buttons only |
-| `768–1023px` iPad portrait | Icon-only rail, 56px | Sheet from right, 60% width | Full rows, statblock on tap |
-| `≥ 1024px` desktop | Full rail, 236px, labels + counts | Persistent drawer, 372px, pinnable | Full rows with drawer alongside |
+| `≤ 640px` phone | Top bar with icon-over-label tabs; players: a compact top row and a bottom bar | Bottom sheet (on touch) | Board, side panel stacked below |
+| `641–1023px` iPad | Top bar, the sections on their own row up to 760px | Floating card or bottom sheet, by pointer | Board, side panel stacked below |
+| `≥ 1024px` desktop | Top bar, sections in line | Floating card with a mouse | Board with a 372px sticky side panel |
 
-The same htpy fragments render at every size. What changes is the shell — and critically
-*what the reference layer is*. The content behind it never unmounts, so an HTMX swap in the
-tracker keeps working while a reference is open.
+The same htpy fragments render at every size. What changes is the shell. The content behind a
+preview never unmounts, so an HTMX swap in the tracker keeps working while a reference is open.
+
+> **As built (2026-11-14).** There is **no rail** at any width. Every role has one sticky top
+> bar (`app_shell` in `app/ui/layout.py`): the sections — Table, Characters, Encounters, Combat,
+> Worlds, Books for the gamemaster; Characters, Books, Journal for a player — then the sound
+> desk, the log button with its badge, search, a settings gear (gamemaster only) and the user
+> menu. The user menu holds a DE / EN switch (which also sets the units), a sun / moon theme
+> switch (the device decides until one is chosen) and dice sounds on / off. At ≤760px the
+> sections drop to a row of their own; at ≤640px they become icon-over-label tabs. A player at
+> ≤640px gets a compact top row (logo, search, user menu) and a bottom bar with the sections;
+> the character sheet and the wizard keep bottom bars of their own.
+>
+> The breakpoints in the CSS are mostly 640 and 767px, with 760, 860, 900, 1024 and 1180px
+> where a screen needs them.
+>
+> There is **no persistent 372px reference drawer and no 60% sheet**. A reference opens as a
+> preview (§7) — a floating card with a mouse, a bottom sheet on touch, chosen by pointer
+> capability rather than width — and as a full reference page,
+> `/ref/{category}/{source}/{name}`. Only the combat tracker keeps a 372px sticky side panel,
+> at ≥1024px, stacked below the board on narrower screens. A link to a heading keeps room for
+> the sticky bar: `ui.js` measures the bar into `--bar-h`, which sets the page's
+> `scroll-padding-top`.
 
 ---
 
@@ -171,8 +214,20 @@ Left-edge stripe encodes HP state: indigo (active turn), amber (bloodied, <50%),
 red (critical, <25%), grey (down). **Redundant with the bar and the number by design** —
 three encodings so it reads at a glance, at an angle, and to a colorblind reader.
 
-One htpy function `combatant_card(c)`, returned both inside the full tracker page and alone
-from `POST /combat/{id}/damage`.
+One htpy function, returned inside the full tracker page and with every action.
+
+> **As built (2026-11-14).** The function is `combatant_row` (`app/ui/combat_pages.py`). Its
+> actions post to `POST /gm/combat/{id}/c/{cid}/{action}` — `hp` with a mode of `damage`,
+> `heal` or `temp`, for one — and return the whole board rather than one row, since a change
+> to one combatant can move the order, the round head and the difficulty. The stripe stays;
+> the bar is now the **row's background** (`--hp`): green, amber when bloodied, red when
+> critical. On the players' view a foe's bar is always full and only its colour shows its
+> state. Each row carries a round token (TOKENS.md: the table's own picture, else a token from
+> the image folder, else the kind's disc), tinted green for a friend and red for a foe; a side
+> pill per group switches friend and foe; a turn group shares one initiative. One line at the
+> bottom holds the amount field, **−**, **+**, Temp and a ⋯ menu; a fallen creature gets a
+> "Dead" pill with a skull. Statblock actions get Attack / Adv / Dis buttons, and the roll
+> waits under "Attacks to resolve" for Hit or Miss (COMBAT.md).
 
 ### Command palette (⌘K)
 
@@ -185,16 +240,31 @@ for this NPC" and "link an item into adventure Markdown" — one fragment, one e
 filtered by a `type=` query parameter.
 
 > **Built 2026-10-16** — `app/ui/palette.py`, `static/js/palette.js`, `GET /search`. The filter
-> parameter is `group=` (spells, bestiary, items, options, rules, world), not `type=`, since
-> a group spans several corpus categories (items + base items). Results are scoped to the page's
-> world and say how many matches sit in books the world does not use, with a one-click escape
-> to all imported books. Searching German names waits for the glossary (TRANSLATION.md §4).
-> On a phone the palette fills the screen; the key hints hide on touch.
+> parameter is `group=` (spells, bestiary, items, options, rules, world, books), not `type=`,
+> since a group spans several corpus categories (items + base items). There is no Homebrew chip:
+> homebrew sits in the groups like any book. Results follow typing about 120 ms after the last
+> key. Results are scoped to the page's world and say how many matches sit in books the world
+> does not use ("N more in books this world does not use · Search all imported books"). On a
+> phone the palette fills the screen; the key hints hide on touch.
+>
+> **As built (2026-11-14).** One row per entry, its glossary name first and the English name
+> muted beneath (the glossary was built 2026-10-19, TRANSLATION.md §4, so German names are
+> searched). ↵ opens the reference page, ⌘/Ctrl+↵ opens it in a new tab. There is no ⇧↵ "add
+> to encounter": adding is a **picker mode** of the same endpoint (`pick=<encounter, combat or
+> treasure id>`), with a + button per row and the group chips hidden. Players see only what
+> they may read (PLAYER-VIEW.md). In the Markdown editors the palette runs in **insert mode**,
+> a Campaign group first, each result inserting its tag; typing `{@…` opens a drop-down of the
+> same results (ADVENTURES.md §5.6).
 
 ### Reference drawer / sheet
 
 Every `.ref` is an `hx-get` into `#reference` with `hx-push-url="false"`. Opening a spell
 mid-combat never touches history and never re-renders the tracker.
+
+> **As built (2026-11-14).** Never built as such; nothing renders into a `#reference` target.
+> The two jobs went elsewhere: a glance is a preview (§7, `static/js/tooltips.js`), and the
+> combat tracker shows the selected combatant in its own side panel, `#combat-side` (§3).
+> Neither touches history or re-renders the tracker.
 
 ### Wizard
 
@@ -207,10 +277,26 @@ horizontal scroll: it collapses to a **single progress line**, and tapping the s
 full list as a sheet. The character-creation wizard is the worked example —
 [CHARGEN-WIZARD.md](CHARGEN-WIZARD.md), page 13 of the design reference.
 
+> **As built (2026-11-14).** The draft is a character file in `library/characters/` with
+> `status: "draft"`, saved from the first step. Steps are named routes,
+> `/chargen/{id}/{step}`; every change posts the whole form through htmx and gets the form back
+> — rail, questions and the derived panel. There are up to nine steps: Species, Class,
+> Abilities, Background, Features, Skills, Equipment, Spells, Details (under 2024 rules Class,
+> Species, Background, Abilities, then the rest); Features and Spells are left out when they
+> ask nothing. On a phone the rail unfolds in place under the progress line rather than in a
+> sheet. A changed earlier answer marks the later steps it touches with "!" for review.
+> Levelling up and preparing spells reuse the shell without a rail.
+
 ### Dice
 
 Advantage is a **three-state segmented control** (disadvantage / normal / advantage), never a
 checkbox — the 5e rule has three states and the UI must not imply two.
+
+> **As built (2026-11-14).** Still true on the character sheet, with a **Private** switch
+> beside it that keeps a roll between the player and the gamemaster. In the combat tracker the
+> three states are three buttons on each statblock attack: Attack, Adv, Dis. Every result goes
+> to the shared log, shows as a toast and plays the dice sounds on the device that rolled
+> (PROTOCOL.md).
 
 ---
 
@@ -225,8 +311,10 @@ meaning is carried by **color and label**; the icon only says which *category* a
 
 ### Why Lucide specifically
 
-- **`python-lucide` on PyPI** returns raw SVG strings from a bundled SQLite index — no Node, no
-  npm, no network at runtime. This is what TECHSTACK.md's "no build tooling" requires.
+- **A vendored sprite** — the symbols the UI uses, copied into `static/icons.svg` — needs no
+  Node, no npm and no network at runtime. This is what TECHSTACK.md's "no build tooling"
+  requires. (An earlier draft planned the `python-lucide` package; the sprite made it
+  unnecessary.)
 - **ISC license**: nothing to credit on screen, but its copyright and permission notice has to
   travel with every copy of the icons. It is in [`NOTICE.md`](../NOTICE.md), which ships with
   the repository, the container image and the website. (Compare: game-icons.net is CC BY 3.0
@@ -300,6 +388,11 @@ creature, never "danger" or "delete".
 | `swords` | Combat, encounters. |
 | `globe` / `map` | Worlds / adventures. |
 
+**Navigation exceptions** (`app/ui/nav.py`). The top bar's section glyphs are chosen to tell six
+neighbouring items apart, and three of them step outside the map on purpose: **Table** uses
+`swords`, **Encounters** `skull` and **Combat** `zap`. They are navigation glyphs, read with their
+label, and mean nothing beyond it.
+
 ### Names that do not exist — verified against the shipped icon list
 
 - **No `treasure-chest`** or `chest` → use `vault`.
@@ -331,20 +424,14 @@ without an icon by design.
 
 ### Implementation
 
-An `icon(name, size)` htpy helper calls `python-lucide` behind an `@lru_cache` and emits a
-`<use>` reference into one sprite injected in `base.html`. Only icons actually used are
-inlined. An unknown name **raises in development** and renders nothing in production — never a
-broken-image box.
+An `icon(name, size)` htpy helper emits a `<use>` reference into one sprite inlined once per
+page. Never a broken-image box.
 
-```python
-from functools import lru_cache
-from lucide import lucide_icon
-
-
-@lru_cache(maxsize=256)
-def _svg(name: str) -> str:
-    return lucide_icon(name)
-```
+> **As built (2026-11-14).** The sprite is `static/icons.svg`, 68 symbols: Lucide 0.x glyphs
+> (ISC; there is no 1.x) and one of Paravent's own, `i-paravent`, the logo. `app/ui/icons.py`
+> inlines it once per page and `<use>`s its symbols. An unknown name **raises everywhere**,
+> development and production alike: there is no build step to catch a typo, so it must fail in
+> a test. A theme may replace the sprite, but only with a complete one (THEMES.md).
 
 ---
 
@@ -362,17 +449,33 @@ this is the format working as intended, not a Paravent extension. See TRANSLATIO
 
 | 5eTools source | Class | Icon | Click behaviour |
 | --- | --- | --- | --- |
-| `{@spell fireball}` | `.ref.spell` | `sparkles` | Opens the spell in the reference drawer |
-| `{@creature goblin}` | `.ref.creature` | `skull` | Opens statblock; offers "add to encounter" |
-| `{@item longsword}` | `.ref.item` | `gem` | Opens item; offers "add to treasure" |
-| `{@condition prone}` | `.ref.cond` | `footprints` | Opens rule; offers "apply to selected combatant" |
-| `{@damage 2d6}` | `.ref.dice` | `dices`, or the damage-type glyph | Rolls immediately, result to the log |
-| `{@dc 15}` | `.ref.dice` | `shield-check` | Rolls the save for every selected combatant |
-| `{@hit 4}` | `.ref.dice` | `target` | Rolls 1d20+4, honours the advantage state |
+| `{@spell fireball}` | `.ref.spell` | `sparkles` | Opens the spell's reference page |
+| `{@creature goblin}` | `.ref.creature` | `skull` | Opens the statblock's reference page |
+| `{@item longsword}` | `.ref.item` | `gem` | Opens the item's reference page |
+| `{@condition prone}` | `.ref.cond` | `footprints` | Opens the rule's reference page |
+| `{@damage 2d6}` | `.ref.dice` | `dices`, or the damage-type glyph | Rolls, result to the log |
+| `{@dc 15}` | `.ref.dice` | `shield-check` | A static chip, "DC 15"; does not roll |
+| `{@hit 4}` | `.ref.dice` | `target` | Rolls 1d20+4, result to the log |
 
 > **Built 2026-10-15:** `app/ui/tags.py` renders all of this; links open `/ref/{category}/{source}/{name}`.
-> On a character sheet a roll chip rolls into that character's log; elsewhere it rolls locally.
-> Tooltips (§7) are not built yet.
+> The tag catalogue it reads lives in `data/library/tags/`.
+>
+> **As built (2026-11-14).** With JavaScript, a click on an entity link first opens a pinned
+> preview (§7), whose Open leads to the reference page; without it, the click navigates.
+> Nothing offers "add to encounter", "add to treasure" or "apply to selected" from a tag —
+> adding happens in the palette's picker mode (§4) and in the tracker. `{@dc}` is a static chip
+> ("DC 15", in German "SG 15"). `{@damage}` and `{@hit}` on a character sheet roll into that
+> character's log with the sheet's advantage state; elsewhere `static/js/roll.js` has the
+> server roll them into the log privately (PROTOCOL.md §8). The renderer also does what this
+> table did not foresee:
+>
+> - **Glossary labels** in the reader's language, the target staying English.
+> - **Dice in the language's notation** — "2W6" in German — and the renderer's fixed labels
+>   ("Hit:", "Melee Weapon Attack:") in the reader's language (TRANSLATION.md §4).
+> - **Metric hints** in prose for a reader in metres: "60 feet (18 m)" (TRANSLATION.md §6).
+> - **Entries a player may not read** render as plain text for players (PLAYER-VIEW.md).
+> - **Campaign tags** — `{@npc}`, `{@place}`, `{@encounter}`, `{@treasure}`, `{@chapter}`,
+>   `{@character}`, `{@sound}` — render as links into the world (ADVENTURES.md).
 
 Unresolvable tags — a reference into a book the user never imported, **or one outside the source
 set this world declares** — render as plain text with a dotted grey underline and a tooltip.
@@ -383,8 +486,12 @@ The two cases read differently to the user and their tooltips must say which app
 
 | Case | Tooltip says | Action offered |
 | --- | --- | --- |
-| Source not imported | "*Volo's Guide* is not in your corpus." | Import source |
-| Source imported but not declared for this world | "*Volo's Guide* is not among this world's books." | Add to this world's books |
+| Source not imported | "*Volo's Guide* is not in your corpus." | None |
+| Source imported but not declared for this world | "*Volo's Guide* is not among this world's books." | None |
+
+> **As built (2026-11-14).** Both cases render as grey text with a dotted underline that carries
+> its message; neither offers a button. Importing is outside the app (the corpus is read in
+> place), and the world's books are set on the world's form.
 
 The second is a deliberate boundary, not a gap — see TECHSTACK.md §6c. A gamemaster running a
 PHB+MM campaign *wants* a stray reference to a book nobody owns to stay inert.
@@ -442,13 +549,14 @@ renders slightly heavier under `@media (hover: none)`, and hover backgrounds are
 ### Rules
 
 - **Only one tooltip open at a time.** Opening a second closes the first. Reference is a glance;
-  two things side by side is what the drawer is for.
+  reading two things side by side is what the reference page is for.
 - **Nested tags do not chain.** Tags inside a tooltip body render dotted and inert. Chained
   popovers are unusable with a mouse — "Open" is the way deeper.
 - **Flip, never clip.** Measure against the viewport, flip above the anchor when there is no room
   below, clamp horizontally. Never render partly offscreen.
 - **Capped at ~6 lines.** A tooltip you have to scroll has failed at being a glance; that content
-  belongs in the drawer.
+  belongs on the reference page. (As built: prose is clamped to 6 lines on the card and 10 on
+  the bottom sheet.)
 - **Preview is a projection, not a truncation.** `preview_for(entity)` selects per type:
   creature → AC/HP/speed/CR + ability row; spell → level/school/time/range + one sentence;
   condition → the complete rule list (it is short, and truncating a rule is worse than useless);
@@ -458,13 +566,19 @@ renders slightly heavier under `@media (hover: none)`, and hover backgrounds are
 
 | Type | Leads with | Footer actions |
 | --- | --- | --- |
-| `creature` | AC, HP, speed, CR + six abilities | Add to encounter · Open |
+| `creature` | AC, HP, speed, CR + six abilities | Open |
 | `spell` | Level, school, casting time, range | Open |
 | `item` | Damage or AC, weight, cost | Open |
-| `condition` | The rule list, complete | Apply to selected · Open |
+| `condition` | The rule list, complete | Open |
 | `rule` / `action` / `skill` / `sense` | One paragraph | Open |
-| unresolved — source not imported | Which book is missing | Import source |
-| unresolved — source not in this world's books | Which book is excluded | Add to this world's books |
+| unresolved — source not imported | Which book is missing | None |
+| unresolved — source not in this world's books | Which book is excluded | None |
+
+> **As built (2026-11-14).** The footer offers Open, plus one button per other printing in the
+> world's books ("PHB version", TECHSTACK.md §6c); nothing adds to an encounter or applies a
+> condition from a preview. The source sits in the card's header, with the entry's token and its
+> glossary name, the English name beneath. Translated text shows with a note on how much of it
+> is translated.
 
 ### Unresolved references
 
@@ -474,13 +588,10 @@ automatically once that source is added. Never a dead link, never a raw brace.
 
 ### Implementation
 
-`GET /ref/{type}/{slug}/preview` returns the fragment. The tag renderer emits:
-
-```html
-hx-get="/ref/creature/goblin/preview"
-hx-trigger="mouseenter delay:350ms, focus"
-hx-target="#tip"
-```
+`GET /ref/{category}/{source}/{name}/preview?world=…` returns the fragment (planned as
+`/ref/{type}/{slug}/preview`); a player gets 404 for an entry they may not read. The tag renderer
+emits a plain link, and `static/js/tooltips.js` fetches the preview itself — there is no
+`hx-get` on a tag. Campaign links preview through `GET /library/preview?href=…`.
 
 Preview fragments are pure functions of the compendium **and of the active source set** — the
 same `{@spell mind sliver}` resolves to the 2014 or the 2024 spell depending on which books the
@@ -506,17 +617,24 @@ tooltip never opens and the click navigates. The content is always reachable.
 >
 > Fragments are cached in the browser by URL. The URL carries `?world=`, so the cache key
 > includes the source set, as required; the server renders each preview fresh.
+>
+> **As built (2026-11-14).** The timings above hold: open after 350 ms, instantly while one is
+> open, close after 180 ms, a click pins. A tap opens the bottom sheet over a backdrop, with a ✕
+> that takes focus; the page behind stops scrolling, and the sheet is at most 70vh high. The
+> card is at most 360px wide and keeps 8px from the viewport's edge. The cache is a `Map` in
+> the browser, keyed by URL; there is no server-side `@lru_cache`. Sheet or card is chosen in
+> the script by input capability, not by the `max-width` query shown above.
 
 ---
 
 ## 8. Implementation notes
 
-- **Tailwind theme, not utility soup.** Tokens go into the config; components use DaisyUI class
-  names (`btn`, `badge`, `modal`, `drawer`) and inherit the palette.
+- **Token CSS, not utility soup.** Components use the class names of `components.css` and
+  `app.css` (`btn`, `chip`, …) and read the tokens; there is no Tailwind config and no DaisyUI.
 - **Every component is one htpy function**, callable both standalone (HTMX fragment) and nested
   (full page).
 - **The JSON watcher needs a UI, not just a reload.** When a watched file changes, show a quiet
-  toast — "Bestiary reloaded, 4 entries changed" — with an action to refresh open drawers. Never
+  toast — "Bestiary reloaded, 4 entries changed" — with an action to refresh open pages. Never
   silently swap content a gamemaster is mid-sentence reading aloud.
 - **Search spans the whole reference set, and coverage grows in phases.** Categories arrive over
   several releases (TECHSTACK.md §6b), so the palette must render a result type it has no bespoke
@@ -528,8 +646,17 @@ tooltip never opens and the click navigates. The content is always reachable.
 - **Declaring books is a setup step, and it must be skippable.** An empty declaration means
   "everything imported" (TECHSTACK.md §6c), so a first-run user sees a working tool. Surface the
   setting where a campaign is created, not behind a modal that blocks the first session.
-- **Role is a layout decision, not a permission check.** Gamemaster and player resolve to
-  different shells from the session role; the components inside are identical.
+- **Role is a layout decision, and a permission check.** Gamemaster and player resolve to
+  different shells from the session role; the components inside are identical. The role also
+  gates what a route will do: a player asking for a gamemaster's route gets 403.
+
+> **As built (2026-11-14).** There is no `base.html`: `layout.document()` and
+> `layout.app_shell()` in `app/ui/layout.py` build every page. htmx 2.0.4 is vendored in
+> `static/js/` and loaded by the pages that need it; `ui.js`, `sound.js`, `tooltips.js` and
+> `palette.js` load on every page. Live updates — sheets, party cards, the tracker, the log —
+> arrive over Server-Sent Events (`app/services/events.py`). Every response carries a Content
+> Security Policy (`app/main.py`) that keeps scripts, styles, fonts and pictures to this
+> server.
 
 ---
 
@@ -566,8 +693,8 @@ Three things follow for the UI:
   renders that way, marked with the `languages` icon (§5). Never an empty field, never a crash —
   principle 5 already said this; the data model now guarantees it.
 - **Tag labels localize; tag targets do not.** `{@spell fireball}` in German prose displays
-  "Feuerball" and still opens the English Fireball record, so the reference drawer, source set and
-  backlinks work identically in both languages.
+  "Feuerball" and still opens the English Fireball record, so previews, reference pages, the
+  source set and backlinks work identically in both languages.
 - **The term glossary alone makes the UI feel German** — search, ⌘K, condition pills and tooltip
   headers — before a single paragraph is translated. It is the first translation deliverable.
 

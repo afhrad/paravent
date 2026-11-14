@@ -210,7 +210,7 @@ button{ font:inherit; color:inherit; }
 }
 
 /* ============================================================
-   ICONS — Lucide 1.39.0 (ISC). One contract, applied globally.
+   ICONS — Lucide 0.x (ISC). One contract, applied globally.
    Lucide is a stroke set: fill:none + stroke:currentColor is
    mandatory, or every glyph renders as a black blob.
    ============================================================ */
@@ -693,7 +693,7 @@ section.block{ padding-top:64px; }
 </head>
 <body>
 <svg style="display:none" aria-hidden="true">
-  <!-- Lucide 1.39.0 — ISC. Canonical names only, no deprecated aliases. -->
+  <!-- Lucide 0.x — ISC. Canonical names only, no deprecated aliases. -->
   <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/></symbol>
   <symbol id="i-map" viewBox="0 0 24 24"><path d="M14.106 5.553a2 2 0 0 0 1.788 0l3.659-1.83A1 1 0 0 1 21 4.619v12.764a1 1 0 0 1-.553.894l-4.553 2.277a2 2 0 0 1-1.788 0l-4.212-2.106a2 2 0 0 0-1.788 0l-3.659 1.83A1 1 0 0 1 3 19.381V6.618a1 1 0 0 1 .553-.894l4.553-2.277a2 2 0 0 1 1.788 0z"/><path d="M15 5.764v15M9 3.236v15"/></symbol>
   <symbol id="i-swords" viewBox="0 0 24 24"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6M16 16l4 4M19 21l2-2"/><path d="M9.5 6.5 21 18v3h-3L6.5 9.5"/><path d="M5 13 3 15l2 2M3 21l2-2"/></symbol>
@@ -741,7 +741,7 @@ section.block{ padding-top:64px; }
 </svg>
 <nav class="dr-nav" aria-label="Design reference">
   <a class="dr-home" href="index.html">Paravent design reference</a>
-  <div class="dr-links"><a href="01-principles.html">Principles</a><a href="02-combat-tracker.html">Combat Tracker</a><a href="03-command-palette.html">Command Palette</a><a href="04-player-mobile.html" class="here" aria-current="page">Player on Mobile</a><a href="05-wizard.html">Wizard</a><a href="06-tag-renderer.html">Tag Renderer</a><a href="07-icons.html">Icons</a><a href="08-tokens.html">Tokens</a><a href="09-scrollbars.html">Scrollbars</a><a href="10-responsive.html">Responsive</a><a href="11-implementation.html">Implementation</a><a href="12-tooltips.html">Tooltips</a><a href="13-chargen-wizard.html">Character Generation</a><a href="14-chargen-demo-desktop.html">Demo · Desktop</a><a href="15-chargen-demo-mobile.html">Demo · Mobile</a><a href="16-character-sheet.html">Character Sheet</a></div>
+  <div class="dr-links"><a href="01-principles.html">Principles</a><a href="02-combat-tracker.html">Combat Tracker</a><a href="03-command-palette.html">Command Palette</a><a href="04-player-mobile.html" class="here" aria-current="page">Player on Mobile</a><a href="05-wizard.html">Wizard</a><a href="06-tag-renderer.html">Tag Renderer</a><a href="07-icons.html">Icons</a><a href="08-tokens.html">Tokens</a><a href="09-scrollbars.html">Scrollbars</a><a href="10-responsive.html">Responsive</a><a href="11-implementation.html">Implementation</a><a href="12-tooltips.html">Tooltips</a><a href="13-chargen-wizard.html">Character Generation</a><a href="14-chargen-demo-desktop.html">Demo · Desktop</a><a href="15-chargen-demo-mobile.html">Demo · Mobile</a><a href="16-character-sheet.html">Character Sheet</a><a href="17-paravent-today.html">Paravent today</a></div>
 </nav>
 <div class="doc">
 <header class="masthead" style="padding:34px 0 26px;">
@@ -757,6 +757,13 @@ section.block{ padding-top:64px; }
   <p class="lede" style="font-size:15.5px;">Character sheet, dice and spell reference on a phone.</p>
 </header>
 <section class="block">
+  <div class="note warn" style="margin:14px 0 22px;">
+    <h5>As built · 2026-11-14</h5>
+    <p>Three-state advantage, HP with damage and healing, upcasting that spends a slot and the German name with the English beneath all hold.</p>
+    <ul style="margin:6px 0 0 18px; font-size:13px; color:var(--text-2);"><li>The sheet's own bottom bar is Play · Stats · Track · Gear; the log opens from the top bar's log button, and "Look up" is the search in the top bar. Outside the sheet a player's bar is Characters · Books · Journal.</li><li>There is no Dice screen: rolls start from attack, save and skill rows, roll chips in text and a free "2d6+3" field; results go to the log, toasts and dice sounds, with a Private switch.</li><li>A spell is an expandable row with its cast form and slot choice; references open as a bottom-sheet preview.</li><li>The HP box has −5 −1 +1 +5, an amount with Damage / Heal / Temp, a temp pill, death-save pips, hit dice and a Wild Shape form's HP.</li><li>Conditions are toggle chips, with exhaustion and Rage.</li><li>New: the combat strip above the sheet and the players' fight view (<span class="mono">/play/combat/{id}</span>: "Your turn!", tokens, HP-filled rows, tap a row for Target or Details), one tap apart through the character | fight switch.</li></ul>
+    <p>See <a href="17-paravent-today.html#sheet">Paravent today</a> · <a href="../documentation/CHARACTER-FORMAT.md">CHARACTER-FORMAT.md</a> · <a href="17-paravent-today.html#fight-phone">fight view</a></p>
+  </div>
+
   <div class="frames" style="grid-template-columns:repeat(auto-fit,minmax(300px,1fr));">
 
     <div>
