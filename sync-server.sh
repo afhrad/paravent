@@ -106,7 +106,7 @@ mount_of() {
 # Exactly what the image is built from (see .dockerignore), plus the compose file.
 # --delete inside app/ and static/ so a file removed here is removed there too.
 step "Sending the code"
-"${RSYNC[@]}" Dockerfile docker-compose.yaml .dockerignore pyproject.toml uv.lock \
+"${RSYNC[@]}" Dockerfile docker-compose.yaml .dockerignore pyproject.toml uv.lock LICENSE NOTICE.md \
   "$HOST:$DIR/"
 "${RSYNC[@]}" --delete --exclude '__pycache__/' --exclude '.DS_Store' \
   app/ "$HOST:$DIR/app/"
