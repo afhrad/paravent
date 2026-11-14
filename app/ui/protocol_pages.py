@@ -23,6 +23,7 @@ from app.services.protocol_view import Filter, LogPage, Shown
 from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
+from app.ui.names import name_text
 from app.ui.rules_text import dice as dice_words
 
 LOG_URL = "/log"
@@ -429,6 +430,10 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             )
         if head == "custom":
             return dice_words(page, rest)
+        if head == "wild_shape":
+            on, _, form = rest.partition(":")
+            name = name_text(page, "monster", form.partition("|")[0])
+            return t(f"protocol.wild_shape_{on}", form=name)
     return what
 
 

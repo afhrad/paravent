@@ -100,6 +100,7 @@ is meant: `{"item": "Letter from a dead colleague"}`.
 | `tools`, `languages` | `["Thieves' Tools"]`, `["Common", "Elvish"]` | |
 | `weapons` | `["Longsword|PHB"]` | Weapons a feat let the player choose (Weapon Master). Training a class, species or feat grants outright is derived, not stored |
 | `feats`, `optional_features` | `["Alert|PHB"]`, `["Cantrip Formulas|TCE"]` | an optional class feature from another book appears only when listed here |
+| `wild_shapes` | `["Wolf|XMM"]` | a 2024 druid's known Wild Shape forms, chosen on the sheet up to the number the level allows; a 2014 druid may take any beast that fits and lists none |
 | `spells` | `{"cantrips": […], "known": […], "prepared": […]}` | see below |
 | `inventory` | `[{"item": "Quarterstaff|PHB", "quantity": 1, "equipped": true, "attuned": false, "notes": ""}]` | equipped armour, shields and protective items set AC; equipped weapons become attacks |
 | `currency` | `{"cp": 0, "sp": 14, "ep": 0, "gp": 230, "pp": 2}` | |
@@ -163,6 +164,7 @@ the rest.
 | `inspiration` | `true` / `false` | |
 | `raging` | `true` / `false` | a barbarian's Rage: resistance to bludgeoning, piercing and slashing while on; a rest ends it |
 | `mastery_kind`, `mastery_set` | `"Dagger"`, `true` | Weapon Master (2024): the kind of weapon whose mastery is used, chosen on the sheet; `mastery_set` holds it until a long rest |
+| `wild_shape`, `wild_shape_hp` | `"Wolf|MM"`, `7` | the Wild Shape form the druid is in; under the 2014 rules the form's own hit points, which take damage first (the rest carries over when they reach 0). Dropping to 0 HP or a long rest ends the form |
 | `death_saves` | `{"successes": 0, "failures": 0}` | |
 
 ### `overrides` — stating what cannot be derived

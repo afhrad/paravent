@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Mapping
+from fractions import Fraction
 
 from htpy import (
     Element,
@@ -37,6 +38,7 @@ from htpy import (
     header,
     label,
     legend,
+    li,
     nav,
     option,
     p,
@@ -44,6 +46,7 @@ from htpy import (
     select,
     span,
     summary,
+    ul,
 )
 from htpy import input as input_el
 
@@ -52,6 +55,7 @@ from app.models.pc import DraftStatus
 from app.services.condition_rolls import affected
 from app.services.experience import Progress, progress
 from app.services.protocol_view import Filter
+from app.services.references import ReferenceEntry
 from app.services.sheet import (
     DAMAGE_TYPES,
     AbilityView,
@@ -67,6 +71,8 @@ from app.services.sheet import (
     Value,
 )
 from app.services.translations import COMPOSITE
+from app.services.wild_shape import RESOURCE as WILD_SHAPE
+from app.services.wild_shape import Form
 from app.ui import rules_text
 from app.ui.context import Page
 from app.ui.forms import hidden
@@ -75,6 +81,7 @@ from app.ui.layout import app_shell
 from app.ui.names import ITEM, name_span, name_text, origin_text, training_text
 from app.ui.names import summary as summary_line
 from app.ui.protocol_pages import log_embed_slot
+from app.ui.ref_pages import statblock
 from app.ui.tags import RenderContext, localized_context, plain, ref_url, render_entries
 from app.ui.tokens import token, token_panel
 from app.ui.translate_pages import translate_url
@@ -284,12 +291,28 @@ def _hp_box(page: Page, sheet: Sheet) -> Element:
             else None,
         ],
         div(class_="hpbar")[span(class_=f"hpfill {state}", style=f"width:{ratio * 100:.0f}%")],
+        _form_hp(page, sheet),
         quick,
         amount_form,
         death,
         div(class_="cs-hd-line")[span(class_="eyebrow")[t("sheet.hit_dice")], hit_dice]
         if sheet.hit_dice
         else None,
+    ]
+
+
+def _form_hp(page: Page, sheet: Sheet) -> Node:
+    """A 2014 Wild Shape form's own hit points, which damage takes first."""
+    view = sheet.wild_shape
+    if view is None or view.form is None or view.form_hp is None:
+        return None
+    share = view.form_hp / view.form.hp if view.form.hp else 0
+    return div(class_="cs-formhp")[
+        span(class_="eyebrow")[
+            page.t("sheet.wild_shape.form_hp", form=name_text(page, "monster", view.form.name))
+        ],
+        span(class_="mono")[f"{view.form_hp} / {view.form.hp}"],
+        div(class_="hpbar")[span(class_="hpfill", style=f"width:{share * 100:.0f}%")],
     ]
 
 
@@ -411,7 +434,7 @@ def _attack_row(page: Page, sheet: Sheet, attack: AttackView) -> Element:
     ]
 
 
-def _actions_pane(page: Page, sheet: Sheet) -> Element:
+def _actions_pane(page: Page, sheet: Sheet, ctx: RenderContext | None = None) -> Element:
     t = page.t
     custom = form(
         method="post",
@@ -443,11 +466,157 @@ def _actions_pane(page: Page, sheet: Sheet) -> Element:
             ),
         ],
         _bent_rolls(page, sheet),
+        _wild_shape(page, sheet, ctx),
         _weapon_master(page, sheet),
         div(class_="cs-list")[[_attack_row(page, sheet, atk) for atk in sheet.attacks]],
         h2(class_="eyebrow cs-sub")[t("sheet.custom_roll")],
         custom,
     ]
+
+
+def _cr_text(page: Page, cr: str) -> str:
+    return page.t("sheet.wild_shape.cr", cr=cr)
+
+
+def _form_link(page: Page, sheet: Sheet, form: Form) -> Element:
+    return a(
+        href=ref_url("monster", form.name, form.source, sheet.character.world_id), class_="ref"
+    )[name_span(page, "monster", form.name)]
+
+
+def _wild_shape(page: Page, sheet: Sheet, ctx: RenderContext | None) -> Node:
+    """Wild Shape: the form the druid is in, with its statblock (its rolls go to this
+    character's log), or the forms to take — and a 2024 druid's known forms to choose."""
+    view = sheet.wild_shape
+    if view is None:
+        return None
+    t = page.t
+    rules = view.rules
+    uses = next((r for r in sheet.resources if r.name == WILD_SHAPE), None)
+    limits = [t("sheet.wild_shape.max_cr", cr=_fraction(rules.max_cr))]
+    if not rules.fly:
+        limits.append(t("sheet.wild_shape.no_fly"))
+    if not rules.swim:
+        limits.append(t("sheet.wild_shape.no_swim"))
+    limits.append(t("sheet.wild_shape.hours", count=rules.hours))
+    head = div(class_="cs-pane-head cs-ws-head")[
+        h2(class_="eyebrow cs-sub")[t("sheet.wild_shape")],
+        span(class_="muted mono")[f"{uses.available}/{uses.max}"] if uses else None,
+    ]
+    if view.form is not None:
+        form_ = view.form
+        facts = [
+            t("sheet.wild_shape.ac", ac=sheet.armor_class.text),
+            speed_text(page, sheet.speed),
+        ]
+        if view.form_hp is not None:
+            facts.append(t("sheet.wild_shape.hp", hp=view.form_hp, max=form_.hp))
+        block = (
+            details(class_="cs-ws-block", open=True)[
+                summary[t("sheet.wild_shape.statblock")],
+                statblock(
+                    page, ReferenceEntry("monster", form_.data, sheet.character.world_id), ctx
+                ),
+            ]
+            if ctx is not None
+            else None
+        )
+        return div(class_="cs-ws in-form")[
+            head,
+            div(class_="cs-ws-now")[
+                span[t("sheet.wild_shape.in_form"), " ", _form_link(page, sheet, form_)],
+                span(class_="muted")[" · ".join(facts)],
+                act(
+                    sheet,
+                    "wild_shape",
+                    {"op": "revert"},
+                    [icon("refresh-cw"), span[t("sheet.wild_shape.revert")]],
+                ),
+            ],
+            block,
+        ]
+    choices = view.choices
+    url = _url(sheet, "/act/wild_shape")
+    take = (
+        form(method="post", action=url, hx_post=url, class_="cs-act cs-ws-take")[
+            hidden("op", "assume"),
+            select(name="form", aria_label=t("sheet.wild_shape.choose"))[
+                [
+                    option(value=f.reference)[
+                        f"{name_text(page, 'monster', f.name)} ({_cr_text(page, f.cr)})"
+                    ]
+                    for f in choices
+                ]
+            ],
+            button(
+                type="submit",
+                class_="btn btn-sm",
+                disabled=uses is not None and uses.available <= 0,
+            )[icon("footprints"), span[t("sheet.wild_shape.take")]],
+        ]
+        if choices
+        else p(class_="cs-note muted")[
+            t(
+                "sheet.wild_shape.learn_first"
+                if rules.known is not None
+                else "sheet.wild_shape.none"
+            )
+        ]
+    )
+    return div(class_="cs-ws")[
+        head,
+        p(class_="cs-note muted")[" · ".join(limits)],
+        take,
+        _known_forms(page, sheet) if rules.known is not None else None,
+    ]
+
+
+def _known_forms(page: Page, sheet: Sheet) -> Element:
+    """A 2024 druid's known forms: each to forget, and one more to learn while fewer than
+    the level allows."""
+    view = sheet.wild_shape
+    assert view is not None and view.rules.known is not None
+    t = page.t
+    url = _url(sheet, "/act/wild_forms")
+    rest = [f for f in view.forms if f not in view.known]
+    return details(class_="cs-ws-known", open=len(view.known) < view.rules.known)[
+        summary[t("sheet.wild_shape.known", n=len(view.known), total=view.rules.known)],
+        ul(class_="cs-ws-list")[
+            [
+                li[
+                    _form_link(page, sheet, f),
+                    span(class_="muted")[f" {_cr_text(page, f.cr)}"],
+                    act(
+                        sheet,
+                        "wild_forms",
+                        {"op": "forget", "form": f.reference},
+                        icon("x"),
+                        cls="btn btn-sm btn-ghost",
+                        label=t("sheet.wild_shape.forget", form=name_text(page, "monster", f.name)),
+                    ),
+                ]
+                for f in view.known
+            ]
+        ],
+        form(method="post", action=url, hx_post=url, class_="cs-act cs-ws-take")[
+            hidden("op", "learn"),
+            select(name="form", aria_label=t("sheet.wild_shape.learn"))[
+                [
+                    option(value=f.reference)[
+                        f"{name_text(page, 'monster', f.name)} ({_cr_text(page, f.cr)})"
+                    ]
+                    for f in rest
+                ]
+            ],
+            button(type="submit", class_="btn btn-sm")[t("sheet.wild_shape.learn")],
+        ]
+        if len(view.known) < view.rules.known and rest
+        else p(class_="cs-note muted")[t("sheet.wild_shape.swap")],
+    ]
+
+
+def _fraction(value: Fraction) -> str:
+    return str(value.numerator) if value.denominator == 1 else str(value)
 
 
 def _weapon_master(page: Page, sheet: Sheet) -> Node:
@@ -1079,7 +1248,7 @@ def _main(page: Page, sheet: Sheet, tab: str, ctx: RenderContext | None = None) 
                 for x in tabs
             ]
         ],
-        _actions_pane(page, sheet),
+        _actions_pane(page, sheet, ctx),
         _spells_pane(page, sheet, ctx) if sheet.is_spellcaster else None,
         _skills_pane(page, sheet),
         _gear_pane(page, sheet),
@@ -1117,7 +1286,12 @@ def _resource_row(page: Page, sheet: Sheet, resource: ResourceView) -> Element:
     t = page.t
     return div(class_="cs-res")[
         span(class_="nm")[
-            resource.name, span(class_="meta")[t(f"sheet.recharge.{resource.recharge.value}")]
+            t("sheet.wild_shape") if resource.name == WILD_SHAPE else resource.name,
+            span(class_="meta")[
+                t("sheet.recharge.one_short")
+                if resource.short_regain
+                else t(f"sheet.recharge.{resource.recharge.value}")
+            ],
         ],
         div(class_="cs-res-act")[
             act(

@@ -13,6 +13,9 @@ Rules that are applied, because the sheet would be wrong without them:
 * Damage at 0 HP is a failed death save; healing from 0 resets the death saves.
 * A short rest restores short-rest resources and pact slots; a long rest restores HP,
   slots, every resource, half the hit dice (at least one) and one exhaustion level.
+* Wild Shape spends a use; a 2024 form gives temporary HP, a 2014 form has hit points of
+  its own that take damage first, the rest carrying over when it drops to 0. A druid at
+  0 HP, or after a long rest, is back in their own shape.
 * Casting a spell spends a slot of the chosen level, falling back to a pact slot, and
   casting a concentration spell replaces any concentration already held.
 
@@ -30,6 +33,7 @@ from typing import Any
 
 from app.models.pc import ChosenOption, LogKind, PlayerCharacter, Recharge
 from app.models.protocol import EntryKind, ProtocolEntry, RollRecord, Scope, Visibility
+from app.services import wild_shape
 from app.services.condition_rolls import bend
 from app.services.dice import Advantage, Dice, DiceError, Roll, is_expression
 from app.services.i18n import Translatable
@@ -116,6 +120,8 @@ class PlayService:
             "drink": self._drink,
             "rage": self._rage,
             "mastery": self._mastery,
+            "wild_shape": self._wild_shape,
+            "wild_forms": self._wild_forms,
         }
 
     @property
@@ -253,6 +259,11 @@ class PlayService:
         if mode == "temp":
             state.temp_hp = max(state.temp_hp, amount)
             return
+        if mode == "heal" and state.wild_shape_hp is not None and sheet.wild_shape:
+            form = sheet.wild_shape.form
+            top_form = form.hp if form is not None else state.wild_shape_hp
+            state.wild_shape_hp = min(top_form, state.wild_shape_hp + amount)
+            return
         if mode == "heal":
             if current <= 0:
                 state.death_saves.successes = state.death_saves.failures = 0
@@ -264,9 +275,21 @@ class PlayService:
         absorbed = min(state.temp_hp, amount)
         state.temp_hp -= absorbed
         rest = amount - absorbed
+        if state.wild_shape_hp is not None and rest > 0:
+            # A 2014 form takes the damage; what it cannot take carries over (PHB).
+            taken = min(state.wild_shape_hp, rest)
+            state.wild_shape_hp -= taken
+            rest -= taken
+            if state.wild_shape_hp > 0:
+                if state.concentration is not None:
+                    self._concentration_check(pc, sheet, taken, actor)
+                return
+            self._leave_form(pc, actor)
         if current <= 0 and rest > 0:
             state.death_saves.failures = min(3, state.death_saves.failures + 1)
         state.hp = max(0, current - rest)
+        if state.hp == 0 and state.wild_shape is not None:
+            self._leave_form(pc, actor)
         if rest > 0 and state.concentration is not None:
             self._concentration_check(pc, sheet, rest, actor)
 
@@ -431,10 +454,11 @@ class PlayService:
             raise PlayError("play.error.bad_input")
         restored = {Recharge.SHORT} if kind == "short" else {Recharge.SHORT, Recharge.LONG}
         recharge = {r.name: r.recharge for r in sheet.resources}
+        regain = {r.name: r.short_regain for r in sheet.resources} if kind == "short" else {}
         state.resources_used = {
-            name: used
+            name: used - regain.get(name, 0)
             for name, used in state.resources_used.items()
-            if used and recharge.get(name, Recharge.LONG) not in restored
+            if used - regain.get(name, 0) > 0 and recharge.get(name, Recharge.LONG) not in restored
         }
         state.pact_slots_used = 0
         state.raging = False  # a rest ends a Rage
@@ -445,6 +469,8 @@ class PlayService:
             state.death_saves.successes = state.death_saves.failures = 0
             state.exhaustion = max(0, state.exhaustion - 1)
             state.mastery_set = False  # Weapon Master may choose its kind again
+            if state.wild_shape is not None:  # no form lasts through a long rest
+                self._leave_form(pc, actor)
             total = sum(pool.total for pool in sheet.hit_dice)
             regain = max(1, total // 2)
             used = dict(state.hit_dice_used)
@@ -696,6 +722,62 @@ class PlayService:
             raise PlayError("play.error.bad_input")
         pc.state.mastery_kind = kind
         pc.state.mastery_set = True
+
+    def _wild_shape(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Take a Wild Shape form, spending a use, or leave the one the druid is in."""
+        view = sheet.wild_shape
+        if params.get("op") == "revert":
+            if pc.state.wild_shape is None:
+                raise PlayError("play.error.bad_input")
+            self._leave_form(pc, actor)
+            return
+        wanted = ChosenOption.model_validate(params.get("form", "")) if params.get("form") else None
+        form = wild_shape.find(view.choices, wanted) if view is not None else None
+        if view is None or form is None:
+            raise PlayError("play.error.bad_input")
+        resource = next(r for r in sheet.resources if r.name == wild_shape.RESOURCE)
+        if resource.available <= 0:
+            raise PlayError("play.error.resource_spent", name=resource.name)
+        state = pc.state
+        state.resources_used = {**state.resources_used, resource.name: resource.used + 1}
+        state.wild_shape = ChosenOption(name=form.name, source=form.source)
+        if view.rules.edition == "2014":
+            state.wild_shape_hp = form.hp
+        else:
+            state.wild_shape_hp = None
+            state.temp_hp = max(state.temp_hp, view.rules.temp_hp)
+        self._stage(pc, actor, EntryKind.CUSTOM, what=f"wild_shape:on:{form.reference}")
+
+    def _leave_form(self, pc: PlayerCharacter, actor: Actor) -> None:
+        form = pc.state.wild_shape
+        pc.state.wild_shape = None
+        pc.state.wild_shape_hp = None
+        if form is not None:
+            self._stage(pc, actor, EntryKind.CUSTOM, what=f"wild_shape:off:{form.reference}")
+
+    def _wild_forms(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Learn or forget a 2024 druid's known form; learning one of the forms its level
+        allows, while it knows fewer than its count."""
+        view = sheet.wild_shape
+        if view is None or view.rules.known is None or not params.get("form"):
+            raise PlayError("play.error.bad_input")
+        wanted = ChosenOption.model_validate(params["form"])
+        if params.get("op") == "forget":
+            pc.wild_shapes = [
+                f
+                for f in pc.wild_shapes
+                if (f.name.lower(), (f.source or "").lower())
+                != (wanted.name.lower(), (wanted.source or "").lower())
+            ]
+            return
+        form = wild_shape.find(view.forms, wanted)
+        if form is None or len(view.known) >= view.rules.known or form in view.known:
+            raise PlayError("play.error.bad_input")
+        pc.wild_shapes = [*pc.wild_shapes, ChosenOption(name=form.name, source=form.source)]
 
     def _rage(
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor

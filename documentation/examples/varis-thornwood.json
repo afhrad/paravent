@@ -33,6 +33,7 @@
   "weapons": [],
   "feats": ["Alert|PHB"],
   "optional_features": ["Defense|PHB"],
+  "wild_shapes": [],
   "spells": {"cantrips": [], "known": [], "prepared": []},
   "inventory": [
     {"item": "Studded Leather Armor|PHB", "quantity": 1, "equipped": true, "attuned": false, "notes": "Dyed in forest greens, patched at both elbows"},
@@ -74,6 +75,8 @@
     "raging": false,
     "mastery_kind": "",
     "mastery_set": false,
+    "wild_shape": null,
+    "wild_shape_hp": null,
     "death_saves": {"successes": 0, "failures": 0}
   },
   "overrides": {}

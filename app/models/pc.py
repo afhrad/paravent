@@ -419,6 +419,10 @@ class PlayState(GameStateModel):
     # ("Longsword"), "" until chosen; once chosen it stays until a long rest opens it.
     mastery_kind: str = ""
     mastery_set: bool = False
+    # The Wild Shape form the druid is in (``"Wolf|XMM"``), and under the 2014 rules the
+    # form's own hit points, which take damage before the druid's.
+    wild_shape: ChosenOption | None = None
+    wild_shape_hp: int | None = Field(default=None, ge=0)
     death_saves: DeathSaves = Field(default_factory=DeathSaves)
 
     @field_validator("hit_dice_used")
@@ -592,6 +596,9 @@ class PlayerCharacter(Record):
     weapons: list[ChosenOption] = Field(default_factory=list)
     feats: list[ChosenOption] = Field(default_factory=list)
     optional_features: list[ChosenOption] = Field(default_factory=list)
+    # A 2024 druid's known Wild Shape forms: ``["Wolf|XMM"]``. A 2014 druid may take any
+    # beast the rules allow, so its file names none.
+    wild_shapes: list[ChosenOption] = Field(default_factory=list)
 
     spells: SpellSelection = Field(default_factory=SpellSelection)
 

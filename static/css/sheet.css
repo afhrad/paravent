@@ -31,6 +31,23 @@
 /* Weapon Master (2024): which weapon kind's mastery, chosen until a long rest. */
 .cs-mastery-pick{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 8px; font-size:13px; color:var(--text-2); }
 .cs-mastery-pick select{ min-height:32px; }
+/* Wild Shape: the form the druid is in, or the forms to take and to know. */
+.cs-ws{ margin:0 0 12px; padding:10px 12px; border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface); }
+.cs-ws.in-form{ border-color:var(--accent); }
+.cs-ws-head{ margin:0 0 4px; }
+.cs-ws-head .cs-sub{ margin-top:0 !important; }
+.cs-ws .cs-note{ margin:0 0 8px; }
+.cs-ws-take{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin:0 0 8px; }
+.cs-ws-take select{ flex:1 1 200px; width:0; min-width:0; min-height:32px; font:inherit; font-size:14px; color:var(--text); background-color:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-sm); }
+.cs-ws-now{ display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; margin:0 0 8px; }
+.cs-ws-now .cs-act > .btn{ margin-left:auto; }
+.cs-ws-known summary, .cs-ws-block summary{ cursor:pointer; font-size:13px; color:var(--text-2); margin:0 0 6px; }
+.cs-ws-list{ list-style:none; margin:0 0 8px; padding:0; display:grid; gap:4px; }
+.cs-ws-list li{ display:flex; align-items:center; gap:6px; }
+.cs-ws-list li .cs-act > .btn{ margin-left:auto; }
+.cs-formhp{ display:flex; flex-wrap:wrap; align-items:center; gap:4px 8px; margin:6px 0; }
+.cs-formhp .eyebrow{ margin:0; }
+.cs-formhp .hpbar{ flex:1 0 100%; }
 .cs .btn.is-on{ background:var(--accent-weak); border-color:var(--accent); color:var(--accent-text); font-weight:600; }
 .cs-live{ display:inline-flex; align-items:center; gap:6px; font-size:11.5px; color:var(--text-3); font-family:var(--font-ui); }
 .cs-live .dot{ width:8px; height:8px; border-radius:50%; background:var(--border-strong); }

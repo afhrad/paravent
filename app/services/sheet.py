@@ -32,7 +32,7 @@ from app.models.pc import (
     Recharge,
 )
 from app.models.protocol import ProtocolEntry
-from app.services import feature_options, granted_spells
+from app.services import feature_options, granted_spells, wild_shape
 from app.services.character import (
     HEAVY_ARMOR,
     LIGHT_ARMOR,
@@ -58,6 +58,7 @@ from app.services.class_refs import (
 )
 from app.services.text import first_dice, paragraphs, strip_tags
 from app.services.translations import translation_key
+from app.services.wild_shape import Form, WildShapeRules
 
 ABILITY_NAMES = {
     "str": "Strength",
@@ -363,6 +364,8 @@ class ResourceView:
     max: int
     used: int
     recharge: Recharge
+    # Uses a short rest gives back where it does not restore them all (2024 Wild Shape).
+    short_regain: int = 0
 
     @property
     def available(self) -> int:
@@ -439,6 +442,24 @@ class HitDicePool:
         return max(0, self.total - self.used)
 
 
+@dataclass(frozen=True)
+class WildShapeView:
+    """A druid's Wild Shape on the sheet: the rules at its level, the forms it may take
+    (a 2024 druid's known ones apart), and the form it is in."""
+
+    rules: WildShapeRules
+    forms: tuple[Form, ...]
+    known: tuple[Form, ...] = ()
+    form: Form | None = None
+    # The 2014 form's hit points now; its maximum is the beast's.
+    form_hp: int | None = None
+
+    @property
+    def choices(self) -> tuple[Form, ...]:
+        """The forms the druid may take now: its known ones (2024), else every one."""
+        return self.known if self.rules.known is not None else self.forms
+
+
 @dataclass
 class Sheet:
     """Everything one character's screen shows."""
@@ -512,6 +533,7 @@ class Sheet:
     # Set by the page: the characters a healing spell may target (id, name) — the
     # caster's world, the caster first.
     allies: list[tuple[str, str]] = field(default_factory=list)
+    wild_shape: WildShapeView | None = None
 
     @property
     def casting_modifier(self) -> int:
@@ -675,6 +697,10 @@ class _Corpus:
             return []
         return found
 
+    def wild_forms(self, rules: WildShapeRules) -> list[Form]:
+        """The beasts in this source set a druid's Wild Shape allows."""
+        return wild_shape.eligible(self._compendium, self._source_set, rules)
+
     def subclass(self, cls: ClassLevel) -> dict[str, Any] | None:
         """A subclass is found through its class — names repeat across classes."""
         wanted = cls.subclass
@@ -774,6 +800,7 @@ def build_sheet(
     _exhaustion(sheet, character.state.exhaustion)
     _burden(sheet)
     _play_state(sheet, character, corpus)
+    _wild_shape(sheet, character, corpus, classes)
     _proficiencies(sheet, character, classes, training)
     _weapon_master(sheet, character, corpus, classes, training[1])
     _defenses(sheet, character, corpus, species, subspecies)
@@ -2111,6 +2138,80 @@ def _play_state(sheet: Sheet, character: PlayerCharacter, corpus: _Corpus) -> No
         sheet.concentration = sheet.spell(state.concentration.reference) or _spell_view(
             state.concentration, corpus.resolve("spell", state.concentration), sheet.level
         )
+
+
+def _wild_shape(
+    sheet: Sheet,
+    character: PlayerCharacter,
+    corpus: _Corpus,
+    classes: list[tuple[ClassLevel, dict[str, Any] | None]],
+) -> None:
+    """Wild Shape: its uses as a resource, the forms, and the form the druid is in —
+    whose AC and speed the sheet then shows (the 2024 Circle of the Moon's 13 + WIS where
+    that is higher)."""
+    rules = next(
+        (
+            found
+            for cls, record in classes
+            if (found := wild_shape.rules_for(cls, record, corpus.subclass(cls))) is not None
+        ),
+        None,
+    )
+    if rules is None:
+        return
+    state = character.state
+    used = min(rules.uses, state.resources_used.get(wild_shape.RESOURCE, 0))
+    sheet.resources.append(
+        ResourceView(
+            wild_shape.RESOURCE,
+            rules.uses,
+            used,
+            Recharge.LONG if rules.edition == "2024" else Recharge.SHORT,
+            short_regain=1 if rules.edition == "2024" else 0,
+        )
+    )
+    forms = tuple(corpus.wild_forms(rules))
+    known = tuple(
+        f for option in character.wild_shapes if (f := wild_shape.find(forms, option)) is not None
+    )
+    form = wild_shape.find(forms, state.wild_shape) or (
+        _outside_form(corpus, state.wild_shape) if state.wild_shape is not None else None
+    )
+    sheet.wild_shape = WildShapeView(
+        rules,
+        forms,
+        known,
+        form,
+        min(state.wild_shape_hp, form.hp)
+        if form is not None and state.wild_shape_hp is not None
+        else None,
+    )
+    if form is None:
+        return
+    label = f"{form.name} form"
+    ac = form.ac
+    if rules.moon and rules.edition == "2024":
+        moon_ac = 13 + sheet.ability("wis").modifier
+        if ac is None or moon_ac > ac:
+            ac, label = moon_ac, f"{form.name} form, Circle Forms 13 + WIS"
+    if ac is not None:
+        sheet.armor_class = Value(ac, label)
+    speed = form.data.get("speed")
+    walk = speed.get("walk") if isinstance(speed, dict) else None
+    walk = walk.get("number") if isinstance(walk, dict) else walk
+    if isinstance(walk, int):
+        sheet.speed = Value(walk, f"{form.name} form")
+
+
+def _outside_form(corpus: _Corpus, option: ChosenOption) -> wild_shape.Form | None:
+    """A form the druid is in that the rules no longer list (a book removed, a level
+    lost): still shown, so it can be left."""
+    data = corpus.resolve("monster", option)
+    if data is None:
+        return None
+    cr = data.get("cr")
+    cr_text = cr.get("cr") if isinstance(cr, dict) else cr
+    return wild_shape.Form(str(data.get("name")), str(data.get("source")), str(cr_text or ""), data)
 
 
 def _defenses(

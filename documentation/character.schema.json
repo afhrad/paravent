@@ -482,6 +482,30 @@
           "title": "Mastery Set",
           "type": "boolean"
         },
+        "wild_shape": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ChosenOption"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "wild_shape_hp": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Wild Shape Hp"
+        },
         "death_saves": {
           "$ref": "#/$defs/DeathSaves"
         }
@@ -817,6 +841,13 @@
         "$ref": "#/$defs/ChosenOption"
       },
       "title": "Optional Features",
+      "type": "array"
+    },
+    "wild_shapes": {
+      "items": {
+        "$ref": "#/$defs/ChosenOption"
+      },
+      "title": "Wild Shapes",
       "type": "array"
     },
     "spells": {

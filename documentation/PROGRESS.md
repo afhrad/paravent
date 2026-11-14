@@ -38,6 +38,13 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       the wizard no longer offers them to prepare (`granted_spells.always_prepared`) and
       names them on its spell step as "Always prepared", with the class or subclass;
       level-up leaves them out of a 2024 bard's, sorcerer's or warlock's new spells.
+      **Wild Shape** (2026-11-14, `app/services/wild_shape.py`): a druid's forms on
+      the sheet's Actions tab — any beast of the world's books the level allows (CR,
+      swimming, flying; the Circle of the Moon's higher CR), a 2024 druid's known forms
+      chosen there; taking one spends a use (a resource; 2024: one back on a short rest)
+      and shows its statblock, rolling into the character's log, with its AC and speed;
+      a 2024 form gives temporary HP (the Moon's AC 13 + WIS), a 2014 form has its own
+      hit points that take damage first, the rest carrying over.
       Phased in TECHSTACK.md §6b:
   - [x] **Phase 1 complete.** `class` (30), `subclass` (315), `classFeature` (677),
         `subclassFeature` (1,397), `legendaryGroup` (171), both `generated/` lookups, and
@@ -889,7 +896,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2259 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2272 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the
