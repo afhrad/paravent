@@ -20,6 +20,7 @@ from app.models.gamestate import (
     SourceSet,
     World,
 )
+from app.models.pc import PlayerCharacter
 from app.models.protocol import EntryKind, ProtocolEntry
 from app.services.combat import CombatNotFound
 from app.services.dice import Dice
@@ -220,6 +221,44 @@ class TestInTheTracker:
         goblin = registry.combats.get(url.rsplit("/", 1)[1]).combatants[0]
         page = (await ac.get(url, params={"sel": goblin.id})).text
         assert f"/c/{goblin.id}/attack" in page and 'name="dmg" value="1d6+2:slashing"' in page
+
+    async def test_a_druid_in_wild_shape_fights_as_the_beast(
+        self, tracker: tuple[AsyncClient, StoreRegistry, str]
+    ) -> None:
+        ac, registry, url = tracker
+        combat_id = url.rsplit("/", 1)[1]
+        goblin = registry.combats.get(combat_id).combatants[0]
+        world = registry.combats.get(combat_id).world_id
+        assert world is not None
+        registry.gamestate.worlds.update(world, source_set=SourceSet(sources=["MM", "PHB"]))
+        druid = registry.gamestate.characters.create(
+            PlayerCharacter.model_validate(
+                {
+                    "name": "Sanna",
+                    "world_id": world,
+                    "classes": [{"class": "Druid|PHB", "level": 4}],
+                    "abilities": {"con": 12, "wis": 16},
+                    "inventory": [{"item": "Quarterstaff|PHB", "equipped": True}],
+                    "state": {"wild_shape": "Wolf|MM", "wild_shape_hp": 11},
+                }
+            )
+        )
+        combat = registry.combats.add_character(combat_id, druid.id, "dm")
+        sanna = next(c for c in combat.combatants if c.character_id == druid.id)
+        page = (await ac.get(url, params={"sel": sanna.id})).text
+        assert f"/c/{sanna.id}/attack" in page and 'name="dmg" value="2d4+2:piercing"' in page
+        assert "Quarterstaff" not in page.split('id="combat-side"')[1]
+        registry.combats._dice = Dice(_Fixed(10))  # type: ignore[attr-defined]
+        await ac.post(
+            f"{url}/c/{sanna.id}/attack",
+            data={"name": "Bite", "hit": "4", "dmg": "2d4+2:piercing"},
+            headers=HTMX,
+        )
+        waiting = _pending(registry, combat_id)
+        assert (waiting.actor, waiting.damage) == (sanna.id, 10)  # 4 + 4 + 2
+        registry.combats.resolve_attack(combat_id, waiting.at.isoformat(), goblin.id, "dm")
+        hurt = next(c for c in registry.combats.get(combat_id).combatants if c.id == goblin.id)
+        assert hurt.hp == 0
 
     async def test_a_natural_20_doubles_and_sounds(
         self, tracker: tuple[AsyncClient, StoreRegistry, str]

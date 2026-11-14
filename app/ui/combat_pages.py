@@ -83,6 +83,7 @@ from app.ui.rulebook_pages import screen_url
 from app.ui.sheet_pages import defenses, form_pill, speed_text
 from app.ui.tags import RenderContext, render, render_entries
 from app.ui.tokens import token
+from app.ui.translated import localized
 
 COMBATS_URL = "/gm/combat"
 # The add panel's choice, ``side=friend``: added on the characters' side.
@@ -1308,7 +1309,10 @@ def side_panel(
                 )[t("combat.raging") if raging else t("combat.not_raging")],
                 cls="cb-form cb-inline",
             )
-        content = character_block(page, sheet, row.combatant.character_id or "", ctx, rage)
+        hook = _attack_hook(page, view, row) if view.combat.running else None
+        content = character_block(
+            page, sheet, row.combatant.character_id or "", ctx, rage, attack_hook=hook
+        )
         live = True
     elif row.character is not None:
         content = div(class_="panel")[
@@ -1617,9 +1621,10 @@ def _dash(detail: str) -> str | None:
     return f" — {detail}" if detail else None
 
 
-def _attack_hook(
-    page: Page, view: CombatView, row: Row
-) -> Callable[[dict[str, Any], Callable[[], Node]], Node | None]:
+BlockHook = Callable[[dict[str, Any], Callable[[], Node]], Node | None]
+
+
+def _attack_hook(page: Page, view: CombatView, row: Row) -> BlockHook:
     """Statblock actions with a to-hit bonus get buttons that roll them into the log."""
     t = page.t
 
@@ -1707,11 +1712,37 @@ def _wild_line(page: Page, sheet: Sheet, ctx: RenderContext) -> Node:
     )
 
 
+def _form_actions(
+    page: Page, sheet: Sheet, ctx: RenderContext, attack_hook: BlockHook | None
+) -> Node:
+    """A druid in Wild Shape fights as the beast: its actions in place of the druid's
+    weapons, each attack rolled from the tracker like a monster's (``attack_hook``)."""
+    wild = sheet.wild_shape
+    if wild is None or wild.form is None:
+        return None
+    form = ReferenceEntry("monster", wild.form.data, sheet.character.world_id)
+    actions = localized(page, form)[0].data.get("action")
+    if not actions:
+        return None
+    return section(class_="sb-section")[
+        h3(class_="sb-heading")[
+            page.t("ref.actions"), " · ", name_text(page, "monster", wild.form.name)
+        ],
+        render_entries(actions, replace(ctx, block_hook=attack_hook)),
+    ]
+
+
 def character_block(
-    page: Page, sheet: Sheet, character_id: str, ctx: RenderContext, rage: Node = None
+    page: Page,
+    sheet: Sheet,
+    character_id: str,
+    ctx: RenderContext,
+    rage: Node = None,
+    attack_hook: BlockHook | None = None,
 ) -> Element:
     """A character as a statblock: what the gamemaster needs at the table, read live
-    from the derived sheet. The full sheet is one button away."""
+    from the derived sheet. The full sheet is one button away. A druid in Wild Shape
+    shows the beast's actions instead of its weapons, rollable with ``attack_hook``."""
     t = page.t
     pc = sheet.character
     hp = f"{sheet.hp_current}/{sheet.hp_max.value if sheet.hp_max.value is not None else '—'}"
@@ -1754,6 +1785,7 @@ def character_block(
                 f"{sheet.pact.available}/{sheet.pact.total}"
             ]
         )
+    form_actions = _form_actions(page, sheet, ctx, attack_hook)
     return div(class_="panel statblock cb-pc")[
         header(class_="sb-head cb-pc-head")[
             span(class_="eyebrow")[t("combat.pc_kind")],
@@ -1832,8 +1864,9 @@ def character_block(
                 for attack in sheet.attacks
             ],
         ]
-        if sheet.attacks
+        if sheet.attacks and form_actions is None
         else None,
+        form_actions,
         section(class_="sb-section")[
             h3(class_="sb-heading")[t("combat.pc_spellcasting")],
             _sb_line(

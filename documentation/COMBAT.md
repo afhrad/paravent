@@ -131,7 +131,9 @@ guard, a summoned wolf, a charmed ogre.
   board over its stream.
 - **Wild Shape** (2026-11-14): a druid in a form carries a pill naming the beast — in
   the tracker's row and the party card with a 2014 form's own hit points, on the players'
-  board by name alone (`SeenCombatant.form`); the character panel links its statblock.
+  board by name alone (`SeenCombatant.form`); the character panel links its statblock
+  and lists the beast's actions in place of the druid's weapons, each attack rolled from
+  the tracker like a monster's and resolved with Hit or Miss.
 - **Dead**: a monster at 0 HP, or a character with three failed death saves, carries a
   skull "Dead" pill and is struck through. A dying character is down, not dead.
 - **XP** comes only from fallen foes; an ally that falls earns nothing.
