@@ -31,6 +31,18 @@
   }
   window.ParaventText = { replace: replaceText };
 
+  // -- Room for the top bar ------------------------------------------------------
+  // The bar sticks to the top and wraps to two rows on a phone, so a link to a heading
+  // would land beneath it. Its height is kept in --bar-h, which the page's
+  // scroll-padding reads (app.css); without this file a fixed guess stands.
+  var bar = document.querySelector('.shell-bar');
+  if (bar) {
+    var measure = function () { root.style.setProperty('--bar-h', bar.offsetHeight + 'px'); };
+    measure();
+    if (window.ResizeObserver) new ResizeObserver(measure).observe(bar);
+    else window.addEventListener('resize', measure);
+  }
+
   // -- Light / Dark --------------------------------------------------------------
   // The stored choice is applied before paint by an inline script in <head>; this
   // wires the buttons and reflects the state. Until a choice is made the device's own
