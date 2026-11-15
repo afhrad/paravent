@@ -3,10 +3,14 @@
 The gamemaster names the shop, ticks who may use it (nobody ticked: every character
 of the world), sets its prices as a share of the list price and what it pays for
 goods. On the shelves is the same priced, mundane gear as the character wizard's shop,
-from the world's books, in the world's edition. A purchase is paid from the purse
-(the smallest coins first, change given) and lands in the pack; a carried item the
-books price is bought back at the shop's share of its list price. Both are logged.
-The gamemaster closes the shop again.
+from the world's books, in the world's edition, and whatever magic items the
+gamemaster puts there: one by one, rolled by rarity from the world's books, or a
+treasure's items. A magic item without a price of its own costs its rarity's value
+(halved for a consumable other than a spell scroll, a scroll twice what scribing it
+costs; app/store/registry.py). A purchase is paid from the purse (the smallest coins
+first, change given) and lands in the pack; a carried item the books price is bought
+back at the shop's share of its list price. Both are logged. The gamemaster closes
+the shop again.
 """
 
 from __future__ import annotations
@@ -15,7 +19,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from math import ceil
 
-from app.models.gamestate import Shop
+from app.models.gamestate import Shop, ShopItem
 from app.models.protocol import EntryKind, ProtocolEntry, Scope
 from app.services.chargen.catalogue import Offer
 from app.services.i18n import Translatable
@@ -95,6 +99,56 @@ class ShopService:
         if shop.open:
             self._log(world_id, by, by_name, f"shop:close:{shop.name}")
         return self._save(shop.model_copy(update={"open": False}))
+
+    def stock(self, world_id: str, items: Sequence[tuple[str, int, int | None]]) -> Shop:
+        """Put magic items on the shelf: ``(reference, price in copper, count)``; one
+        already there has its count raised (or made endless) and keeps its price."""
+        shop = self.of(world_id)
+        stock = list(shop.stock)
+        for ref, price, count in items:
+            held = next((n for n, s in enumerate(stock) if s.ref.lower() == ref.lower()), None)
+            if held is None:
+                stock.append(ShopItem(ref=ref, price=max(0, price), count=count))
+            else:
+                old = stock[held].count
+                more = None if old is None or count is None else min(999, old + count)
+                stock[held] = stock[held].model_copy(update={"count": more})
+        return self._save(shop.model_copy(update={"stock": stock}))
+
+    def reprice(self, world_id: str, index: int, price: int, count: int | None) -> Shop:
+        """Change a stocked item's price or count."""
+        shop = self.of(world_id)
+        if not 0 <= index < len(shop.stock) or price < 0:
+            raise ShopError("shop.error.prices")
+        stock = [
+            s.model_copy(update={"price": price, "count": count}) if n == index else s
+            for n, s in enumerate(shop.stock)
+        ]
+        return self._save(shop.model_copy(update={"stock": stock}))
+
+    def unstock(self, world_id: str, index: int) -> Shop:
+        shop = self.of(world_id)
+        kept = [s for n, s in enumerate(shop.stock) if n != index]
+        return self._save(shop.model_copy(update={"stock": kept}))
+
+    def sold(self, world_id: str, ref: str, count: int) -> ShopItem:
+        """Take ``count`` of a stocked item off the shelf (it was bought): the item as it
+        was, raising when the shelf holds fewer."""
+        shop = self.of(world_id)
+        index = next((n for n, s in enumerate(shop.stock) if s.ref.lower() == ref.lower()), None)
+        if index is None:
+            raise ShopError("shop.error.sold_out")
+        item = shop.stock[index]
+        if item.count is not None and item.count < count:
+            raise ShopError("shop.error.sold_out")
+        stock = list(shop.stock)
+        if item.count is not None:
+            if item.count == count:
+                del stock[index]
+            else:
+                stock[index] = item.model_copy(update={"count": item.count - count})
+        self._save(shop.model_copy(update={"stock": stock}))
+        return item
 
     def serves(self, world_id: str | None, character_id: str) -> Shop | None:
         """The open shop a character may use in its world, if any."""

@@ -497,6 +497,21 @@ class TestCraft:
                 mcp, "build_encounter", world_id=world_id, difficulty="hard", habitat="moon"
             )
 
+            road = await call(
+                mcp, "plan_journey", world_id=world_id, days=2, character_ids=[lyra, brunhild]
+            )
+            assert road["miles"] == 48.0 and road["hours"] == 16
+            assert road["rations"] == 4 and road["water_gallons"] == 4.0
+            assert 0 < road["encounter_chance"] < 1 and "Swamp|XGE" in road["environments"]
+            assert "slow, normal or fast" in await refused(
+                mcp, "plan_journey", world_id=world_id, days=1, pace="gallop"
+            )
+            stock = await call(
+                mcp, "shop_stock", world_id=world_id, items=["Bag of Holding", "Nothing Here"]
+            )
+            assert [i["name"] for i in stock["items"]] == ["Bag of Holding"]
+            assert stock["items"][0]["price_gp"] > 0 and stock["unresolved"] == ["Nothing Here"]
+
             draft = await call(
                 mcp,
                 "create_adventure",

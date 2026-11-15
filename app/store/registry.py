@@ -12,6 +12,8 @@ than merely documented: see :meth:`StoreRegistry.assert_reference_readonly`.
 from __future__ import annotations
 
 import logging
+import re
+from collections.abc import Callable, Sequence
 from functools import cached_property
 from pathlib import Path
 from typing import Any
@@ -22,11 +24,14 @@ from app.models.gamestate import CheckCall, Combat, Combatant, WorldClock
 from app.models.pc import PlayerCharacter
 from app.models.protocol import EntryKind, ProtocolEntry
 from app.services import media, polymorph
+from app.services.activities import Activities, Offered, rarity_of
 from app.services.adventures import AdventureService
 from app.services.auth import AuthService, Identity
 from app.services.backlinks import BacklinkIndex
 from app.services.backup import BackupService
+from app.services.bastion_orders import OrderOption, OrderYields, options_of
 from app.services.bastions import BastionEvent, BastionService, event_rows
+from app.services.book_tables import Rows, copper, days, find_in, rolled, row_for
 from app.services.characters import CharacterService
 from app.services.chargen.catalogue import Catalogue, Edition
 from app.services.chargen.drafts import Drafts
@@ -34,6 +39,7 @@ from app.services.chargen.levelup import LevelUps
 from app.services.chargen.prepare import Preparations
 from app.services.checks import CheckService
 from app.services.clock import ClockService
+from app.services.coins import coins_for, worth
 from app.services.combat import CombatService, SheetCharacters
 from app.services.corpus_check import CorpusHealth, corpus_version
 from app.services.corpus_import import CorpusImport, CorpusImports
@@ -45,6 +51,7 @@ from app.services.creature_builder import (
 )
 from app.services.creature_pictures import CreaturePictures, design_ref, slug
 from app.services.creature_sight import Sight, fluff_image, sight
+from app.services.dice import Dice
 from app.services.difficulty import DifficultyRules
 from app.services.downtime import DowntimeService
 from app.services.encounters import EncounterService
@@ -81,12 +88,14 @@ from app.services.shop import ShopService
 from app.services.sound import SoundDesk, SoundLibrary
 from app.services.style_drafts import ApiAgent, StyleDrafts
 from app.services.summons import Summoning, summoning
+from app.services.text import strip_tags
 from app.services.themes import ThemeLibrary, ThemeService
 from app.services.tokens import Token, Tokens
 from app.services.translation_coverage import TranslationCoverage, TranslationJobs
 from app.services.translation_targets import FLUFF_OF, TranslationTargets, fluff_category
 from app.services.translations import TranslationStore, record_key
-from app.services.travel import TravelService
+from app.services.travel import TravelService, Vessel
+from app.services.treasure_roll import roller_for
 from app.services.world_instructions import WorldInstructionService
 from app.services.worlds import BookCatalog, WorldService
 from app.store.compendium import CompendiumStore, LoadReport
@@ -623,7 +632,64 @@ class StoreRegistry:
     @cached_property
     def bastions(self) -> BastionService:
         """Characters' bastions (app/services/bastions.py)."""
-        return BastionService(self.gamestate, self.protocol, events=self._bastion_events)
+        characters = self.characters
+        by = Actor("Paravent", username="")
+
+        def pay(character_id: str, amount: int, what: str) -> bool:
+            try:
+                characters.act_for(character_id, "spend", {"amount": str(amount), "for": what}, by)
+            except PlayError:
+                return False
+            return True
+
+        def earn(character_id: str, amount: int) -> None:
+            characters.receive(character_id, [], coins_for(amount), by)
+
+        def give(character_id: str, ref: str, count: int) -> None:
+            characters.receive(character_id, [(ref, count)], {}, by)
+
+        def price(ref: str) -> int:
+            name, _, source = ref.partition("|")
+            for category in ("baseitem", "item"):
+                try:
+                    found = self.compendium.find(category, name, source)
+                except EntryNotFound:
+                    continue
+                if found is not None:
+                    value = found.model_dump(by_alias=True, exclude_none=True).get("value")
+                    return int(value) if isinstance(value, int | float) else 0
+            return 0
+
+        yields = OrderYields(
+            options=self.facility_options, pay=pay, earn=earn, give=give, price=price
+        )
+        return BastionService(
+            self.gamestate, self.protocol, events=self._bastion_events, yields=yields, pay=pay
+        )
+
+    def facility_options(self, ref: str) -> dict[str, list[OrderOption]]:
+        """A special facility's options per order, read from its text."""
+        name, _, source = ref.partition("|")
+        try:
+            found = self.compendium.find("facility", name, source)
+        except EntryNotFound:
+            return {}
+        if found is None:
+            return {}
+        return options_of(found.model_dump(by_alias=True, exclude_none=True))
+
+    def basic_costs(self, world_id: str | None) -> tuple[dict[str, tuple[int, int]], ...]:
+        """Adding and enlarging a basic facility, by space: (copper, days) — from the
+        guide's two tables, empty without them."""
+        out = []
+        for caption in ("Adding Basic Facilities", "Enlarging Basic Facilities"):
+            costs = {}
+            for row in self.book_table(world_id, caption, ["XDMG"]) or []:
+                if len(row) >= 3:
+                    space = row[0].strip().lower().split(" to ")[0]
+                    costs[space] = (copper(row[1]), days(row[2]))
+            out.append(costs)
+        return tuple(out)
 
     def _bastion_events(self) -> list[BastionEvent]:
         """The 2024 guide's Bastion Events table, when the corpus has it."""
@@ -666,6 +732,9 @@ class StoreRegistry:
         def con_mod(pc: PlayerCharacter) -> int:
             return characters.sheet(pc).ability("con").modifier
 
+        def con_save(pc: PlayerCharacter) -> int:
+            return characters.sheet(pc).ability("con").save.value or 0
+
         def rest(world_id: str) -> None:
             characters.rest_party(world_id, "long", Actor("Paravent", username=""))
 
@@ -676,8 +745,58 @@ class StoreRegistry:
             eat=eat,
             tire=tire,
             con_mod=con_mod,
+            con_save=con_save,
             rest=rest,
         )
+
+    def book_table(self, world_id: str | None, caption: str, sources: Sequence[str]) -> Rows | None:
+        """The rows of a table the books print (``caption``), from the first of
+        ``sources`` the world's books include (app/services/book_tables.py)."""
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        held = (
+            [s for s in sources if s.lower() in world.source_set.normalized]
+            if world is not None and not world.source_set.is_unrestricted
+            else list(sources)
+        )
+        if not held:
+            return None
+        return find_in(self.compendium.all("table"), caption, held)
+
+    def weather(self, world_id: str | None) -> Callable[[], str] | None:
+        """Rolls a day's weather on the world's guide ("temperature|wind|
+        precipitation"), or None when its books print no weather table."""
+        dice = Dice()
+        both = self.book_table(world_id, "Weather", ["XDMG"])
+        if both is not None:
+
+            def roll_2024() -> str:
+                cells = [both_row(both, dice.die(20))[i] for i in (1, 2, 3)]
+                return "|".join(rolled(c, dice) for c in cells)
+
+            return roll_2024
+        parts = [
+            self.book_table(world_id, caption, ["DMG"])
+            for caption in ("Weather", "Weather; Wind", "Weather; Precipitation")
+        ]
+        if any(p is None for p in parts):
+            return None
+
+        def roll_2014() -> str:
+            return "|".join(rolled(both_row(p or [], dice.die(20))[1], dice) for p in parts)
+
+        return roll_2014
+
+    def vessels(self, world_id: str | None) -> list[Vessel]:
+        """The ships and airships of the world's books, with their speed."""
+        seen: dict[str, Vessel] = {}
+        for offer in self.catalogue(world_id).rows("baseitem") + self.catalogue(world_id).rows(
+            "item"
+        ):
+            speed = offer.data.get("vehSpeed")
+            code = str(offer.data.get("type", "")).split("|")[0]
+            if code in ("SHP", "AIR") and isinstance(speed, int | float) and speed > 0:
+                seen.setdefault(offer.name.lower(), Vessel(offer.name, float(speed)))
+        return sorted(seen.values(), key=lambda v: v.name.lower())
 
     @cached_property
     def downtime(self) -> DowntimeService:
@@ -705,6 +824,197 @@ class StoreRegistry:
             learn=learn,
             recuperate=recuperate,
         )
+
+    @cached_property
+    def activities(self) -> Activities:
+        """The downtime activities of *Xanathar's Guide* (app/services/activities.py)."""
+        characters = self.characters
+        by = Actor("Paravent", username="")
+
+        def check(pc: PlayerCharacter, kind: str, subject: str) -> int:
+            return characters.roll_for(pc.id, kind, subject, by, private=False) or 0
+
+        def proficiency(pc: PlayerCharacter) -> int:
+            return characters.sheet(pc).proficiency.value or 0
+
+        def hit_die(pc: PlayerCharacter) -> int:
+            dice = [h.faces for h in characters.sheet(pc).hit_dice] or [8]
+            return max(dice)
+
+        def pay(character_id: str, amount: int, what: str) -> None:
+            characters.act_for(character_id, "spend", {"amount": str(amount), "for": what}, by)
+
+        def earn(character_id: str, amount: int, _what: str) -> None:
+            characters.receive(character_id, [], coins_for(amount), by)
+
+        def purse(character_id: str) -> int:
+            pc = self.gamestate.characters.find(character_id)
+            return worth(pc.currency) if pc is not None else 0
+
+        def give(character_id: str, ref: str) -> None:
+            characters.receive(character_id, [(ref, 1)], {}, by)
+
+        def sell(character_id: str, ref: str, price: int) -> None:
+            pc = self.gamestate.characters.find(character_id)
+            index = next(
+                (
+                    n
+                    for n, item in enumerate(pc.inventory if pc else [])
+                    if item.item.reference.lower() == ref.lower() and not item.equipped
+                ),
+                None,
+            )
+            if index is None:
+                raise PlayError("play.error.bad_input")
+            characters.act_for(
+                character_id, "sell", {"index": str(index), "count": "1", "price": str(price)}, by
+            )
+
+        def magic_items(table: str, times: int) -> list[Offered]:
+            roller = roller_for(self.compendium, self.loot, None, "DMG")
+            out = []
+            for name, source in roller.magic_items(table, "DMG", times):
+                try:
+                    item = self.compendium.find("item", name, source)
+                except EntryNotFound:
+                    continue
+                data = item.model_dump(by_alias=True, exclude_none=True) if item else {}
+                rarity = rarity_of(data.get("rarity"))
+                if rarity:
+                    kind = str(data.get("type", "")).split("|")[0]
+                    out.append(Offered(name, source, rarity, kind in ("P", "SC")))
+            return out
+
+        return Activities(
+            self.downtime,
+            check=check,
+            proficiency=proficiency,
+            hit_die=hit_die,
+            pay=pay,
+            earn=earn,
+            purse=purse,
+            magic_items=magic_items,
+            give=give,
+            sell=sell,
+        )
+
+    def has_book(self, world_id: str | None, source: str) -> bool:
+        """Whether a world may read ``source``: declared, or nothing declared and the
+        corpus holds it."""
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        if world is not None and not world.source_set.is_unrestricted:
+            return source.lower() in world.source_set.normalized
+        held = {
+            s.lower()
+            for category in ("table", "item", "spell")
+            for s in self.compendium.sources(category)
+        }
+        return source.lower() in held
+
+    def training_rule(self, world_id: str | None) -> str:
+        """Which book's training rule a world follows: "xge", "phb" or "table" (the
+        2024 books have none: the gamemaster's days)."""
+        if self.has_book(world_id, "XGE"):
+            return "xge"
+        return "phb" if self.has_book(world_id, "PHB") else "table"
+
+    def scroll_costs(self, world_id: str | None) -> dict[int, tuple[int, int, str]]:
+        """Scribing a scroll by spell level: (days, copper, the scroll's reference), from
+        the world's Spell Scroll Costs table; empty without one."""
+        if self.rules_of(world_id) == "one" and self.has_book(world_id, "XPHB"):
+            rows = self.book_table(world_id, "Scribing Spell Scrolls; Spell Scroll Costs", ["XPHB"])
+            scroll = "XDMG" if self.has_book(world_id, "XDMG") else "DMG"
+        else:
+            rows = self.book_table(world_id, "Resources; Spell Scroll Costs", ["XGE"])
+            scroll = "DMG" if self.has_book(world_id, "DMG") else "XDMG"
+        out: dict[int, tuple[int, int, str]] = {}
+        for row in rows or []:
+            if len(row) < 3:
+                continue
+            cell = strip_tags(row[0]).strip().lower()
+            level = 0 if cell.startswith("cantrip") else int(re.sub(r"\D", "", cell) or -1)
+            if 0 <= level <= 9:
+                out[level] = (days(row[1]), copper(row[2]), _scroll_ref(level, scroll))
+        return out
+
+    def rarity_values(self, world_id: str | None) -> dict[str, int]:
+        """A magic item's value by rarity in copper, from the world's guide: the 2024
+        table, else *Xanathar's* base prices, else the top of the 2014 guide's range."""
+        for caption, source in (
+            ("Magic Item Values by Rarity; Magic Item Rarities and Values", "XDMG"),
+            ("Selling a Magic Item; Magic Item Base Prices", "XGE"),
+            ("Magic Item Rarity", "DMG"),
+        ):
+            rows = self.book_table(world_id, caption, [source])
+            if not rows:
+                continue
+            out = {}
+            for row in rows:
+                if len(row) < 2:
+                    continue
+                cell = strip_tags(row[-1]).replace(",", "")
+                numbers = [int(n) for n in re.findall(r"\d+", cell)]
+                if numbers:
+                    out[row[0].strip().lower()] = max(numbers) * 100
+            if out:
+                return out
+        return {}
+
+    def magic_price(self, world_id: str | None, name: str, source: str) -> int:
+        """What a magic item is worth, in copper: its own price if it has one, else its
+        rarity's value (halved for a consumable other than a spell scroll; a scroll
+        twice what scribing it costs), with the price of the item it is made from."""
+        try:
+            item = self.compendium.find("item", name, source)
+        except EntryNotFound:
+            return 0
+        if item is None:
+            return 0
+        data = item.model_dump(by_alias=True, exclude_none=True)
+        if isinstance(data.get("value"), int | float) and data["value"] > 0:
+            return int(data["value"])
+        if name.lower().startswith("spell scroll"):
+            level = 0 if "cantrip" in name.lower() else int(re.sub(r"\D", "", name) or 0)
+            costs = self.scroll_costs(world_id)
+            if level in costs:
+                return costs[level][1] * 2
+        rarity = rarity_of(data.get("rarity"))
+        value = self.rarity_values(world_id).get(rarity, 0)
+        code = str(data.get("type", "")).split("|")[0]
+        if code in ("P", "SC", "A"):
+            value //= 2
+        base = data.get("baseItem")
+        if isinstance(base, str) and "|" in base:
+            base_name, _, base_source = base.partition("|")
+            offer = self.catalogue(world_id).item(f"{base_name}|{base_source}")
+            if offer is not None:
+                value += int(offer.data.get("value") or 0)
+        return value
+
+    def magic_roll(
+        self, world_id: str | None, rarity: str, count: int, dice: Dice | None = None
+    ) -> list[tuple[str, int]]:
+        """``count`` magic items of ``rarity`` drawn from the world's books, with their
+        prices: ``(reference, copper)``."""
+        dice = dice or Dice()
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        source_set = world.source_set if world is not None else None
+        resolver = self.compendium.resolver()
+        pool = []
+        for item in self.compendium.all("item"):
+            data = item.model_dump(by_alias=True, exclude_none=True)
+            if rarity_of(data.get("rarity")) != rarity or data.get("sentient"):
+                continue
+            name, source = str(data.get("name", "")), str(data.get("source", ""))
+            found = resolver.resolve_parts("item", name, None, source_set).entry
+            if found is None or str(getattr(found, "source", "")) != source:
+                continue
+            pool.append((name, source))
+        out = []
+        for _ in range(min(count, len(pool))):
+            name, source = pool.pop(dice.die(len(pool)) - 1)
+            out.append((f"{name}|{source}", self.magic_price(world_id, name, source)))
+        return out
 
     @cached_property
     def shops(self) -> ShopService:
@@ -1297,6 +1607,22 @@ def _is_within(path: Path, root: Path) -> bool:
     except ValueError:
         return False
     return True
+
+
+def _scroll_ref(level: int, book: str) -> str:
+    """The spell scroll item of a spell level, in the 2014 or the 2024 guide."""
+    if level == 0:
+        return f"Spell Scroll (Cantrip)|{book}"
+    if book == "XDMG":
+        return f"Spell Scroll (Level {level})|XDMG"
+    suffix = {1: "st", 2: "nd", 3: "rd"}.get(level, "th")
+    return f"Spell Scroll ({level}{suffix} Level)|DMG"
+
+
+def both_row(rows: Rows, roll: int) -> list[str]:
+    """The row a d20 lands on, padded so every column reads."""
+    row = row_for(rows, roll) or (rows[0] if rows else [])
+    return [*row, "", "", "", ""]
 
 
 __all__ = ["ReferenceRootViolation", "StoreRegistry"]

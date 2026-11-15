@@ -16,6 +16,7 @@ one, or hand one to a player.
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from fractions import Fraction
 from typing import Annotated, Any
@@ -40,21 +41,25 @@ from app.routes.auth import html, redirect
 from app.routes.play_combat import strip
 from app.routes.rolls import announce_roll, new_roll
 from app.services import polymorph
+from app.services.activities import rarity_of
 from app.services.auth import Identity
+from app.services.bastion_orders import OrderOption
 from app.services.bastions import BastionError, basic_facilities, facilities
 from app.services.chargen.catalogue import SHELVES, TOOL_TYPES, Offer
 from app.services.chargen.plan import price
 from app.services.clock import BASTION_TURN, day_of
 from app.services.combat import CombatError
-from app.services.downtime import DowntimeError, crafting_days, materials
+from app.services.crafting import craft_rules, tools_for
+from app.services.downtime import DowntimeError, crafting_days, materials, training_plan
 from app.services.events import revision_stream
 from app.services.play import Actor, PlayError
 from app.services.sheet import Sheet
-from app.services.shop import Ware
+from app.services.shop import ShopError, Ware, priced
+from app.store.errors import EntryNotFound
 from app.ui.bastion_pages import bastion_page
 from app.ui.character_list_pages import character_delete_page, characters_page
 from app.ui.context import Page
-from app.ui.downtime_pages import downtime_page
+from app.ui.downtime_pages import StartOptions, downtime_page
 from app.ui.names import name_text
 from app.ui.sheet_pages import sheet_fragment, sheet_page
 from app.ui.shop_pages import shop_page
@@ -414,6 +419,10 @@ def _bastion(
     offered = facilities(entries, characters.source_set(character), level)
     every = {f.reference.lower(): f for f in facilities(entries, None, 20)}
     bastion = registry.bastions.of(character.id)
+    options = [registry.facility_options(f.ref) for f in bastion.facilities]
+    readies = [f.ready for f in bastion.basic if f.ready is not None] + [
+        int(p.partition("|")[0]) for p in bastion.pending if p.partition("|")[0].isdigit()
+    ]
     return html(
         bastion_page(
             page,
@@ -430,10 +439,42 @@ def _bastion(
             next_turn=day_of(bastion.last_turn + BASTION_TURN)
             if bastion.last_turn is not None and character.world_id
             else None,
+            options=options,
+            tool_items=_tool_items(page, registry, character, options),
+            costs=registry.basic_costs(character.world_id),
+            day_of={m: str(day_of(m)) for m in readies},
             error=error,
             message=message,
         )
     )
+
+
+def _tool_items(
+    page: Page,
+    registry: RegistryDep,
+    character: PlayerCharacter,
+    options: Sequence[Mapping[str, Sequence[OrderOption]]],
+) -> dict[str, list[tuple[str, str]]]:
+    """What each tool a facility crafts with makes, from the world's gear: ``"*"`` (the
+    Workshop) any artisan's tools."""
+    wanted = {o.tool for found in options for order in found.values() for o in order if o.tool}
+    if not wanted:
+        return {}
+    catalogue = registry.catalogue(character.world_id)
+    rules = craft_rules(catalogue.rows("baseitem") + catalogue.rows("item"))
+    gear = catalogue.shop(registry.rules_of(character.world_id))
+    out: dict[str, list[tuple[str, str]]] = {}
+    for tool in wanted:
+        chosen = [r for r in rules if tool == "*" or r.tool.lower() == tool.lower()]
+        out[tool] = sorted(
+            (
+                (o.reference, str(name_text(page, ("item", "baseitem"), o.name)))
+                for o in gear
+                if any(r.makes(o) for r in chosen) and price(o) > 0
+            ),
+            key=lambda pair: pair[1].lower(),
+        )
+    return out
 
 
 def _event_text(
@@ -535,7 +576,23 @@ async def change_bastion(
             }.get(str(form.get("facility", "")).lower())
             if basic is None:
                 raise BastionError("bastion.error.order")
-            service.add_basic(character_id, level, basic, str(form.get("space", "")))
+            adding, _ = registry.basic_costs(character.world_id)
+            service.add_basic(
+                character_id,
+                level,
+                basic,
+                str(form.get("space", "")),
+                costs=adding,
+                at=registry.clock.of(character.world_id).minute if character.world_id else None,
+            )
+        elif op == "enlarge_basic":
+            _, enlarging = registry.basic_costs(character.world_id)
+            service.enlarge_basic(
+                character_id,
+                index,
+                enlarging,
+                at=registry.clock.of(character.world_id).minute if character.world_id else None,
+            )
         elif op == "remove_basic":
             service.remove_basic(character_id, index)
         elif op == "defenders":
@@ -558,9 +615,19 @@ async def change_bastion(
                 f.reference.lower(): f
                 for f in facilities(registry.compendium.all("facility"), None, 20)
             }.get(ref)
-            service.order(
-                character_id, index, str(form.get("order", "")), known.orders if known else ()
-            )
+            order, _, choice = str(form.get("order", "")).partition("|")
+            found = registry.facility_options(ref).get(order, []) if order else []
+            n = int(choice) if choice.isdigit() else 0
+            if found and not 0 <= n < len(found):
+                raise BastionError("bastion.error.order")
+            option = str(n) if found else ""
+            if found and found[n].tool:
+                item = str(form.get("item", ""))
+                tool_items = _tool_items(page, registry, character, [{order: [found[n]]}])
+                if item and item not in {r for r, _ in tool_items.get(found[n].tool, [])}:
+                    raise BastionError("bastion.error.order")
+                option = f"{n}|{item}" if item else str(n)
+            service.order(character_id, index, order, known.orders if known else (), option)
         elif op == "turn" and identity.is_gamemaster:
             user = identity.user
             service.turn(
@@ -611,6 +678,7 @@ def _shop(
             purse=character.currency,
             wares=wares,
             sellable=sellable,
+            magic=[(item, priced(item.price, shop.markup)) for item in shop.stock],
             shelf_shown=shelf if shelf in SHELVES else "",
             query=query.strip()[:60],
             error=error,
@@ -681,6 +749,26 @@ async def trade(
             message = page.t(
                 "shop.bought", name=name_text(page, ("item", "baseitem"), ware.offer.name), n=count
             )
+        elif form.get("op") == "buy_magic":
+            wanted = str(form.get("item", "")).lower()
+            stocked = next((i for i in shop.stock if i.ref.lower() == wanted), None)
+            if stocked is None or stocked.count == 0:
+                raise ShopError("shop.error.sold_out")
+            characters.act_for(
+                character.id,
+                "buy",
+                {
+                    "item": stocked.ref,
+                    "count": "1",
+                    "price": str(priced(stocked.price, shop.markup)),
+                },
+                actor,
+            )
+            if character.world_id:
+                registry.shops.sold(character.world_id, stocked.ref, 1)
+            message = page.t(
+                "shop.bought", name=name_text(page, "item", stocked.ref.partition("|")[0]), n=1
+            )
         elif form.get("op") == "sell":
             raw = str(form.get("index", ""))
             index = int(raw) if raw.isdigit() else -1
@@ -703,7 +791,7 @@ async def trade(
             )
         else:
             raise PlayError("play.error.bad_input")
-    except PlayError as exc:
+    except (PlayError, ShopError) as exc:
         fresh = characters.get_for(identity, character_id)
         return _shop(page, registry, fresh, error=page.t.error(exc))
     return _shop(page, registry, characters.get_for(identity, character_id), message=message)
@@ -718,33 +806,105 @@ def _downtime(
     message: str | None = None,
 ) -> HTMLResponse:
     rules = registry.rules_of(character.world_id)
-    craftable = [
-        (
-            o.reference,
-            str(name_text(page, ("item", "baseitem"), o.name)),
-            crafting_days(p, rules),
-            materials(p),
-        )
-        for o in _craftable(registry, character)
-        if (p := price(o)) > 0
-    ]
+    craftable, unlisted = _craftable(registry, character)
+    rule = registry.training_rule(character.world_id)
+    sheet = registry.characters.sheet(character)
+    training_days, training_daily = training_plan(rule, sheet.ability("int").modifier)
+    start = StartOptions(
+        craftable=[
+            (
+                o.reference,
+                str(name_text(page, ("item", "baseitem"), o.name)),
+                crafting_days(p, rules),
+                materials(p),
+                ", ".join(str(name_text(page, ("item", "baseitem"), tool)) for tool in tools),
+            )
+            for o, tools in craftable
+            if (p := price(o)) > 0
+        ],
+        unlisted=unlisted,
+        trainable=_trainable(page, registry, character),
+        training=rule,
+        training_days=training_days,
+        training_daily=training_daily,
+        scrolls=_scribable(registry, character),
+        activities=registry.has_book(character.world_id, "XGE"),
+        magic=[(ref, name, rarity) for ref, name, rarity, _ in _magic_carried(registry, character)],
+    )
     return html(
         downtime_page(
             page,
             character_id=character.id,
             character_name=character.name or "?",
             downtime=registry.downtime.of(character.id),
-            craftable=craftable,
-            trainable=_trainable(page, registry, character),
+            start=start,
             error=error,
             message=message,
         )
     )
 
 
-def _craftable(registry: RegistryDep, character: PlayerCharacter) -> list[Offer]:
-    """What a character may craft: the mundane gear the shop would sell."""
-    return registry.catalogue(character.world_id).shop(registry.rules_of(character.world_id))
+def _craftable(
+    registry: RegistryDep, character: PlayerCharacter
+) -> tuple[list[tuple[Offer, list[str]]], int]:
+    """What a character may craft, with the tools that make each: the mundane gear the
+    shop would sell, less what needs a tool the character lacks (how many that is)."""
+    catalogue = registry.catalogue(character.world_id)
+    rules = craft_rules(catalogue.rows("baseitem") + catalogue.rows("item"))
+    known = [o.name for o in character.tools]
+    held = {k.lower() for k in known}
+    out, left_out = [], 0
+    for offer in catalogue.shop(registry.rules_of(character.world_id)):
+        tools = tools_for(offer, rules)
+        if tools and not any(tool.lower() in held for tool in tools):
+            left_out += 1
+            continue
+        out.append((offer, [tool for tool in tools if tool.lower() in held]))
+    return out, left_out
+
+
+def _scribable(
+    registry: RegistryDep, character: PlayerCharacter
+) -> list[tuple[str, int, int, int]]:
+    """The spells a character may put on a scroll, ``(spell, level, days, copper)``: it
+    needs Arcana (or, under the 2024 rules, calligrapher's supplies) and the book's
+    costs table; a spell the sheet lists, prepared or known."""
+    costs = registry.scroll_costs(character.world_id)
+    if not costs:
+        return []
+    sheet = registry.characters.sheet(character)
+    arcana = any(s.key == "arcana" and s.proficient for s in sheet.skills)
+    calligraphy = registry.rules_of(character.world_id) == "one" and any(
+        o.name.lower() == "calligrapher's supplies" for o in character.tools
+    )
+    if not (arcana or calligraphy):
+        return []
+    out = []
+    for spell in sheet.spells:
+        level = getattr(spell, "level", None)
+        if spell.found and isinstance(level, int) and level in costs:
+            days_needed, cost, _scroll = costs[level]
+            out.append((spell.reference, level, days_needed, cost))
+    return sorted(set(out), key=lambda row: (row[1], row[0].lower()))
+
+
+def _magic_carried(
+    registry: RegistryDep, character: PlayerCharacter
+) -> list[tuple[str, str, str, int]]:
+    """Carried magic items that may be sold, ``(reference, name, rarity, index)``."""
+    out = []
+    for n, item in enumerate(character.inventory):
+        if item.equipped or item.quantity <= 0:
+            continue
+        try:
+            found = registry.compendium.find("item", item.item.name, item.item.source or "")
+        except EntryNotFound:
+            continue
+        data = found.model_dump(by_alias=True, exclude_none=True) if found else {}
+        rarity = rarity_of(data.get("rarity"))
+        if rarity:
+            out.append((item.item.reference, item.item.name, rarity, n))
+    return out
 
 
 def _trainable(
@@ -804,10 +964,17 @@ async def change_downtime(
             kind = str(form.get("kind", ""))
             label = str(form.get("label", ""))
             item_price = None
+            raw = str(form.get("needed", "")).strip()
+            needed = int(raw) if raw.isdigit() else None
+            daily = None
             if kind == "craft":
                 wanted = str(form.get("item", "")).lower()
                 offer = next(
-                    (o for o in _craftable(registry, character) if o.reference.lower() == wanted),
+                    (
+                        o
+                        for o, _ in _craftable(registry, character)[0]
+                        if o.reference.lower() == wanted
+                    ),
                     None,
                 )
                 if offer is None:
@@ -817,18 +984,69 @@ async def change_downtime(
                 label = str(form.get("item", ""))
                 if label not in {ref for ref, _ in _trainable(page, registry, character)}:
                     raise DowntimeError("downtime.error.item")
-            raw = str(form.get("needed", "")).strip()
+                modifier = registry.characters.sheet(character).ability("int").modifier
+                needed, daily = training_plan(
+                    registry.training_rule(character.world_id), modifier, needed
+                )
+            elif kind == "scribe":
+                spell, _, level = str(form.get("spell", "")).rpartition("|")
+                chosen = next(
+                    (
+                        row
+                        for row in _scribable(registry, character)
+                        if row[0] == spell and str(row[1]) == level
+                    ),
+                    None,
+                )
+                if chosen is None:
+                    raise DowntimeError("downtime.error.item")
+                scroll = registry.scroll_costs(character.world_id)[chosen[1]][2]
+                label, needed, item_price = f"{scroll};{spell}", chosen[2], chosen[3]
             service.start(
                 character,
                 kind,
                 label,
-                needed=int(raw) if raw.isdigit() else None,
+                needed=needed,
                 price=item_price,
                 rules=registry.rules_of(character.world_id),
+                daily=daily,
                 by=user.username,
                 by_name=name,
             )
             message = page.t("downtime.started")
+        elif op == "activity":
+            if not registry.has_book(character.world_id, "XGE"):
+                raise DowntimeError("downtime.error.kind")
+            kind = str(form.get("kind", ""))
+            options = {k: str(v) for k, v in form.items() if isinstance(v, str)}
+            if kind == "sell_magic":
+                ref, _, rarity = str(form.get("item", "")).rpartition("|")
+                if not any(
+                    r == ref and rare == rarity
+                    for r, _n, rare, _i in _magic_carried(registry, character)
+                ):
+                    raise DowntimeError("downtime.error.item")
+                options |= {"item": ref, "rarity": rarity}
+            world = character.world_id
+            registry.activities.run(
+                character,
+                kind,
+                options,
+                lambda caption: registry.book_table(world, caption, ["XGE"]),
+                by=user.username,
+                by_name=name,
+            )
+            message = page.t("downtime.done")
+        elif op in ("take", "refuse"):
+            raw = str(form.get("offer", ""))
+            index = int(raw) if raw.isdigit() else -1
+            project_id = str(form.get("project", ""))
+            if op == "take":
+                registry.activities.take(character, project_id, index)
+                message = page.t("downtime.taken")
+            else:
+                registry.activities.refuse(character, project_id, index)
+                message = None
         elif op == "spend":
             raw = str(form.get("days", ""))
             project = service.spend(
@@ -845,7 +1063,8 @@ async def change_downtime(
         else:
             raise DowntimeError("downtime.error.project")
     except (DowntimeError, PlayError) as exc:
-        return _downtime(page, registry, character, error=page.t.error(exc))
+        fresh = characters.get_for(identity, character_id)
+        return _downtime(page, registry, fresh, error=page.t.error(exc))
     registry.events.publish(character.id, f"downtime-{datetime.now(UTC).isoformat()}")
     return _downtime(page, registry, characters.get_for(identity, character_id), message=message)
 

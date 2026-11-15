@@ -501,6 +501,8 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             pace, hours, miles = (fields + ["", "", ""])[:3]
             where = fields[3] if len(fields) > 3 else ""
             hungry = fields[4] if len(fields) > 4 else ""
+            thirsty = fields[5] if len(fields) > 5 else ""
+            vessel = fields[6] if len(fields) > 6 else ""
             spent = remaining(page, int(hours) * 60) if hours.isdigit() else hours
             try:
                 distance = page.u.miles(float(miles))
@@ -510,12 +512,18 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
                 "protocol.travel",
                 span=spent,
                 distance=distance,
-                pace=t(f"travel.pace.{pace}") if pace in PACES else pace,
+                pace=t("travel.aboard", name=vessel)
+                if vessel
+                else t(f"travel.pace.{pace}")
+                if pace in PACES
+                else pace,
             )
             if where:
                 line += f" · {where}"
             if hungry:
                 line += " · " + t("travel.hungry", names=hungry.replace(",", ", "))
+            if thirsty:
+                line += " · " + t("travel.thirsty", names=thirsty.replace(",", ", "))
             return line
         if head == "travel_encounter":
             return t("protocol.travel_encounter", row=rest) if rest else t("protocol.travel_check")
@@ -585,6 +593,15 @@ def _project_words(page: Page, kind: str, label: str) -> str:
         what, _, ref = label.partition(":")
         categories = "language" if what == "language" else ("item", "baseitem")
         return str(name_text(page, categories, ref.partition("|")[0]))
+    if kind == "scribe":
+        return str(name_text(page, "spell", label.partition(";")[2].partition("|")[0]))
+    if kind == "sell_magic":
+        return str(name_text(page, "item", label.partition("|")[0]))
+    if kind == "carouse":
+        return page.t(f"downtime.class_name.{label}")
+    if kind == "gamble" and label.isdigit():
+        gold, rest = divmod(int(label), 100)
+        return _purse_words(page, f"{gold}gp" + (f",{rest}cp" if rest else ""))
     return label
 
 

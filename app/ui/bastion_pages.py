@@ -3,7 +3,7 @@ for the next turn, and the gamemaster's bastion turn."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from htpy import (
     Element,
@@ -27,12 +27,15 @@ from htpy import (
 from htpy import input as input_el
 
 from app.models.gamestate import Bastion
+from app.services.bastion_orders import OrderOption
 from app.services.bastions import FROM_LEVEL, SPACES, Facility, special_slots
 from app.ui.context import Page
 from app.ui.forms import alert, hidden, notice
 from app.ui.home_pages import page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
+from app.ui.names import name_text
+from app.ui.shop_pages import coin_text
 from app.ui.tags import ref_url
 
 ORDERS = ("craft", "empower", "harvest", "recruit", "research", "trade")
@@ -56,19 +59,37 @@ def bastion_page(
     basic_offered: Sequence[Facility] = (),
     event_text: Node = None,
     next_turn: int | None = None,
+    options: Sequence[Mapping[str, Sequence[OrderOption]]] = (),
+    tool_items: Mapping[str, Sequence[tuple[str, str]]] | None = None,
+    costs: tuple[Mapping[str, tuple[int, int]], ...] = ({}, {}),
+    day_of: Mapping[int, str] | None = None,
     error: str | None = None,
     message: str | None = None,
 ) -> Element:
     """The bastion: its name, each facility with its order for the next turn (or the
-    Maintain order), a facility to add while there is room, its basic facilities and
-    defenders, the event the last turn rolled, and (for the gamemaster) the turn."""
+    Maintain order) and the option it carries out, a facility to add while there is
+    room, what the last turn yielded, its basic facilities (with what building and
+    enlarging cost) and defenders, the event the last turn rolled, and (for the
+    gamemaster) the turn. ``options`` go with the facilities, ``tool_items`` are what
+    each tool crafts (``(reference, name)``), ``day_of`` names a clock minute."""
     t = page.t
     url = bastion_url(character_id)
     slots = special_slots(level)
     taken = {f.ref.lower() for f in bastion.facilities}
     rows = [
         _facility(
-            page, url, n, held.ref, held.order, facility, world_id, held.shut, bastion.maintain
+            page,
+            url,
+            n,
+            held.ref,
+            held.order,
+            facility,
+            world_id,
+            held.shut,
+            bastion.maintain,
+            options=options[n] if n < len(options) else {},
+            chosen=held.option,
+            tool_items=tool_items or {},
         )
         for n, (held, facility) in enumerate(zip(bastion.facilities, built, strict=True))
     ]
@@ -119,6 +140,7 @@ def bastion_page(
                 if room and len(bastion.facilities) < slots
                 else None,
             ],
+            _yields(page, bastion, day_of or {}) if bastion.yields or bastion.pending else None,
             _event(page, bastion, event_text) if bastion.event else None,
             section(class_="panel bastion-maintain")[
                 form(method="post", action=url, class_="bastion-maintain-form")[
@@ -134,7 +156,9 @@ def bastion_page(
             ]
             if bastion.facilities and level >= FROM_LEVEL
             else None,
-            _basic(page, url, bastion, basic_offered, world_id) if level >= FROM_LEVEL else None,
+            _basic(page, url, bastion, basic_offered, world_id, costs, day_of or {})
+            if level >= FROM_LEVEL
+            else None,
             _defenders(page, url, bastion) if level >= FROM_LEVEL else None,
             section(class_="panel bastion-meta")[
                 form(method="post", action=url, class_="bastion-name")[
@@ -179,24 +203,103 @@ def _event(page: Page, bastion: Bastion, text: Node) -> Element:
     ]
 
 
+def _yields(page: Page, bastion: Bastion, day_of: Mapping[int, str]) -> Element:
+    """What the last turn's orders brought, and crafts still under way."""
+    t = page.t
+    lines = []
+    for line in bastion.yields:
+        parts = line.split("|")
+        if parts and parts[0] == "":
+            facility, kind, payload = "", parts[1], parts[2:]
+        else:
+            facility, kind, payload = parts[0], (parts[2:3] or [""])[0], parts[3:]
+        where = (page.t.term("facility", facility) or facility) if facility else ""
+        lines.append(li[b[where, ": "] if where else None, _yield_words(page, kind, payload)])
+    for entry in bastion.pending:
+        ready, _, item = entry.partition("|")
+        lines.append(
+            li(class_="muted")[
+                t(
+                    "bastion.yield.pending",
+                    name=name_text(page, ("item", "baseitem"), item.partition("|")[0]),
+                    day=day_of.get(int(ready), ready) if ready.isdigit() else ready,
+                )
+            ]
+        )
+    return section(class_="panel bastion-yields")[
+        div(class_="panel-head")[h2[t("bastion.yields")]],
+        ul(class_="bastion-yield-list")[lines],
+    ]
+
+
+def _yield_words(page: Page, kind: str, payload: Sequence[str]) -> Node:
+    t = page.t
+    first = payload[0] if payload else ""
+    if kind == "defenders":
+        return t.plural("bastion.yield.defenders", int(first or 0), n=first)
+    if kind == "coins":
+        won = int(first) if first.isdigit() else 0
+        roll = payload[1] if len(payload) > 1 else ""
+        return t("bastion.yield.coins", coins=coin_text(page, won), roll=roll)
+    if kind == "item":
+        count = payload[2] if len(payload) > 2 else "1"
+        name = name_text(page, ("item", "baseitem"), first)
+        return t("bastion.yield.item", name=name, n=count)
+    if kind == "pending":
+        return t("bastion.yield.started", name=name_text(page, ("item", "baseitem"), first))
+    if kind == "unpaid":
+        return span(class_="danger")[
+            t("bastion.yield.unpaid", coins=coin_text(page, int(first or 0)))
+        ]
+    if kind == "paid":
+        return span(class_="muted")[t("bastion.yield.paid", coins=coin_text(page, int(first or 0)))]
+    return span(class_="muted")[t("bastion.yield.text", what=first)]
+
+
 def _basic(
     page: Page,
     url: str,
     bastion: Bastion,
     offered: Sequence[Facility],
     world_id: str | None,
+    costs: tuple[Mapping[str, tuple[int, int]], ...] = ({}, {}),
+    day_of: Mapping[int, str] | None = None,
 ) -> Element:
-    """The basic facilities with their space; the first two are free."""
+    """The basic facilities with their space; the first two are free, any other is built
+    (and any enlarged) at the guide's cost and time."""
     t = page.t
+    adding, enlarging = (costs + ({}, {}))[:2]
     rows = []
     for n, held in enumerate(bastion.basic):
         name, _, source = held.ref.partition("|")
+        grow = enlarging.get(held.space)
         rows.append(
             li(class_="bastion-row")[
                 a(href=ref_url("facility", name, source, world_id), class_="ref")[
                     page.t.term("facility", name) or name
                 ],
                 span(class_="pill neutral")[t(f"bastion.space.{held.space}")],
+                small(class_="muted")[
+                    t(
+                        "bastion.building",
+                        day=(day_of or {}).get(held.ready, str(held.ready)),
+                    )
+                ]
+                if held.ready is not None
+                else None,
+                form(method="post", action=url, class_="inline-form")[
+                    hidden("op", "enlarge_basic"),
+                    hidden("index", str(n)),
+                    button(
+                        type="submit",
+                        class_="btn btn-sm",
+                        title=t(
+                            "bastion.enlarge_cost", coins=coin_text(page, grow[0]), days=grow[1]
+                        ),
+                    )[t("bastion.enlarge")],
+                ]
+                if grow is not None and held.ready is None
+                else None,
                 form(method="post", action=url, class_="inline-form")[
                     hidden("op", "remove_basic"),
                     hidden("index", str(n)),
@@ -221,7 +324,15 @@ def _basic(
             ],
             select(name="space", aria_label=t("bastion.space"))[
                 [
-                    option(value=sp, selected=sp == "roomy")[t(f"bastion.space.{sp}")]
+                    option(value=sp, selected=sp == "roomy")[
+                        t(f"bastion.space.{sp}")
+                        + (
+                            f" · {coin_text(page, adding[sp][0])}, "
+                            + t.plural("bastion.days", adding[sp][1], n=adding[sp][1])
+                            if sp in adding and len(bastion.basic) >= 2
+                            else ""
+                        )
+                    ]
                     for sp in SPACES
                 ]
             ],
@@ -268,11 +379,40 @@ def _facility(
     world_id: str | None,
     shut: bool = False,
     maintain: bool = False,
+    *,
+    options: Mapping[str, Sequence[OrderOption]] | None = None,
+    chosen: str = "",
+    tool_items: Mapping[str, Sequence[tuple[str, str]]] | None = None,
 ) -> Element:
     t = page.t
     name, _, source = ref.partition("|")
     shown = page.t.term("facility", name) or name
     orders = facility.orders if facility is not None else ()
+    options = options or {}
+    tools = {o.tool for found in options.values() for o in found if o.tool}
+    craftable = [item for tool in sorted(tools) for item in (tool_items or {}).get(tool, ())]
+
+    def choices(order: str) -> Node:
+        found = options.get(order) or []
+        if len(found) <= 1:
+            return option(value=f"{order}|0", selected=order == current)[
+                t(f"bastion.order.{order}")
+                + (f": {found[0].title}" if found and found[0].title.lower() != order else "")
+            ]
+        return [
+            option(value=f"{order}|{n}", selected=order == current and n == picked)[
+                f"{t(f'bastion.order.{order}')}: {o.title}"
+            ]
+            for n, o in enumerate(found)
+        ]
+
+    current = order
+    head = chosen.partition("|")[0]
+    picked = int(head) if head.isdigit() else 0
+    title = ""
+    if order and options.get(order):
+        found = options[order]
+        title = found[picked].title if picked < len(found) else ""
     return li(class_="bastion-row" + (" is-shut" if shut else ""))[
         a(href=ref_url("facility", name, source, world_id), class_="ref")[shown],
         small(class_="muted")[t("bastion.level", level=facility.level)] if facility else None,
@@ -282,13 +422,26 @@ def _facility(
             hidden("index", str(index)),
             select(name="order", aria_label=t("bastion.order"))[
                 option(value="")[t("bastion.no_order")],
-                [option(value=o, selected=o == order)[t(f"bastion.order.{o}")] for o in orders],
+                [choices(o) for o in orders],
             ],
+            select(name="item", aria_label=t("bastion.craft_item"))[
+                option(value="")[t("bastion.craft_item")],
+                [
+                    option(value=ref, selected=chosen.partition("|")[2] == ref)[item_name]
+                    for ref, item_name in craftable
+                ],
+            ]
+            if craftable
+            else None,
             button(type="submit", class_="btn btn-sm")[t("bastion.set")],
         ]
         if not shut and not maintain
         else None,
-        b(class_="pill accent")[t(f"bastion.order.{order}")] if order and not maintain else None,
+        b(class_="pill accent")[
+            t(f"bastion.order.{order}") + (f": {title}" if title and title.lower() != order else "")
+        ]
+        if order and not maintain
+        else None,
         form(method="post", action=url, class_="inline-form")[
             hidden("op", "remove"),
             hidden("index", str(index)),

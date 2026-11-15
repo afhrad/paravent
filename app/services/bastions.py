@@ -10,25 +10,26 @@ gamemaster runs the turn, which logs the orders and starts the next.
 A turn on Maintain rolls the books' Bastion Events table: the event is logged and shown
 on the page with its text. An attack rolls 6d6 and loses a Bastion Defender for each 1;
 with none left, a special facility picked at random is shut and takes no order on the
-next turn. What an order or any other event yields is the books' own text, left to the
-table.
+next turn. What the other events yield is the books' own text, left to the table.
 """
 
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
 from app.models.gamestate import BasicFacility, Bastion, BastionFacility, SourceSet
 from app.models.protocol import EntryKind, ProtocolEntry, Scope
+from app.services.bastion_orders import OrderYields
 from app.services.dice import Dice
 from app.services.i18n import Translatable
 from app.services.protocol import ProtocolService
 from app.store.gamestate import GameStateStore
 
 FROM_LEVEL = 5
+DAY = 24 * 60
 SPACES = ("cramped", "roomy", "vast")
 # A row of the events table: its range and the section it points at.
 _AREA = re.compile(r"\{@area ([^|}]+)\|([^|}]+)")
@@ -130,12 +131,18 @@ class BastionService:
         protocol: ProtocolService | None,
         *,
         events: Callable[[], list[BastionEvent]] = list,
+        yields: OrderYields | None = None,
+        pay: Callable[[str, int, str], bool] | None = None,
         dice: Dice | None = None,
     ) -> None:
-        """``events()`` reads the books' Bastion Events table (empty without it)."""
+        """``events()`` reads the books' Bastion Events table (empty without it);
+        ``yields`` carries orders out on the turn; ``pay(character, copper, why)`` pays
+        for building (False: the purse is short)."""
         self._store = store
         self._protocol = protocol
         self._events = events
+        self._yields = yields
+        self._pay = pay
         self._dice = dice or Dice()
 
     def of(self, character_id: str) -> Bastion:
@@ -164,15 +171,62 @@ class BastionService:
         kept = [f for n, f in enumerate(bastion.facilities) if n != index]
         return self._save(bastion.model_copy(update={"facilities": kept}))
 
-    def add_basic(self, character_id: str, level: int, facility: Facility, space: str) -> Bastion:
-        """List a basic facility with its space; a bastion may have several of one."""
+    def add_basic(
+        self,
+        character_id: str,
+        level: int,
+        facility: Facility,
+        space: str,
+        *,
+        costs: Mapping[str, tuple[int, int]] | None = None,
+        at: int | None = None,
+    ) -> Bastion:
+        """Add a basic facility of a space; a bastion may have several of one. The first
+        two are free (one Cramped, one Roomy); any other is paid now and stands once
+        its days (``costs[space]``: copper, days) have passed on the clock ``at``."""
         if level < FROM_LEVEL:
             raise BastionError("bastion.error.level")
         if space not in SPACES:
             raise BastionError("bastion.error.order")
         bastion = self.of(character_id)
-        built = [*bastion.basic, BasicFacility(ref=facility.reference, space=space)]
+        free = {"cramped", "roomy"} - {f.space for f in bastion.basic[:2]}
+        ready = None
+        if not (len(bastion.basic) < 2 and space in free) and costs and space in costs:
+            cost, days = costs[space]
+            self._charge(character_id, cost, f"bastion {facility.name}")
+            ready = at + days * DAY if at is not None else None
+        built = [*bastion.basic, BasicFacility(ref=facility.reference, space=space, ready=ready)]
         return self._save(bastion.model_copy(update={"basic": built}))
+
+    def enlarge_basic(
+        self,
+        character_id: str,
+        index: int,
+        costs: Mapping[str, tuple[int, int]],
+        at: int | None = None,
+    ) -> Bastion:
+        """Enlarge a basic facility a step (``costs`` by the space it grows from)."""
+        bastion = self.of(character_id)
+        if not 0 <= index < len(bastion.basic):
+            raise BastionError("bastion.error.order")
+        facility = bastion.basic[index]
+        step = SPACES.index(facility.space)
+        if step + 1 >= len(SPACES) or facility.space not in costs or facility.ready:
+            raise BastionError("bastion.error.order")
+        cost, days = costs[facility.space]
+        self._charge(character_id, cost, f"bastion {facility.ref.partition('|')[0]}")
+        grown = facility.model_copy(
+            update={
+                "space": SPACES[step + 1],
+                "ready": at + days * DAY if at is not None else None,
+            }
+        )
+        basic = [grown if n == index else f for n, f in enumerate(bastion.basic)]
+        return self._save(bastion.model_copy(update={"basic": basic}))
+
+    def _charge(self, character_id: str, cost: int, why: str) -> None:
+        if cost and self._pay is not None and not self._pay(character_id, cost, why):
+            raise BastionError("bastion.error.money")
 
     def remove_basic(self, character_id: str, index: int) -> Bastion:
         bastion = self.of(character_id)
@@ -206,16 +260,25 @@ class BastionService:
         """Issue (or take back) the Maintain order for the next turn."""
         return self._save(self.of(character_id).model_copy(update={"maintain": on}))
 
-    def order(self, character_id: str, index: int, order: str, allowed: Iterable[str]) -> Bastion:
-        """Give a facility one of its orders for the next turn ("" takes it back); a
-        facility shut after an attack takes none."""
+    def order(
+        self,
+        character_id: str,
+        index: int,
+        order: str,
+        allowed: Iterable[str],
+        option: str = "",
+    ) -> Bastion:
+        """Give a facility one of its orders for the next turn ("" takes it back), with
+        the option it carries out; a facility shut after an attack takes none."""
         bastion = self.of(character_id)
         if not 0 <= index < len(bastion.facilities) or (order and order not in set(allowed)):
             raise BastionError("bastion.error.order")
         if order and bastion.facilities[index].shut:
             raise BastionError("bastion.error.shut")
         changed = [
-            f.model_copy(update={"order": order}) if n == index else f
+            f.model_copy(update={"order": order, "option": option if order else ""})
+            if n == index
+            else f
             for n, f in enumerate(bastion.facilities)
         ]
         return self._save(bastion.model_copy(update={"facilities": changed}))
@@ -241,16 +304,48 @@ class BastionService:
         number = bastion.turns + 1
         what = f"bastion:{number}:{';'.join(orders)}"
         self._log(character_id, character_name, world_id, by, by_name, what)
-        cleared = [f.model_copy(update={"order": "", "shut": False}) for f in bastion.facilities]
+        lines: list[str] = []
+        recruited = 0
+        pending = list(bastion.pending)
+        if self._yields is not None:
+            done, pending = self._yields.deliver(character_id, pending, at)
+            lines += [y.line for y in done]
+            if not bastion.maintain:
+                ordered = [
+                    (f.ref, f.order, f.option) for f in bastion.facilities if f.order and not f.shut
+                ]
+                made, recruited, more = self._yields.run(
+                    character_id,
+                    ordered,
+                    defenders=bastion.defenders,
+                    facilities=[f.ref for f in bastion.facilities],
+                    at=at,
+                )
+                lines += [y.line for y in made]
+                pending += more
+        cleared = [
+            f.model_copy(update={"order": "", "option": "", "shut": False})
+            for f in bastion.facilities
+        ]
+        basic = [
+            f.model_copy(update={"ready": None})
+            if f.ready is not None and at is not None and f.ready <= at
+            else f
+            for f in bastion.basic
+        ]
         update: dict[str, Any] = {
             "facilities": cleared,
+            "basic": basic,
             "turns": number,
             "last_turn": at,
             "maintain": False,
             "event": "",
+            "yields": lines,
+            "pending": pending,
+            "defenders": min(999, bastion.defenders + recruited),
         }
         if bastion.maintain:
-            update |= self._event(bastion.defenders, cleared)
+            update |= self._event(update["defenders"], cleared)
             name = update["event"].split("|")[2] if update["event"] else ""
             if name:
                 lost = bastion.defenders - update.get("defenders", bastion.defenders)

@@ -469,25 +469,53 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         evening every character eats a day's rations from the pack; one without goes
         hungry, and hunger brings exhaustion by the world's rules (2014: after 3 + CON
         days; 2024: from the fifth day), which the night's long rest does not take away.
-        Water is left to the table. The journey stays on the panel and goes into the log
+        The journey stays on the panel and goes into the log. **More of the road**
+        (2026-11-15): water (enough, half or none: 2014 a DC 15 Constitution save on half,
+        2024 a level only below half), the weather rolled each day on the world's guide
+        (`app/services/book_tables.py` reads the books' small tables), mounted (twice the
+        distance in each day's first hour) or aboard a ship of the world's books at its
+        speed, around the clock if crewed in shifts, a check at night that wakes the party,
+        and a day left partway carried into the next stretch, so supper comes at its end
   - [x] **Downtime** (2026-11-15, `app/services/downtime.py`): the gamemaster grants the
         party days (the clock moves on after a long rest); each character spends them on
         its downtime page on crafting an item the shop sells (materials half its price,
         5 gp of progress a day under the 2014 rules, a day per 10 GP under the 2024
         rules; the item lands in the pack), training in a language or tool (250 days at
         1 gp a day, then known), research (1 gp a day), recuperating (three days, then a
-        DC 15 Constitution save is rolled), working or anything else
+        DC 15 Constitution save is rolled), working or anything else. **By the books**
+        (2026-11-15): crafting needs proficiency with the tool the world's tools list for
+        the item (`app/services/crafting.py`, read from the 2024 tools' "Craft:" lists; an
+        item none lists is the gamemaster's call); training follows *Xanathar's Guide*
+        where the world has it (10 workweeks less INT, 25 gp a week), else the 2014
+        handbook, and in a 2024-only world the gamemaster's days; scribing a spell scroll
+        by the world's Spell Scroll Costs table. **The book's activities**
+        (`app/services/activities.py`): carousing, crime, gambling, pit fighting,
+        religious service, research, work, selling and buying magic items, each a
+        workweek resolved at once, the checks rolled on the sheet into its log, the
+        result read from the book's table, coins won or lost, complications rolled; what
+        a buyer finds or a seller is offered waits to be taken
   - [x] **A shop during play** (2026-11-15, `app/services/shop.py`): the gamemaster opens
         a named shop for the world's characters or those ticked, at a share of the list
         price and buying back at another; the sheet shows it while open, and the shop
         page sells the wizard's mundane gear of the world's books and buys back what the
         books price, paid from the purse with change (`app/services/coins.py`), logged.
-        The sheet's own action route can no longer hand out goods or coins
+        The sheet's own action route can no longer hand out goods or coins. **Magic items
+        on the shelf** (2026-11-15): put there by name, rolled by rarity from the world's
+        books, or from a treasure's items, at their rarity's value by the world's guide
+        (halved for a consumable, a scroll twice its scribing cost), with a count or no
+        end of them
   - [x] **Bastions, the rest** (2026-11-15): basic facilities with their space, Bastion
         Defenders on a roster, and the Maintain order, whose turn rolls the 2024
         guide's Bastion Events table from the corpus and shows the event's text; an
         attack rolls 6d6 and loses a defender per 1, and with none left shuts a special
-        facility for the next turn. What other orders and events yield stays with the
+        facility for the next turn. **Orders that yield** (2026-11-15,
+        `app/services/bastion_orders.py`): each facility's options are read from its text
+        — a Barrack's four defenders up to its room, a Gaming Hall's d100 winnings, a
+        Garden's harvest by type, a Menagerie's creatures at their price, the Armory's
+        cost, a Smithy's or Workshop's craft by its tools (a long one arriving on a later
+        turn) — and carried out on the turn; what the text leaves to the table is shown
+        as such. Basic facilities past the first two are paid and built in the guide's
+        time, and enlarged a step the same way. What other events yield stays with the
         table
   - [x] **Image effects** (2026-11-04, ADVENTURES.md §5.5, `app/services/image_effects.py`):
         `torn`, `fade`, `oval`, `sepia`, `aged`, `mono`, `banner` written beside an image
@@ -703,7 +731,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       its NPCs, places, encounters and treasure too, with their counts; Claude's own
       draft delete always does. **First full run** (2026-11-02): `new_adventure` over a live
       connection on the real library, every tool in order, "Der Takt unter dem Damm". **Revisions** (MCP.md §9): a draft copy of an accepted
-      adventure, its changes shown, written back onto the original when accepted
+      adventure, its changes shown, written back onto the original when accepted. **The road
+      and the shop** (2026-11-15): `plan_journey` works a stretch of road out for a chapter
+      (distance, rations, water, the chance of an encounter, the world's tables and
+      ships), and `shop_stock` suggests priced magic items for a shop, kept in a draft's
+      treasure that the gamemaster stocks the shop from
 - [x] Wizard state when going back a step — checked 2026-11-02 (CHARGEN-WIZARD.md §6): answers
       live in the draft's file, a step is a GET of them, and a changed answer marks later
       steps for review without dropping them. Typed text followed by a footer click now
@@ -977,7 +1009,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2356 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2374 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the

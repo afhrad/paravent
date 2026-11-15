@@ -288,18 +288,28 @@ class CharacterService:
             raise CharacterNotFound(character_id)
         return self.play.act(character_id, action, params, self.sheet(pc), by)
 
-    def roll_for(self, character_id: str, kind: str, subject: str, by: str) -> int | None:
-        """The gamemaster rolls a check on a character's sheet, privately (a secret
-        check): the total, None when the character is gone."""
+    def roll_for(
+        self,
+        character_id: str,
+        kind: str,
+        subject: str,
+        by: str | Actor,
+        *,
+        private: bool = True,
+    ) -> int | None:
+        """A check rolled on a character's sheet for it: by the gamemaster privately (a
+        secret check), or in the open for downtime and travel. The total, None when the
+        character is gone."""
         pc = self._store.characters.find(character_id)
         if pc is None:
             return None
+        params = {"kind": kind, "subject": subject} | ({"private": "1"} if private else {})
         changed = self.play.act(
             character_id,
             "roll",
-            {"kind": kind, "subject": subject, "private": "1"},
+            params,
             self.sheet(pc),
-            Actor(by, username=by),
+            by if isinstance(by, Actor) else Actor(by, username=by),
         )
         rolled = self.newest_roll(changed)
         return rolled.roll.total if rolled is not None and rolled.roll is not None else None

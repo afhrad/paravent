@@ -2528,3 +2528,18 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .bastion-row.is-shut > a{ opacity:.6; }
 .shop-shelves a.chip{ text-decoration:none; color:var(--text-2); }
 .shop-shelves a.chip.is-on{ background:var(--accent-weak); border-color:var(--accent); color:var(--accent-text); }
+.shop-wares, .shop-sell, .shop-magic{ display:grid; gap:12px; margin-bottom:16px; }
+.shop-stock{ display:grid; gap:8px; margin-top:8px; }
+.shop-stock-form{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+.shop-stock-form input[type=text]{ flex:1 1 180px; min-width:0; font:inherit; padding:4px 8px; }
+.shop-stock-form input[type=number]{ width:72px; font:inherit; padding:4px 6px; }
+.shop-stock-form select{ font:inherit; padding:4px 8px; }
+.downtime-result{ grid-column:1 / -1; list-style:none; margin:0; padding:0; display:grid; gap:4px; }
+.downtime-result li{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.downtime-complication{ display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap; color:var(--cond-text); }
+.downtime-offers{ grid-column:1 / -1; }
+.party-travel-weather{ font-size:.9rem; }
+.bastion-yields{ display:grid; gap:10px; margin-bottom:16px; }
+.bastion-yield-list{ list-style:none; margin:0; padding:0; display:grid; gap:4px; }
+.bastion-yield-list .danger{ color:var(--dmg-text); }
+.bastion-order select{ max-width:100%; }

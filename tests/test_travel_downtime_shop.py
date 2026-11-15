@@ -19,7 +19,13 @@ from app.services import coins
 from app.services.bastions import BastionEvent, BastionService, event_rows
 from app.services.clock import DAY, ClockService
 from app.services.dice import Dice
-from app.services.downtime import DowntimeError, DowntimeService, crafting_days, materials
+from app.services.downtime import (
+    DowntimeError,
+    DowntimeService,
+    crafting_days,
+    materials,
+    training_plan,
+)
 from app.services.shop import bought_back, priced
 from app.services.travel import Plan, TravelService, hunger_limit
 from app.store.encounter_tables import EncounterTable, Environment
@@ -176,7 +182,10 @@ class TestDowntime:
         assert sword.needed == 3 and paid == [750]
         service.spend(pc, sword.id, 10, "a", "Ana")  # only the three days it needs
         assert given == ["Longsword|PHB"] and service.of("a").days == 257
-        elvish = service.start(pc, "train", "language:Elvish|PHB", by="a", by_name="Ana")
+        days, daily = training_plan("phb", 3)
+        elvish = service.start(
+            pc, "train", "language:Elvish|PHB", needed=days, daily=daily, by="a", by_name="Ana"
+        )
         service.spend(pc, elvish.id, 250, "a", "Ana")
         assert learned == ["language:Elvish|PHB"] and paid[-1] == 25_000
         with pytest.raises(DowntimeError):

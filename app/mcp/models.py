@@ -256,6 +256,47 @@ class RolledEncounterAnswer(BaseModel):
     rating: RatingAnswer | None = Field(description="The creatures rated for the party")
 
 
+class JourneyPlan(BaseModel):
+    """What `plan_journey` works out for a stretch of road; nothing is saved."""
+
+    travelling_days: float = Field(
+        description="Days of travel (8 hours each, 24 aboard a vessel sailing around the clock)"
+    )
+    hours: int
+    miles: float
+    pace: str = Field(description="slow, normal or fast; or the vessel it sails on")
+    rations: int = Field(
+        description="Days' rations the party eats on the way, one per character a day"
+    )
+    water_gallons: float = Field(description="Water the party drinks, a gallon per character a day")
+    encounter_chance: float = Field(description="Chance of at least one encounter on the way, 0–1")
+    environments: list[str] = Field(
+        description="The world's random-encounter tables, as Name|SOURCE"
+    )
+    vessels: list[str] = Field(
+        description="Ships and airships of the world's books, with their speed"
+    )
+    weather: bool = Field(description="Whether the world's books print a weather table")
+    advice: str
+
+
+class ShopOffer(BaseModel):
+    """A magic item for sale and its price by the world's rules."""
+
+    name: str
+    source: str
+    rarity: str
+    price_gp: int
+
+
+class ShopStockAnswer(BaseModel):
+    """What `shop_stock` suggests for a shop; nothing is saved."""
+
+    items: list[ShopOffer]
+    unresolved: list[str] = Field(description="Names asked for that are not in the world's books")
+    advice: str
+
+
 class BuiltEncounterAnswer(BaseModel):
     """A fight `build_encounter` put together; nothing is saved."""
 
@@ -583,6 +624,9 @@ __all__ = [
     "NoteRecord",
     "SessionRecord",
     "BudgetAnswer",
+    "JourneyPlan",
+    "ShopOffer",
+    "ShopStockAnswer",
     "RolledEncounterAnswer",
     "AdventureDetail",
     "ChapterText",

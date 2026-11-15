@@ -30,6 +30,7 @@ from app.mcp.models import (
     BuiltEncounterAnswer,
     CampaignObject,
     GeneratedNames,
+    JourneyPlan,
     MonsterAnswer,
     MonsterInfo,
     MonsterInput,
@@ -41,6 +42,8 @@ from app.mcp.models import (
     RolledEncounterAnswer,
     SearchAnswer,
     SearchMatch,
+    ShopOffer,
+    ShopStockAnswer,
     SoundInfo,
     SpellKnown,
     UnservedPeople,
@@ -49,6 +52,7 @@ from app.mcp.models import (
 )
 from app.models.gamestate import Location, Npc, SourceSet, Treasure, World
 from app.models.naming import SUBJECTS, Subject
+from app.services.activities import RARITIES
 from app.services.difficulty import rules_for
 from app.services.encounter_gen import EncounterGenerator, bands_of, pool_of
 from app.services.encounter_roll import EncounterRoller
@@ -56,6 +60,7 @@ from app.services.naming import GENDERS, FoundStyle, NamingError
 from app.services.naming_workshop import race_names
 from app.services.npc_gen import edition_for
 from app.services.search import GROUP_KEYS, Row
+from app.services.travel import ENCOUNTER_ON, PACES, TRAVEL_DAY
 from app.ui.insert import tag_maker
 from app.ui.tags import ENTITY_CATEGORY
 
@@ -597,6 +602,134 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
             monsters=monsters,
             unresolved=rolled.unresolved,
             rating=rating,
+        )
+
+    @server.tool()
+    def plan_journey(
+        world_id: str,
+        days: Annotated[
+            float,
+            Field(
+                gt=0,
+                le=30,
+                description="Travelling days: 8 hours on the road each, 24 for a vessel "
+                "sailing around the clock",
+            ),
+        ],
+        pace: Annotated[str, Field(description="slow, normal or fast")] = "normal",
+        difficult: Annotated[bool, Field(description="Difficult terrain halves the pace")] = False,
+        mounted: Annotated[
+            bool, Field(description="Riding: twice the distance in each day's first hour")
+        ] = False,
+        vessel: Annotated[
+            str, Field(description="A ship or airship of the world's books; empty on land")
+        ] = "",
+        around_the_clock: Annotated[
+            bool, Field(description="A vessel's crew sails in shifts, 24 hours a day")
+        ] = False,
+        checks: Annotated[int, Field(ge=0, le=3, description="Encounter checks a day")] = 1,
+        character_ids: Annotated[
+            list[str] | None,
+            Field(description="The party; the world's characters when omitted"),
+        ] = None,
+    ) -> JourneyPlan:
+        """Work out a stretch of road for a chapter: how far the party gets, what it
+        eats and drinks, how likely an encounter is, and the world's encounter tables,
+        vessels and weather. Nothing is saved: the gamemaster travels it from the party
+        view's clock, which rolls the checks, rations, water and weather as it goes."""
+        registry = stores()
+        world = world_of(world_id)
+        party = len(party_levels(registry, world, character_ids)) or 1
+        ships = registry.vessels(world.id)
+        ship = next((v for v in ships if v.name.lower() == vessel.strip().lower()), None)
+        if vessel.strip() and ship is None:
+            raise ToolError("No such vessel. The world's are: " + ", ".join(v.name for v in ships))
+        if ship is None and pace not in PACES:
+            raise ToolError("pace is slow, normal or fast.")
+        day_hours = 24 if ship is not None and around_the_clock else TRAVEL_DAY
+        hours = round(days * day_hours)
+        mph = ship.mph if ship is not None else PACES[pace] / (2 if difficult else 1)
+        whole = max(1, round(days + 0.4999))
+        bonus = mph * whole if mounted and ship is None else 0
+        miles = round(mph * hours + bonus, 1)
+        miss = ((ENCOUNTER_ON - 1) / 20) ** (checks * whole)
+        return JourneyPlan(
+            travelling_days=round(days, 2),
+            hours=hours,
+            miles=miles,
+            pace=ship.name if ship is not None else pace,
+            rations=party * whole,
+            water_gallons=float(party * whole),
+            encounter_chance=round(1 - miss, 2) if checks else 0.0,
+            environments=[e.key for e in registry.encounter_tables.all()],
+            vessels=[f"{v.name} ({v.mph:g} mph)" for v in ships],
+            weather=registry.weather(world.id) is not None,
+            advice=(
+                "Write the road into the chapter: where it leads, its landmarks, and the "
+                "encounter table that fits. Each check comes up on a d20 of 18 or more. "
+                "A character without rations goes hungry and, after a few days, tires; "
+                "half water or none costs a level of exhaustion by the world's rules. "
+                "For a fixed fight on the way, make an encounter as usual."
+            ),
+        )
+
+    @server.tool()
+    def shop_stock(
+        world_id: str,
+        rarity: Annotated[
+            str,
+            Field(description="common, uncommon, rare, very rare or legendary; empty for none"),
+        ] = "",
+        count: Annotated[int, Field(ge=0, le=20, description="How many to draw")] = 3,
+        items: Annotated[
+            list[str] | None,
+            Field(description='Magic items to price, by name or "Name|SOURCE"'),
+        ] = None,
+    ) -> ShopStockAnswer:
+        """Suggest magic items for a shop the party visits, priced by the world's rules
+        (its rarity's value, halved for a consumable, a scroll twice its scribing cost):
+        drawn at random from the world's books by rarity, and the items named. Nothing
+        is saved — put the ones you want into a treasure of the draft (create_treasure);
+        during play the gamemaster stocks the world's shop from that treasure."""
+        registry = stores()
+        world = world_of(world_id)
+        resolver = registry.references.resolver()
+        offers: list[ShopOffer] = []
+        unresolved: list[str] = []
+
+        def add(name: str, source: str) -> None:
+            entry = registry.compendium.find("item", name, source)
+            data = entry.model_dump(by_alias=True, exclude_none=True) if entry else {}
+            offers.append(
+                ShopOffer(
+                    name=name,
+                    source=source,
+                    rarity=str(data.get("rarity", "")),
+                    price_gp=registry.magic_price(world.id, name, source) // 100,
+                )
+            )
+
+        for asked in items or []:
+            name, _, source = asked.partition("|")
+            found = resolver.resolve_parts("item", name.strip(), source or None, world.source_set)
+            if found.entry is None:
+                unresolved.append(asked)
+                continue
+            add(str(found.entry.name), str(found.entry.source))
+        if rarity:
+            if rarity not in RARITIES:
+                raise ToolError("rarity is one of: " + ", ".join(RARITIES))
+            for ref, _price in registry.magic_roll(world.id, rarity, count):
+                name, _, source = ref.partition("|")
+                add(name, source)
+        return ShopStockAnswer(
+            items=offers,
+            unresolved=unresolved,
+            advice=(
+                "Name the shop and its keeper in the chapter, and keep its stock in a "
+                "treasure of the draft; the gamemaster opens the shop on the party view "
+                "and stocks it from that treasure, at the prices shown or their own."
+            ),
         )
 
     @server.tool()

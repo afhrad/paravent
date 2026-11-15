@@ -277,6 +277,10 @@ class TestABastion:
         await ac.post(url, data={"op": "turn"})
         bastion = registry.bastions.of(lyra)
         assert bastion.turns == 1 and all(not f.order for f in bastion.facilities)
-        newest = registry.protocol.store.newest(log_key(world), 1)[0]
-        assert newest.what == "bastion:1:Arcane Study|XDMG=craft"
+        recent = [e.what for e in registry.protocol.store.newest(log_key(world), 5)]
+        assert "bastion:1:Arcane Study|XDMG=craft" in recent
+        # The Arcane Study's first craft option, an Arcane Focus, is in the pack.
+        assert bastion.yields == ["Arcane Study|XDMG|item|Arcane Focus|XPHB|1"]
+        held = registry.gamestate.characters.get(lyra).inventory
+        assert any(i.item.name == "Arcane Focus" for i in held)
         assert "Bastion" in (await ac.get(f"/characters/{lyra}")).text

@@ -1027,13 +1027,18 @@ class BastionFacility(GameStateModel):
     ref: str
     order: str = ""
     shut: bool = False
+    # The option the order carries out (app/services/bastion_orders.py): its index
+    # among the order's options, and for crafting by a tool ``"<n>|<item>"``.
+    option: str = ""
 
 
 class BasicFacility(GameStateModel):
-    """A basic facility of a bastion (``Kitchen|XDMG``) and its space."""
+    """A basic facility of a bastion (``Kitchen|XDMG``), its space, and when building or
+    enlarging it is done (the world's clock in minutes; None: it stands)."""
 
     ref: str
     space: Literal["cramped", "roomy", "vast"] = "roomy"
+    ready: int | None = None
 
 
 class Bastion(Record):
@@ -1054,6 +1059,10 @@ class Bastion(Record):
     maintain: bool = False
     # The event the last Maintain turn rolled: ``"<roll>|<book entry id>|<name>"``.
     event: str = ""
+    # What the last turn's orders yielded, a line each: ``"<facility>|<kind>|<what>"``.
+    yields: list[str] = Field(default_factory=list)
+    # Crafts still under way: ``"<clock minute ready>|<item>"``.
+    pending: list[str] = Field(default_factory=list)
 
 
 class SafetySuggestion(GameStateModel):
@@ -1111,6 +1120,16 @@ class Journey(GameStateModel):
     monsters: list[EncounterMonster] = Field(default_factory=list)
     unresolved: list[str] = Field(default_factory=list)
     encounter_id: str | None = None
+    # Water for each day, and who went short of it.
+    water: Literal["enough", "half", "none"] = "enough"
+    thirsty: list[str] = Field(default_factory=list)
+    # The weather of each day rolled: ``"<temperature>|<wind>|<precipitation>"``.
+    weather: list[str] = Field(default_factory=list)
+    mounted: bool = False
+    # The vessel the party travelled on ("" on foot or mounted).
+    vessel: str = ""
+    # The encounter came in the night, not on the road.
+    night: bool = False
 
 
 class WorldClock(Record):
@@ -1122,6 +1141,10 @@ class WorldClock(Record):
     timers: list[ClockTimer] = Field(default_factory=list)
     journey: Journey | None = None
     hungry: dict[str, int] = Field(default_factory=dict)
+    # Minutes already travelled on the travelling day ``road_day`` (a day index), when
+    # the last stretch stopped partway through it.
+    road: int = Field(default=0, ge=0)
+    road_day: int | None = None
 
 
 class DowntimeProject(GameStateModel):
@@ -1132,12 +1155,35 @@ class DowntimeProject(GameStateModel):
     copper spent on it so far."""
 
     id: str
-    kind: Literal["craft", "train", "research", "recuperate", "work", "other"]
+    kind: Literal[
+        "craft",
+        "train",
+        "research",
+        "recuperate",
+        "work",
+        "other",
+        "scribe",
+        "carouse",
+        "crime",
+        "gamble",
+        "pit_fight",
+        "service",
+        "study",
+        "job",
+        "sell_magic",
+        "buy_magic",
+    ]
     label: str = Field(default="", max_length=200)
     needed: int | None = Field(default=None, ge=1)
     done: int = Field(default=0, ge=0)
     paid: int = Field(default=0, ge=0)
     finished: bool = False
+    # What a day of it costs in copper (None: the kind's own rate).
+    daily: int | None = Field(default=None, ge=0)
+    # An activity's outcome, line by line (app/services/activities.py).
+    result: list[str] = Field(default_factory=list)
+    # What waits to be taken: items offered for sale, or an offer for an item.
+    offers: list[str] = Field(default_factory=list)
 
 
 class Downtime(Record):
@@ -1148,16 +1194,26 @@ class Downtime(Record):
     projects: list[DowntimeProject] = Field(default_factory=list)
 
 
+class ShopItem(GameStateModel):
+    """A magic item the gamemaster put on a shop's shelf: its reference, its price in
+    copper before the shop's markup, and how many are left (None: no end of them)."""
+
+    ref: str
+    price: int = Field(ge=0)
+    count: int | None = Field(default=None, ge=0, le=999)
+
+
 class Shop(Record):
     """A shop the gamemaster opens in a world for its characters (or those ticked):
     priced mundane gear at ``markup`` percent of the list price, buying back at
-    ``buys`` percent. The id is the world's."""
+    ``buys`` percent, and the magic items put on its shelf. The id is the world's."""
 
     open: bool = False
     name: str = Field(default="", max_length=80)
     characters: list[str] = Field(default_factory=list)
     markup: int = Field(default=100, ge=10, le=1000)
     buys: int = Field(default=50, ge=0, le=100)
+    stock: list[ShopItem] = Field(default_factory=list)
 
 
 class PartyNotes(Record):
@@ -1225,6 +1281,7 @@ __all__ = [
     "DowntimeProject",
     "Journey",
     "Shop",
+    "ShopItem",
     "WorldClock",
     "Knowledge",
     "PartyNotes",

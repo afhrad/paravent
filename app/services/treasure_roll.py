@@ -198,6 +198,13 @@ class TreasureRoller:
 
     # -- rolling ---------------------------------------------------------------------
 
+    def magic_items(self, table_type: str, book: str, times: int) -> list[tuple[str, str]]:
+        """Roll ``times`` on one magic item table ("B", "arcana.rare"): the items."""
+        out = Rolled()
+        for _ in range(max(0, times)):
+            self._magic(table_type, book, out)
+        return out.items
+
     def roll(self, kind: Kind, cr: float, book: str) -> Rolled:
         """Roll individual treasure or a hoard for a challenge rating, on ``book``'s tables."""
         table = (

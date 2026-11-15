@@ -204,13 +204,20 @@ class ClockService:
         return self._save(clock.model_copy(update={"timers": kept}))
 
     def keep(
-        self, world_id: str, journey: Journey | None, hungry: dict[str, int] | None = None
+        self,
+        world_id: str,
+        journey: Journey | None,
+        hungry: dict[str, int] | None = None,
+        road: tuple[int, int | None] | None = None,
     ) -> WorldClock:
         """Keep the party's last journey (None forgets it) and, with ``hungry``, how
-        many days each character has gone without food (app/services/travel.py)."""
+        many days each character has gone without food; ``road`` is the minutes
+        travelled on a day left partway and that day (app/services/travel.py)."""
         update: dict[str, Any] = {"journey": journey}
         if hungry is not None:
             update["hungry"] = hungry
+        if road is not None:
+            update["road"], update["road_day"] = road
         return self._save(self.of(world_id).model_copy(update=update))
 
     def _stale(self, timer: ClockTimer) -> bool:

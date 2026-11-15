@@ -18,8 +18,10 @@ from htpy import (
     h2,
     label,
     li,
+    option,
     p,
     section,
+    select,
     small,
     span,
     summary,
@@ -27,8 +29,9 @@ from htpy import (
 )
 from htpy import input as input_el
 
-from app.models.gamestate import Shop
+from app.models.gamestate import Shop, ShopItem
 from app.models.pc import Currency, InventoryItem
+from app.services.activities import RARITIES
 from app.services.chargen.catalogue import SHELVES, shelf
 from app.services.coins import VALUES, worth
 from app.services.shop import Ware
@@ -67,9 +70,15 @@ def purse_text(page: Page, purse: Currency) -> str:
 
 
 def shop_panel(
-    page: Page, world_id: str, shop: Shop, members: Sequence[tuple[str, str]]
+    page: Page,
+    world_id: str,
+    shop: Shop,
+    members: Sequence[tuple[str, str]],
+    *,
+    treasures: Sequence[tuple[str, str]] = (),
 ) -> Element:
-    """Open, change or close the world's shop."""
+    """Open, change or close the world's shop, and stock its magic items: by name,
+    rolled by rarity, or a treasure's items (``treasures`` are ``(id, name)``)."""
     t = page.t
     base = f"{SHOP_URL}/{quote(world_id)}"
     htmx = {"hx_target": "#party-shop", "hx_swap": "outerHTML"}
@@ -153,6 +162,126 @@ def shop_panel(
         details(class_="party-clock-more")[
             summary[t("shop.settings" if shop.open else "shop.open")], settings
         ],
+        details(class_="party-clock-more")[
+            summary[t.plural("shop.magic_n", len(shop.stock), n=len(shop.stock))],
+            _stock_forms(page, base, htmx, shop, treasures),
+        ],
+    ]
+
+
+def _stock_forms(
+    page: Page,
+    base: str,
+    htmx: dict[str, str],
+    shop: Shop,
+    treasures: Sequence[tuple[str, str]],
+) -> Node:
+    t = page.t
+
+    def post(op: str, *content: Node) -> Element:
+        return form(
+            method="post",
+            action=f"{base}/{op}",
+            hx_post=f"{base}/{op}",
+            class_="inline-form shop-stock-form",
+            **htmx,
+        )[content]
+
+    def count_field(value: str = "") -> Node:
+        return input_el(
+            type="number",
+            name="count",
+            min="1",
+            max="999",
+            value=value,
+            placeholder="∞",
+            inputmode="numeric",
+            class_="mono party-clock-amount",
+            aria_label=t("shop.count"),
+        )
+
+    rows = [
+        li(class_="shop-row")[
+            span[name_text(page, "item", item.ref.partition("|")[0])],
+            post(
+                "price",
+                hidden("index", str(n)),
+                input_el(
+                    type="number",
+                    name="price",
+                    min="0",
+                    value=str(item.price // 100),
+                    inputmode="numeric",
+                    class_="mono party-clock-amount",
+                    aria_label=t("shop.price_gp"),
+                ),
+                count_field("" if item.count is None else str(item.count)),
+                button(type="submit", class_="btn btn-sm")[t("shop.change")],
+            ),
+            post(
+                "remove",
+                hidden("index", str(n)),
+                button(
+                    type="submit",
+                    class_="btn btn-sm btn-ghost",
+                    title=t("shop.unstock"),
+                    aria_label=t("shop.unstock"),
+                )[icon("x", "sm")],
+            ),
+        ]
+        for n, item in enumerate(shop.stock)
+    ]
+    return div(class_="shop-stock")[
+        ul(class_="shop-list")[rows] if rows else p(class_="muted")[t("shop.no_magic")],
+        post(
+            "add",
+            input_el(
+                type="text",
+                name="item",
+                required=True,
+                maxlength="120",
+                placeholder=t("shop.item_name"),
+                aria_label=t("shop.item_name"),
+            ),
+            input_el(
+                type="number",
+                name="price",
+                min="0",
+                placeholder=t("shop.price_gp"),
+                inputmode="numeric",
+                class_="mono party-clock-amount",
+                aria_label=t("shop.price_gp"),
+            ),
+            count_field(),
+            button(type="submit", class_="btn btn-sm")[t("shop.add")],
+        ),
+        post(
+            "roll",
+            select(name="rarity", aria_label=t("shop.rarity"))[
+                [option(value=r)[t(f"downtime.rarity.{r}")] for r in RARITIES]
+            ],
+            input_el(
+                type="number",
+                name="count",
+                min="1",
+                max="20",
+                value="3",
+                inputmode="numeric",
+                class_="mono party-clock-amount",
+                aria_label=t("shop.count"),
+            ),
+            button(type="submit", class_="btn btn-sm")[icon("dices", "sm"), span[t("shop.roll")]],
+        ),
+        post(
+            "treasure",
+            select(name="treasure", aria_label=t("shop.from_treasure"))[
+                [option(value=tid)[tname] for tid, tname in treasures]
+            ],
+            button(type="submit", class_="btn btn-sm")[t("shop.from_treasure")],
+        )
+        if treasures
+        else None,
+        p(class_="muted")[t("shop.magic_hint")],
     ]
 
 
@@ -166,6 +295,7 @@ def shop_page(
     purse: Currency,
     wares: Sequence[Ware],
     sellable: Sequence[tuple[int, InventoryItem, int]],
+    magic: Sequence[tuple[ShopItem, int]] = (),
     shelf_shown: str,
     query: str,
     error: str | None = None,
@@ -214,6 +344,14 @@ def shop_page(
                 " ",
                 span(class_="mono")[purse_text(page, purse)],
             ],
+            section(class_="panel shop-magic")[
+                div(class_="panel-head")[h2[t("shop.magic")]],
+                ul(class_="shop-list")[
+                    [_magic(page, url, item, cost, money, world_id) for item, cost in magic]
+                ],
+            ]
+            if magic
+            else None,
             section(class_="panel shop-wares")[
                 div(class_="panel-head")[h2[t("shop.wares")]],
                 form(method="get", action=url, class_="shop-search")[
@@ -272,6 +410,31 @@ def _ware(page: Page, url: str, ware: Ware, money: int, world_id: str | None) ->
                 type="submit",
                 class_="btn btn-sm",
                 disabled=ware.price > money,
+                title=t("chargen.shop.buy", name=name),
+            )[t("shop.buy")],
+        ],
+    ]
+
+
+def _magic(
+    page: Page, url: str, item: ShopItem, cost: int, money: int, world_id: str | None
+) -> Element:
+    t = page.t
+    item_name, _, source = item.ref.partition("|")
+    name = name_text(page, "item", item_name)
+    return li(class_="shop-row")[
+        a(href=ref_url("item", item_name, source, world_id), class_="ref")[name],
+        small(class_="muted")[
+            source, f" · {t('shop.left', n=item.count)}" if item.count is not None else ""
+        ],
+        span(class_="mono shop-price")[coin_text(page, cost)],
+        form(method="post", action=url, class_="inline-form shop-trade")[
+            hidden("op", "buy_magic"),
+            hidden("item", item.ref),
+            button(
+                type="submit",
+                class_="btn btn-sm",
+                disabled=cost > money,
                 title=t("chargen.shop.buy", name=name),
             )[t("shop.buy")],
         ],

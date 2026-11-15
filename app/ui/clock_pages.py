@@ -29,7 +29,7 @@ from htpy import input as input_el
 
 from app.models.gamestate import ClockTimer, Journey
 from app.services.clock import day_of, part_of_day, time_of
-from app.services.travel import PACES
+from app.services.travel import PACES, WATER
 from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
@@ -83,9 +83,12 @@ def clock_panel(
     *,
     journey: Journey | None = None,
     environments: Sequence[tuple[str, str]] = (),
+    vessels: Sequence[str] = (),
+    weather: bool = False,
 ) -> Element:
     """The time, the moves, a party rest, the timers and what is due; the party's last
-    journey and the forms to travel on and to grant downtime."""
+    journey and the forms to travel on and to grant downtime. ``vessels`` are the ships
+    of the world's books; ``weather`` whether they print a weather table."""
     t = page.t
     base = f"{CLOCK_URL}/{quote(world_id)}"
 
@@ -144,7 +147,7 @@ def clock_panel(
         _journey(page, base, journey) if journey is not None else None,
         details(class_="party-clock-more party-travel")[
             summary[icon("footprints", "sm"), span[t("travel.heading")]],
-            _travel_form(page, post, environments),
+            _travel_form(page, post, environments, vessels, weather),
         ],
         details(class_="party-clock-more")[
             summary[t("clock.more")],
@@ -221,7 +224,11 @@ def clock_panel(
 
 
 def _travel_form(
-    page: Page, post: Callable[..., Element], environments: Sequence[tuple[str, str]]
+    page: Page,
+    post: Callable[..., Element],
+    environments: Sequence[tuple[str, str]],
+    vessels: Sequence[str] = (),
+    weather: bool = False,
 ) -> Element:
     """How long, how fast, through what, how watchful, with what."""
     t = page.t
@@ -258,6 +265,14 @@ def _travel_form(
                 for n in range(4)
             ]
         ],
+        select(name="vessel", aria_label=t("travel.by"))[
+            option(value="")[t("travel.on_foot")],
+            option(value="mounted")[t("travel.mounted")],
+            [option(value=name)[t("travel.aboard", name=name)] for name in vessels],
+        ],
+        select(name="water", aria_label=t("travel.water"))[
+            [option(value=w)[t(f"travel.water.{w}")] for w in WATER]
+        ],
         label(class_="party-clock-label")[
             input_el(type="checkbox", name="difficult", value="1"), span[t("travel.difficult")]
         ],
@@ -269,6 +284,20 @@ def _travel_form(
             input_el(type="checkbox", name="rest", value="1", checked=True),
             span[t("travel.rest")],
         ],
+        label(class_="party-clock-label")[
+            input_el(type="checkbox", name="night", value="1"), span[t("travel.night_check")]
+        ],
+        label(class_="party-clock-label", title=t("travel.around_hint"))[
+            input_el(type="checkbox", name="around", value="1"), span[t("travel.around")]
+        ]
+        if vessels
+        else None,
+        label(class_="party-clock-label")[
+            input_el(type="checkbox", name="weather", value="1", checked=True),
+            span[t("travel.weather")],
+        ]
+        if weather
+        else None,
         button(type="submit", class_="btn btn-sm btn-primary")[
             icon("footprints", "sm"), span[t("travel.go")]
         ],
@@ -285,7 +314,12 @@ def _journey(page: Page, base: str, journey: Journey) -> Element:
         p[
             b[t("travel.went", span=spent, distance=page.u.miles(journey.miles))],
             " · ",
-            span(class_="muted")[t(f"travel.pace.{journey.pace}")],
+            span(class_="muted")[
+                t("travel.aboard", name=journey.vessel)
+                if journey.vessel
+                else t(f"travel.pace.{journey.pace}")
+            ],
+            span(class_="muted")[f" · {t('travel.mounted')}"] if journey.mounted else None,
             span(class_="muted")[f" · {t('travel.difficult')}"] if journey.difficult else None,
             span(class_="muted")[f" · {journey.environment.partition('|')[0]}"]
             if journey.environment
@@ -300,6 +334,24 @@ def _journey(page: Page, base: str, journey: Journey) -> Element:
         lines.append(
             p[icon("triangle-alert", "sm"), t("travel.hungry", names=", ".join(journey.hungry))]
         )
+    if journey.thirsty:
+        lines.append(
+            p[icon("triangle-alert", "sm"), t("travel.thirsty", names=", ".join(journey.thirsty))]
+        )
+    for day, weather in enumerate(journey.weather, start=1):
+        temperature, wind, rain = [*weather.split("|"), "", ""][:3]
+        lines.append(
+            p(class_="muted party-travel-weather")[
+                icon("sun", "sm"),
+                t(
+                    "travel.weather_line",
+                    day=day,
+                    temperature=temperature,
+                    wind=wind,
+                    rain=rain,
+                ),
+            ]
+        )
     if journey.exhausted:
         lines.append(
             p[
@@ -313,7 +365,12 @@ def _journey(page: Page, base: str, journey: Journey) -> Element:
             div(class_="party-travel-encounter")[
                 p[
                     icon("swords", "sm"),
-                    b[t("travel.encounter", when=clock_label(page, journey.ended))],
+                    b[
+                        t(
+                            "travel.encounter_night" if journey.night else "travel.encounter",
+                            when=clock_label(page, journey.ended),
+                        )
+                    ],
                     span(class_="muted")[f" · d20 {journey.check}"],
                     span(class_="muted")[f" · {t('travel.left', span=left)}"]
                     if journey.planned > journey.hours

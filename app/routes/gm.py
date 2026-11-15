@@ -36,6 +36,7 @@ from app.dependencies import (
 from app.routes.adventures import upload_messages
 from app.routes.auth import html, redirect
 from app.routes.rolls import announce_roll, new_roll
+from app.services.activities import RARITIES
 from app.services.auth import AuthError
 from app.services.characters import CharacterService
 from app.services.checks import CheckError
@@ -45,7 +46,7 @@ from app.services.events import PARTY, revision_stream
 from app.services.play import Actor, PlayError
 from app.services.player_view import player_choice, player_ticks
 from app.services.shop import ShopError
-from app.services.travel import PACES, TRAVEL_DAY, Plan, TravelError
+from app.services.travel import PACES, TRAVEL_DAY, WATER, Plan, TravelError, Vessel
 from app.services.worlds import WorldInput
 from app.store.encounter_tables import Environment
 from app.store.registry import StoreRegistry
@@ -116,6 +117,8 @@ def _clock(page: Page, registry: StoreRegistry, world_id: str | None) -> Element
         due,
         journey=clock.journey,
         environments=[(e.key, f"{e.name} ({e.source})") for e in _environments(registry, shown)],
+        vessels=[v.name for v in registry.vessels(shown)],
+        weather=registry.weather(shown) is not None,
     )
 
 
@@ -148,6 +151,11 @@ def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_
         ).entry
         return (str(found.name), str(found.source)) if found is not None else None
 
+    by_ship = str(form.get("vessel", ""))
+    vessel = next((v for v in registry.vessels(world_id) if v.name == by_ship), None)
+    if vessel is not None and form.get("around") == "1":
+        vessel = Vessel(vessel.name, vessel.mph, around_the_clock=True)
+    water = str(form.get("water", "enough"))
     registry.travel.travel(
         world_id,
         Plan(
@@ -158,11 +166,17 @@ def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_
             checks=int(checks) if checks.isdigit() and int(checks) <= 3 else 1,
             rations=form.get("rations") == "1",
             rest=form.get("rest") == "1",
+            water=water if water in WATER else "enough",  # type: ignore[arg-type]
+            mounted=by_ship == "mounted",
+            vessel=vessel,
+            night_check=form.get("night") == "1",
+            weather=form.get("weather") == "1",
         ),
         rules=registry.rules_of(world_id),
         resolve=resolve,
         by=by,
         by_name=by_name,
+        weather=registry.weather(world_id),
     )
 
 
@@ -185,7 +199,8 @@ def _shop(page: Page, registry: StoreRegistry, world_id: str | None) -> Element 
         for pc in registry.gamestate.characters.list()
         if pc.world_id == shown and not pc.in_wizard
     ]
-    return shop_panel(page, shown, registry.shops.of(shown), members)
+    treasures = [(t.id, t.name) for t in registry.treasure.list(shown) if t.items]
+    return shop_panel(page, shown, registry.shops.of(shown), members, treasures=treasures)
 
 
 def _cards(page: Page, characters: CharacterService, world_id: str | None) -> list[Element]:
@@ -367,7 +382,9 @@ async def change_shop(
     world_id: str,
     op: str,
 ) -> Response:
-    """Open or change the world's shop (``open``), or close it (``close``)."""
+    """Open or change the world's shop (``open``), close it (``close``), or stock its
+    magic items: one by name (``add``), rolled by rarity (``roll``), a treasure's items
+    (``treasure``), repriced (``price``) or taken off (``remove``)."""
     if worlds.find(world_id) is None:
         return redirect("/gm")
     form = await request.form()
@@ -393,8 +410,65 @@ async def change_shop(
                 by=user.username,
                 by_name=name,
             )
-        else:
+        elif op == "add":
+            world = worlds.find(world_id)
+            found = (
+                registry.compendium.resolver()
+                .resolve_parts(
+                    "item",
+                    " ".join(str(form.get("item", "")).split()),
+                    None,
+                    world.source_set if world else None,
+                )
+                .entry
+            )
+            if found is None:
+                raise ShopError("shop.error.unknown_item")
+            item_name, source = str(found.name), str(found.source)
+            raw_price = str(form.get("price", "")).strip()
+            cost = (
+                int(raw_price) * 100
+                if raw_price.isdigit()
+                else registry.magic_price(world_id, item_name, source)
+            )
+            registry.shops.stock(world_id, [(f"{item_name}|{source}", cost, _count(form))])
+        elif op == "roll":
+            rarity = str(form.get("rarity", ""))
+            if rarity not in RARITIES:
+                raise ShopError("shop.error.prices")
+            many = _count(form) or 1
+            registry.shops.stock(
+                world_id,
+                [(ref, cost, 1) for ref, cost in registry.magic_roll(world_id, rarity, many)],
+            )
+        elif op == "treasure":
+            hoard = registry.gamestate.treasures.find(str(form.get("treasure", "")))
+            if hoard is None or hoard.scope.world_id != world_id:
+                raise ShopError("shop.error.unknown_item")
+            registry.shops.stock(
+                world_id,
+                [
+                    (i.ref, registry.magic_price(world_id, i.name, i.source), i.count)
+                    for i in hoard.items
+                ],
+            )
+        elif op in ("price", "remove"):
+            raw = str(form.get("index", ""))
+            index = int(raw) if raw.isdigit() else -1
+            if op == "remove":
+                registry.shops.unstock(world_id, index)
+            else:
+                raw_price = str(form.get("price", "")).strip()
+                registry.shops.reprice(
+                    world_id,
+                    index,
+                    int(raw_price) * 100 if raw_price.isdigit() else -1,
+                    _count(form),
+                )
+        elif op == "close":
             registry.shops.close(world_id, user.username, name)
+        else:
+            raise ShopError("shop.error.prices")
     except ShopError as exc:
         flash = page.t.error(exc)
     for pc in registry.gamestate.characters.list():
@@ -404,6 +478,12 @@ async def change_shop(
         return redirect(f"/gm?{urlencode({'world': world_id})}")
     panel = _shop(page, registry, world_id)
     return html(panel if flash is None else [alert(flash), panel])
+
+
+def _count(form: FormData) -> int | None:
+    """A shop form's count: None for no end of them (left empty)."""
+    raw = str(form.get("count", "")).strip()
+    return max(1, min(999, int(raw))) if raw.isdigit() else None
 
 
 # -- checks outside a fight --------------------------------------------------------------
