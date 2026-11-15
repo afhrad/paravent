@@ -48,6 +48,7 @@ from htpy import (
     small,
     span,
     summary,
+    textarea,
     ul,
 )
 from htpy import input as input_el
@@ -76,6 +77,7 @@ from app.services.translations import COMPOSITE
 from app.services.wild_shape import RESOURCE as WILD_SHAPE
 from app.services.wild_shape import Form
 from app.ui import rules_text
+from app.ui.check_pages import check_banner
 from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
@@ -84,6 +86,7 @@ from app.ui.names import ITEM, name_span, name_text, origin_text, training_text
 from app.ui.names import summary as summary_line
 from app.ui.protocol_pages import log_embed_slot
 from app.ui.ref_pages import statblock
+from app.ui.safety_pages import xcard_button
 from app.ui.tags import RenderContext, localized_context, plain, ref_url, render_entries
 from app.ui.tokens import token, token_panel
 from app.ui.translate_pages import translate_url
@@ -427,6 +430,17 @@ def _attack_row(page: Page, sheet: Sheet, attack: AttackView) -> Element:
     ]
     if attack.range:
         meta.append(page.u.text(f"{attack.range} ft."))
+    if attack.ammo:
+        # How many shots are left in the inventory (a bundle counted in).
+        meta.append(
+            span(class_="cs-ammo" + (" out" if not attack.ammo_left else ""))[
+                t(
+                    "sheet.ammo_left",
+                    ammo=page.t.term("baseitem", attack.ammo.title()) or attack.ammo.title(),
+                    count=attack.ammo_left or 0,
+                )
+            ]
+        )
     mastery: Node = None
     if sheet.masters(attack):
         name, _, source = attack.mastery.partition("|")
@@ -1179,6 +1193,15 @@ def _item_row(page: Page, sheet: Sheet, item: ItemView) -> Element:
                 title=t("sheet.drink_title", dice=rules_text.dice(page, item.heal)),
             )
             if item.heal
+            else act(
+                sheet,
+                "use",
+                {"index": item.index},
+                [icon("check", "sm"), span[t("sheet.use")]],
+                cls="btn btn-sm",
+                title=t("sheet.use_title"),
+            )
+            if item.consumable
             else None,
         ],
     ]
@@ -1322,7 +1345,19 @@ def _features_pane(page: Page, sheet: Sheet, ctx: RenderContext | None = None) -
         (t("sheet.pronouns"), pc.pronouns),
         (t("sheet.appearance"), pc.appearance),
         (t("sheet.backstory"), pc.backstory),
-        (t("sheet.notes"), pc.notes),
+    ]
+    notes_url = _url(sheet, "/act/notes")
+    notes = div(class_="cs-prof cs-notes")[
+        h3(class_="eyebrow")[t("sheet.notes")],
+        form(method="post", action=notes_url, hx_post=notes_url, class_="stack")[
+            textarea(
+                name="text",
+                rows="6",
+                aria_label=t("sheet.notes"),
+                placeholder=t("sheet.notes_hint"),
+            )[pc.notes],
+            button(type="submit", class_="btn btn-sm")[t("sheet.notes_save")],
+        ],
     ]
     return section(class_="cs-pane", data_tab="features", data_m="gear")[
         div(class_="cs-pane-head")[h2(class_="eyebrow")[t("sheet.features")]],
@@ -1334,6 +1369,7 @@ def _features_pane(page: Page, sheet: Sheet, ctx: RenderContext | None = None) -
             for label, text in identity
             if text
         ],
+        notes,
         token_panel(page, page.token_of("character", pc.world_id, pc.id), "character", pc.id),
     ]
 
@@ -1553,6 +1589,15 @@ def _head(page: Page, sheet: Sheet, *, file_label: str | None) -> Element:
                 cls=f"btn btn-sm {'is-on' if pc.state.inspiration else ''}",
                 pressed=pc.state.inspiration,
             ),
+            a(href=f"/characters/{pc.id}/bastion", class_="btn btn-sm")[
+                icon("vault", "sm"), span[t("bastion.short")]
+            ]
+            if pc.total_level >= 5
+            else None,
+            # The X-card, for the player at the table (the gamemaster has no need of it).
+            xcard_button(page, pc.world_id)
+            if page.identity is not None and not page.identity.is_gamemaster
+            else None,
             span(class_="cs-live", data_live_indicator="1", title=t("sheet.live_title"))[
                 span(class_="dot"), span[t("sheet.live")]
             ],
@@ -1728,6 +1773,21 @@ def sheet_fragment(
         _level_up(page, sheet),
         _open_saves(page, sheet),
         _open_resistances(page, sheet),
+        [
+            check_banner(
+                page,
+                call,
+                sheet.character.id,
+                act(
+                    sheet,
+                    "roll",
+                    {"kind": call.kind, "subject": call.subject},
+                    [icon("dices", "sm"), span[t("checks.roll")]],
+                    cls="btn btn-sm",
+                ),
+            )
+            for call in sheet.calls
+        ],
         # The one form every roll chip in rules text submits (button form="…").
         form(
             id=_roll_form_id(sheet), method="post", action=roll_url, hx_post=roll_url, hidden=True

@@ -105,7 +105,7 @@ is meant: `{"item": "Letter from a dead colleague"}`.
 | `inventory` | `[{"item": "Quarterstaff|PHB", "quantity": 1, "equipped": true, "attuned": false, "notes": ""}]` | equipped armour, shields and protective items set AC; equipped weapons become attacks |
 | `currency` | `{"cp": 0, "sp": 14, "ep": 0, "gp": 230, "pp": 2}` | |
 | `resources` | `[{"name": "Arcane Recovery", "max": 1, "recharge": "long"}]` | limited-use features; `recharge` is `short`, `long` or `none` |
-| `pronouns`, `appearance`, `backstory`, `notes` | text | |
+| `pronouns`, `appearance`, `backstory`, `notes` | text | `notes` is the player's own, written on the sheet (Features); only the player and the gamemaster read it |
 
 **Fixed species bonuses** — a 2014 elf's +2 DEX — are read from the corpus and are *not* listed in
 `ability_improvements`. Only choices are.

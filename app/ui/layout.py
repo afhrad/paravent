@@ -355,6 +355,9 @@ def user_menu(page: Page, name: str, username: str) -> Element:
                 a(href="/themes", class_="usermenu-link")[
                     icon("palette", "sm"), span[t("themes.title")]
                 ],
+                a(href="/safety", class_="usermenu-link")[
+                    icon("shield", "sm"), span[t("safety.title")]
+                ],
                 a(href="/gm/creatures", class_="usermenu-link")[
                     icon("skull", "sm"), span[t("creatures.heading")]
                 ]

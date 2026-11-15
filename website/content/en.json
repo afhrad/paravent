@@ -142,6 +142,21 @@
         "text": "Pass a letter, a map or a description to the players who found it. They get their own copy on their phone, your secrets stay out of it, and you see who has read it."
       },
       {
+        "title": "Checks and loot without bookkeeping",
+        "icon": "coins",
+        "text": "Ask the whole table for a Perception check and watch the totals arrive from their phones, or roll it secretly with their numbers. Share a treasure out in one step: items into the characters' packs, coins split evenly, arrows counted down as they fly."
+      },
+      {
+        "title": "Safety at the table",
+        "icon": "shield",
+        "text": "Agree on lines and veils per world, and let players add to them without their name. The X-card on every player's phone tells you, and only you, that the scene should change."
+      },
+      {
+        "title": "Bastions",
+        "icon": "vault",
+        "text": "From level 5, each character builds the special facilities of the 2024 rules their level allows, gives each an order, and you run the bastion turn for the log."
+      },
+      {
         "title": "The evening, written down",
         "icon": "clipboard-list",
         "text": "Every roll lands in one log with its dice and bonuses. Afterwards you get a summary of the fight or the whole night, ready for next week's \"previously on\"."

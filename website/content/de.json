@@ -142,6 +142,21 @@
         "text": "Gebt einen Brief, eine Karte oder eine Beschreibung an die Figuren, die sie gefunden haben. Sie bekommen eine eigene Kopie aufs Handy, eure Geheimnisse bleiben draußen, und ihr seht, wer schon gelesen hat."
       },
       {
+        "title": "Proben und Beute ohne Buchhaltung",
+        "icon": "coins",
+        "text": "Verlangt vom ganzen Tisch eine Wahrnehmungsprobe und seht die Ergebnisse von den Handys eintreffen, oder würfelt sie verdeckt mit ihren Werten. Verteilt einen Schatz in einem Schritt: Gegenstände in die Rucksäcke der Figuren, Münzen gleichmäßig, und Pfeile zählen beim Schießen herunter."
+      },
+      {
+        "title": "Sicherheit am Tisch",
+        "icon": "shield",
+        "text": "Vereinbart Grenzen und Schleier je Welt, und lasst die Spieler ohne Namen etwas hinzufügen. Die X-Karte auf jedem Spielerhandy sagt euch, und nur euch, dass sich die Szene ändern soll."
+      },
+      {
+        "title": "Bastionen",
+        "icon": "vault",
+        "text": "Ab Stufe 5 baut jede Figur die besonderen Einrichtungen der Regeln von 2024, die ihre Stufe erlaubt, gibt jeder einen Befehl, und ihr führt den Bastionszug fürs Protokoll aus."
+      },
+      {
         "title": "Der Abend, aufgeschrieben",
         "icon": "clipboard-list",
         "text": "Jeder Wurf landet mit Würfeln und Boni in einem gemeinsamen Protokoll. Danach gibt es eine Zusammenfassung des Kampfes oder des ganzen Abends, fertig für das „Was bisher geschah“ in der nächsten Woche."

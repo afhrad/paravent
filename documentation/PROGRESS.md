@@ -428,7 +428,28 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         character pops up as a toast; `/journal` lists a player's handouts, new until
         opened, and the gamemaster's with recipients, who opened them, and Withdraw
         **The books' own boxes and pictures** too, in chapters of a published adventure,
-        the pictures now shown from the image folder (2026-11-05)
+        the pictures now shown from the image folder (2026-11-05). **Party notes**
+        (2026-11-15, `app/services/party_notes.py`): one shared text per world on the
+        journal, written by its players and the gamemaster, a stale save refused with
+        both texts shown
+  - [x] **Checks outside a fight** (2026-11-15, `app/services/checks.py`): "Call for a
+        check" on the party view asks the ticked characters for a skill, an ability check
+        or a save, with a DC the players don't see and optionally as a group check (half
+        must succeed); the call shows on each asked sheet, any roll of that check there
+        answers it, and the totals arrive live with ✓/✗. "Roll secretly" rolls it at once
+        with each sheet's numbers, private to the gamemaster
+  - [x] **Sharing out treasure** (2026-11-15, `TreasureService.share`): each item to a
+        character or kept, the coins split evenly among the ticked (the remainder stays);
+        it lands in the files through the play rules' `receive`, stacks joined, logged
+        for the players
+  - [x] **Safety tools** (2026-11-15, `app/services/safety.py`, `/safety`): per world the
+        lines and veils the gamemaster keeps, players' anonymous suggestions to take or
+        drop, and the X-card on the player's sheet and fight view, which tells only the
+        gamemaster, always as a toast, with no name in the log
+  - [x] **Bastions** (2026-11-15, `app/services/bastions.py`): from level 5 a character's
+        special facilities of the world's books up to its level (2/4/5/6 by level), an
+        order each for the next turn, and the gamemaster's bastion turn into the log;
+        basic facilities, defenders and events are left to the table
   - [x] **Image effects** (2026-11-04, ADVENTURES.md §5.5, `app/services/image_effects.py`):
         `torn`, `fade`, `oval`, `sepia`, `aged`, `mono`, `banner` written beside an image
         (`![[tavern.jpg|torn sepia]]`, `cover: media/x.jpg|fade`), rendered once with
@@ -917,7 +938,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2315 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2329 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the

@@ -314,6 +314,39 @@ class TreasureService:
 
         return self._store.treasures.mutate(treasure_id, change)
 
+    def share(
+        self, treasure_id: str, given: dict[int, str], split: builtins.list[str]
+    ) -> tuple[Treasure, dict[str, tuple[builtins.list[TreasureItem], Coins]]]:
+        """Share a treasure out: each item line ``given`` to a character (by index), the
+        coins split evenly among ``split``. What leaves the treasure is taken out of it
+        (a remainder of coins stays); returns the treasure and what each character gets."""
+        shares: dict[str, tuple[builtins.list[TreasureItem], Coins]] = {}
+
+        def share(record: Treasure) -> None:
+            shares.clear()
+            kept: builtins.list[TreasureItem] = []
+            for index, item in enumerate(record.items):
+                whom = given.get(index, "")
+                if whom:
+                    items, coins = shares.setdefault(whom, ([], Coins()))
+                    items.append(item)
+                else:
+                    kept.append(item)
+            whom_coins = list(dict.fromkeys(c for c in split if c))
+            left = record.coins.model_copy()
+            if whom_coins:
+                for denomination in ("cp", "sp", "ep", "gp", "pp"):
+                    each, rest = divmod(getattr(record.coins, denomination), len(whom_coins))
+                    setattr(left, denomination, rest)
+                    for character_id in whom_coins:
+                        _items, coins = shares.setdefault(character_id, ([], Coins()))
+                        setattr(coins, denomination, getattr(coins, denomination) + each)
+            record.items = kept
+            record.coins = left
+
+        changed = self._store.treasures.mutate(treasure_id, share)
+        return changed, dict(shares)
+
     def delete(self, treasure_id: str) -> Treasure:
         """Delete a treasure; returns what it was."""
         treasure = self.get(treasure_id)

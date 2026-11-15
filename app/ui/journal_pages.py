@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from urllib.parse import urlencode
 
 from htpy import (
@@ -11,14 +12,18 @@ from htpy import (
     a,
     b,
     button,
+    details,
     div,
     form,
     img,
     label,
     li,
     p,
+    pre,
     section,
     span,
+    summary,
+    textarea,
     ul,
 )
 from htpy import input as input_el
@@ -140,15 +145,56 @@ def _row(page: Page, handout: Handout, names: Sequence[str] | None) -> Element:
     ]
 
 
+@dataclass(frozen=True)
+class PartyNotesView:
+    """One world's party notes as the journal shows them: the text in the box (the
+    reader's own when a save was refused), the version it was written over, and the
+    text saved meanwhile, if any."""
+
+    world_id: str
+    world: str
+    text: str
+    base: str
+    conflict: str | None = None
+
+
+def _party_notes(page: Page, notes: PartyNotesView) -> Element:
+    t = page.t
+    url = f"{JOURNAL_URL}/notes/{notes.world_id}"
+    return details(class_="panel journal-notes", open=True)[
+        summary(class_="panel-head")[icon("pencil"), b[t("journal.notes", world=notes.world)]],
+        div(class_="alert", role="alert")[
+            span[t("journal.notes_conflict")],
+            pre(class_="journal-notes-now")[notes.conflict],
+        ]
+        if notes.conflict is not None
+        else None,
+        form(method="post", action=url, class_="stack")[
+            input_el(type="hidden", name="base", value=notes.base),
+            textarea(
+                name="text",
+                rows="8",
+                aria_label=t("journal.notes", world=notes.world),
+                placeholder=t("journal.notes_hint"),
+            )[notes.text],
+            div(class_="form-actions")[
+                button(type="submit", class_="btn btn-sm")[t("journal.notes_save")]
+            ],
+        ],
+    ]
+
+
 def journal_page(
     page: Page,
     handouts: Sequence[Handout],
     *,
     names: dict[str, list[str]] | None = None,
     message: str | None = None,
+    notes: Sequence[PartyNotesView] = (),
 ) -> Element:
     """Every handout the reader holds, newest first. The gamemaster's list names who each
-    went to (``names``); a player's marks what they have not opened."""
+    went to (``names``); a player's marks what they have not opened. ``notes`` are the
+    party notes of the reader's worlds, which they may write."""
     t = page.t
     gm = names is not None
     rows = [_row(page, h, names.get(h.id) if names is not None else None) for h in handouts]
@@ -162,6 +208,7 @@ def journal_page(
                 t("journal.lede_gm") if gm else t("journal.lede"),
             ),
             notice(message),
+            [_party_notes(page, n) for n in notes],
             ul(class_="list journal-list")[rows]
             if rows
             else empty_state(

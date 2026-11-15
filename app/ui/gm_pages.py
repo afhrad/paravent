@@ -288,10 +288,12 @@ def party_page(
     worlds: Sequence[World],
     world: World | None,
     combats: Node = None,
+    checks: Node = None,
 ) -> Element:
     """The gamemaster's landing screen: every character at the table, live.
 
-    ``combats`` is the strip of running fights above the cards.
+    ``combats`` is the strip of running fights above the cards, ``checks`` the panel
+    that calls for a check outside a fight.
     """
     t = page.t
     if world is not None:
@@ -326,6 +328,7 @@ def party_page(
                 ],
             ),
             combats,
+            checks,
             party_grid(page, cards, world_id=world.id if world else None),
         ],
         extra_scripts=("/static/js/htmx.min.js", "/static/js/party.js"),

@@ -1190,6 +1190,47 @@ button.pill.cb-side-switch:hover{ border-color:currentColor; }
 
 /* Running fights on the party overview */
 .party-combats{ list-style:none; margin:0 0 16px; padding:0; display:grid; gap:8px; }
+
+/* Bastions (app/ui/bastion_pages.py) */
+.bastion-facilities, .bastion-meta{ display:grid; gap:12px; margin-bottom:16px; }
+.bastion-facilities .panel-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; }
+.bastion-list{ list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+.bastion-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.bastion-order, .bastion-add, .bastion-name{ display:flex; align-items:end; gap:6px; flex-wrap:wrap; margin:0; }
+
+/* Safety tools (app/ui/safety_pages.py) */
+.xcard-form{ display:inline-flex; margin:0; }
+.btn.xcard{ border-color:var(--dmg); color:var(--dmg-text); font-weight:700; }
+.safety-world{ display:grid; gap:12px; margin-bottom:16px; }
+.safety-world .panel-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.safety-lists{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); }
+.safety-list{ display:grid; gap:2px; align-content:start; }
+.safety-list ul{ margin:6px 0 0 18px; }
+/* Notes: the party's on the journal, a character's on its sheet */
+.journal-notes textarea, .cs-notes textarea{ width:100%; font:inherit; line-height:1.5; }
+.journal-notes{ display:grid; gap:10px; margin-bottom:16px; }
+.safety-suggest{ display:grid; gap:6px; }
+.safety-suggest-row{ display:flex; gap:6px; flex-wrap:wrap; }
+.safety-suggest-row input{ flex:1; min-width:180px; }
+.safety-suggested ul{ list-style:none; margin:6px 0 0; padding:0; display:grid; gap:6px; }
+.safety-suggested-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+
+/* Checks called outside a fight (app/ui/check_pages.py) */
+.party-checks{ display:grid; gap:8px; margin:0 0 16px; }
+.party-checks-call > summary{ cursor:pointer; display:flex; align-items:center; gap:8px; font-weight:600; list-style:none; }
+.party-checks-call > summary::-webkit-details-marker{ display:none; }
+.party-checks-form{ display:grid; gap:10px; margin-top:12px; }
+.party-checks-form .field{ display:grid; gap:4px; max-width:360px; }
+.party-checks-dc input{ max-width:90px; }
+.party-checks-who{ display:flex; flex-wrap:wrap; gap:4px 14px; }
+.party-checks-list{ list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+.party-check.closed{ opacity:.75; }
+.party-check-head{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.party-check-close{ margin-left:auto; }
+.party-check-rows{ list-style:none; margin:8px 0 0; padding:0; display:flex; flex-wrap:wrap; gap:6px 18px; }
+.party-check-row{ display:inline-flex; gap:8px; align-items:baseline; }
+.party-check-row.ok b{ color:var(--heal-text); }
+.party-check-row.bad b{ color:var(--dmg-text); }
 .party-combat{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; padding:10px 14px;
   border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:var(--r);
   background:var(--surface); }

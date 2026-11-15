@@ -39,10 +39,13 @@ from app.routes.auth import html, redirect
 from app.routes.play_combat import strip
 from app.routes.rolls import announce_roll, new_roll
 from app.services import polymorph
+from app.services.auth import Identity
+from app.services.bastions import BastionError, facilities
 from app.services.combat import CombatError
 from app.services.events import revision_stream
 from app.services.play import Actor, PlayError
 from app.services.sheet import Sheet
+from app.ui.bastion_pages import bastion_page
 from app.ui.character_list_pages import character_delete_page, characters_page
 from app.ui.context import Page
 from app.ui.sheet_pages import sheet_fragment, sheet_page
@@ -62,6 +65,7 @@ def _sheet(characters: CharactersDep, registry: RegistryDep, character: PlayerCh
     held = character.state.concentration
     if held is not None and polymorph.is_polymorph(held.name):
         _shape_choices(sheet, characters, registry, character, held.reference, fights)
+    sheet.calls = registry.checks.open_for(character.id)
     for spell in sheet.spells:
         summoned = registry.summoning_for(spell.reference)
         if summoned is not None:
@@ -375,6 +379,115 @@ async def heal_spell(
         )
     )
     return response if error else announce_roll(response)
+
+
+def _bastion(
+    identity: Identity,
+    page: Page,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character: PlayerCharacter,
+    *,
+    error: str | None = None,
+    message: str | None = None,
+) -> HTMLResponse:
+    level = character.total_level
+    entries = registry.compendium.all("facility")
+    offered = facilities(entries, characters.source_set(character), level)
+    every = {f.reference.lower(): f for f in facilities(entries, None, 20)}
+    bastion = registry.bastions.of(character.id)
+    return html(
+        bastion_page(
+            page,
+            character_id=character.id,
+            character_name=character.name or "?",
+            level=level,
+            world_id=character.world_id,
+            bastion=bastion,
+            built=[every.get(f.ref.lower()) for f in bastion.facilities],
+            offered=offered,
+            gamemaster=identity.is_gamemaster,
+            error=error,
+            message=message,
+        )
+    )
+
+
+@router.get("/characters/{character_id}/bastion", response_class=HTMLResponse)
+async def bastion(
+    identity: IdentityDep,
+    page: PageDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+) -> HTMLResponse:
+    """The character's bastion (2024 rules)."""
+    return _bastion(
+        identity, page, characters, registry, characters.get_for(identity, character_id)
+    )
+
+
+@router.post("/characters/{character_id}/bastion", response_class=HTMLResponse)
+async def change_bastion(
+    request: Request,
+    identity: IdentityDep,
+    page: PageDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+) -> Response:
+    """Name the bastion, build or pull down a facility, give an order, or (the
+    gamemaster) run a bastion turn."""
+    character = characters.get_for(identity, character_id)
+    form = await request.form()
+    op = str(form.get("op", ""))
+    service = registry.bastions
+    level = character.total_level
+    every = {
+        f.reference.lower(): f
+        for f in facilities(
+            registry.compendium.all("facility"), characters.source_set(character), level
+        )
+    }
+    raw_index = str(form.get("index", ""))
+    index = int(raw_index) if raw_index.isdigit() else -1
+    try:
+        if op == "rename":
+            service.rename(character_id, str(form.get("name", "")))
+        elif op == "add":
+            chosen = every.get(str(form.get("facility", "")).lower())
+            if chosen is None:
+                raise BastionError("bastion.error.level")
+            service.add(character_id, level, chosen)
+        elif op == "remove":
+            service.remove(character_id, index)
+        elif op == "order":
+            held = service.of(character_id).facilities
+            ref = held[index].ref.lower() if 0 <= index < len(held) else ""
+            known = {
+                f.reference.lower(): f
+                for f in facilities(registry.compendium.all("facility"), None, 20)
+            }.get(ref)
+            service.order(
+                character_id, index, str(form.get("order", "")), known.orders if known else ()
+            )
+        elif op == "turn" and identity.is_gamemaster:
+            user = identity.user
+            service.turn(
+                character_id,
+                character.name or "?",
+                character.world_id,
+                user.username,
+                user.display_name or user.username,
+            )
+            return _bastion(
+                identity, page, characters, registry, character, message=page.t("bastion.turned")
+            )
+        else:
+            raise BastionError("bastion.error.order")
+    except BastionError as exc:
+        return _bastion(identity, page, characters, registry, character, error=page.t.error(exc))
+    return redirect(f"/characters/{character_id}/bastion")
 
 
 @router.post("/characters/{character_id}/summon", response_class=HTMLResponse)

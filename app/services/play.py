@@ -32,7 +32,7 @@ from dataclasses import dataclass, replace
 from typing import Any
 
 from app.models.gamestate import SpellForm
-from app.models.pc import ChosenOption, LogKind, PlayerCharacter, Recharge
+from app.models.pc import ChosenOption, InventoryItem, LogKind, PlayerCharacter, Recharge
 from app.models.protocol import EntryKind, ProtocolEntry, RollRecord, Scope, Visibility
 from app.services import polymorph, wild_shape
 from app.services.condition_rolls import bend
@@ -47,11 +47,22 @@ from app.store.characters import CharacterStore
 PRIVATE_ACTIONS = frozenset({"roll", "death_save", "hit_die"})
 # The conditions under which a creature cannot keep concentrating (each one is, or
 # includes, Incapacitated); dropping to 0 HP leaves it Unconscious too.
+# How long a character's own notes may grow.
+NOTES_LIMIT = 20_000
 INCAPACITATING = frozenset({"incapacitated", "paralyzed", "petrified", "stunned", "unconscious"})
 
 
 class PlayError(Translatable):
     """An action the rules do not allow right now: no slot left, no hit die to spend."""
+
+
+def _take_one(pc: PlayerCharacter, index: int) -> None:
+    """One fewer of the inventory's ``index``; the line goes at none."""
+    carried = pc.inventory[index]
+    if carried.quantity > 1:
+        carried.quantity -= 1
+    else:
+        pc.inventory = [i for n, i in enumerate(pc.inventory) if n != index]
 
 
 def _castable(sheet: Sheet, spell: SpellView) -> None:
@@ -141,6 +152,9 @@ class PlayService:
             "wild_shape": self._wild_shape,
             "wild_forms": self._wild_forms,
             "polymorph": self._polymorph,
+            "receive": self._receive,
+            "use": self._use,
+            "notes": self._notes,
         }
 
     @property
@@ -670,6 +684,7 @@ class PlayService:
             self._log(pc, actor, LogKind.INITIATIVE, "", rolled, record=made[-1])
         elif kind == "attack":
             rolled = test(self._attack_value(sheet, subject))
+            self._spend_ammo(pc, sheet, subject)
             self._log(
                 pc,
                 actor,
@@ -770,6 +785,49 @@ class PlayService:
             pc.inventory = [i for n, i in enumerate(pc.inventory) if n != index]
         self._log(pc, actor, LogKind.HEAL, item.name, rolled, amount=rolled.total)
 
+    @staticmethod
+    def _spend_ammo(pc: PlayerCharacter, sheet: Sheet, weapon: str) -> None:
+        """A shot uses one round of the weapon's ammunition: a loose one, else one out of
+        a bundle, which is opened (``Arrows (20)`` becomes 19 arrows). Nothing to shoot
+        does not stop the roll; the table may count differently."""
+        attack = next((a for a in sheet.attacks if a.name == weapon), None)
+        if attack is None or not attack.ammo:
+            return
+        loose = next(
+            (n for n, i in enumerate(pc.inventory) if i.item.name.lower() == attack.ammo), None
+        )
+        if loose is not None:
+            _take_one(pc, loose)
+            return
+        bundle = next((i for i in sheet.inventory if i.pack and i.pack[0] == attack.ammo), None)
+        if bundle is None or not 0 <= bundle.index < len(pc.inventory) or bundle.pack is None:
+            return
+        source = pc.inventory[bundle.index].item.source
+        _take_one(pc, bundle.index)
+        if bundle.pack[1] > 1:
+            loose_item = ChosenOption(name=attack.ammo.title(), source=source)
+            pc.inventory = [
+                *pc.inventory,
+                InventoryItem(item=loose_item, quantity=bundle.pack[1] - 1),
+            ]
+
+    @staticmethod
+    def _notes(pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor) -> None:
+        """The player's own notes on the character (the file's ``notes``); not logged."""
+        pc.notes = params.get("text", "")[:NOTES_LIMIT]
+
+    def _use(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Use up one of a consumable (a potion, a scroll, antitoxin), logged."""
+        index = _int(params, "index", -1)
+        item = next((i for i in sheet.inventory if i.index == index), None)
+        if item is None or not item.consumable or not 0 <= index < len(pc.inventory):
+            raise PlayError("play.error.bad_input")
+        reference = pc.inventory[index].item.reference
+        _take_one(pc, index)
+        self._stage(pc, actor, EntryKind.CUSTOM, what=f"use:{reference}")
+
     def roll(self, expression: str) -> Roll:
         """A dice roll with this service's dice (a healing spell cast from another file)."""
         return self._dice.roll(expression)
@@ -856,6 +914,40 @@ class PlayService:
         if not old_rules:
             state.temp_hp = max(state.temp_hp, hp)
         self._stage(pc, actor, EntryKind.CUSTOM, what=f"polymorph:on:{form}")
+
+    def _receive(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Items and coins handed to the character (a treasure shared out): ``items`` is
+        ``Name|SOURCE*count`` joined by ``;``, coins by denomination. Items join a
+        stack of the same thing already carried."""
+        got: list[str] = []
+        for part in filter(None, params.get("items", "").split(";")):
+            ref, _, count_text = part.rpartition("*")
+            count = int(count_text) if count_text.isdigit() else 0
+            if not ref or count < 1:
+                raise PlayError("play.error.bad_input")
+            option = ChosenOption.model_validate(ref)
+            stack = next(
+                (
+                    i
+                    for i in pc.inventory
+                    if i.item.name.lower() == option.name.lower()
+                    and (i.item.source or "").lower() == (option.source or "").lower()
+                ),
+                None,
+            )
+            if stack is not None:
+                stack.quantity += count
+            else:
+                pc.inventory = [*pc.inventory, InventoryItem(item=option, quantity=count)]
+            got.append(f"{option.reference}*{count}")
+        coins = {d: max(0, _int(params, d, 0)) for d in ("cp", "sp", "ep", "gp", "pp")}
+        for denomination, amount in coins.items():
+            setattr(pc.currency, denomination, getattr(pc.currency, denomination) + amount)
+        purse = ",".join(f"{amount}{d}" for d, amount in coins.items() if amount)
+        if got or purse:
+            self._stage(pc, actor, EntryKind.CUSTOM, what=f"receive:{';'.join(got)}:{purse}")
 
     def _end_polymorph(self, pc: PlayerCharacter, actor: Actor, natural: bool = False) -> None:
         """Leave a spell's shape; ``natural`` when it ended by itself, which ends the spell

@@ -9,6 +9,7 @@
 * ``/gm/worlds…``                      — create, edit and delete worlds (a world's own
   page, with its adventures, is in :mod:`app.routes.adventures`)
 * ``POST /gm/characters/{id}/world``   — place a character in a world
+* ``/gm/checks…``                      — call for a check outside a fight, and close it
 """
 
 from __future__ import annotations
@@ -33,12 +34,14 @@ from app.routes.auth import html, redirect
 from app.routes.rolls import announce_roll, new_roll
 from app.services.auth import AuthError
 from app.services.characters import CharacterService
+from app.services.checks import CheckError
 from app.services.events import PARTY, revision_stream
 from app.services.play import PlayError
 from app.services.player_view import player_choice, player_ticks
 from app.services.worlds import WorldInput
 from app.store.registry import StoreRegistry
 from app.ui.adventure_pages import images_panel
+from app.ui.check_pages import CHECKS_URL, checks_panel
 from app.ui.combat_pages import party_combats
 from app.ui.context import Page
 from app.ui.forms import alert, notice
@@ -59,6 +62,17 @@ def _combats(page: Page, registry: StoreRegistry, world_id: str | None) -> Eleme
     combats = registry.combats
     views = [combats.view(c) for c in combats.running(world_id=world_id)]
     return party_combats(page, views, world_id=world_id)
+
+
+def _checks(
+    page: Page, registry: StoreRegistry, characters: CharacterService, world_id: str | None
+) -> Element:
+    asked = [
+        (m.sheet.character.id, m.sheet.character.name or "?")
+        for m in characters.party(world_id)
+        if not m.sheet.character.in_wizard
+    ]
+    return checks_panel(page, registry.checks.recent(world_id), asked, world_id)
 
 
 def _cards(page: Page, characters: CharacterService, world_id: str | None) -> list[Element]:
@@ -96,8 +110,81 @@ async def party(
             worlds=worlds.list(),
             world=chosen,
             combats=_combats(page, registry, world_id),
+            checks=_checks(page, registry, characters, world_id),
         )
     )
+
+
+# -- checks outside a fight --------------------------------------------------------------
+
+
+@router.get(f"{CHECKS_URL}/panel", response_class=HTMLResponse)
+async def checks_fragment(
+    _gm: GamemasterDep,
+    page: PageDep,
+    characters: CharactersDep,
+    worlds: WorldsDep,
+    registry: RegistryDep,
+    world: str = "",
+) -> HTMLResponse:
+    """The call panel with its results, refetched as answers come in."""
+    chosen = worlds.find(world)
+    return html(_checks(page, registry, characters, chosen.id if chosen else None))
+
+
+@router.post(CHECKS_URL, response_class=HTMLResponse)
+async def call_check(
+    request: Request,
+    gm: GamemasterDep,
+    page: PageDep,
+    characters: CharactersDep,
+    worlds: WorldsDep,
+    registry: RegistryDep,
+) -> Response:
+    """Ask the ticked characters for a check, or roll it secretly for them."""
+    form = await request.form()
+    chosen = worlds.find(str(form.get("world", "")))
+    world_id = chosen.id if chosen else None
+    kind, _, subject = str(form.get("what", "")).partition(":")
+    dc_text = str(form.get("dc", "")).strip()
+    flash: str | None = None
+    try:
+        registry.checks.call(
+            world_id,
+            kind,
+            subject,
+            [str(c) for c in form.getlist("character")],
+            gm.user.username,
+            dc=int(dc_text) if dc_text.isdigit() else None,
+            group=form.get("group") == "1",
+            secret=form.get("secret") == "1",
+        )
+    except CheckError as exc:
+        flash = page.t.error(exc)
+    if request.headers.get("HX-Request") != "true":
+        return redirect(f"/gm?{urlencode({'world': world_id})}" if world_id else "/gm")
+    panel = _checks(page, registry, characters, world_id)
+    return html(panel if flash is None else [alert(flash), panel])
+
+
+@router.post(f"{CHECKS_URL}/{{call_id}}/close", response_class=HTMLResponse)
+async def close_check(
+    request: Request,
+    _gm: GamemasterDep,
+    page: PageDep,
+    characters: CharactersDep,
+    worlds: WorldsDep,
+    registry: RegistryDep,
+    call_id: str,
+    world: str = "",
+) -> Response:
+    """The gamemaster is done with a call."""
+    registry.checks.close(call_id)
+    chosen = worlds.find(world)
+    world_id = chosen.id if chosen else None
+    if request.headers.get("HX-Request") != "true":
+        return redirect(f"/gm?{urlencode({'world': world_id})}" if world_id else "/gm")
+    return html(_checks(page, registry, characters, world_id))
 
 
 @router.get("/gm/party/combats", response_class=HTMLResponse)

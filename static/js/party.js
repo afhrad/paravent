@@ -22,6 +22,14 @@
     htmx.ajax('GET', c.dataset.url, { target: '#party-combats', swap: 'outerHTML' });
   }
 
+  function refreshChecks() {
+    var c = document.getElementById('party-checks'); if (!c || !window.htmx) return;
+    // A call being written is not swapped away under the gamemaster's hands.
+    var open = c.querySelector('details.party-checks-call');
+    if (open && open.open && open.contains(document.activeElement)) return;
+    htmx.ajax('GET', c.dataset.url, { target: '#party-checks', swap: 'outerHTML' });
+  }
+
   function refreshGrid() {
     var g = grid(); if (!g || !window.htmx) return;
     htmx.ajax('GET', g.dataset.url, { target: '#party', swap: 'outerHTML' });
@@ -85,6 +93,7 @@
       if (!e.data) return; // the stream's opening message carries no change
       var parts = e.data.split(' ');
       if (parts[0] === '*combats') { refreshCombats(); return; }
+      if (parts[0] === '*checks') { refreshChecks(); return; }
       var id = parts[0], rev = parts[1] || '';
       var card = document.getElementById('pc-' + id);
       if (!rev || !card) { if (grid()) refreshGrid(); return; } // deleted, or new / elsewhere

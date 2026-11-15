@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import Annotated
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, File, Form, UploadFile
+from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
@@ -30,6 +30,7 @@ from app.services.i18n import Translatable
 from app.services.media import MAX_BYTES, MediaError
 from app.services.naming_workshop import races
 from app.services.npcs import ObjectError
+from app.services.play import Actor
 from app.services.references import ReferenceNotFound
 from app.services.treasure_roll import TreasureRollError, roller_for, tables_for
 from app.store.registry import StoreRegistry
@@ -436,6 +437,11 @@ def _treasure(
             conflict=conflict,
             error=error,
             notice_text=notice_text,
+            characters=[
+                (pc.id, pc.name or "?")
+                for pc in registry.characters.in_world(world.id)
+                if not pc.in_wizard
+            ],
         ),
         status_code=status_code,
     )
@@ -465,6 +471,38 @@ async def show_treasure(
         kind=kind,
         cr=cr,
     )
+
+
+@router.post(f"{TREASURE_URL}/{{treasure_id}}/share", response_class=HTMLResponse)
+async def share_treasure(
+    request: Request,
+    gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    treasure_id: str,
+) -> HTMLResponse:
+    """Share the treasure out: items to characters, coins split evenly; each character's
+    file gets its share and its player is told."""
+    form = await request.form()
+    treasure = registry.treasure.get(treasure_id)
+    present = {pc.id for pc in registry.characters.in_world(treasure.scope.world_id)}
+    given = {
+        index: str(form.get(f"item.{index}", ""))
+        for index in range(len(treasure.items))
+        if str(form.get(f"item.{index}", "")) in present
+    }
+    split = [str(c) for c in form.getlist("coins_to") if str(c) in present]
+    _, shares = registry.treasure.share(treasure_id, given, split)
+    by = Actor(gm.user.display_name or gm.user.username, username=gm.user.username)
+    for character_id, (items, coins) in shares.items():
+        registry.characters.receive(
+            character_id,
+            [(item.ref, item.count) for item in items],
+            coins.model_dump(),
+            by,
+        )
+    notice_text = page.t("treasure.shared", count=len(shares)) if shares else None
+    return _treasure(page, registry, treasure_id, notice_text=notice_text)
 
 
 @router.post(f"{TREASURE_URL}/{{treasure_id}}/roll", response_class=HTMLResponse)

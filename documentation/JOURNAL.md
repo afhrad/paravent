@@ -78,6 +78,12 @@ Opening it marks it read for that player. The gamemaster also sees to whom it we
 opened it, can return to the chapter, and **withdraw** it: gone from every journal, its
 pictures with it.
 
+**Party notes** (2026-11-15, `app/services/party_notes.py`): above the handouts, one
+text per world the reader plays in (the gamemaster: every world), written together by
+the world's players and the gamemaster (`library/party_notes.json`). A save carries the
+version it was written over; one made over a newer text is refused, the writer's text
+kept in the box and the saved one shown beside it.
+
 ## 4. Not built (yet)
 
 - NPC and place cards, free messages and whole chapters (offered, not chosen).

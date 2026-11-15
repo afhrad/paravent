@@ -13,6 +13,7 @@ from app.models.pc import PlayerCharacter
 from app.services.sheet import CASTER_SLOTS, build_sheet
 from app.store.compendium import CompendiumStore
 from tests.conftest import requires_corpus
+from tests.test_play import Table as PlayTable
 
 EXAMPLE = (
     Path(__file__).resolve().parent.parent / "documentation" / "examples" / "lyra-mooncaller.json"
@@ -588,3 +589,35 @@ class TestVariantEncumbrance:
         # Without the rule only the capacity counts.
         plain = carrying(6000, variant=False)
         assert plain.load is not None and plain.load.burden == 0 and plain.speed.value == 30
+
+
+@requires_corpus
+class TestAmmunitionAndConsumables:
+    def test_a_shot_uses_an_arrow_and_opens_a_bundle(
+        self, tmp_path: Path, loaded_compendium: CompendiumStore
+    ) -> None:
+        table = PlayTable(
+            tmp_path / "c",
+            loaded_compendium,
+            name="Archer",
+            classes=[{"class": "Ranger|PHB", "level": 3}],
+            abilities={"dex": 16},
+            inventory=[
+                {"item": "Longbow|PHB", "equipped": True},
+                {"item": "Arrows (20)|PHB"},
+                {"item": "Antitoxin|XPHB", "quantity": 2},
+            ],
+        )
+        bow = next(a for a in build_sheet(table.now, loaded_compendium).attacks if a.ammo)
+        assert (bow.ammo, bow.ammo_left) == ("arrow", 20)
+        table.roll(10).act("roll", kind="attack", subject="Longbow")
+        names = {i.item.name: i.quantity for i in table.now.inventory}
+        assert "Arrows (20)" not in names and names["Arrow"] == 19
+        table.roll(10).act("roll", kind="attack", subject="Longbow")
+        sheet = build_sheet(table.now, loaded_compendium)
+        assert next(a for a in sheet.attacks if a.ammo).ammo_left == 18
+        antitoxin = next(i for i in sheet.inventory if i.name == "Antitoxin")
+        assert antitoxin.consumable
+        table.act("use", index=antitoxin.index)
+        assert {i.item.name: i.quantity for i in table.now.inventory}["Antitoxin"] == 1
+        assert table.latest.what == "use:Antitoxin|XPHB"

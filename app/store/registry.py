@@ -18,17 +18,19 @@ from typing import Any
 
 from app import __version__
 from app.config import Settings
-from app.models.gamestate import Combat, Combatant
+from app.models.gamestate import CheckCall, Combat, Combatant
 from app.models.protocol import EntryKind, ProtocolEntry
 from app.services import media, polymorph
 from app.services.adventures import AdventureService
 from app.services.auth import AuthService, Identity
 from app.services.backlinks import BacklinkIndex
 from app.services.backup import BackupService
+from app.services.bastions import BastionService
 from app.services.characters import CharacterService
 from app.services.chargen.drafts import Drafts
 from app.services.chargen.levelup import LevelUps
 from app.services.chargen.prepare import Preparations
+from app.services.checks import CheckService
 from app.services.combat import CombatService, SheetCharacters
 from app.services.corpus_check import CorpusHealth, corpus_version
 from app.services.corpus_import import CorpusImport, CorpusImports
@@ -56,6 +58,7 @@ from app.services.name_suggestions import ApiRunner, NameSuggestions
 from app.services.naming import Naming
 from app.services.naming_workshop import NamingWorkshop
 from app.services.npcs import NpcService, TreasureService
+from app.services.party_notes import PartyNotesService
 from app.services.places import PlaceService
 from app.services.player_view import Reader, needs_reader, reader_for
 from app.services.players import PlayerService
@@ -65,6 +68,7 @@ from app.services.protocol_view import ProtocolReader, Viewer
 from app.services.ratelimit import LoginThrottle
 from app.services.references import ReferenceEntry, ReferenceService
 from app.services.revisions import Revisions
+from app.services.safety import SafetyService
 from app.services.search import SearchService
 from app.services.session_notes import SessionNoteService
 from app.services.sheet import CONDITIONS
@@ -554,7 +558,45 @@ class StoreRegistry:
             on_shape_ended=lambda caster, spell, by: self.combats.end_concentration_of(
                 caster, spell, by
             ),
+            # A check rolled on a sheet answers the gamemaster's open calls for it.
+            on_roll=lambda character, kind, subject, total: self.checks.answer(
+                character, kind, subject, total
+            ),
         )
+
+    @cached_property
+    def bastions(self) -> BastionService:
+        """Characters' bastions (app/services/bastions.py)."""
+        return BastionService(self.gamestate, self.protocol)
+
+    @cached_property
+    def safety(self) -> SafetyService:
+        """The X-card and each world's lines and veils (app/services/safety.py)."""
+        return SafetyService(self.gamestate, self.protocol)
+
+    @cached_property
+    def party_notes(self) -> PartyNotesService:
+        """The notes each world's party keeps together (the players' journal)."""
+        return PartyNotesService(self.gamestate)
+
+    @cached_property
+    def checks(self) -> CheckService:
+        """Checks the gamemaster calls for outside a fight (app/services/checks.py)."""
+        return CheckService(
+            self.gamestate,
+            roll=lambda character, kind, subject, by, _secret: self.characters.roll_for(
+                character, kind, subject, by
+            ),
+            changed=self._check_changed,
+        )
+
+    def _check_changed(self, call: CheckCall) -> None:
+        """A call opened, answered or closed: the asked characters' sheets and the
+        party view follow."""
+        state = f"check-{call.id}-{len(call.results)}-{int(call.open)}"
+        for character_id in call.characters:
+            self.events.publish(character_id, state)
+        self.events.publish(PARTY, f"*checks {call.id}")
 
     @cached_property
     def naming(self) -> Naming:

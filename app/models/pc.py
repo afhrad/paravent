@@ -698,6 +698,11 @@ class PlayerCharacter(Record):
         return value[:LOG_LIMIT]
 
     @property
+    def in_wizard(self) -> bool:
+        """A draft still being made in the wizard: no one to heal, ask or hand things to."""
+        return self.status is DraftStatus.DRAFT and self.wizard_step is not None
+
+    @property
     def total_level(self) -> int:
         """Character level: the sum across every class."""
         return sum(entry.level for entry in self.classes)

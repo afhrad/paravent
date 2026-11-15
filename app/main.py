@@ -57,6 +57,7 @@ from app.routes import players as players_routes
 from app.routes import prepare as prepare_routes
 from app.routes import protocol as protocol_routes
 from app.routes import ref as ref_routes
+from app.routes import safety as safety_routes
 from app.routes import search as search_routes
 from app.routes import session_notes as session_routes
 from app.routes import sound as sound_routes
@@ -339,6 +340,7 @@ def create_app() -> FastAPI:
     app.include_router(location_routes.router)
     app.include_router(library_preview_routes.router)
     app.include_router(token_routes.router)
+    app.include_router(safety_routes.router)
     app.include_router(npc_gen_routes.router)
     app.include_router(creature_routes.router)
     app.include_router(sound_routes.router)

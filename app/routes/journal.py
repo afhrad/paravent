@@ -21,10 +21,12 @@ from htpy import Node, div, img
 from markupsafe import Markup
 
 from app.dependencies import GamemasterDep, IdentityDep, PageDep, RegistryDep
-from app.models.gamestate import Handout
+from app.models.gamestate import Handout, World
 from app.routes.adventures import _chapter_context as chapter_context
 from app.routes.auth import html, redirect, safe_next
 from app.services import image_effects, media
+from app.services.adventures import EditConflict, text_version
+from app.services.auth import Identity
 from app.services.creature_sight import image_file
 from app.services.handouts import HandoutError
 from app.services.translations import CHAPTER_FIELDS
@@ -35,6 +37,7 @@ from app.ui.context import Page
 from app.ui.journal_pages import (
     JOURNAL_URL,
     SHARE_URL,
+    PartyNotesView,
     handout_page,
     handout_url,
     journal_page,
@@ -204,19 +207,79 @@ async def share(
     return redirect(f"{handout_url(made.id)}?shared=1")
 
 
-@router.get(JOURNAL_URL, response_class=HTMLResponse)
-async def journal(
-    identity: IdentityDep, page: PageDep, registry: RegistryDep, world: str = "", gone: str = ""
+def _notes_worlds(identity: Identity, registry: StoreRegistry, world: str) -> list[World]:
+    """The worlds whose party notes the reader may write: a player's characters' worlds,
+    for the gamemaster every world (or the one asked for)."""
+    worlds = registry.gamestate.worlds.list()
+    if identity.is_gamemaster:
+        return [w for w in worlds if not world or w.id == world]
+    mine = {pc.world_id for pc in registry.characters.for_player(identity) if pc.world_id}
+    return [w for w in worlds if w.id in mine]
+
+
+def _journal(
+    identity: Identity,
+    page: Page,
+    registry: StoreRegistry,
+    world: str = "",
+    message: str | None = None,
+    mine: tuple[str, str, str] | None = None,
 ) -> HTMLResponse:
-    """The reader's handouts, newest first."""
+    """The journal; ``mine`` is (world, text, conflict) after a refused save of notes."""
     handouts = registry.handouts
     found = handouts.readable(identity, world or None)
     names = {h.id: handouts.names(h) for h in found} if identity.is_gamemaster else None
-    return html(
-        journal_page(
-            page, found, names=names, message=page.t("journal.withdrawn") if gone else None
+    notes = []
+    for w in _notes_worlds(identity, registry, world):
+        saved = registry.party_notes.text(w.id)
+        refused = mine is not None and mine[0] == w.id
+        notes.append(
+            PartyNotesView(
+                w.id,
+                w.name,
+                mine[1] if refused and mine is not None else saved,
+                text_version(saved),
+                mine[2] if refused and mine is not None else None,
+            )
         )
-    )
+    return html(journal_page(page, found, names=names, message=message, notes=notes))
+
+
+@router.get(JOURNAL_URL, response_class=HTMLResponse)
+async def journal(
+    identity: IdentityDep,
+    page: PageDep,
+    registry: RegistryDep,
+    world: str = "",
+    gone: str = "",
+    saved: str = "",
+) -> HTMLResponse:
+    """The reader's handouts, newest first, and their parties' notes."""
+    message = None
+    if gone:
+        message = page.t("journal.withdrawn")
+    elif saved:
+        message = page.t("journal.notes_saved")
+    return _journal(identity, page, registry, world, message)
+
+
+@router.post(JOURNAL_URL + "/notes/{world_id}", response_class=HTMLResponse)
+async def save_party_notes(
+    identity: IdentityDep,
+    page: PageDep,
+    registry: RegistryDep,
+    world_id: str,
+    text: Annotated[str, Form()] = "",
+    base: Annotated[str, Form()] = "",
+) -> Response:
+    """Write a world's party notes, if the reader plays in it (or is the gamemaster)."""
+    if world_id not in {w.id for w in _notes_worlds(identity, registry, "")}:
+        raise HTTPException(status_code=404)
+    try:
+        registry.party_notes.save(world_id, text, base, identity.user.username)
+    except EditConflict as exc:
+        return _journal(identity, page, registry, mine=(world_id, text, exc.current))
+    return redirect(f"{JOURNAL_URL}?saved=1")
 
 
 @router.get(JOURNAL_URL + "/{handout_id}", response_class=HTMLResponse)

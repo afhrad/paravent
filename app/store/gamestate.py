@@ -228,7 +228,9 @@ class GameStateStore:
         """``root`` is the directory holding one JSON file per collection."""
         from app.models.gamestate import (
             Adventure,
+            Bastion,
             Chapter,
+            CheckCall,
             Combat,
             CreatureDesign,
             Encounter,
@@ -237,11 +239,13 @@ class GameStateStore:
             Location,
             McpToken,
             Npc,
+            PartyNotes,
             Place,
             Session,
             SessionNote,
             Sound,
             SoundScene,
+            TableSafety,
             TableSettings,
             Treasure,
             User,
@@ -282,6 +286,14 @@ class GameStateStore:
         self.places: Collection[Place] = Collection(root / "places.json", Place)
         # What each world's party learned about kinds of creatures (COMBAT.md §5).
         self.knowledge: Collection[Knowledge] = Collection(root / "knowledge.json", Knowledge)
+        # Checks the gamemaster asked for outside a fight, with their results.
+        self.checks: Collection[CheckCall] = Collection(root / "checks.json", CheckCall)
+        # The notes each world's party keeps together (the players' journal).
+        self.party_notes: Collection[PartyNotes] = Collection(root / "party_notes.json", PartyNotes)
+        # Each world's table agreements: lines, veils, anonymous suggestions.
+        self.safety: Collection[TableSafety] = Collection(root / "safety.json", TableSafety)
+        # Characters' bastions (2024 rules), by character id.
+        self.bastions: Collection[Bastion] = Collection(root / "bastions.json", Bastion)
         self.npcs: Collection[Npc] = Collection(root / "npcs.json", Npc)
         # The campaign's places, ``{@place}`` (documentation/ADVENTURES.md §4).
         self.locations: Collection[Location] = Collection(root / "locations.json", Location)

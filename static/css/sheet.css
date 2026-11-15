@@ -13,6 +13,10 @@
 .cs-act{ display:contents; margin:0; }
 .cs-empty{ color:var(--text-3); font-size:13px; padding:10px 2px; }
 .cs-flash{ margin:0; }
+.cs-call{ margin:0; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.cs-call .btn{ margin-left:auto; }
+.cs-ammo{ font-variant-numeric:tabular-nums; }
+.cs-ammo.out{ color:var(--dmg-text); font-weight:600; }
 .cs .alert{ margin:0; }
 
 /* -- head --------------------------------------------------- */

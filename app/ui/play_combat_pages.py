@@ -46,6 +46,7 @@ from app.ui.knowledge_text import fact_detail, fact_kind, fact_label, ordered
 from app.ui.layout import app_shell
 from app.ui.names import ITEM, monster_label, named
 from app.ui.rules_text import kind_text, speed
+from app.ui.safety_pages import xcard_button
 from app.ui.sheet_pages import form_pill
 from app.ui.tags import RenderContext, render
 from app.ui.tokens import token
@@ -440,7 +441,11 @@ def player_board(
         data_url=play_combat_url(view.id, "/board"),
         data_events=play_combat_url(view.id, "/events"),
     )[
-        div(class_="pv-head")[_state(page, view), quick_switch(page, view, mine, "fight")],
+        div(class_="pv-head")[
+            _state(page, view),
+            quick_switch(page, view, mine, "fight"),
+            xcard_button(page, view.world_id),
+        ],
         div(class_="notice cs-flash", role="status")[flash] if flash else None,
         banner,
         _save_calls(page, view, sorted(mine), "board", "#combat-board") if view.running else None,

@@ -433,6 +433,32 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             )
         if head == "custom":
             return dice_words(page, rest)
+        if head == "bastion":
+            number, _, given = rest.partition(":")
+            done = []
+            for part in filter(None, given.split(";")):
+                ref, _, order = part.partition("=")
+                name = page.t.term("facility", ref.partition("|")[0]) or ref.partition("|")[0]
+                done.append(f"{name} — {t(f'bastion.order.{order}')}")
+            orders = ", ".join(done) if done else t("bastion.no_orders")
+            return t("protocol.bastion", subject=entry.subject_name, n=number, orders=orders)
+        if what == "xcard":
+            return t("protocol.xcard")
+        if head == "use":
+            return t(
+                "protocol.use", item=name_text(page, ("item", "baseitem"), rest.partition("|")[0])
+            )
+        if head == "receive":
+            items, _, purse = rest.partition(":")
+            parts = []
+            for part in filter(None, items.split(";")):
+                ref, _, count = part.rpartition("*")
+                name = name_text(page, ("item", "baseitem"), ref.partition("|")[0])
+                parts.append(f"{name} ×{count}" if count not in ("", "1") else str(name))
+            for coin in filter(None, purse.split(",")):
+                amount, denomination = coin[:-2], coin[-2:]
+                parts.append(f"{amount} {t(f'treasure.coin.{denomination}')}")
+            return t("protocol.receive", what=", ".join(parts))
         if head in ("wild_shape", "polymorph"):
             on, _, form = rest.partition(":")
             name = name_text(page, "monster", form.partition("|")[0])

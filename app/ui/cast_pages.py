@@ -22,10 +22,12 @@ from htpy import (
     code,
     details,
     div,
+    fieldset,
     form,
     h1,
     h2,
     label,
+    legend,
     li,
     option,
     p,
@@ -38,7 +40,7 @@ from htpy import (
 )
 from htpy import input as input_el
 
-from app.models.gamestate import Coins, Encounter, Location, Npc, Treasure, World
+from app.models.gamestate import Coins, Encounter, Location, Npc, Treasure, TreasureItem, World
 from app.services.adventures import ChapterView
 from app.services.npcs import KNOWN_ROLES, TreasureLine
 from app.services.references import ReferenceEntry
@@ -849,8 +851,10 @@ def treasure_page(
     error: str | None = None,
     notice_text: str | None = None,
     roll: RollForm | None = None,
+    characters: Sequence[tuple[str, str]] = (),
 ) -> Element:
-    """A treasure: its items with the picker to add more, its coins, notes and settings.
+    """A treasure: its items with the picker to add more, its coins, notes and settings;
+    ``characters`` (the world's) are whom it can be shared out to.
 
     ``notes_text`` is the notes as typed when a save was refused; ``base`` the fingerprint
     of the notes the form opened, ``conflict`` the notes saved meanwhile."""
@@ -925,6 +929,7 @@ def treasure_page(
                         "treasure",
                         treasure.id,
                     ),
+                    _share_panel(page, treasure, lines, characters),
                     _roll_panel(page, url, roll) if roll is not None else None,
                     details(class_="panel enc-settings", open=True)[
                         summary(class_="panel-head")[icon("pencil"), b[t("encounters.settings")]],
@@ -972,6 +977,58 @@ def treasure_page(
         world_id=world.id,
         insert_layer=True,
     )
+
+
+def _share_panel(
+    page: Page,
+    treasure: Treasure,
+    lines: Sequence[TreasureLine],
+    characters: Sequence[tuple[str, str]],
+) -> Node:
+    """Share the treasure out: each item to a character (or kept), the coins split evenly
+    among the ticked ones; it lands in their files, and the players are told."""
+    if not characters or (not treasure.items and treasure.coins.empty):
+        return None
+    t = page.t
+    url = f"{treasure_url(treasure.id)}/share"
+    return details(class_="panel enc-share", open=True)[
+        summary(class_="panel-head")[icon("send"), b[t("treasure.share")]],
+        form(method="post", action=url, class_="stack")[
+            [
+                label(class_="field")[
+                    span[_item_label(page, item, treasure.scope.world_id)],
+                    select(name=f"item.{index}")[
+                        option(value="")[t("treasure.share_keep")],
+                        [option(value=cid)[name] for cid, name in characters],
+                    ],
+                ]
+                for index, item in enumerate(treasure.items)
+            ],
+            fieldset(class_="enc-share-coins")[
+                legend[t("treasure.share_coins", coins=coins_text(page, treasure.coins))],
+                [
+                    label(class_="cs-heal-pick")[
+                        input_el(type="checkbox", name="coins_to", value=cid, checked=True),
+                        span[name],
+                    ]
+                    for cid, name in characters
+                ],
+            ]
+            if not treasure.coins.empty
+            else None,
+            div(class_="form-actions")[
+                button(type="submit", class_="btn btn-sm btn-primary")[
+                    icon("send", "sm"), span[t("treasure.share_go")]
+                ]
+            ],
+        ],
+    ]
+
+
+def _item_label(page: Page, item: TreasureItem, world_id: str | None) -> str:
+    """ "Potion of Healing ×2", in the reader's language."""
+    name = page.t.term("item", item.name) or page.t.term("baseitem", item.name) or item.name
+    return f"{name} ×{item.count}" if item.count > 1 else name
 
 
 def treasure_delete_page(page: Page, treasure: Treasure) -> Element:

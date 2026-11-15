@@ -146,17 +146,13 @@ class ProtocolReader:
             )
         return result
 
-    def toasts(
-        self, viewer: Viewer, since: datetime, mode: str, *, limit: int = 3
-    ) -> list[Shown]:
+    def toasts(self, viewer: Viewer, since: datetime, mode: str, *, limit: int = 3) -> list[Shown]:
         """What pops up for the viewer since ``since``, newest first (PROTOCOL.md §6).
 
         ``mine``: a player's own rolls and what hits, heals or befalls their characters;
         for the gamemaster, every roll made for a character. ``all``: everything the
         viewer may read but the turn order. ``off``: nothing.
         """
-        if mode == "off":
-            return []
         entries = self._merged(self.keys_for(viewer))
         revealed, _, _ = _bookkeeping(entries)
         found: list[Shown] = []
@@ -166,7 +162,12 @@ class ProtocolReader:
             if entry.kind in _BOOKKEEPING or entry.kind in _NOT_TOASTED:
                 continue
             face = self.face(entry, viewer, revealed=entry.id in revealed)
-            if face is None or (mode == "mine" and not _concerns(face, viewer)):
+            if face is None:
+                continue
+            # The X-card reaches the gamemaster whatever the toast setting.
+            if entry.what != "xcard" and (
+                mode == "off" or (mode == "mine" and not _concerns(face, viewer))
+            ):
                 continue
             found.append(Shown(face, revealed=entry.id in revealed))
             if len(found) >= limit:

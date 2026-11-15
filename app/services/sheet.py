@@ -338,6 +338,10 @@ class AttackView:
     property_refs: tuple[tuple[str, str], ...] = ()
     # The kind of weapon it is ("Longsword" for a +1 Longsword), for Weapon Master (2024).
     kind: str = ""
+    # The ammunition it shoots, by lowercased name ("arrow"), and how many the inventory
+    # holds, bundles ("Arrows (20)") counted in; "" and None for a weapon without.
+    ammo: str = ""
+    ammo_left: int | None = None
 
 
 @dataclass(frozen=True)
@@ -389,6 +393,10 @@ class ItemView:
     weight: float | None = None
     # A healing potion's dice ("2d4+2"): drinking it heals the character.
     heal: str = ""
+    # Used up when used (the corpus's CNS tag: potions, scrolls, antitoxin).
+    consumable: bool = False
+    # What a bundle holds, ("arrow", 20) for "Arrows (20)": opened one at a time.
+    pack: tuple[str, int] | None = None
 
 
 @dataclass(frozen=True)
@@ -589,6 +597,8 @@ class Sheet:
     # Set by the page: what each of the character's spells summons (Summon Beast), by
     # the spell's lowercased reference (app/services/summons.py).
     summons: dict[str, Any] = field(default_factory=dict)
+    # Set by the page: the gamemaster's open calls for a check asking this character.
+    calls: list[Any] = field(default_factory=list)
     wild_shape: WildShapeView | None = None
     spell_form: SpellFormView | None = None
 
@@ -1193,6 +1203,7 @@ def _armor_and_attacks(
 ) -> None:
     armor = EquippedArmor()
     magic_ac = 0
+    ammo: dict[str, int] = {}
     for index, entry in enumerate(character.inventory):
         data = corpus.item(entry.item)
         kind, summary, weight = "item", "", None
@@ -1243,6 +1254,10 @@ def _armor_and_attacks(
                         sheet.item_bonuses.setdefault(key, []).append(
                             (str(data.get("name")), _bonus(data, key))
                         )
+        pack = _pack(data)
+        if data is not None and _first_word(data.get("type", "")) == "A":
+            held = pack[0] if pack else str(data.get("name", "")).lower()
+            ammo[held] = ammo.get(held, 0) + entry.quantity * (pack[1] if pack else 1)
         heal = ""
         potion = data is not None and str(data.get("type", "")).startswith("P")
         if potion and data is not None and "healing" in str(data.get("name", "")).lower():
@@ -1261,8 +1276,13 @@ def _armor_and_attacks(
                 summary,
                 float(weight) if isinstance(weight, int | float) else None,
                 heal,
+                data is not None and "CNS" in (data.get("miscTags") or []),
+                pack,
             )
         )
+    sheet.attacks = [
+        replace(a, ammo_left=ammo.get(a.ammo, 0)) if a.ammo else a for a in sheet.attacks
+    ]
 
     unarmored = None
     primary = character.primary_class
@@ -1338,7 +1358,19 @@ def _attack(
         8 + mods[ability] + prof,
         tuple(c for c in codes if c[0] in WEAPON_PROPERTIES),
         kind=_kind_of(item),
+        ammo=str(item.get("ammoType") or "").partition("|")[0].lower(),
     )
+
+
+def _pack(data: dict[str, Any] | None) -> tuple[str, int] | None:
+    """What a bundle holds, by lowercased name and count ("Arrows (20)": arrow, 20)."""
+    contents = (data or {}).get("packContents")
+    if not isinstance(contents, list) or len(contents) != 1:
+        return None
+    first = contents[0]
+    if not isinstance(first, dict) or not isinstance(first.get("item"), str):
+        return None
+    return str(first["item"]).partition("|")[0].lower(), int(first.get("quantity") or 1)
 
 
 def _kind_of(item: dict[str, Any]) -> str:

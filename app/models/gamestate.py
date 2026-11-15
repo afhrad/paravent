@@ -1019,6 +1019,83 @@ class KnownFact(GameStateModel):
     text: str = ""
 
 
+class BastionFacility(GameStateModel):
+    """A special facility of a bastion (``Smithy|XDMG``) and the order it carries out
+    on the next bastion turn ("craft"; "" for none)."""
+
+    ref: str
+    order: str = ""
+
+
+class Bastion(Record):
+    """A character's bastion (2024 rules), from level 5: its name, its special
+    facilities with their orders, and how many bastion turns it has had. The id is the
+    character's."""
+
+    name: str = ""
+    facilities: list[BastionFacility] = Field(default_factory=list)
+    turns: int = Field(default=0, ge=0)
+
+
+class SafetySuggestion(GameStateModel):
+    """A line or veil a player put forward, without a name."""
+
+    kind: Literal["line", "veil"]
+    text: str = Field(max_length=300)
+
+
+class TableSafety(Record):
+    """A world's table agreements (session zero): lines — what does not happen in the
+    game — and veils — what happens off screen, one per entry, as the gamemaster keeps
+    them; and what players suggested anonymously, until the gamemaster takes or drops
+    it. The id is the world's."""
+
+    lines: list[str] = Field(default_factory=list)
+    veils: list[str] = Field(default_factory=list)
+    suggested: list[SafetySuggestion] = Field(default_factory=list)
+
+
+class PartyNotes(Record):
+    """The notes a world's party keeps together, written by its players and the
+    gamemaster; the id is the world's."""
+
+    text: str = ""
+    by: str = ""
+
+
+class CheckCall(Record):
+    """A check the gamemaster asks characters for outside a fight ("everyone roll
+    Perception"): what to roll (``skill``, ``check`` of an ability, or ``save``), a DC
+    the players do not see, whether it is a group check (passed when at least half
+    succeed) or rolled secretly by the gamemaster, whom it asks, and their totals as
+    they come in. ``open`` until the gamemaster closes it."""
+
+    world_id: str | None = None
+    kind: Literal["skill", "check", "save"]
+    subject: str
+    dc: int | None = Field(default=None, ge=1, le=40)
+    group: bool = False
+    secret: bool = False
+    characters: list[str] = Field(default_factory=list)
+    results: dict[str, int] = Field(default_factory=dict)
+    by: str = ""
+    open: bool = True
+
+    def passed(self, character_id: str) -> bool | None:
+        """Whether one character's total met the DC; None without a DC or a total."""
+        total = self.results.get(character_id)
+        return None if self.dc is None or total is None else total >= self.dc
+
+    @property
+    def group_passed(self) -> bool | None:
+        """A group check: at least half of those asked succeeded; None until all rolled
+        or without a DC."""
+        if self.dc is None or len(self.results) < len(self.characters) or not self.characters:
+            return None
+        made = sum(1 for cid in self.characters if self.passed(cid))
+        return made * 2 >= len(self.characters)
+
+
 class Knowledge(Record):
     """What a world's party knows about kinds of creatures; the id is the world's
     (``global`` for fights in no world). Kept per kind ("Goblin|MM"), so the next fight
@@ -1037,7 +1114,13 @@ __all__ = [
     "CreatureDesign",
     "CreatureFeature",
     "health_word",
+    "CheckCall",
     "Knowledge",
+    "PartyNotes",
+    "SafetySuggestion",
+    "Bastion",
+    "BastionFacility",
+    "TableSafety",
     "KnownFact",
     "Encounter",
     "EncounterMonster",

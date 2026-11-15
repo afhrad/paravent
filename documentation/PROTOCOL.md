@@ -186,6 +186,10 @@ What just happened, without stopping play.
   - the gamemaster — every player roll, since the gamemaster answers them.
   - Everything else only raises the badge.
 - A per-user setting in the user menu: toasts for *mine* / *all I may see* / *off*.
+- **The X-card** (2026-11-15, app/services/safety.py) always pops up for the gamemaster,
+  whatever the setting: an entry `xcard` with no actor, visible to the gamemaster alone.
+  Other custom entries added the same day: `receive:` (items and coins handed out),
+  `use:` (a consumable used up), `bastion:` (a bastion turn's orders).
 - The device that rolled hears the dice (`sound.js`) as today; a toast never plays a sound
   of its own.
 

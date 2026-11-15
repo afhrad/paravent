@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import threading
 from collections import OrderedDict
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from fractions import Fraction
@@ -74,12 +74,15 @@ class CharacterService:
         fight_of: Callable[[str], tuple[str, int | None, str | None] | None] | None = None,
         on_released: Callable[[str, str, str], None] | None = None,
         on_shape_ended: Callable[[str, str, str], None] | None = None,
+        on_roll: Callable[[str, str, str, int], None] | None = None,
     ) -> None:
         """Bind to the library, the loaded compendium, the library root and the log;
         ``fight_of(character_id)`` names the running fight a character is in;
         ``on_released(caster, spell, by)`` ends the shapes a caster's lost concentration
         held in the fights (CombatService.release_forms); ``on_shape_ended(combatant, spell,
-        by)`` ends a monster caster's concentration when its shape ended by itself."""
+        by)`` ends a monster caster's concentration when its shape ended by itself;
+        ``on_roll(character, kind, subject, total)`` hears every check, skill or save
+        rolled on a sheet (the gamemaster's called checks take their answers from it)."""
         self._store = store
         self._compendium = compendium
         self._library_dir = library_dir
@@ -89,6 +92,7 @@ class CharacterService:
         self.play.on_shape_ended = self._shape_ended
         self._on_released = on_released
         self._on_shape_ended = on_shape_ended
+        self._on_roll = on_roll
         # Sheets made lately, by everything a sheet is made from (see :meth:`sheet`).
         self._sheets: OrderedDict[tuple[Any, ...], Sheet] = OrderedDict()
         self._sheets_lock = threading.Lock()
@@ -218,7 +222,46 @@ class CharacterService:
         if action == "polymorph" and params.get("op") != "end":
             # A shape is taken through :meth:`polymorph`, where the spell's rules are checked.
             raise PlayError("play.error.bad_input")
-        return self.play.act(character_id, action, params, self.sheet(character), actor)
+        changed = self.play.act(character_id, action, params, self.sheet(character), actor)
+        kind = params.get("kind", "")
+        if action == "roll" and kind in ("skill", "check", "save") and self._on_roll is not None:
+            rolled = self.newest_roll(changed)
+            if rolled is not None and rolled.roll is not None:
+                self._on_roll(character_id, kind, params.get("subject", ""), rolled.roll.total)
+        return changed
+
+    def receive(
+        self,
+        character_id: str,
+        items: Sequence[tuple[str, int]],
+        coins: Mapping[str, int],
+        by: Actor,
+    ) -> PlayerCharacter:
+        """Hand items (``"Name|SOURCE"``, count) and coins to a character, logged."""
+        pc = self._store.characters.find(character_id)
+        if pc is None:
+            raise CharacterNotFound(character_id)
+        params = {
+            "items": ";".join(f"{ref}*{count}" for ref, count in items),
+            **{d: str(amount) for d, amount in coins.items() if amount},
+        }
+        return self.play.act(character_id, "receive", params, self.sheet(pc), by)
+
+    def roll_for(self, character_id: str, kind: str, subject: str, by: str) -> int | None:
+        """The gamemaster rolls a check on a character's sheet, privately (a secret
+        check): the total, None when the character is gone."""
+        pc = self._store.characters.find(character_id)
+        if pc is None:
+            return None
+        changed = self.play.act(
+            character_id,
+            "roll",
+            {"kind": kind, "subject": subject, "private": "1"},
+            self.sheet(pc),
+            Actor(by, username=by),
+        )
+        rolled = self.newest_roll(changed)
+        return rolled.roll.total if rolled is not None and rolled.roll is not None else None
 
     def file_label(self, character_id: str) -> str | None:
         """Where the file lives, relative to the library — for the gamemaster."""
