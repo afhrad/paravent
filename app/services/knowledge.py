@@ -6,7 +6,7 @@ once, as it is appended. What a creature was seen to use (an attack, an ability 
 save, a spell), a condition it shrugged off, and what each damage type that landed on it
 did, read from its statblock at that moment (half, nothing, double, as dealt). Kept per
 world and per kind of creature (``Goblin|MM``) in ``library/knowledge.json``, so the
-next goblin fight starts with it.
+next goblin fight starts with it. A creature in a spell's shape counts as the shape.
 
 Only what the table saw counts: an entry the players may not read (a hidden creature,
 the gamemaster's own rolls) teaches nothing. The gamemaster adds the rest by hand — a
@@ -174,7 +174,8 @@ class KnowledgeService:
             return
         learned: list[tuple[str, str, KnownFact]] = []
         actor = _member(combat, entry.subject)
-        kind = actor.ref if actor is not None else None
+        # A creature in a spell's shape is seen as that creature (Polymorph).
+        kind = actor.shown_ref if actor is not None else None
         # A spell rolled as an attack or a save effect is learned as the spell it is.
         spells = spells_of(self._statblock(actor) or {}) if actor is not None and kind else []
         if entry.kind is EntryKind.ATTACK and entry.roll is not None and kind is not None:
@@ -216,11 +217,12 @@ class KnowledgeService:
     def _damage(
         self, target: Combatant | None, types: Mapping[str, int]
     ) -> list[tuple[str, str, KnownFact]]:
-        if target is None or target.ref is None or target.hidden:
+        ref = target.shown_ref if target is not None else None
+        if target is None or ref is None or target.hidden:
             return []
         data = self._statblock(target)
         return [
-            (target.ref, f"damage:{kind}", KnownFact(effect=defence(kind, data)))
+            (ref, f"damage:{kind}", KnownFact(effect=defence(kind, data)))
             for kind in sorted(types)
             if kind
         ]

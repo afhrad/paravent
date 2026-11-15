@@ -140,7 +140,8 @@ guard, a summoned wolf, a charmed ogre.
   challenge rating or level, a beast for Polymorph), or by a caster from their sheet while
   concentrating on the spell (a character of the world, or a creature of their fight). The
   row then fights as the shape: its statblock in the side panel with its attacks, its AC,
-  a pill naming it (on the players' view too). Under the 2014 rules the shape has hit
+  a pill naming it (on the players' view too); what the party sees it do, or what
+  damage does to it, is learned for the shape's kind ("What the players know"). Under the 2014 rules the shape has hit
   points of its own that take damage first, the rest carrying over at 0, which ends it;
   under the 2024 rules it gives temporary hit points and ends when they are gone. It ends
   with the caster's concentration, however that goes (Drop, a failed save, a new spell),

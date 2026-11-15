@@ -19,6 +19,7 @@ from app.models.gamestate import Combat, Encounter, EncounterMonster, Role, Sour
 from app.models.pc import ChosenOption, PlayerCharacter
 from app.services.combat import CombatError
 from app.services.dice import Dice
+from app.services.monster_attacks import Damage
 from app.services.play import Actor
 from app.services.polymorph import allows, edition, is_polymorph
 from app.store.registry import StoreRegistry
@@ -282,6 +283,23 @@ class TestASpellOverByItself:
         combats.end_form(fight.combat.id, goblin, GM)
         held = fight.pc().state.concentration
         assert held is not None and held.name == "Polymorph"
+
+
+@requires_corpus
+class TestWhatThePartyLearns:
+    def test_a_creature_in_a_shape_is_learned_as_the_shape(self, fight: Fight) -> None:
+        combats = fight.registry.combats
+        combats._dice = Dice(_Fixed(10))  # type: ignore[attr-defined]
+        bugbear, goblin = fight.member("Bugbear"), fight.member("Goblin")
+        combats.polymorph(fight.combat.id, bugbear, "Brown Bear|MM", "Polymorph|PHB", "x", GM)
+        combats.attack(fight.combat.id, bugbear, "Bite", 5, [Damage("1d8+4", "piercing")], GM)
+        combats.attack(fight.combat.id, goblin, "Scimitar", 4, [Damage("1d6+2", "slashing")], GM)
+        scimitar = next(e for e in fight.now.pending if e.actor == goblin)
+        combats.resolve_attack(fight.combat.id, scimitar.at.isoformat(), bugbear, GM)
+        world = fight.now.world_id
+        bears = fight.registry.knowledge.of(world, "Brown Bear|MM")
+        assert "action:Bite" in bears and "damage:slashing" in bears
+        assert fight.registry.knowledge.of(world, "Bugbear|MM") == {}
 
 
 @requires_corpus
