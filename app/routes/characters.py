@@ -17,6 +17,7 @@ one, or hand one to a player.
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from fractions import Fraction
 from typing import Annotated
 from urllib.parse import urlencode
 
@@ -32,13 +33,15 @@ from app.dependencies import (
     RegistryDep,
     WorldsDep,
 )
+from app.models.gamestate import Combat
 from app.models.pc import PlayerCharacter
 from app.routes.auth import html, redirect
 from app.routes.play_combat import strip
 from app.routes.rolls import announce_roll, new_roll
+from app.services import polymorph
 from app.services.combat import CombatError
 from app.services.events import revision_stream
-from app.services.play import PlayError
+from app.services.play import Actor, PlayError
 from app.services.sheet import Sheet
 from app.ui.character_list_pages import character_delete_page, characters_page
 from app.ui.context import Page
@@ -53,9 +56,42 @@ _VIEW_KEYS = ("tab", "view")
 def _sheet(characters: CharactersDep, registry: RegistryDep, character: PlayerCharacter) -> Sheet:
     """The derived sheet, told whether the character is in a running fight."""
     sheet = characters.sheet(character)
-    sheet.in_fight = bool(registry.combats.joined_by([character.id]))
+    fights = registry.combats.joined_by([character.id])
+    sheet.in_fight = bool(fights)
     sheet.allies = characters.allies(character)
+    held = character.state.concentration
+    if held is not None and polymorph.is_polymorph(held.name):
+        _shape_choices(sheet, characters, registry, character, held.reference, fights)
     return sheet
+
+
+def _shape_choices(
+    sheet: Sheet,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character: PlayerCharacter,
+    spell: str,
+    fights: list[Combat],
+) -> None:
+    """Whom the caster's Polymorph may reach — the characters of its world, the
+    creatures of its fight — and the shapes for the strongest of them."""
+    targets = [(f"character:{cid}", name) for cid, name in sheet.allies]
+    cr = Fraction(max(1, character.total_level))
+    for pc in (registry.gamestate.characters.find(cid) for cid, _ in sheet.allies):
+        if pc is not None:
+            cr = max(cr, Fraction(max(1, pc.total_level)))
+    if fights:
+        combat = fights[0]
+        for member in combat.combatants:
+            if member.character_id is None and not member.hidden:
+                targets.append((f"combatant:{member.id}", member.label))
+                monster = registry.combats.monster_of(member, own=True)
+                if monster is not None and monster.cr is not None:
+                    cr = max(cr, monster.cr.value)
+    sheet.shape_targets = targets
+    sheet.shapes = polymorph.shapes(
+        registry.compendium, characters.source_set(character), spell, cr
+    )
 
 
 def _is_htmx(request: Request) -> bool:
@@ -329,6 +365,55 @@ async def heal_spell(
         )
     )
     return response if error else announce_roll(response)
+
+
+@router.post("/characters/{character_id}/polymorph", response_class=HTMLResponse)
+async def polymorph_target(
+    request: Request,
+    identity: IdentityDep,
+    page: PageDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+    target: Annotated[str, Form()],
+    shape: Annotated[str, Form()],
+) -> Response:
+    """The caster's Polymorph takes hold: the target (a character of the world, or a
+    creature of the caster's fight) turns into ``shape``."""
+    character = characters.get_for(identity, character_id)
+    held = character.state.concentration
+    caster = f"character:{character_id}"
+    who = identity.user.username
+    flash: str | None = None
+    try:
+        if held is None or not polymorph.is_polymorph(held.name):
+            raise PlayError("play.error.bad_input")
+        kind, _, target_id = target.partition(":")
+        if kind == "character" and target_id in dict(characters.allies(character)):
+            characters.polymorph(target_id, shape, held.reference, caster, Actor(who, username=who))
+        elif kind == "combatant":
+            fights = registry.combats.joined_by([character_id])
+            if not fights:
+                raise PlayError("play.error.bad_input")
+            registry.combats.polymorph(fights[0].id, target_id, shape, held.reference, caster, who)
+        else:
+            raise PlayError("play.error.bad_input")
+    except (PlayError, CombatError) as exc:
+        flash = page.t.error(exc)
+    if not _is_htmx(request):
+        return redirect(f"/characters/{character_id}")
+    character = characters.get_for(identity, character_id)
+    label = characters.file_label(character_id) if identity.is_gamemaster else None
+    return html(
+        sheet_fragment(
+            page,
+            _sheet(characters, registry, character),
+            flash=flash,
+            file_label=label,
+            resolver=characters.resolver(),
+            source_set=characters.source_set(character),
+        )
+    )
 
 
 # -- the gamemaster's character list -----------------------------------------------------

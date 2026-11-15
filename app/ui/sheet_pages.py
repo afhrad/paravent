@@ -29,6 +29,7 @@ from htpy import (
     a,
     aside,
     button,
+    datalist,
     details,
     div,
     fieldset,
@@ -302,9 +303,13 @@ def _hp_box(page: Page, sheet: Sheet) -> Element:
     ]
 
 
-def form_pill(page: Page, beast: str, hp: tuple[int, int] | None = None) -> Element:
-    """A druid in Wild Shape, as a pill: the beast, and a 2014 form's hit points."""
-    return span(class_="pill magic", title=page.t("sheet.wild_shape"))[
+def form_pill(
+    page: Page, beast: str, hp: tuple[int, int] | None = None, spell: str = ""
+) -> Element:
+    """A creature in another shape, as a pill: the beast, and a 2014 form's hit points;
+    titled with the spell that holds it (Polymorph), else Wild Shape."""
+    title = name_text(page, "spell", spell) if spell else page.t("sheet.wild_shape")
+    return span(class_="pill magic", title=str(title))[
         icon("footprints", "xs"),
         page.t("sheet.wild_shape.form_hp", form=name_text(page, "monster", beast)),
         small(class_="mono")[f" {hp[0]}/{hp[1]}"] if hp else None,
@@ -312,7 +317,29 @@ def form_pill(page: Page, beast: str, hp: tuple[int, int] | None = None) -> Elem
 
 
 def _form_hp(page: Page, sheet: Sheet) -> Node:
-    """A 2014 Wild Shape form's own hit points, which damage takes first."""
+    """A 2014 Wild Shape form's own hit points, which damage takes first; or the shape a
+    spell holds the character in, with its hit points and a way out."""
+    held = sheet.spell_form
+    if held is not None:
+        hp = held.hp_now
+        return div(class_="cs-formhp")[
+            span(class_="eyebrow")[
+                name_text(page, "spell", held.spell.partition("|")[0]),
+                ": ",
+                name_text(page, "monster", held.name),
+            ],
+            span(class_="mono")[f"{hp[0]} / {hp[1]}"] if hp else None,
+            div(class_="hpbar")[span(class_="hpfill", style=f"width:{hp[0] / hp[1] * 100:.0f}%")]
+            if hp
+            else None,
+            act(
+                sheet,
+                "polymorph",
+                {"op": "end"},
+                [icon("refresh-cw", "sm"), span[page.t("combat.polymorph.end")]],
+                cls="btn btn-sm",
+            ),
+        ]
     view = sheet.wild_shape
     if view is None or view.form is None or view.form_hp is None:
         return None
@@ -492,6 +519,49 @@ def _form_link(page: Page, sheet: Sheet, form: Form) -> Element:
     return a(
         href=ref_url("monster", form.name, form.source, sheet.character.world_id), class_="ref"
     )[name_span(page, "monster", form.name)]
+
+
+def _shape_form(page: Page, sheet: Sheet) -> Node:
+    """While the character concentrates on Polymorph: whom it turns into what. The
+    shapes offered are the world's books' (beasts for Polymorph), checked against the
+    target when sent."""
+    if not sheet.shape_targets:
+        return None
+    t = page.t
+    list_id = f"shapes-{sheet.character.id}"
+    return form(
+        method="post",
+        action=f"/characters/{sheet.character.id}/polymorph",
+        class_="cs-shape",
+        hx_post=f"/characters/{sheet.character.id}/polymorph",
+        hx_target="#sheet",
+        hx_swap="outerHTML",
+    )[
+        select(name="target", aria_label=t("sheet.polymorph.target"))[
+            [option(value=key)[name] for key, name in sheet.shape_targets]
+        ],
+        input_el(
+            type="text",
+            name="shape",
+            list=list_id,
+            required=True,
+            autocomplete="off",
+            placeholder=t("combat.polymorph.shape_hint"),
+            aria_label=t("combat.polymorph.shape"),
+        ),
+        datalist(id=list_id)[
+            [
+                option(
+                    value=s.reference,
+                    label=f"{page.t.term('monster', s.name) or s.name} · {t('combat.cr', cr=s.cr)}",
+                )
+                for s in sheet.shapes
+            ]
+        ],
+        button(type="submit", class_="btn btn-sm")[
+            icon("footprints", "sm"), span[t("combat.polymorph.submit")]
+        ],
+    ]
 
 
 def _wild_shape(page: Page, sheet: Sheet, ctx: RenderContext | None) -> Node:
@@ -1365,6 +1435,7 @@ def _right(page: Page, sheet: Sheet) -> Element:
             icon("hourglass"),
             span[t("sheet.concentrating", name=name_text(page, "spell", sheet.concentration.name))],
             act(sheet, "concentration", {"op": "drop"}, t("sheet.drop"), cls="btn btn-sm"),
+            _shape_form(page, sheet),
         ]
     rest = section(class_="cs-block", data_m="track")[
         h3(class_="eyebrow")[t("sheet.rest")],

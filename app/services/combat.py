@@ -44,6 +44,7 @@ from app.models.gamestate import (
     Health,
     KnownFact,
     RepeatSave,
+    SpellForm,
     health_word,
 )
 from app.models.protocol import EntryKind, ProtocolEntry, RollRecord, Scope
@@ -63,6 +64,8 @@ from app.services.monster_attacks import (
 )
 from app.services.naming import NamingError, creature_races
 from app.services.play import Actor, PlayError
+from app.services.polymorph import Shape, form_for, held_by, is_polymorph
+from app.services.polymorph import allows as polymorph_allows
 from app.services.protocol import (
     ProtocolService,
     attack_entry_id,
@@ -210,9 +213,12 @@ class CharacterSnapshot:
     level: int = 0
     # (class, level, subclass or ""): ``line``'s parts, for a page to name in its language.
     classes: tuple[tuple[str, int, str], ...] = ()
-    # A druid's Wild Shape: the beast's name, and a 2014 form's hit points (now, most).
+    # The creature the character fights as (a druid's Wild Shape, a spell's shape): its
+    # name, and a 2014 form's hit points (now, most).
     form: str = ""
     form_hp: tuple[int, int] | None = None
+    # The shape a spell holds the character in, with its caster (Polymorph).
+    spell_form: SpellForm | None = None
 
     @property
     def dead(self) -> bool:
@@ -731,7 +737,10 @@ class SheetCharacters:
         sheet = self._characters.sheet(pc)
         saves = pc.state.death_saves
         wild = sheet.wild_shape
-        form = wild.form if wild is not None else None
+        shape = sheet.spell_form
+        form_hp = (
+            shape.hp_now if shape is not None else wild.form_hp_now if wild is not None else None
+        )
         return CharacterSnapshot(
             name=pc.name or "?",
             line=sheet.class_line,
@@ -749,8 +758,9 @@ class SheetCharacters:
                 (c.name, c.level, c.subclass.name if c.subclass is not None else "")
                 for c in pc.classes
             ),
-            form=form.name if form is not None else "",
-            form_hp=wild.form_hp_now if wild is not None else None,
+            form=sheet.form[0] if sheet.form is not None else "",
+            form_hp=form_hp,
+            spell_form=pc.state.polymorph,
         )
 
     def award_xp(self, character_id: str, xp: int, reason: str, by: str) -> None:
@@ -787,8 +797,10 @@ class CombatService:
         known: Callable[[str | None, str], Mapping[str, KnownFact]] | None = None,
         spell: Callable[[str, str | None, str | None], dict[str, Any] | None] | None = None,
         token: Callable[[Combatant, str | None], Token] | None = None,
+        shapes: Callable[[str | None, str, Fraction], builtins.list[Shape]] | None = None,
     ) -> None:
         """``monster(name, source)`` looks up a creature exactly, as the encounters do;
+        ``shapes(world, spell, cr)`` what Polymorph may turn a creature of ``cr`` into;
         ``token(combatant, world)`` its round token (documentation/TOKENS.md).
 
         ``legendary_group(pointer)`` finds the lair a creature's ``legendaryGroup``
@@ -803,6 +815,7 @@ class CombatService:
         """
         self._store = store
         self._token = token
+        self._shapes = shapes
         self._sight = sight
         self._known = known
         self._spell = spell
@@ -845,11 +858,13 @@ class CombatService:
             raise CombatNotFound(combat_id)
         return combat
 
-    def monster_of(self, combatant: Combatant) -> MonsterProjection | None:
-        """The statblock behind a monster combatant."""
-        if combatant.ref is None or "|" not in combatant.ref:
+    def monster_of(self, combatant: Combatant, own: bool = False) -> MonsterProjection | None:
+        """The statblock a monster combatant fights with: the shape a spell holds it in,
+        or (``own``, and without one) its own."""
+        ref = combatant.form.form if combatant.form is not None and not own else combatant.ref
+        if ref is None or "|" not in ref:
             return None
-        name, source = combatant.ref.split("|", 1)
+        name, source = ref.split("|", 1)
         return self._monster(name, source)
 
     def token_of(self, combatant: Combatant, world_id: str | None) -> Token | None:
@@ -1480,7 +1495,7 @@ class CombatService:
         fallen = tuple(c for c in combat.combatants if not c.is_friend and self.is_down(c))
         defeated = []
         for combatant in fallen:
-            monster = self.monster_of(combatant)
+            monster = self.monster_of(combatant, own=True)
             xp = (monster.cr.xp or 0) if monster is not None and monster.cr is not None else 0
             defeated.append((self.label_of(combatant), xp))
         characters = [c for c in combat.combatants if c.is_character]
@@ -1516,17 +1531,34 @@ class CombatService:
                 "down" if pc.dying else health_word(pc.hp, pc.hp_max or 0),
                 character=pc,
             )
+        monster = self.monster_of(combatant)
+        shape = combatant.form
+        if shape is not None and shape.hp is not None and monster is not None:
+            # A 2014 shape shows its own hit points; its health word follows them.
+            top = monster.hp or shape.hp
+            return Row(
+                combatant,
+                combatant.label,
+                monster.ac,
+                shape.hp,
+                top,
+                combatant.hp_temp,
+                tuple(combatant.conditions),
+                combatant.concentration,
+                health_word(shape.hp, top),
+                monster=monster,
+            )
         return Row(
             combatant,
             combatant.label,
-            combatant.ac,
+            monster.ac if shape is not None and monster is not None else combatant.ac,
             combatant.hp if combatant.hp_max else None,
             combatant.hp_max or None,
             combatant.hp_temp,
             tuple(combatant.conditions),
             combatant.concentration,
             combatant.health,
-            monster=self.monster_of(combatant),
+            monster=monster,
         )
 
     def view(self, combat: Combat) -> CombatView:
@@ -1614,7 +1646,11 @@ class CombatService:
                     round(row.ratio * 100) if row.combatant.is_friend and row.hp_max else None,
                     row.combatant.id,
                     view.tokens.get(row.combatant.id),
-                    row.character.form if row.character is not None else "",
+                    row.character.form
+                    if row.character is not None
+                    else row.monster.name
+                    if row.combatant.form is not None and row.monster is not None
+                    else "",
                 )
                 for row in turn.rows
                 if not row.combatant.hidden
@@ -1655,8 +1691,8 @@ class CombatService:
         found = monster.monster if monster is not None else None
         seen = self._sight(found, lang) if found is not None and self._sight is not None else None
         known = (
-            self._known(combat.world_id, combatant.ref)
-            if combatant.ref is not None and self._known is not None
+            self._known(combat.world_id, combatant.shown_ref)
+            if combatant.shown_ref is not None and self._known is not None
             else {}
         )
         return SeenDetails(member, seen, known)
@@ -2166,6 +2202,10 @@ class CombatService:
                 )
             elif mode == "temp":
                 target.hp_temp = max(target.hp_temp, amount)
+            elif mode == "heal" and target.form is not None and target.form.hp is not None:
+                beast = self.monster_of(target)
+                top = (beast.hp if beast is not None else None) or target.form.hp + amount
+                target.form.hp = min(top, target.form.hp + amount)
             elif mode == "heal":
                 ceiling = target.hp_max if target.hp_max else target.hp + amount
                 target.hp = min(ceiling, target.hp + amount)
@@ -2173,7 +2213,21 @@ class CombatService:
                 absorbed = min(target.hp_temp, amount)
                 target.hp_temp -= absorbed
                 rest = amount - absorbed
+                shape = target.form
+                if shape is not None and shape.hp is None and absorbed and not target.hp_temp:
+                    self._end_shape(combat, target, by)  # 2024: gone with its temporary HP
+                elif shape is not None and shape.hp is not None and rest:
+                    # A 2014 shape takes the damage; what it cannot take carries over.
+                    taken = min(shape.hp, rest)
+                    shape.hp -= taken
+                    rest -= taken
+                    if not shape.hp:
+                        self._end_shape(combat, target, by)
+                    elif target.concentration is not None:
+                        target.save_due = max(10, taken // 2, target.save_due or 0)
                 target.hp = max(0, target.hp - rest)
+                if target.hp == 0 and target.form is not None:
+                    self._end_shape(combat, target, by)
                 if rest and target.concentration is not None:
                     target.save_due = max(10, rest // 2, target.save_due or 0)
                 if target.hp == 0:
@@ -2235,6 +2289,143 @@ class CombatService:
                 combatant.conditions = [c for c in combatant.conditions if c != condition]
         combatant.timers = [t for t in combatant.timers if t.condition != condition]
         combatant.repeat_saves = [r for r in combatant.repeat_saves if r.condition != condition]
+
+    # -- Polymorph ---------------------------------------------------------------------
+
+    def shapes(self, combat: Combat, combatant: Combatant, spell: str) -> builtins.list[Shape]:
+        """What ``spell`` may turn a combatant into: creatures of the fight's world's books
+        up to its challenge rating (a character's level)."""
+        if self._shapes is None:
+            return []
+        return self._shapes(combat.world_id, spell, self._target_cr(combatant))
+
+    def _target_cr(self, combatant: Combatant) -> Fraction:
+        if combatant.character_id is not None:
+            pc = self._characters.snapshot(combatant.character_id)
+            return Fraction(max(1, pc.level if pc is not None else 1))
+        monster = self.monster_of(combatant, own=True)
+        return monster.cr.value if monster is not None and monster.cr is not None else Fraction(0)
+
+    def polymorph(
+        self,
+        combat_id: str,
+        combatant_id: str,
+        shape: str,
+        spell: str,
+        caster: str,
+        by: str,
+    ) -> Combat:
+        """Turn a combatant into ``shape`` (``"Giant Ape|MM"``) by ``spell``, held by
+        ``caster``'s concentration (``character:<id>`` or ``combatant:<id>``)."""
+        if not is_polymorph(spell):
+            raise CombatError("combat.error.bad_input")
+        name, _, source = shape.partition("|")
+        monster = self._monster(name.strip(), source.strip()) if source.strip() else None
+        if monster is None and name.strip():
+            # A name alone: the shape of that name the world's books offer for the target.
+            combat = self.get(combat_id)
+            found = next(
+                (
+                    s
+                    for s in self.shapes(combat, self._member(combat, combatant_id), spell)
+                    if s.name.lower() == name.strip().lower()
+                ),
+                None,
+            )
+            monster = self._monster(found.name, found.source) if found is not None else None
+        if monster is None:
+            raise CombatError("play.error.shape_unknown", shape=name.strip() or shape)
+
+        def apply(combat: Combat) -> None:
+            target = self._member(combat, combatant_id)
+            label = self.label_of(target)
+            if not polymorph_allows(spell, self._target_cr(target), monster):
+                raise CombatError("play.error.shape_refused", shape=monster.name, target=label)
+            form = form_for(spell, monster, caster)
+            if target.character_id is not None:
+                params = {
+                    "op": "assume",
+                    "form": form.form,
+                    "spell": spell,
+                    "caster": caster,
+                    "hp": str(monster.hp or 1),
+                }
+                # The sheet logs the shape, in this fight.
+                self._characters.act(target.character_id, "polymorph", params, by, combat)
+                return
+            if target.form is not None:
+                self._end_shape(combat, target, by)
+            target.form = form
+            if form.hp is None:  # 2024: the shape's hit points as temporary ones
+                target.hp_temp = max(target.hp_temp, monster.hp or 1)
+            self._log(combat, "form_on", by, subject=label, detail=form.form)
+
+        return self._mutate(combat_id, apply)
+
+    def end_form(self, combat_id: str, combatant_id: str, by: str) -> Combat:
+        """Let a combatant out of a spell's shape."""
+
+        def apply(combat: Combat) -> None:
+            target = self._member(combat, combatant_id)
+            if target.character_id is not None:
+                self._characters.act(target.character_id, "polymorph", {"op": "end"}, by, combat)
+            elif target.form is None:
+                raise CombatError("combat.error.bad_input")
+            else:
+                self._end_shape(combat, target, by)
+
+        return self._mutate(combat_id, apply)
+
+    def _end_shape(self, combat: Combat, target: Combatant, by: str) -> None:
+        """A monster leaves its shape (logged); a 2024 shape's temporary HP go with it."""
+        shape = target.form
+        if shape is None:
+            return
+        target.form = None
+        if shape.hp is None:
+            target.hp_temp = 0
+        self._log(combat, "form_off", by, subject=target.label, detail=shape.form)
+
+    def release_forms(self, caster: str, spell: str, by: str) -> None:
+        """A caster's concentration on Polymorph ended: the monsters it held in shapes
+        leave them. Called from a change already being written, the ends join it."""
+        if getattr(self._writing, "active", False):
+            pending = getattr(self._writing, "released", None)
+            if pending is not None:
+                pending.append((caster, spell, by))
+                return
+        for combat in self._store.combats.list(
+            lambda c: c.running and any(held_by(m.form, caster, spell) for m in c.combatants)
+        ):
+            self._mutate(combat.id, lambda draft: self._release(draft, caster, spell, by))
+
+    def _release(self, combat: Combat, caster: str, spell: str, by: str) -> None:
+        for member in combat.combatants:
+            if member.character_id is None and held_by(member.form, caster, spell):
+                self._end_shape(combat, member, by)
+
+    def _concentration_lost(self, before: Combat, after: Combat, by: str) -> None:
+        """A monster's concentration on Polymorph ended in this change: the shapes it held
+        end too, a character's through its sheet."""
+        held = {m.id: m.concentration for m in before.combatants}
+        for member in after.combatants:
+            was = held.get(member.id)
+            if not was or not is_polymorph(was) or member.concentration == was:
+                continue
+            caster = f"combatant:{member.id}"
+            for other in after.combatants:
+                if other.character_id is not None:
+                    pc = self._characters.snapshot(other.character_id)
+                    if (
+                        pc is not None
+                        and pc.spell_form is not None
+                        and held_by(pc.spell_form, caster, was)
+                    ):
+                        self._characters.act(
+                            other.character_id, "polymorph", {"op": "end"}, by, after
+                        )
+                elif held_by(other.form, caster, was):
+                    self._end_shape(after, other, by)
 
     def concentrate(self, combat_id: str, combatant_id: str, spell: str | None, by: str) -> Combat:
         """A monster starts (``spell``) or stops (None) concentrating."""
@@ -2403,6 +2594,17 @@ class CombatService:
             return self.cast(combat_id, combatant_id, params.get("spell", ""), by)
         elif action == "restore_spells":
             return self.restore_spells(combat_id, combatant_id, by)
+        elif action == "polymorph":
+            return self.polymorph(
+                combat_id,
+                combatant_id,
+                params.get("shape", ""),
+                params.get("spell", ""),
+                params.get("caster", ""),
+                by,
+            )
+        elif action == "end_form":
+            return self.end_form(combat_id, combatant_id, by)
         elif action == "recharge":
             return self.roll_recharge(
                 combat_id, combatant_id, params.get("ability", ""), _number(params, "at"), by
@@ -2775,6 +2977,8 @@ class CombatService:
         """Write what happened to the log; an attack or save effect with damage also
         waits as ``pending`` for the gamemaster. ``recorded=False`` keeps it out of the
         log — a player's attack, already there from the sheet (``entry_id``)."""
+        if by and getattr(self._writing, "active", False):
+            self._writing.by = by  # who acts in this change, for what it causes
         entry = CombatLogEntry(
             round=combat.round,
             kind=kind,
@@ -2832,21 +3036,33 @@ class CombatService:
 
         staged: builtins.list[ProtocolEntry] = []
 
+        released: builtins.list[tuple[str, str, str]] = []
+
         def guarded(record: Combat) -> None:
             # Work on a copy: a refused change must leave the stored record untouched.
             draft = record.model_copy(deep=True)
             staged.clear()
+            released.clear()
+            self._writing.by = ""
             apply(draft)
+            # Concentration on Polymorph lost in this change ends the shapes it held:
+            # a monster's here, a character caster's as its sheet reported it.
+            self._concentration_lost(record, draft, self._writing.by)
+            while released:
+                caster, spell, by = released.pop(0)
+                self._release(draft, caster, spell, by)
             for name in Combat.model_fields:
                 setattr(record, name, getattr(draft, name))
 
         outer = getattr(self._staged, "items", None)
         self._writing.active = True
+        self._writing.released = released
         self._staged.items = staged
         try:
             changed = self._store.combats.mutate(combat_id, guarded)
         finally:
             self._writing.active = False
+            self._writing.released = None
             self._staged.items = outer
         # Logged once stored: a refused change leaves nothing in the log.
         self._flush(staged)

@@ -20,7 +20,7 @@ from app import __version__
 from app.config import Settings
 from app.models.gamestate import Combat, Combatant
 from app.models.protocol import EntryKind, ProtocolEntry
-from app.services import media
+from app.services import media, polymorph
 from app.services.adventures import AdventureService
 from app.services.auth import AuthService, Identity
 from app.services.backlinks import BacklinkIndex
@@ -547,6 +547,8 @@ class StoreRegistry:
             self.settings.library_dir,
             self.protocol,
             fight_of=self._fight_of,
+            # A caster's lost concentration on Polymorph ends the shapes in the fights too.
+            on_released=lambda caster, spell, by: self.combats.release_forms(caster, spell, by),
         )
 
     @cached_property
@@ -681,6 +683,9 @@ class StoreRegistry:
             known=lambda world_id, ref: self.knowledge.of(world_id, ref),
             spell=self._spell_data,
             token=self._combatant_token,
+            shapes=lambda world_id, spell, cr: polymorph.shapes(
+                self.compendium, self.references.source_set(world_id), spell, cr
+            ),
         )
 
     def _spell_data(

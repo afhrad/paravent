@@ -25,6 +25,7 @@ from htpy import (
     a,
     b,
     button,
+    datalist,
     details,
     dialog,
     div,
@@ -61,6 +62,8 @@ from app.services.combat import (
 from app.services.experience import Progress
 from app.services.knowledge import Revealable, action_name
 from app.services.monster_attacks import MonsterSpell, attack_of, encode, monster_spells, save_of
+from app.services.polymorph import SPELLS as POLYMORPH_SPELLS
+from app.services.polymorph import Shape
 from app.services.protocol_view import Filter
 from app.services.references import ReferenceEntry
 from app.services.search import SearchResult
@@ -406,7 +409,19 @@ def _pills(page: Page, view: CombatView, row: Row, sel: str) -> list[Node]:
             ]
         )
     if row.character is not None and row.character.form:
-        pills.append(form_pill(page, row.character.form, row.character.form_hp))
+        held = row.character.spell_form
+        pills.append(
+            form_pill(
+                page,
+                row.character.form,
+                row.character.form_hp,
+                held.spell.partition("|")[0] if held is not None else "",
+            )
+        )
+    elif row.combatant.form is not None and row.monster is not None:
+        pills.append(
+            form_pill(page, row.monster.name, None, row.combatant.form.spell.partition("|")[0])
+        )
     if row.concentration:
         pills.append(
             span(class_="pill magic")[
@@ -654,6 +669,26 @@ def _menu(page: Page, view: CombatView, row: Row, sel: str) -> Element:
             ],
         )
     )
+    if view.combat.running:
+        tools.append(
+            a(
+                href=f"{COMBATS_URL}/{view.combat.id}/c/{c.id}/polymorph",
+                class_="btn btn-sm btn-ghost",
+            )[icon("footprints", "sm"), t("combat.polymorph.open")]
+        )
+    shaped = c.form is not None or (row.character is not None and row.character.spell_form)
+    if shaped:
+        tools.append(
+            _row_form(
+                view,
+                row,
+                "end_form",
+                sel,
+                button(type="submit", class_="btn btn-sm btn-ghost")[
+                    icon("refresh-cw", "sm"), t("combat.polymorph.end")
+                ],
+            )
+        )
     if c.character_id is not None:
         tools.append(
             a(href=f"/characters/{c.character_id}", class_="btn btn-sm btn-ghost")[
@@ -1700,45 +1735,52 @@ def _joined_nodes(parts: Sequence[Node]) -> list[Node]:
 
 
 def _wild_line(page: Page, sheet: Sheet, ctx: RenderContext) -> Node:
-    """The beast a druid is in, linked to its statblock, with a 2014 form's hit points."""
-    wild = sheet.wild_shape
-    if wild is None or wild.form is None:
-        return None
-    hp = wild.form_hp_now
-    return _sb_line(
-        page.t("sheet.wild_shape"),
-        render(f"{{@creature {wild.form.reference}}}", ctx),
+    """The creature the character is in the shape of, linked to its statblock, with a
+    2014 form's hit points: a spell's shape (named by the spell), or Wild Shape."""
+    held = sheet.spell_form
+    if held is not None:
+        hp = held.hp_now
+        caption: Node = name_text(page, "spell", held.spell.partition("|")[0])
+        reference = held.reference
+    else:
+        wild = sheet.wild_shape
+        if wild is None or wild.form is None:
+            return None
+        hp = wild.form_hp_now
+        caption = page.t("sheet.wild_shape")
+        reference = wild.form.reference
+    return p(class_="sb-line")[
+        b[caption],
+        " ",
+        render(f"{{@creature {reference}}}", ctx),
         span(class_="mono")[f" {hp[0]}/{hp[1]}"] if hp else None,
-    )
+    ]
 
 
 def _form_actions(
     page: Page, sheet: Sheet, ctx: RenderContext, attack_hook: BlockHook | None
 ) -> Node:
-    """A druid in Wild Shape fights as the beast: its actions in place of the druid's
-    weapons, each attack rolled from the tracker like a monster's (``attack_hook``)."""
-    wild = sheet.wild_shape
-    if wild is None or wild.form is None:
+    """A character in another shape (Wild Shape, Polymorph) fights as the creature: its
+    actions in place of the character's weapons, each attack rolled from the tracker like
+    a monster's (``attack_hook``)."""
+    if sheet.form is None:
         return None
-    form = ReferenceEntry("monster", wild.form.data, sheet.character.world_id)
+    beast, data = sheet.form
+    form = ReferenceEntry("monster", data, sheet.character.world_id)
     actions = localized(page, form)[0].data.get("action")
     if not actions:
         return None
     return section(class_="sb-section")[
-        h3(class_="sb-heading")[
-            page.t("ref.actions"), " · ", name_text(page, "monster", wild.form.name)
-        ],
+        h3(class_="sb-heading")[page.t("ref.actions"), " · ", name_text(page, "monster", beast)],
         render_entries(actions, replace(ctx, block_hook=attack_hook)),
     ]
 
 
 def _no_spells_in_form(sheet: Sheet) -> bool:
-    """A druid in a form who casts nothing at all now (no circle spells, no Beast Spells)."""
-    wild = sheet.wild_shape
-    return (
-        wild is not None
-        and wild.form is not None
-        and not any(sheet.can_cast(spell) for spell in sheet.spells if spell.found)
+    """A character in another shape who casts nothing at all now (no circle spells, no
+    Beast Spells)."""
+    return sheet.form is not None and not any(
+        sheet.can_cast(spell) for spell in sheet.spells if spell.found
     )
 
 
@@ -2035,6 +2077,101 @@ def _notes(page: Page, notes: Rendered | None) -> Node:
         summary(class_="cb-notes-head")[icon("scroll", "sm"), page.t("combat.notes")],
         div(class_="md-body")[notes.html],
     ]
+
+
+def polymorph_page(
+    page: Page, view: CombatView, row: Row, kind: str, rules: str, shapes: Sequence[Shape]
+) -> Element:
+    """Turn one combatant into another creature by Polymorph or True Polymorph: the shape
+    (the world's books offer those the spell allows for the target), the spell's printing
+    and who concentrates on it."""
+    t = page.t
+    url = f"{COMBATS_URL}/{view.combat.id}/c/{row.combatant.id}/polymorph"
+    back = combat_url(view.combat.id, sel=row.combatant.id)
+    name = shown_label(page, row)
+    kinds = [
+        a(
+            href=f"{url}?{urlencode({'spell': spell.title()})}",
+            class_="fchip",
+            aria_pressed="true" if spell == kind.lower() else "false",
+        )[name_text(page, "spell", spell.title())]
+        for spell in POLYMORPH_SPELLS
+    ]
+    casters = [
+        (
+            f"character:{r.combatant.character_id}"
+            if r.combatant.character_id
+            else f"combatant:{r.combatant.id}",
+            shown_label(page, r),
+        )
+        for turn in view.turns
+        for r in turn.rows
+        if r.combatant.id != row.combatant.id
+    ]
+    return app_shell(
+        page,
+        t("combat.polymorph.title", name=name),
+        div(class_="formpage")[
+            a(href=back, class_="backlink")[icon("arrow-left"), span[t("common.cancel")]],
+            div(class_="panel")[
+                div(class_="panel-head")[
+                    span(class_="eyebrow")[view.combat.name],
+                    b[t("combat.polymorph.title", name=name)],
+                ],
+                div(class_="cs-filter", role="group")[kinds],
+                p(class_="field-hint")[t("combat.polymorph.lede", count=len(shapes))],
+                form(method="post", action=url, class_="stack")[
+                    hidden("sel", row.combatant.id),
+                    label(class_="field")[
+                        span[t("combat.polymorph.shape")],
+                        input_el(
+                            type="text",
+                            name="shape",
+                            list="poly-shapes",
+                            required=True,
+                            autocomplete="off",
+                            placeholder=t("combat.polymorph.shape_hint"),
+                        ),
+                    ],
+                    datalist(id="poly-shapes")[
+                        [
+                            option(
+                                value=s.reference,
+                                label=f"{page.t.term('monster', s.name) or s.name} · "
+                                f"{t('combat.cr', cr=s.cr)}",
+                            )
+                            for s in shapes
+                        ]
+                    ],
+                    label(class_="field")[
+                        span[t("combat.polymorph.rules")],
+                        select(name="spell")[
+                            [
+                                option(
+                                    value=f"{kind}|{book}",
+                                    selected=year == rules,
+                                )[t(f"combat.polymorph.rules_{year}")]
+                                for year, book in (("2014", "PHB"), ("2024", "XPHB"))
+                            ]
+                        ],
+                    ],
+                    label(class_="field")[
+                        span[t("combat.polymorph.caster")],
+                        select(name="caster")[
+                            option(value="")[t("combat.polymorph.no_caster")],
+                            [option(value=key)[label_] for key, label_ in casters],
+                        ],
+                    ],
+                    div(class_="form-actions")[
+                        button(type="submit", class_="btn btn-primary")[
+                            icon("footprints"), span[t("combat.polymorph.submit")]
+                        ],
+                        a(href=back, class_="btn btn-ghost")[t("common.cancel")],
+                    ],
+                ],
+            ],
+        ],
+    )
 
 
 def combat_page(

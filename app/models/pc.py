@@ -44,7 +44,7 @@ from pydantic.json_schema import JsonSchemaValue, SkipJsonSchema
 from pydantic_core import CoreSchema
 
 from app.models.base import ABILITIES
-from app.models.gamestate import GameStateModel, GivenName, Record, _now
+from app.models.gamestate import GameStateModel, GivenName, Record, SpellForm, _now
 
 FORMAT_VERSION = 1
 
@@ -423,6 +423,9 @@ class PlayState(GameStateModel):
     # form's own hit points, which take damage before the druid's.
     wild_shape: ChosenOption | None = None
     wild_shape_hp: int | None = Field(default=None, ge=0)
+    # The shape a spell holds the character in (Polymorph): ``{"form": "Giant Ape|MM",
+    # "spell": "Polymorph|PHB", "caster": "character:<id>", "hp": 157}``.
+    polymorph: SpellForm | None = None
     death_saves: DeathSaves = Field(default_factory=DeathSaves)
 
     @field_validator("hit_dice_used")

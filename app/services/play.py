@@ -31,9 +31,10 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from typing import Any
 
+from app.models.gamestate import SpellForm
 from app.models.pc import ChosenOption, LogKind, PlayerCharacter, Recharge
 from app.models.protocol import EntryKind, ProtocolEntry, RollRecord, Scope, Visibility
-from app.services import wild_shape
+from app.services import polymorph, wild_shape
 from app.services.condition_rolls import bend
 from app.services.dice import Advantage, Dice, DiceError, Roll, is_expression
 from app.services.i18n import Translatable
@@ -103,6 +104,9 @@ class PlayService:
         self._dice = dice or Dice()
         self._protocol = protocol
         self._fight_of = fight_of
+        # Told when a character's concentration on Polymorph ends (caster, spell, actor),
+        # so the shapes it held end with it (CharacterService ends them).
+        self.on_released: Callable[[str, str, Actor], None] | None = None
         # The log entries of the action this thread is applying (PROTOCOL.md §9 step 1).
         self._staged = threading.local()
         self._actions: dict[
@@ -129,6 +133,7 @@ class PlayService:
             "mastery": self._mastery,
             "wild_shape": self._wild_shape,
             "wild_forms": self._wild_forms,
+            "polymorph": self._polymorph,
         }
 
     @property
@@ -145,11 +150,17 @@ class PlayService:
             raise PlayError("play.error.unknown_action", action=action)
 
         staged: list[ProtocolEntry] = []
+        released: list[str] = []
 
         def apply(pc: PlayerCharacter) -> None:
             staged.clear()  # a retried mutation starts its entries afresh
+            released.clear()
+            held = pc.state.concentration
             handler(pc, sheet, params, actor)
             self._record_hit_points(pc, sheet)
+            now = pc.state.concentration
+            if held is not None and polymorph.is_polymorph(held.name) and now != held:
+                released.append(held.reference)
 
         # mutate() hands the handler a copy and writes only if it returns normally, so
         # a refused action changes nothing — and logs nothing.
@@ -164,6 +175,8 @@ class PlayService:
                 # Rolled privately: only the roller and the gamemaster read it (§4).
                 staged = [e.model_copy(update={"visibility": Visibility.PRIVATE}) for e in staged]
             self._protocol.append(staged)
+        if released and self.on_released is not None:
+            self.on_released(f"character:{character_id}", released[0], actor)
         return changed
 
     @staticmethod
@@ -266,6 +279,11 @@ class PlayService:
         if mode == "temp":
             state.temp_hp = max(state.temp_hp, amount)
             return
+        shape = state.polymorph
+        if mode == "heal" and shape is not None and shape.hp is not None:
+            top_shape = sheet.spell_form.hp_max if sheet.spell_form is not None else shape.hp
+            shape.hp = min(top_shape, shape.hp + amount)
+            return
         if mode == "heal" and state.wild_shape_hp is not None and sheet.wild_shape:
             form = sheet.wild_shape.form
             top_form = form.hp if form is not None else state.wild_shape_hp
@@ -282,6 +300,18 @@ class PlayService:
         absorbed = min(state.temp_hp, amount)
         state.temp_hp -= absorbed
         rest = amount - absorbed
+        if shape is not None and shape.hp is None and absorbed and not state.temp_hp:
+            self._end_polymorph(pc, actor)  # 2024: the shape lasts while its temporary HP do
+        elif shape is not None and shape.hp is not None and rest > 0:
+            # A 2014 shape takes the damage; what it cannot take carries over.
+            taken = min(shape.hp, rest)
+            shape.hp -= taken
+            rest -= taken
+            if shape.hp > 0:
+                if state.concentration is not None:
+                    self._concentration_check(pc, sheet, taken, actor)
+                return
+            self._end_polymorph(pc, actor)
         if state.wild_shape_hp is not None and rest > 0:
             # A 2014 form takes the damage; what it cannot take carries over (PHB).
             taken = min(state.wild_shape_hp, rest)
@@ -297,6 +327,8 @@ class PlayService:
         state.hp = max(0, current - rest)
         if state.hp == 0 and state.wild_shape is not None:
             self._leave_form(pc, actor)
+        if state.hp == 0 and state.polymorph is not None:
+            self._end_polymorph(pc, actor)
         if rest > 0 and state.concentration is not None:
             self._concentration_check(pc, sheet, rest, actor)
 
@@ -768,6 +800,43 @@ class PlayService:
         pc.state.wild_shape_hp = None
         if form is not None:
             self._stage(pc, actor, EntryKind.CUSTOM, what=f"wild_shape:off:{form.reference}")
+
+    def _polymorph(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Take the shape a spell holds the character in (``op=assume``: the shape, the
+        spell, its caster and the shape's hit points, the spell's rules checked by the
+        caller), or leave it (``op=end``)."""
+        state = pc.state
+        if params.get("op") == "end":
+            if state.polymorph is None:
+                raise PlayError("play.error.bad_input")
+            self._end_polymorph(pc, actor)
+            return
+        form, spell = params.get("form", ""), params.get("spell", "")
+        if "|" not in form or not polymorph.is_polymorph(spell):
+            raise PlayError("play.error.bad_input")
+        hp = max(1, _int(params, "hp", 1))
+        if state.wild_shape is not None:  # a druid's own form gives way to the spell's
+            self._leave_form(pc, actor)
+        if state.polymorph is not None:
+            self._end_polymorph(pc, actor)
+        old_rules = polymorph.edition(spell) == "2014"
+        state.polymorph = SpellForm(
+            form=form, spell=spell, caster=params.get("caster", ""), hp=hp if old_rules else None
+        )
+        if not old_rules:
+            state.temp_hp = max(state.temp_hp, hp)
+        self._stage(pc, actor, EntryKind.CUSTOM, what=f"polymorph:on:{form}")
+
+    def _end_polymorph(self, pc: PlayerCharacter, actor: Actor) -> None:
+        shape = pc.state.polymorph
+        pc.state.polymorph = None
+        if shape is None:
+            return
+        if shape.hp is None:  # 2024: the shape's temporary hit points go with it
+            pc.state.temp_hp = 0
+        self._stage(pc, actor, EntryKind.CUSTOM, what=f"polymorph:off:{shape.form}")
 
     def _wild_forms(
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor

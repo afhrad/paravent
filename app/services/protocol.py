@@ -260,6 +260,9 @@ _COMBAT_KINDS: dict[str, EntryKind] = {
     "recharge": EntryKind.CUSTOM,
     # What a weapon mastery does after the attack: for the whole table, not bookkeeping.
     "mastery": EntryKind.CUSTOM,
+    # A creature turned into another by a spell, or back (Polymorph).
+    "form_on": EntryKind.CUSTOM,
+    "form_off": EntryKind.CUSTOM,
     "end": EntryKind.COMBAT_END,
 }
 
@@ -301,6 +304,8 @@ def from_combat(
         "recharge": f"recharge:{entry.detail}",
         "repeat_save": f"repeat:{entry.save_ability}:{entry.detail}",
         "mastery": f"mastery:{entry.detail}",
+        "form_on": f"polymorph:on:{entry.detail}",
+        "form_off": f"polymorph:off:{entry.detail}",
         "save_damage": f"save:{entry.detail}",
     }.get(entry.kind)
     if what is None:

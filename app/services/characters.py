@@ -13,18 +13,21 @@ from collections import OrderedDict
 from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
+from fractions import Fraction
 from pathlib import Path
 from typing import Any
 
 from app.models.gamestate import Role, SourceSet
 from app.models.pc import DraftStatus, PlayerCharacter
 from app.models.protocol import EntryKind, ProtocolEntry
+from app.services import polymorph
 from app.services.auth import Identity
 from app.services.experience import award
 from app.services.play import Actor, PlayError, PlayService
 from app.services.protocol import ProtocolService, for_character, roll_record
 from app.services.sheet import Sheet, build_sheet, heal_at
 from app.store.gamestate import GameStateStore
+from app.store.projections import project_monster
 
 
 class CharacterNotFound(LookupError):
@@ -69,14 +72,19 @@ class CharacterService:
         library_dir: Path,
         protocol: ProtocolService | None = None,
         fight_of: Callable[[str], tuple[str, int | None, str | None] | None] | None = None,
+        on_released: Callable[[str, str, str], None] | None = None,
     ) -> None:
         """Bind to the library, the loaded compendium, the library root and the log;
-        ``fight_of(character_id)`` names the running fight a character is in."""
+        ``fight_of(character_id)`` names the running fight a character is in;
+        ``on_released(caster, spell, by)`` ends the shapes a caster's lost concentration
+        held in the fights (CombatService.release_forms)."""
         self._store = store
         self._compendium = compendium
         self._library_dir = library_dir
         self._protocol = protocol
         self.play = PlayService(store.characters, protocol=protocol, fight_of=fight_of)
+        self.play.on_released = self._released
+        self._on_released = on_released
         # Sheets made lately, by everything a sheet is made from (see :meth:`sheet`).
         self._sheets: OrderedDict[tuple[Any, ...], Sheet] = OrderedDict()
         self._sheets_lock = threading.Lock()
@@ -203,6 +211,9 @@ class CharacterService:
         """Apply a sheet action as ``identity``. Rules refusals raise ``PlayError``."""
         character = self.get_for(identity, character_id)
         actor = _actor(identity)
+        if action == "polymorph" and params.get("op") != "end":
+            # A shape is taken through :meth:`polymorph`, where the spell's rules are checked.
+            raise PlayError("play.error.bad_input")
         return self.play.act(character_id, action, params, self.sheet(character), actor)
 
     def file_label(self, character_id: str) -> str | None:
@@ -361,6 +372,64 @@ class CharacterService:
             )
         )
         return rolled.total
+
+    # -- Polymorph ----------------------------------------------------------------
+
+    def shape_of(self, target: PlayerCharacter, shape: str, spell: str) -> Any:
+        """The creature ``spell`` may turn ``target`` into, as its world's books resolve
+        ``shape`` (``"Giant Ape|MM"``); :class:`PlayError` when the spell's rules refuse."""
+        name, _, source = shape.partition("|")
+        found = (
+            self._compendium.resolver().resolve_parts(
+                "monster", name.strip(), source.strip() or None, self.source_set(target)
+            )
+            if self._compendium is not None and name.strip()
+            else None
+        )
+        if found is None or found.entry is None:
+            raise PlayError("play.error.shape_unknown", shape=name.strip() or shape)
+        monster = project_monster(found.entry)
+        if not polymorph.allows(spell, Fraction(max(1, target.total_level)), monster):
+            raise PlayError(
+                "play.error.shape_refused", shape=monster.name, target=target.name or "?"
+            )
+        return monster
+
+    def polymorph(
+        self, target_id: str, shape: str, spell: str, caster: str, by: Actor
+    ) -> PlayerCharacter:
+        """Hold a character in ``spell``'s shape, its rules checked against the target's
+        level, for ``caster`` (``character:<id>`` or ``combatant:<id>``)."""
+        target = self._store.characters.find(target_id)
+        if target is None:
+            raise CharacterNotFound(target_id)
+        monster = self.shape_of(target, shape, spell)
+        form = polymorph.form_for(spell, monster, caster)
+        params = {
+            "op": "assume",
+            "form": form.form,
+            "spell": spell,
+            "caster": caster,
+            "hp": str(monster.hp or 1),
+        }
+        return self.play.act(target_id, "polymorph", params, self.sheet(target), by)
+
+    def end_polymorph(self, target_id: str, by: Actor) -> PlayerCharacter:
+        """Let a character out of a spell's shape."""
+        target = self._store.characters.find(target_id)
+        if target is None:
+            raise CharacterNotFound(target_id)
+        return self.play.act(target_id, "polymorph", {"op": "end"}, self.sheet(target), by)
+
+    def _released(self, caster: str, spell: str, by: Actor) -> None:
+        """A caster's concentration on Polymorph ended: every shape it held ends, the
+        characters' here, the monsters' in the fights."""
+        for pc in self._store.characters.list(
+            lambda pc: polymorph.held_by(pc.state.polymorph, caster, spell)
+        ):
+            self.end_polymorph(pc.id, by)
+        if self._on_released is not None:
+            self._on_released(caster, spell, by.username or by.name)
 
     def allies(self, character: PlayerCharacter) -> list[tuple[str, str]]:
         """Who a healing spell may reach: the characters of the caster's world (or, with no

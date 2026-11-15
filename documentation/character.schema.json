@@ -506,6 +506,17 @@
           "default": null,
           "title": "Wild Shape Hp"
         },
+        "polymorph": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SpellForm"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "death_saves": {
           "$ref": "#/$defs/DeathSaves"
         }
@@ -546,6 +557,44 @@
         "max"
       ],
       "title": "Resource",
+      "type": "object"
+    },
+    "SpellForm": {
+      "additionalProperties": false,
+      "description": "A shape a spell holds a creature in (Polymorph, True Polymorph), on a character's\nstate or a combatant, until the caster's concentration on ``spell`` ends.\n\n``hp`` is the form's own hit points under the 2014 rules, taking damage before the\ncreature's (the rest carries over at 0, which ends the form); under the 2024 rules\nthe form gives temporary hit points instead and ends when they are gone (None).\n``caster`` names who concentrates: ``character:<id>``, or ``combatant:<id>`` within\nthe same fight.",
+      "properties": {
+        "form": {
+          "title": "Form",
+          "type": "string"
+        },
+        "spell": {
+          "title": "Spell",
+          "type": "string"
+        },
+        "caster": {
+          "default": "",
+          "title": "Caster",
+          "type": "string"
+        },
+        "hp": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Hp"
+        }
+      },
+      "required": [
+        "form",
+        "spell"
+      ],
+      "title": "SpellForm",
       "type": "object"
     },
     "SpellSelection": {

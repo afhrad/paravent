@@ -637,6 +637,8 @@ CombatLogKind = Literal[
     "mastery",
     "cast",
     "condition_immune",
+    "form_on",
+    "form_off",
 ]
 
 
@@ -682,6 +684,23 @@ class RepeatSave(GameStateModel):
     rolled_round: int = 0
 
 
+class SpellForm(GameStateModel):
+    """A shape a spell holds a creature in (Polymorph, True Polymorph), on a character's
+    state or a combatant, until the caster's concentration on ``spell`` ends.
+
+    ``hp`` is the form's own hit points under the 2014 rules, taking damage before the
+    creature's (the rest carries over at 0, which ends the form); under the 2024 rules
+    the form gives temporary hit points instead and ends when they are gone (None).
+    ``caster`` names who concentrates: ``character:<id>``, or ``combatant:<id>`` within
+    the same fight.
+    """
+
+    form: str
+    spell: str
+    caster: str = ""
+    hp: int | None = Field(default=None, ge=0)
+
+
 class Combatant(GameStateModel):
     """One participant in a combat: a monster, a character or someone ad hoc.
 
@@ -725,6 +744,8 @@ class Combatant(GameStateModel):
     # A creature's spell slots and daily uses spent in this fight, by pool
     # (``MonsterSpell.pool``): ``{"slot:3": 1, "0:daily:1e:Fly": 1}``.
     spent: dict[str, int] = Field(default_factory=dict)
+    # A monster turned into another creature by a spell; a character's form is in its file.
+    form: SpellForm | None = None
 
     @model_validator(mode="after")
     def _one_identity(self) -> Combatant:
@@ -741,6 +762,11 @@ class Combatant(GameStateModel):
     def is_friend(self) -> bool:
         """On the characters' side: a character, or an ally."""
         return self.is_character or self.ally
+
+    @property
+    def shown_ref(self) -> str | None:
+        """The statblock it fights with: the shape a spell holds it in, else its own."""
+        return self.form.form if self.form is not None else self.ref
 
     @property
     def is_down(self) -> bool:

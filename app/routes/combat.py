@@ -30,7 +30,7 @@ from fastapi.responses import HTMLResponse, Response, StreamingResponse
 from starlette.datastructures import UploadFile
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
-from app.models.gamestate import Combat, KnownFact
+from app.models.gamestate import EDITION_ONE, Combat, KnownFact
 from app.models.protocol import ProtocolEntry
 from app.routes.auth import html, redirect
 from app.routes.paravent_markdown import paravent_markdown
@@ -60,6 +60,7 @@ from app.ui.combat_pages import (
     combat_page,
     combat_url,
     combats_page,
+    polymorph_page,
     side_panel,
 )
 from app.ui.context import Page
@@ -98,9 +99,9 @@ def _ctx(page: Page, registry: StoreRegistry, combat: Combat) -> RenderContext:
 
 
 def _entry(registry: StoreRegistry, combat: Combat, row: Row | None) -> ReferenceEntry | None:
-    if row is None or row.combatant.ref is None:
+    if row is None or row.combatant.shown_ref is None:
         return None
-    name, _, source = row.combatant.ref.partition("|")
+    name, _, source = row.combatant.shown_ref.partition("|")
     try:
         return registry.references.get("monster", source, name, combat.world_id)
     except ReferenceNotFound:
@@ -122,11 +123,11 @@ def _known(
     registry: StoreRegistry, combat: Combat, row: Row | None
 ) -> tuple[dict[str, KnownFact] | None, list[Revealable]]:
     """What the players know of a creature's kind, and what its statblock could tell."""
-    if row is None or row.combatant.ref is None:
+    if row is None or row.combatant.shown_ref is None:
         return None, []
     monster = registry.combats.monster_of(row.combatant)
     data = monster.entry.model_dump(by_alias=True, exclude_none=True) if monster else {}
-    return registry.knowledge.of(combat.world_id, row.combatant.ref), revealable(data)
+    return registry.knowledge.of(combat.world_id, row.combatant.shown_ref), revealable(data)
 
 
 def _translation(
@@ -136,9 +137,9 @@ def _translation(
     glossary, passages open, or the books' description (the players' Details) open —
     the popup editors' addresses and what is missing. ``back`` is the tracker, where the
     full editor returns to."""
-    if row is None or row.combatant.ref is None or page.lang == "en":
+    if row is None or row.combatant.shown_ref is None or page.lang == "en":
         return None
-    name, _, source = row.combatant.ref.partition("|")
+    name, _, source = row.combatant.shown_ref.partition("|")
     if table_written("monster", source):
         return None
     targets = registry.translation_targets
@@ -181,10 +182,10 @@ def _picture(
 ) -> PictureOffer | None:
     """A creature's picture as Details shows it: the table's own, else the books';
     ``error`` says why an upload was refused."""
-    if row is None or row.combatant.ref is None or row.monster is None:
+    if row is None or row.combatant.shown_ref is None or row.monster is None:
         return None
     action = f"{COMBATS_URL}/{combat.id}/picture/{row.combatant.id}"
-    version = registry.creature_pictures.version(combat.world_id, row.combatant.ref)
+    version = registry.creature_pictures.version(combat.world_id, row.combatant.shown_ref)
     own = (
         f"{play_picture_url(combat.id, row.combatant.id)}?v={version}"
         if version is not None
@@ -517,18 +518,18 @@ async def creature_picture(
     combat = registry.combats.get(combat_id)
     view = registry.combats.view(combat)
     row = view.row(combatant_id)
-    if row is None or row.combatant.ref is None:
+    if row is None or row.combatant.shown_ref is None:
         raise HTTPException(status_code=404)
     pictures = registry.creature_pictures
     error: str | None = None
     if form.get("do") == "remove":
-        pictures.remove(combat.world_id, row.combatant.ref)
+        pictures.remove(combat.world_id, row.combatant.shown_ref)
     else:
         upload = form.get("picture")
         if isinstance(upload, UploadFile) and upload.filename:
             try:
                 pictures.set(
-                    combat.world_id, row.combatant.ref, upload.filename, await upload.read()
+                    combat.world_id, row.combatant.shown_ref, upload.filename, await upload.read()
                 )
             except MediaError as exc:
                 error = page.t.error(exc)
@@ -553,9 +554,9 @@ async def creature_knowledge(
     combat = registry.combats.get(combat_id)
     view = registry.combats.view(combat)
     row = view.row(combatant_id)
-    if row is None or row.combatant.ref is None:
+    if row is None or row.combatant.shown_ref is None:
         raise HTTPException(status_code=404)
-    ref = row.combatant.ref
+    ref = row.combatant.shown_ref
     if form.get("do") == "forget":
         registry.knowledge.forget(combat.world_id, ref, str(form.get("fact", "")))
     else:
@@ -582,6 +583,31 @@ def _edition(registry: StoreRegistry, combat_id: str) -> str:
 # Row actions whose effect shows in the selected creature's side panel.
 _SIDE_ACTIONS = frozenset({"cast", "restore_spells"})
 SIDE_EVENT = "paravent-side"
+
+
+@router.get(
+    f"{COMBATS_URL}/{{combat_id}}/c/{{combatant_id}}/polymorph", response_class=HTMLResponse
+)
+async def polymorph_form(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    combat_id: str,
+    combatant_id: str,
+    spell: str = "Polymorph",
+) -> HTMLResponse:
+    """Turn a combatant into another creature (Polymorph, True Polymorph)."""
+    combat = registry.combats.get(combat_id)
+    view = registry.combats.view(combat)
+    row = view.row(combatant_id)
+    if row is None:
+        raise HTTPException(status_code=404)
+    kind = "True Polymorph" if spell.strip().lower() == "true polymorph" else "Polymorph"
+    world = registry.gamestate.worlds.find(combat.world_id) if combat.world_id else None
+    editions = world.source_set.editions if world is not None else set()
+    rules = "2024" if editions == {EDITION_ONE} else "2014"
+    shapes = registry.combats.shapes(combat, row.combatant, kind)
+    return html(polymorph_page(page, view, row, kind, rules, shapes))
 
 
 @router.post(f"{COMBATS_URL}/{{combat_id}}/c/{{combatant_id}}/{{action}}")

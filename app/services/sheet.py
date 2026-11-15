@@ -486,6 +486,28 @@ class WildShapeView:
         return self.form_hp, self.form.hp
 
 
+@dataclass(frozen=True)
+class SpellFormView:
+    """The shape a spell holds the character in (Polymorph): the creature, the spell,
+    and under the 2014 rules the shape's own hit points now and at most."""
+
+    name: str
+    source: str
+    data: dict[str, Any] = field(repr=False, compare=False)
+    spell: str = ""
+    hp: int | None = None
+    hp_max: int = 1
+
+    @property
+    def reference(self) -> str:
+        return f"{self.name}|{self.source}"
+
+    @property
+    def hp_now(self) -> tuple[int, int] | None:
+        """The 2014 shape's hit points now and at most; None under the 2024 rules."""
+        return (self.hp, self.hp_max) if self.hp is not None else None
+
+
 @dataclass
 class Sheet:
     """Everything one character's screen shows."""
@@ -559,7 +581,13 @@ class Sheet:
     # Set by the page: the characters a healing spell may target (id, name) — the
     # caster's world, the caster first.
     allies: list[tuple[str, str]] = field(default_factory=list)
+    # Set by the page while the character concentrates on Polymorph: whom the spell may
+    # reach (``character:<id>``, ``combatant:<id>`` in its fight; and a name), and the
+    # creatures to offer as shapes.
+    shape_targets: list[tuple[str, str]] = field(default_factory=list)
+    shapes: list[Any] = field(default_factory=list)
     wild_shape: WildShapeView | None = None
+    spell_form: SpellFormView | None = None
 
     @property
     def casting_modifier(self) -> int:
@@ -568,8 +596,21 @@ class Sheet:
         return 0 if dc is None else dc - 8 - (self.proficiency.value or 0)
 
     def can_cast(self, spell: SpellView) -> bool:
-        """Whether the character may cast ``spell`` now (not, mostly, in Wild Shape)."""
+        """Whether the character may cast ``spell`` now: not in a spell's shape, and in
+        Wild Shape only as its rules allow."""
+        if self.spell_form is not None:
+            return False
         return self.wild_shape is None or self.wild_shape.can_cast(spell)
+
+    @property
+    def form(self) -> tuple[str, dict[str, Any]] | None:
+        """The creature the character fights as now, a spell's shape before a druid's
+        own: its name and statblock."""
+        if self.spell_form is not None:
+            return self.spell_form.name, self.spell_form.data
+        if self.wild_shape is not None and self.wild_shape.form is not None:
+            return self.wild_shape.form.name, self.wild_shape.form.data
+        return None
 
     def save_dc_for(self, spell: SpellView) -> Value | None:
         """The save DC ``spell`` is cast with: its grant's ability's, else the class's."""
@@ -831,6 +872,7 @@ def build_sheet(
     _burden(sheet)
     _play_state(sheet, character, corpus)
     _wild_shape(sheet, character, corpus, classes)
+    _spell_form(sheet, character, corpus)
     _proficiencies(sheet, character, classes, training)
     _weapon_master(sheet, character, corpus, classes, training[1])
     _defenses(sheet, character, corpus, species, subspecies)
@@ -2238,6 +2280,33 @@ def _wild_shape(
     walk = walk.get("number") if isinstance(walk, dict) else walk
     if isinstance(walk, int):
         sheet.speed = Value(walk, f"{form.name} form")
+
+
+def _spell_form(sheet: Sheet, character: PlayerCharacter, corpus: _Corpus) -> None:
+    """The shape a spell holds the character in: its AC and speed replace the sheet's."""
+    shape = character.state.polymorph
+    if shape is None:
+        return
+    data = corpus.resolve("monster", ChosenOption.model_validate(shape.form))
+    if data is None:
+        return
+    form = wild_shape.Form(str(data.get("name")), str(data.get("source")), "", data)
+    sheet.spell_form = SpellFormView(
+        form.name,
+        form.source,
+        data,
+        shape.spell,
+        min(shape.hp, form.hp) if shape.hp is not None else None,
+        form.hp,
+    )
+    label = f"{form.name} ({shape.spell.partition('|')[0]})"
+    if form.ac is not None:
+        sheet.armor_class = Value(form.ac, label)
+    speed = data.get("speed")
+    walk = speed.get("walk") if isinstance(speed, dict) else None
+    walk = walk.get("number") if isinstance(walk, dict) else walk
+    if isinstance(walk, int):
+        sheet.speed = Value(walk, label)
 
 
 def _circle_spells(

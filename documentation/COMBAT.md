@@ -134,6 +134,19 @@ guard, a summoned wolf, a charmed ogre.
   board by name alone (`SeenCombatant.form`); the character panel links its statblock
   and lists the beast's actions in place of the druid's weapons, each attack rolled from
   the tracker like a monster's and resolved with Hit or Miss.
+- **Polymorph and True Polymorph** (2026-11-15, `app/services/polymorph.py`): any row,
+  character or monster, can be turned into a creature from its ⋯ menu ("Polymorph…", a
+  page offering the shapes the world's books allow: no stronger than the target's
+  challenge rating or level, a beast for Polymorph), or by a caster from their sheet while
+  concentrating on the spell (a character of the world, or a creature of their fight). The
+  row then fights as the shape: its statblock in the side panel with its attacks, its AC,
+  a pill naming it (on the players' view too). Under the 2014 rules the shape has hit
+  points of its own that take damage first, the rest carrying over at 0, which ends it;
+  under the 2024 rules it gives temporary hit points and ends when they are gone. It ends
+  with the caster's concentration, however that goes (Drop, a failed save, a new spell),
+  logged; "Revert" ends it by hand. A monster's form is `Combatant.form`, a character's
+  `state.polymorph` in its file (`SpellForm`: shape, spell, caster, 2014 hit points).
+  Turning into an object, and True Polymorph made permanent, are left to the table.
 - **Dead**: a monster at 0 HP, or a character with three failed death saves, carries a
   skull "Dead" pill and is struck through. A dying character is down, not dead.
 - **XP** comes only from fallen foes; an ally that falls earns nothing.

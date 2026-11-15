@@ -51,6 +51,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       the sheet and in the tracker), but for Beast Spells from level 18 (2014: no
       material component; 2024: none with a price or consumed) and the 2024 Circle of
       the Moon's circle spells.
+      **Polymorph and True Polymorph** (2026-11-15, `app/services/polymorph.py`, COMBAT.md
+      §3): a character or a monster turned into a creature the world's books allow (no
+      stronger than the target, a beast for Polymorph), from the tracker's ⋯ menu or the
+      caster's sheet; it fights as the shape (statblock, attacks, AC), with the shape's own
+      hit points (2014) or temporary ones (2024), and ends with the caster's concentration.
       Phased in TECHSTACK.md §6b:
   - [x] **Phase 1 complete.** `class` (30), `subclass` (315), `classFeature` (677),
         `subclassFeature` (1,397), `legendaryGroup` (171), both `generated/` lookups, and
@@ -903,7 +908,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2285 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2298 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the

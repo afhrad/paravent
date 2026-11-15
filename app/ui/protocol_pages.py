@@ -430,10 +430,10 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             )
         if head == "custom":
             return dice_words(page, rest)
-        if head == "wild_shape":
+        if head in ("wild_shape", "polymorph"):
             on, _, form = rest.partition(":")
             name = name_text(page, "monster", form.partition("|")[0])
-            return t(f"protocol.wild_shape_{on}", form=name)
+            return t(f"protocol.{head}_{on}", form=name)
     return what
 
 
