@@ -1035,6 +1035,9 @@ class Bastion(Record):
     name: str = ""
     facilities: list[BastionFacility] = Field(default_factory=list)
     turns: int = Field(default=0, ge=0)
+    # The world's clock (in minutes, app/services/clock.py) at the last turn, which
+    # tells when the next is due: one every seven days.
+    last_turn: int | None = None
 
 
 class SafetySuggestion(GameStateModel):
@@ -1053,6 +1056,28 @@ class TableSafety(Record):
     lines: list[str] = Field(default_factory=list)
     veils: list[str] = Field(default_factory=list)
     suggested: list[SafetySuggestion] = Field(default_factory=list)
+
+
+class ClockTimer(GameStateModel):
+    """Something that runs out on a world's clock: a lit torch or lantern (``light``,
+    the item's reference), a spell cast with a duration (``spell``, its reference) or
+    the gamemaster's own reminder (``custom``, its text). ``ends`` is the clock's
+    minute it runs out at; ``concentration`` ends the caster's concentration with it."""
+
+    id: str
+    kind: Literal["light", "spell", "custom"]
+    label: str = Field(max_length=200)
+    character_id: str | None = None
+    ends: int
+    concentration: bool = False
+
+
+class WorldClock(Record):
+    """A world's time in the game: minutes since midnight of its first day, and the
+    timers running against it. The id is the world's."""
+
+    minute: int = Field(default=8 * 60, ge=0)
+    timers: list[ClockTimer] = Field(default_factory=list)
 
 
 class PartyNotes(Record):
@@ -1115,6 +1140,8 @@ __all__ = [
     "CreatureFeature",
     "health_word",
     "CheckCall",
+    "ClockTimer",
+    "WorldClock",
     "Knowledge",
     "PartyNotes",
     "SafetySuggestion",

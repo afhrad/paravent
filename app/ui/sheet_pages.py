@@ -78,6 +78,7 @@ from app.services.wild_shape import RESOURCE as WILD_SHAPE
 from app.services.wild_shape import Form
 from app.ui import rules_text
 from app.ui.check_pages import check_banner
+from app.ui.clock_pages import remaining, sheet_time, sheet_timers
 from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
@@ -1195,6 +1196,15 @@ def _item_row(page: Page, sheet: Sheet, item: ItemView) -> Element:
             if item.heal
             else act(
                 sheet,
+                "light",
+                {"index": item.index},
+                [icon("flame", "sm"), span[t("sheet.light")]],
+                cls="btn btn-sm",
+                title=t("sheet.light_title", time=remaining(page, item.light)),
+            )
+            if item.light
+            else act(
+                sheet,
                 "use",
                 {"index": item.index},
                 [icon("check", "sm"), span[t("sheet.use")]],
@@ -1578,6 +1588,7 @@ def _head(page: Page, sheet: Sheet, *, file_label: str | None) -> Element:
             ],
         ],
         div(class_="cs-head-meta")[
+            sheet_time(page, sheet.clock) if sheet.clock is not None else None,
             span(class_="pill neutral", title=_value_title(page, sheet.passive_perception))[
                 t("sheet.passive_short", n=sheet.passive_perception.text)
             ],
@@ -1788,6 +1799,9 @@ def sheet_fragment(
             )
             for call in sheet.calls
         ],
+        sheet_timers(page, sheet.character.id, sheet.clock, sheet.timers)
+        if sheet.clock is not None
+        else None,
         # The one form every roll chip in rules text submits (button form="…").
         form(
             id=_roll_form_id(sheet), method="post", action=roll_url, hx_post=roll_url, hidden=True

@@ -10,6 +10,8 @@
   page, with its adventures, is in :mod:`app.routes.adventures`)
 * ``POST /gm/characters/{id}/world``   — place a character in a world
 * ``/gm/checks…``                      — call for a check outside a fight, and close it
+* ``/gm/clock…``                       — a world's time in the game: move it, rest the
+  party, timers
 """
 
 from __future__ import annotations
@@ -21,6 +23,7 @@ from urllib.parse import urlencode
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, Response, StreamingResponse
 from htpy import Element
+from starlette.datastructures import FormData
 
 from app.dependencies import (
     CharactersDep,
@@ -35,13 +38,15 @@ from app.routes.rolls import announce_roll, new_roll
 from app.services.auth import AuthError
 from app.services.characters import CharacterService
 from app.services.checks import CheckError
+from app.services.clock import DAY, ClockError, bastions_due
 from app.services.events import PARTY, revision_stream
-from app.services.play import PlayError
+from app.services.play import Actor, PlayError
 from app.services.player_view import player_choice, player_ticks
 from app.services.worlds import WorldInput
 from app.store.registry import StoreRegistry
 from app.ui.adventure_pages import images_panel
 from app.ui.check_pages import CHECKS_URL, checks_panel
+from app.ui.clock_pages import CLOCK_URL, clock_panel
 from app.ui.combat_pages import party_combats
 from app.ui.context import Page
 from app.ui.forms import alert, notice
@@ -73,6 +78,40 @@ def _checks(
         if not m.sheet.character.in_wizard
     ]
     return checks_panel(page, registry.checks.recent(world_id), asked, world_id)
+
+
+def _clock_world(registry: StoreRegistry, world_id: str | None) -> str | None:
+    """The world whose clock the party view shows: the one chosen, or the only one."""
+    if world_id is not None:
+        return world_id
+    worlds = registry.gamestate.worlds.list()
+    return worlds[0].id if len(worlds) == 1 else None
+
+
+def _clock(page: Page, registry: StoreRegistry, world_id: str | None) -> Element | None:
+    shown = _clock_world(registry, world_id)
+    if shown is None:
+        return None
+    clock = registry.clock.of(shown)
+    members = [
+        pc
+        for pc in registry.gamestate.characters.list()
+        if pc.world_id == shown and not pc.in_wizard
+    ]
+    names = {pc.id: pc.name or "?" for pc in members}
+    built = [(pc.name or "?", registry.bastions.of(pc.id)) for pc in members if pc.total_level >= 5]
+    due = bastions_due(clock.minute, [(name, b.last_turn) for name, b in built if b.facilities])
+    return clock_panel(page, shown, clock.minute, registry.clock.active(shown), names, due)
+
+
+_UNIT_MINUTES = {"minute": 1, "hour": 60, "day": DAY}
+
+
+def _minutes(form: FormData) -> int:
+    """The amount and unit of a clock form, in minutes (0 when unreadable)."""
+    amount = str(form.get("amount", "")).strip()
+    unit = _UNIT_MINUTES.get(str(form.get("unit", "")), 0)
+    return int(amount) * unit if amount.isdigit() else 0
 
 
 def _cards(page: Page, characters: CharacterService, world_id: str | None) -> list[Element]:
@@ -111,8 +150,90 @@ async def party(
             world=chosen,
             combats=_combats(page, registry, world_id),
             checks=_checks(page, registry, characters, world_id),
+            clock=_clock(page, registry, world_id),
         )
     )
+
+
+# -- the world's clock -------------------------------------------------------------------
+
+
+@router.get(f"{CLOCK_URL}/panel", response_class=HTMLResponse)
+async def clock_fragment(
+    _gm: GamemasterDep, page: PageDep, registry: RegistryDep, world: str = ""
+) -> HTMLResponse:
+    """The clock panel, refetched when the time or a timer changes."""
+    return html(_clock(page, registry, world or None))
+
+
+@router.post(f"{CLOCK_URL}/{{world_id}}/{{op}}", response_class=HTMLResponse)
+async def change_clock(
+    request: Request,
+    gm: GamemasterDep,
+    page: PageDep,
+    worlds: WorldsDep,
+    registry: RegistryDep,
+    characters: CharactersDep,
+    world_id: str,
+    op: str,
+) -> Response:
+    """Move the clock (``advance``, ``set``), rest the party (``rest``) or start a
+    reminder (``timer``)."""
+    if worlds.find(world_id) is None:
+        return redirect("/gm")
+    form = await request.form()
+    user = gm.user
+    name = user.display_name or user.username
+    clock = registry.clock
+    flash: str | None = None
+    try:
+        if op == "advance":
+            raw = str(form.get("minutes", "")).strip()
+            minutes = int(raw) if raw.isdigit() else _minutes(form)
+            why = " ".join(str(form.get("why", "")).split())[:60].replace(":", " ")
+            clock.advance(world_id, minutes, user.username, name, why)
+        elif op == "set":
+            day = str(form.get("day", "")).strip()
+            hours, _, mins = str(form.get("time", "")).partition(":")
+            if not (day.isdigit() and hours.isdigit() and mins.isdigit()):
+                raise ClockError("clock.error.bad_time")
+            if int(day) < 1 or int(hours) > 23 or int(mins) > 59:
+                raise ClockError("clock.error.bad_time")
+            clock.set(
+                world_id, (int(day) - 1) * DAY + int(hours) * 60 + int(mins), user.username, name
+            )
+        elif op == "rest":
+            kind = "long" if form.get("kind") == "long" else "short"
+            characters.rest_party(world_id, kind, Actor(name, username=user.username))
+            clock.advance(
+                world_id, 480 if kind == "long" else 60, user.username, name, f"{kind}_rest"
+            )
+        elif op == "timer":
+            clock.start(world_id, "custom", str(form.get("label", "")), _minutes(form))
+        else:
+            raise ClockError("clock.error.bad_time")
+    except (ClockError, PlayError) as exc:
+        flash = page.t.error(exc)
+    if request.headers.get("HX-Request") != "true":
+        return redirect(f"/gm?{urlencode({'world': world_id})}")
+    panel = _clock(page, registry, world_id)
+    return html(panel if flash is None else [alert(flash), panel])
+
+
+@router.post(f"{CLOCK_URL}/{{world_id}}/timer/{{timer_id}}/stop", response_class=HTMLResponse)
+async def stop_timer(
+    request: Request,
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    world_id: str,
+    timer_id: str,
+) -> Response:
+    """Put out a light, end a spell's timer or dismiss a reminder early."""
+    registry.clock.stop(world_id, timer_id)
+    if request.headers.get("HX-Request") != "true":
+        return redirect(f"/gm?{urlencode({'world': world_id})}")
+    return html(_clock(page, registry, world_id))
 
 
 # -- checks outside a fight --------------------------------------------------------------

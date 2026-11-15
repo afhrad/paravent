@@ -35,6 +35,7 @@ from app.models.gamestate import SpellForm
 from app.models.pc import ChosenOption, InventoryItem, LogKind, PlayerCharacter, Recharge
 from app.models.protocol import EntryKind, ProtocolEntry, RollRecord, Scope, Visibility
 from app.services import polymorph, wild_shape
+from app.services.clock import OIL, OIL_LIGHTS, light_minutes
 from app.services.condition_rolls import bend
 from app.services.dice import Advantage, Dice, DiceError, Roll, is_expression
 from app.services.i18n import Translatable
@@ -154,6 +155,7 @@ class PlayService:
             "polymorph": self._polymorph,
             "receive": self._receive,
             "use": self._use,
+            "light": self._light,
             "notes": self._notes,
         }
 
@@ -827,6 +829,24 @@ class PlayService:
         reference = pc.inventory[index].item.reference
         _take_one(pc, index)
         self._stage(pc, actor, EntryKind.CUSTOM, what=f"use:{reference}")
+
+    def _light(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Light a torch or candle (one of them burns away) or a lamp or lantern (a
+        flask of oil does), logged; the world's clock times it (app/services/clock.py)."""
+        index = _int(params, "index", -1)
+        if not 0 <= index < len(pc.inventory) or not light_minutes(pc.inventory[index].item.name):
+            raise PlayError("play.error.bad_input")
+        reference = pc.inventory[index].item.reference
+        if pc.inventory[index].item.name.lower() in OIL_LIGHTS:
+            oil = next((n for n, i in enumerate(pc.inventory) if i.item.name.lower() in OIL), None)
+            if oil is None:
+                raise PlayError("play.error.no_oil")
+            _take_one(pc, oil)
+        else:
+            _take_one(pc, index)
+        self._stage(pc, actor, EntryKind.CUSTOM, what=f"light:{reference}")
 
     def roll(self, expression: str) -> Roll:
         """A dice roll with this service's dice (a healing spell cast from another file)."""

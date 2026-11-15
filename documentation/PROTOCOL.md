@@ -189,7 +189,12 @@ What just happened, without stopping play.
 - **The X-card** (2026-11-15, app/services/safety.py) always pops up for the gamemaster,
   whatever the setting: an entry `xcard` with no actor, visible to the gamemaster alone.
   Other custom entries added the same day: `receive:` (items and coins handed out),
-  `use:` (a consumable used up), `bastion:` (a bastion turn's orders).
+  `use:` (a consumable used up), `bastion:` (a bastion turn's orders). With the world's
+  clock (app/services/clock.py): `clock:<minutes>:<now>:<why>` (time passed, the why one
+  of `short_rest`, `long_rest`, `fight` or the gamemaster's words) and `clock:set:<now>`,
+  `light:<item>` (a torch or lantern lit on the sheet), and `timer:<kind>:<label>` when a
+  light burns out, a spell's duration ends or the gamemaster's reminder (`custom`, for the
+  gamemaster alone) comes due.
 - The device that rolled hears the dice (`sound.js`) as today; a toast never plays a sound
   of its own.
 

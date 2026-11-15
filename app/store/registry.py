@@ -18,7 +18,8 @@ from typing import Any
 
 from app import __version__
 from app.config import Settings
-from app.models.gamestate import CheckCall, Combat, Combatant
+from app.models.gamestate import CheckCall, Combat, Combatant, WorldClock
+from app.models.pc import PlayerCharacter
 from app.models.protocol import EntryKind, ProtocolEntry
 from app.services import media, polymorph
 from app.services.adventures import AdventureService
@@ -31,6 +32,7 @@ from app.services.chargen.drafts import Drafts
 from app.services.chargen.levelup import LevelUps
 from app.services.chargen.prepare import Preparations
 from app.services.checks import CheckService
+from app.services.clock import ClockService
 from app.services.combat import CombatService, SheetCharacters
 from app.services.corpus_check import CorpusHealth, corpus_version
 from app.services.corpus_import import CorpusImport, CorpusImports
@@ -60,6 +62,7 @@ from app.services.naming_workshop import NamingWorkshop
 from app.services.npcs import NpcService, TreasureService
 from app.services.party_notes import PartyNotesService
 from app.services.places import PlaceService
+from app.services.play import Actor
 from app.services.player_view import Reader, needs_reader, reader_for
 from app.services.players import PlayerService
 from app.services.protocol import ProtocolService
@@ -562,7 +565,56 @@ class StoreRegistry:
             on_roll=lambda character, kind, subject, total: self.checks.answer(
                 character, kind, subject, total
             ),
+            on_timed=self._timed,
         )
+
+    def _timed(
+        self, pc: PlayerCharacter, kind: str, reference: str, minutes: int, concentration: bool
+    ) -> None:
+        """A light lit or a spell with a duration cast on a sheet runs on its world's
+        clock; a character in no world has none."""
+        if pc.world_id and minutes > 0:
+            self.clock.start(
+                pc.world_id,
+                kind,
+                reference,
+                minutes,
+                character_id=pc.id,
+                concentration=concentration,
+            )
+
+    @cached_property
+    def clock(self) -> ClockService:
+        """Each world's time in the game and its timers (app/services/clock.py)."""
+        return ClockService(
+            self.gamestate,
+            self.protocol,
+            concentrating=self._concentrating,
+            end_concentration=self._end_concentration,
+            changed=self._clock_changed,
+        )
+
+    def _concentrating(self, character_id: str) -> str | None:
+        pc = self.gamestate.characters.find(character_id)
+        held = pc.state.concentration if pc is not None else None
+        return held.reference if held is not None else None
+
+    def _end_concentration(self, character_id: str, spell: str, by: str) -> None:
+        """A spell's duration ran out on the clock: its caster stops concentrating."""
+        characters = self.characters
+        pc = self.gamestate.characters.find(character_id)
+        if pc is not None:
+            characters.play.act(
+                character_id, "concentration", {}, characters.sheet(pc), Actor(by, username=by)
+            )
+
+    def _clock_changed(self, clock: WorldClock) -> None:
+        """The party view and every sheet of the world show the time."""
+        state = f"clock-{clock.updated_at.isoformat()}"
+        for pc in self.gamestate.characters.list():
+            if pc.world_id == clock.id:
+                self.events.publish(pc.id, state)
+        self.events.publish(PARTY, f"*clock {clock.id}")
 
     @cached_property
     def bastions(self) -> BastionService:

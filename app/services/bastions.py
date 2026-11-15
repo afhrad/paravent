@@ -113,9 +113,16 @@ class BastionService:
         return self._save(bastion.model_copy(update={"facilities": changed}))
 
     def turn(
-        self, character_id: str, character_name: str, world_id: str | None, by: str, by_name: str
+        self,
+        character_id: str,
+        character_name: str,
+        world_id: str | None,
+        by: str,
+        by_name: str,
+        at: int | None = None,
     ) -> Bastion:
-        """A bastion turn: the orders are logged for the table, then cleared."""
+        """A bastion turn: the orders are logged for the table, then cleared; ``at`` is
+        the world's clock, from which the next turn is due seven days on."""
         bastion = self.of(character_id)
         orders = [f"{f.ref}={f.order}" for f in bastion.facilities if f.order]
         number = bastion.turns + 1
@@ -134,7 +141,9 @@ class BastionService:
                 ]
             )
         cleared = [f.model_copy(update={"order": ""}) for f in bastion.facilities]
-        return self._save(bastion.model_copy(update={"facilities": cleared, "turns": number}))
+        return self._save(
+            bastion.model_copy(update={"facilities": cleared, "turns": number, "last_turn": at})
+        )
 
     def _save(self, bastion: Bastion) -> Bastion:
         bastion.touch()

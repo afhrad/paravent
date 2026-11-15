@@ -22,6 +22,7 @@ from app.models.pc import DraftStatus, PlayerCharacter
 from app.models.protocol import EntryKind, ProtocolEntry
 from app.services import polymorph
 from app.services.auth import Identity
+from app.services.clock import light_minutes, spell_minutes
 from app.services.experience import award
 from app.services.play import Actor, PlayError, PlayService
 from app.services.protocol import ProtocolService, for_character, roll_record
@@ -75,6 +76,7 @@ class CharacterService:
         on_released: Callable[[str, str, str], None] | None = None,
         on_shape_ended: Callable[[str, str, str], None] | None = None,
         on_roll: Callable[[str, str, str, int], None] | None = None,
+        on_timed: Callable[[PlayerCharacter, str, str, int, bool], None] | None = None,
     ) -> None:
         """Bind to the library, the loaded compendium, the library root and the log;
         ``fight_of(character_id)`` names the running fight a character is in;
@@ -82,7 +84,9 @@ class CharacterService:
         held in the fights (CombatService.release_forms); ``on_shape_ended(combatant, spell,
         by)`` ends a monster caster's concentration when its shape ended by itself;
         ``on_roll(character, kind, subject, total)`` hears every check, skill or save
-        rolled on a sheet (the gamemaster's called checks take their answers from it)."""
+        rolled on a sheet (the gamemaster's called checks take their answers from it);
+        ``on_timed(character, kind, reference, minutes, concentration)`` hears a light lit
+        or a spell cast with a duration (the world's clock times them)."""
         self._store = store
         self._compendium = compendium
         self._library_dir = library_dir
@@ -93,6 +97,7 @@ class CharacterService:
         self._on_released = on_released
         self._on_shape_ended = on_shape_ended
         self._on_roll = on_roll
+        self._on_timed = on_timed
         # Sheets made lately, by everything a sheet is made from (see :meth:`sheet`).
         self._sheets: OrderedDict[tuple[Any, ...], Sheet] = OrderedDict()
         self._sheets_lock = threading.Lock()
@@ -222,13 +227,37 @@ class CharacterService:
         if action == "polymorph" and params.get("op") != "end":
             # A shape is taken through :meth:`polymorph`, where the spell's rules are checked.
             raise PlayError("play.error.bad_input")
-        changed = self.play.act(character_id, action, params, self.sheet(character), actor)
+        sheet = self.sheet(character)
+        lit = None
+        if action == "light":
+            index = params.get("index", "")
+            if index.isdigit() and int(index) < len(character.inventory):
+                lit = character.inventory[int(index)].item
+        changed = self.play.act(character_id, action, params, sheet, actor)
         kind = params.get("kind", "")
         if action == "roll" and kind in ("skill", "check", "save") and self._on_roll is not None:
             rolled = self.newest_roll(changed)
             if rolled is not None and rolled.roll is not None:
                 self._on_roll(character_id, kind, params.get("subject", ""), rolled.roll.total)
+        if self._on_timed is not None:
+            if lit is not None:
+                self._on_timed(changed, "light", lit.reference, light_minutes(lit.name), False)
+            spell = sheet.spell(params.get("spell", "")) if action == "cast" else None
+            timed = spell_minutes(spell.duration_data) if spell is not None else None
+            if spell is not None and timed is not None:
+                self._on_timed(changed, "spell", spell.reference, *timed)
         return changed
+
+    def rest_party(self, world_id: str, kind: str, by: Actor) -> list[str]:
+        """A short or long rest for every character of a world (not one still in the
+        wizard): the names of those who rested."""
+        rested = []
+        for pc in self._store.characters.list():
+            if pc.world_id != world_id or pc.in_wizard:
+                continue
+            self.play.act(pc.id, "rest", {"kind": kind}, self.sheet(pc), by)
+            rested.append(pc.name or "?")
+        return rested
 
     def receive(
         self,

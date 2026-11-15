@@ -250,6 +250,7 @@ class GameStateStore:
             Treasure,
             User,
             World,
+            WorldClock,
             WorldInstructions,
         )
         from app.models.naming import NamingStyle
@@ -294,6 +295,8 @@ class GameStateStore:
         self.safety: Collection[TableSafety] = Collection(root / "safety.json", TableSafety)
         # Characters' bastions (2024 rules), by character id.
         self.bastions: Collection[Bastion] = Collection(root / "bastions.json", Bastion)
+        # Each world's time in the game and the timers running against it.
+        self.clocks: Collection[WorldClock] = Collection(root / "clocks.json", WorldClock)
         self.npcs: Collection[Npc] = Collection(root / "npcs.json", Npc)
         # The campaign's places, ``{@place}`` (documentation/ADVENTURES.md §4).
         self.locations: Collection[Location] = Collection(root / "locations.json", Location)

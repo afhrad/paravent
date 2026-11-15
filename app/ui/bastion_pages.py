@@ -52,6 +52,7 @@ def bastion_page(
     built: Sequence[Facility | None],
     offered: Sequence[Facility],
     gamemaster: bool,
+    next_turn: int | None = None,
     error: str | None = None,
     message: str | None = None,
 ) -> Element:
@@ -78,6 +79,9 @@ def bastion_page(
                 bastion.name or t("bastion.title", name=character_name),
                 t("bastion.lede", turns=bastion.turns),
             ),
+            p(class_="muted bastion-next")[t("bastion.next_turn", day=next_turn)]
+            if next_turn is not None
+            else None,
             alert(error),
             notice(message),
             p(class_="notice")[t("bastion.too_low", level=FROM_LEVEL)]

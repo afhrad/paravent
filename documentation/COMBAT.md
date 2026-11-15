@@ -525,7 +525,9 @@ it as they are resolved.
 
 **Ending** stamps `ended`, and the summary shows rounds fought, who fell, and **XP**: the sum
 of the defeated monsters' XP (the same table the difficulty rating uses), split among the
-characters who took part.
+characters who took part. A fight in a world moves the world's clock on by its rounds, six
+seconds each, rounded up to the minute (2026-11-15, `app/services/clock.py`), so a spell's
+or a torch's time keeps running through it.
 
 **Awarding XP** (decided and built 2026-10-19: *XP suggests levels, the gamemaster grants
 them*). The summary offers "Award to N characters" with the share prefilled and editable;

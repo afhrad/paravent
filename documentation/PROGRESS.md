@@ -450,6 +450,16 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         special facilities of the world's books up to its level (2/4/5/6 by level), an
         order each for the next turn, and the gamemaster's bastion turn into the log;
         basic facilities, defenders and events are left to the table
+  - [x] **The world's clock** (2026-11-15, `app/services/clock.py`): per world a day and
+        time in the game (Day 1, 08:00 to start) on the party view, moved on by ten
+        minutes to a day, any span with a reason, set outright, or a party's short (1 h)
+        or long rest (8 h) that rests every character of the world; a fight adds its
+        rounds when it ends. Against it run timers: a torch, candle, lamp or lantern lit
+        on the sheet (a torch burns away, a lantern a flask of oil), a spell cast with a
+        duration of a minute or more (a concentration spell ends with it, one dropped
+        early goes quietly), and the gamemaster's own reminders; each runs out in the
+        log. The sheet shows the time and its own timers, to put out early. A bastion
+        turn falls due seven days after the last
   - [x] **Image effects** (2026-11-04, ADVENTURES.md §5.5, `app/services/image_effects.py`):
         `torn`, `fade`, `oval`, `sepia`, `aged`, `mono`, `banner` written beside an image
         (`![[tavern.jpg|torn sepia]]`, `cover: media/x.jpg|fade`), rendered once with
@@ -938,7 +948,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2329 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2342 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the

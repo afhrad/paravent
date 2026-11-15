@@ -30,6 +30,14 @@
     htmx.ajax('GET', c.dataset.url, { target: '#party-checks', swap: 'outerHTML' });
   }
 
+  function refreshClock() {
+    var c = document.getElementById('party-clock'); if (!c || !window.htmx) return;
+    // A form being filled in is not swapped away under the gamemaster's hands.
+    var more = c.querySelector('details.party-clock-more');
+    if (more && more.open && more.contains(document.activeElement)) return;
+    htmx.ajax('GET', c.dataset.url, { target: '#party-clock', swap: 'outerHTML' });
+  }
+
   function refreshGrid() {
     var g = grid(); if (!g || !window.htmx) return;
     htmx.ajax('GET', g.dataset.url, { target: '#party', swap: 'outerHTML' });
@@ -94,6 +102,7 @@
       var parts = e.data.split(' ');
       if (parts[0] === '*combats') { refreshCombats(); return; }
       if (parts[0] === '*checks') { refreshChecks(); return; }
+      if (parts[0] === '*clock') { refreshClock(); return; }
       var id = parts[0], rev = parts[1] || '';
       var card = document.getElementById('pc-' + id);
       if (!rev || !card) { if (grid()) refreshGrid(); return; } // deleted, or new / elsewhere

@@ -56,6 +56,7 @@ from app.services.class_refs import (
     is_variant,
     subclass_owner,
 )
+from app.services.clock import light_minutes
 from app.services.text import first_dice, paragraphs, strip_tags
 from app.services.translations import translation_key
 from app.services.wild_shape import BEAST_SPELLS, Form, WildShapeRules
@@ -397,6 +398,8 @@ class ItemView:
     consumable: bool = False
     # What a bundle holds, ("arrow", 20) for "Arrows (20)": opened one at a time.
     pack: tuple[str, int] | None = None
+    # How long it burns once lit, in minutes: a torch, candle, lamp or lantern.
+    light: int = 0
 
 
 @dataclass(frozen=True)
@@ -599,6 +602,10 @@ class Sheet:
     summons: dict[str, Any] = field(default_factory=dict)
     # Set by the page: the gamemaster's open calls for a check asking this character.
     calls: list[Any] = field(default_factory=list)
+    # Set by the page: the world's clock (minutes, app/services/clock.py), None in no
+    # world, and the character's lights and spells running against it.
+    clock: int | None = None
+    timers: list[Any] = field(default_factory=list)
     wild_shape: WildShapeView | None = None
     spell_form: SpellFormView | None = None
 
@@ -1278,6 +1285,7 @@ def _armor_and_attacks(
                 heal,
                 data is not None and "CNS" in (data.get("miscTags") or []),
                 pack,
+                light_minutes(entry.item.name),
             )
         )
     sheet.attacks = [

@@ -41,6 +41,7 @@ from app.routes.rolls import announce_roll, new_roll
 from app.services import polymorph
 from app.services.auth import Identity
 from app.services.bastions import BastionError, facilities
+from app.services.clock import BASTION_TURN, day_of
 from app.services.combat import CombatError
 from app.services.events import revision_stream
 from app.services.play import Actor, PlayError
@@ -66,6 +67,9 @@ def _sheet(characters: CharactersDep, registry: RegistryDep, character: PlayerCh
     if held is not None and polymorph.is_polymorph(held.name):
         _shape_choices(sheet, characters, registry, character, held.reference, fights)
     sheet.calls = registry.checks.open_for(character.id)
+    if character.world_id:
+        sheet.clock = registry.clock.of(character.world_id).minute
+        sheet.timers = registry.clock.of_character(character.world_id, character.id)
     for spell in sheet.spells:
         summoned = registry.summoning_for(spell.reference)
         if summoned is not None:
@@ -407,6 +411,9 @@ def _bastion(
             built=[every.get(f.ref.lower()) for f in bastion.facilities],
             offered=offered,
             gamemaster=identity.is_gamemaster,
+            next_turn=day_of(bastion.last_turn + BASTION_TURN)
+            if bastion.last_turn is not None and character.world_id
+            else None,
             error=error,
             message=message,
         )
@@ -479,6 +486,7 @@ async def change_bastion(
                 character.world_id,
                 user.username,
                 user.display_name or user.username,
+                at=registry.clock.of(character.world_id).minute if character.world_id else None,
             )
             return _bastion(
                 identity, page, characters, registry, character, message=page.t("bastion.turned")
@@ -488,6 +496,25 @@ async def change_bastion(
     except BastionError as exc:
         return _bastion(identity, page, characters, registry, character, error=page.t.error(exc))
     return redirect(f"/characters/{character_id}/bastion")
+
+
+@router.post("/characters/{character_id}/timer/{timer_id}/stop")
+async def stop_timer(
+    request: Request,
+    identity: IdentityDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+    timer_id: str,
+) -> Response:
+    """Put out one of the character's lights or end a spell's timer early; the sheet
+    follows over its live stream."""
+    character = characters.get_for(identity, character_id)
+    if character.world_id:
+        registry.clock.stop(character.world_id, timer_id, character_id=character.id)
+    if request.headers.get("HX-Request") == "true":
+        return Response(status_code=204)
+    return redirect(f"/characters/{character_id}")
 
 
 @router.post("/characters/{character_id}/summon", response_class=HTMLResponse)

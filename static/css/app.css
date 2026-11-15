@@ -1231,6 +1231,20 @@ button.pill.cb-side-switch:hover{ border-color:currentColor; }
 .party-check-row{ display:inline-flex; gap:8px; align-items:baseline; }
 .party-check-row.ok b{ color:var(--heal-text); }
 .party-check-row.bad b{ color:var(--dmg-text); }
+.party-clock{ display:grid; gap:10px; margin:0 0 16px; }
+.party-clock-head{ display:flex; align-items:center; gap:8px 12px; flex-wrap:wrap; }
+.party-clock-now{ font-size:1.15rem; }
+.party-clock-steps{ display:flex; flex-wrap:wrap; gap:6px; margin-left:auto; }
+.party-clock-timers{ list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:6px 18px; }
+.party-clock-timer{ display:inline-flex; align-items:center; gap:6px; }
+.party-clock-timer.light svg{ color:var(--cond-text); }
+.party-clock-due{ margin:0; display:flex; align-items:center; gap:8px; }
+.party-clock-more > summary{ cursor:pointer; color:var(--text-2); }
+.party-clock-form{ display:flex; flex-wrap:wrap; align-items:end; gap:8px; margin-top:10px; }
+.party-clock-label{ display:inline-flex; align-items:center; gap:6px; }
+.party-clock-form input, .party-clock-form select{ font:inherit; font-size:.9rem; padding:4px 8px; }
+.party-clock-form input[type=number]{ width:90px; }
+.party-clock-form input[type=text]{ flex:1 1 180px; min-width:0; }
 .party-combat{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; padding:10px 14px;
   border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:var(--r);
   background:var(--surface); }

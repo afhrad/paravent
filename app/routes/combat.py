@@ -929,5 +929,11 @@ async def end_combat(gm: GamemasterDep, registry: RegistryDep, combat_id: str) -
     """End the combat; the tracker then shows the summary."""
     # Ending twice is harmless: the summary is what the gamemaster wants to see anyway.
     with contextlib.suppress(CombatError):
-        registry.combats.end(combat_id, _by(gm))
+        was_running = registry.combats.get(combat_id).running
+        ended = registry.combats.end(combat_id, _by(gm))
+        if was_running and ended.world_id and ended.round:
+            # Six seconds a round, on the world's clock, rounded up to the minute.
+            registry.clock.advance(
+                ended.world_id, -(-ended.round // 10), gm.user.username, _by(gm), "fight"
+            )
     return redirect(combat_url(combat_id))

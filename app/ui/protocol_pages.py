@@ -20,6 +20,7 @@ from htpy import Element, Node, a, b, button, dialog, div, form, li, ol, p, span
 
 from app.models.protocol import Die, EntryKind, ProtocolEntry, RollRecord, Visibility
 from app.services.protocol_view import Filter, LogPage, Shown
+from app.ui.clock_pages import clock_label, remaining
 from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
@@ -444,6 +445,30 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             return t("protocol.bastion", subject=entry.subject_name, n=number, orders=orders)
         if what == "xcard":
             return t("protocol.xcard")
+        if head == "clock":
+            span_text, _, after = rest.partition(":")
+            now, _, why = after.partition(":")
+            when = clock_label(page, int(now)) if now.isdigit() else now
+            if span_text == "set":
+                return t("protocol.clock_set", when=when)
+            spent = remaining(page, int(span_text)) if span_text.isdigit() else span_text
+            if not why:
+                return t("protocol.clock", span=spent, when=when)
+            reason = (
+                t(f"clock.reason.{why}") if why in ("short_rest", "long_rest", "fight") else why
+            )
+            return t("protocol.clock_why", why=reason, span=spent, when=when)
+        if head == "timer":
+            timer, _, label = rest.partition(":")
+            if timer == "custom":
+                return t("protocol.timer.custom", name=label)
+            categories = ("item", "baseitem") if timer == "light" else "spell"
+            name = name_text(page, categories, label.partition("|")[0])
+            return t(f"protocol.timer.{timer}", name=name, subject=entry.subject_name)
+        if head == "light":
+            return t(
+                "protocol.light", item=name_text(page, ("item", "baseitem"), rest.partition("|")[0])
+            )
         if head == "use":
             return t(
                 "protocol.use", item=name_text(page, ("item", "baseitem"), rest.partition("|")[0])
