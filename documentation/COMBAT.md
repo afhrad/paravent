@@ -150,6 +150,10 @@ guard, a summoned wolf, a charmed ogre.
   concentration alone, for a correction. A monster's form is `Combatant.form`, a character's
   `state.polymorph` in its file (`SpellForm`: shape, spell, caster, 2014 hit points).
   Turning into an object, and True Polymorph made permanent, are left to the table.
+  **Shapechange** (2026-11-15) works the same for its caster alone: any creature but a
+  construct or undead, up to the caster's level, and casting stays allowed in the shape.
+  On the players' view a character's 2014 shape shows its hit points to its own player
+  only; everyone else reads the shape's name.
 - **Dead**: a monster at 0 HP, or a character with three failed death saves, carries a
   skull "Dead" pill and is struck through. A dying character is down, not dead.
 - **XP** comes only from fallen foes; an ally that falls earns nothing.

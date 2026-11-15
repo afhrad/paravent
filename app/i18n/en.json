@@ -1267,6 +1267,7 @@
   "combat.polymorph.caster": "Concentrating",
   "combat.polymorph.no_caster": "No one (ended by hand)",
   "combat.polymorph.submit": "Transform",
+  "combat.polymorph.self": "Shapechange changes its caster alone: {name} concentrates on it.",
   "combat.remove": "Remove",
   "combat.select_hint": "Select a combatant to see its statblock here.",
   "combat.no_statblock": "No statblock: added by hand.",

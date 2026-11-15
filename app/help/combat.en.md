@@ -94,7 +94,32 @@ For a character, the player gets the same button on their phone. A success ends 
 condition; a failure keeps it until the creature's next turn. Conditions with a round count
 end by themselves.
 
-## 5. Ending
+## 5. Shapes and concentration
+
+- **Wild Shape** — a druid takes a form on their sheet (*Actions*). Their row gets a pill
+  naming the beast, and their side panel shows the beast's actions with **Attack / Adv /
+  Dis**, rolled like a monster's. Under the 2014 rules the form has hit points of its own
+  that take damage first; under the 2024 rules it gives temporary hit points. A form casts
+  no spells, except Beast Spells from level 18 and the 2024 Circle of the Moon's circle
+  spells.
+- **Polymorph and True Polymorph** — **Polymorph…** in a row's ⋯ menu turns anyone,
+  character or monster, into a creature the world's books allow: no stronger than its
+  challenge rating (a character's level), and a beast for Polymorph. Pick the rules (2014:
+  the shape has its own hit points; 2024: temporary hit points) and who concentrates on it.
+  A caster can do the same from their sheet while concentrating on the spell.
+  **Shapechange** works the same for its caster alone (any creature but a construct or
+  undead, up to the caster's level), and the caster can still cast in the shape. The row then
+  fights as the shape: its statblock, attacks and AC. **Revert** in the ⋯ menu ends it by
+  hand.
+- **Concentration holds the shape.** When the caster's concentration ends — dropped, a
+  failed save, a new spell, 0 hit points, or Incapacitated, Paralyzed, Petrified, Stunned
+  or Unconscious — every shape the spell held ends with it, logged. A shape that ends by
+  itself (its hit points or temporary hit points gone) ends the spell, so its caster stops
+  concentrating.
+- What the party sees a creature in a shape do counts for the shape in **What the players
+  know**.
+
+## 6. Ending
 
 **End combat** shows the summary: XP per defeated foe (allies earn none). **Award to …
 characters** writes it into each character's file once; a level reached is *offered* to you to grant, never

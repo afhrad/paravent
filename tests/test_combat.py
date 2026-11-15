@@ -822,7 +822,9 @@ class TestPlayerView:
             "fill",  # hit points left in percent — friends only, never a foe's
             "id",  # the combatant's id, to pick it as a target — not a number
             "token",  # its round token: a picture's address, or its kind
-            "form",  # the beast a druid's Wild Shape made it, by name — no hit points
+            "form",  # the creature a shape made it, by name
+            "form_spell",  # the spell holding the shape, by name
+            "form_hp",  # a character's shape's hit points — shown to its own player only
         }
 
     def test_a_druid_in_wild_shape_shows_the_beast(self, table: Table) -> None:
@@ -837,6 +839,15 @@ class TestPlayerView:
         assert seen.form == "Wolf"
         board = str(_member(Page(UiCatalogue().translator("de")), view, seen, frozenset()))
         assert "Gestalt: Wolf" in board and "9/11" not in board
+        own = str(
+            _member(
+                Page(UiCatalogue().translator("de")),
+                view,
+                seen,
+                frozenset({seen.character_id or ""}),
+            )
+        )
+        assert "9/11" in own  # the player's own character shows its shape's hit points
 
     def test_hidden_combatants_are_left_out(self, table: Table) -> None:
         combat = table.start()

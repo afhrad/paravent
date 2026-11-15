@@ -75,8 +75,14 @@ def _shape_choices(
 ) -> None:
     """Whom the caster's Polymorph may reach — the characters of its world, the
     creatures of its fight — and the shapes for the strongest of them."""
-    targets = [(f"character:{cid}", name) for cid, name in sheet.allies]
     cr = Fraction(max(1, character.total_level))
+    if polymorph.self_only(spell):  # Shapechange: the caster alone
+        sheet.shape_targets = [(f"character:{character.id}", character.name or "?")]
+        sheet.shapes = polymorph.shapes(
+            registry.compendium, characters.source_set(character), spell, cr
+        )
+        return
+    targets = [(f"character:{cid}", name) for cid, name in sheet.allies]
     for pc in (registry.gamestate.characters.find(cid) for cid, _ in sheet.allies):
         if pc is not None:
             cr = max(cr, Fraction(max(1, pc.total_level)))
@@ -389,6 +395,8 @@ async def polymorph_target(
         if held is None or not polymorph.is_polymorph(held.name):
             raise PlayError("play.error.bad_input")
         kind, _, target_id = target.partition(":")
+        if polymorph.self_only(held.reference) and target != caster:
+            raise PlayError("play.error.bad_input")  # Shapechange changes its caster alone
         if kind == "character" and target_id in dict(characters.allies(character)):
             characters.polymorph(target_id, shape, held.reference, caster, Actor(who, username=who))
         elif kind == "combatant":

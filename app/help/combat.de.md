@@ -106,7 +106,34 @@ Bei einem Charakter bekommt der Spieler dieselbe Schaltfläche auf sein Telefon.
 beendet den Zustand; ein Misserfolg lässt ihn bis zum nächsten Zug der Kreatur bestehen.
 Zustände mit einer Rundenzahl enden von selbst.
 
-## 5. Das Ende
+## 5. Gestalten und Konzentration
+
+- **Tiergestalt** — ein Druide nimmt eine Gestalt auf seinem Bogen an (*Aktionen*). Seine
+  Zeile bekommt eine Plakette mit dem Tier, sein Seitenfeld zeigt die Aktionen des Tiers mit
+  **Angriff / Vorteil / Nachteil**, gewürfelt wie bei einem Monster. Nach den Regeln von 2014
+  hat die Gestalt eigene Trefferpunkte, die zuerst Schaden nehmen; nach denen von 2024 gibt sie
+  temporäre Trefferpunkte. In einer Gestalt wirkt man keine Zauber, außer mit Tierzaubern ab
+  Stufe 18 und den Zirkelzaubern des Zirkels des Mondes (2024).
+- **Verwandlung und Wahre Verwandlung** — **Verwandeln …** im ⋯-Menü einer Zeile macht aus
+  jedem, Charakter oder Monster, eine Kreatur, die die Bücher der Welt erlauben: nicht stärker
+  als sein Herausforderungsgrad (bei einem Charakter seine Stufe), für Verwandlung ein Tier.
+  Wähle die Regeln (2014: die Gestalt hat eigene Trefferpunkte; 2024: temporäre
+  Trefferpunkte) und wer sich darauf konzentriert. Ein Zaubernder kann dasselbe von seinem
+  Bogen aus, solange er sich auf den Zauber konzentriert. **Gestaltwandel** wirkt ebenso,
+  nur auf den Zaubernden selbst (jede Kreatur außer Konstrukt oder Untotem, bis zu seiner
+  Stufe), und er kann in der Gestalt weiter zaubern. Die Zeile kämpft dann als die
+  Gestalt: ihr Werteblock, ihre Angriffe und ihre RK. **Zurückverwandeln** im ⋯-Menü beendet
+  sie von Hand.
+- **Die Konzentration hält die Gestalt.** Endet die Konzentration des Zaubernden —
+  aufgegeben, ein misslungener Rettungswurf, ein neuer Zauber, 0 Trefferpunkte oder
+  Kampfunfähig, Gelähmt, Versteinert, Betäubt oder Bewusstlos —, enden alle Gestalten des
+  Zaubers mit ihr, im Protokoll vermerkt. Endet eine Gestalt von selbst (ihre Trefferpunkte
+  oder temporären Trefferpunkte sind fort), endet der Zauber, und der Zaubernde konzentriert
+  sich nicht mehr darauf.
+- Was die Gruppe eine Kreatur in einer Gestalt tun sieht, zählt in **Was die Spieler wissen**
+  für die Gestalt.
+
+## 6. Das Ende
 
 **Kampf beenden** zeigt die Zusammenfassung: EP pro besiegtem Feind (Verbündete bringen
 keine). **An … Charaktere vergeben** schreibt sie einmal in die Datei jedes Charakters; eine

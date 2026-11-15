@@ -21,7 +21,7 @@ from app.services.combat import CombatError
 from app.services.dice import Dice
 from app.services.monster_attacks import Damage
 from app.services.play import Actor
-from app.services.polymorph import allows, edition, is_polymorph
+from app.services.polymorph import allows, casts_in_shape, edition, is_polymorph
 from app.store.registry import StoreRegistry
 from tests.conftest import requires_corpus
 
@@ -39,10 +39,16 @@ def _creature(cr: str, *types: str) -> SimpleNamespace:
 class TestRules:
     def test_which_spells(self) -> None:
         assert is_polymorph("Polymorph|PHB") and is_polymorph("True Polymorph")
-        assert not is_polymorph("Shapechange|PHB")
+        assert is_polymorph("Shapechange|PHB") and not is_polymorph("Fireball|PHB")
 
     def test_edition_follows_the_printing(self) -> None:
         assert edition("Polymorph|PHB") == "2014" and edition("Polymorph|XPHB") == "2024"
+
+    def test_shapechange_any_creature_but_construct_or_undead(self) -> None:
+        assert allows("Shapechange|PHB", Fraction(10), _creature("2", "giant"))
+        assert not allows("Shapechange|PHB", Fraction(10), _creature("2", "undead"))
+        assert not allows("Shapechange|PHB", Fraction(10), _creature("2", "construct"))
+        assert casts_in_shape("Shapechange|XPHB") and not casts_in_shape("Polymorph|PHB")
 
     def test_a_beast_no_stronger_than_the_target(self) -> None:
         assert allows("Polymorph|PHB", Fraction(4), _creature("1", "beast"))
@@ -283,6 +289,32 @@ class TestASpellOverByItself:
         combats.end_form(fight.combat.id, goblin, GM)
         held = fight.pc().state.concentration
         assert held is not None and held.name == "Polymorph"
+
+
+@requires_corpus
+class TestShapechange:
+    def test_the_caster_changes_itself_and_still_casts(self, fight: Fight) -> None:
+        combats = fight.registry.combats
+        fight.concentrate_lyra("Shapechange|PHB")
+        combats.polymorph(fight.combat.id, fight.lyra_row(), "Ogre|MM", "Shapechange|PHB", "", GM)
+        state = fight.pc().state
+        assert state.polymorph is not None
+        assert state.polymorph.caster == f"character:{fight.lyra.id}"  # its own caster
+        sheet = fight.registry.characters.sheet(fight.pc())
+        fireball = sheet.spell("Fireball|PHB")
+        assert fireball is not None and sheet.can_cast(fireball)
+        characters = fight.registry.characters
+        characters.play.act(
+            fight.lyra.id, "concentration", {}, characters.sheet(fight.pc()), Actor(GM)
+        )
+        assert fight.pc().state.polymorph is None
+
+    async def test_the_sheet_offers_only_the_caster(self, fight: Fight, gm: AsyncClient) -> None:
+        goblin = fight.member("Goblin")
+        fight.concentrate_lyra("Shapechange|PHB")
+        sheet = (await gm.get(f"/characters/{fight.lyra.id}")).text
+        assert f'value="character:{fight.lyra.id}"' in sheet
+        assert f'value="combatant:{goblin}"' not in sheet and 'value="Ogre|MM"' in sheet
 
 
 @requires_corpus

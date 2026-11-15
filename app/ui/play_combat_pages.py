@@ -148,7 +148,10 @@ def _member(page: Page, view: PlayerView, member: SeenCombatant, mine: frozenset
         ]
         if member.health != "unhurt"
         else None,
-        form_pill(page, member.form) if member.form else None,
+        # A shape's hit points only on the player's own character.
+        form_pill(page, member.form, member.form_hp if you else None, member.form_spell)
+        if member.form
+        else None,
         [span(class_="pill cond")[t(f"condition.{c}")] for c in member.conditions],
     ]
     aims = _aim_forms(page, view, member, mine, names) if view.running else []

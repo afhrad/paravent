@@ -32,7 +32,7 @@ from app.models.pc import (
     Recharge,
 )
 from app.models.protocol import ProtocolEntry
-from app.services import feature_options, granted_spells, wild_shape
+from app.services import feature_options, granted_spells, polymorph, wild_shape
 from app.services.character import (
     HEAVY_ARMOR,
     LIGHT_ARMOR,
@@ -596,9 +596,9 @@ class Sheet:
         return 0 if dc is None else dc - 8 - (self.proficiency.value or 0)
 
     def can_cast(self, spell: SpellView) -> bool:
-        """Whether the character may cast ``spell`` now: not in a spell's shape, and in
-        Wild Shape only as its rules allow."""
-        if self.spell_form is not None:
+        """Whether the character may cast ``spell`` now: not in Polymorph's shape (in
+        Shapechange's it may), and in Wild Shape only as its rules allow."""
+        if self.spell_form is not None and not polymorph.casts_in_shape(self.spell_form.spell):
             return False
         return self.wild_shape is None or self.wild_shape.can_cast(spell)
 

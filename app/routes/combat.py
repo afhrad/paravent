@@ -602,7 +602,10 @@ async def polymorph_form(
     row = view.row(combatant_id)
     if row is None:
         raise HTTPException(status_code=404)
-    kind = "True Polymorph" if spell.strip().lower() == "true polymorph" else "Polymorph"
+    wanted = spell.strip().lower()
+    kind = {"true polymorph": "True Polymorph", "shapechange": "Shapechange"}.get(
+        wanted, "Polymorph"
+    )
     world = registry.gamestate.worlds.find(combat.world_id) if combat.world_id else None
     editions = world.source_set.editions if world is not None else set()
     rules = "2024" if editions == {EDITION_ONE} else "2014"

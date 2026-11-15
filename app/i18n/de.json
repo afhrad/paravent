@@ -1267,6 +1267,7 @@
   "combat.polymorph.caster": "Konzentriert sich",
   "combat.polymorph.no_caster": "Niemand (von Hand beenden)",
   "combat.polymorph.submit": "Verwandeln",
+  "combat.polymorph.self": "Gestaltwandel verändert nur den Zaubernden selbst: {name} konzentriert sich darauf.",
   "combat.remove": "Entfernen",
   "combat.select_hint": "Wähle einen Kampfteilnehmer, um hier seine Werte zu sehen.",
   "combat.no_statblock": "Keine Werte: von Hand hinzugefügt.",

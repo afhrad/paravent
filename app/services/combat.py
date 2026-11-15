@@ -66,6 +66,7 @@ from app.services.naming import NamingError, creature_races
 from app.services.play import INCAPACITATING, Actor, PlayError
 from app.services.polymorph import Shape, form_for, held_by, is_polymorph, same_spell
 from app.services.polymorph import allows as polymorph_allows
+from app.services.polymorph import self_only as polymorph_self_only
 from app.services.protocol import (
     ProtocolService,
     attack_entry_id,
@@ -382,7 +383,8 @@ class SeenCombatant:
     The player view is built from these and nothing else (COMBAT.md §5), so a number
     added to the tracker never reaches a player's phone by accident. The one number is
     ``fill``, the share of hit points left in percent — for the characters' side only;
-    a foe shows its state word alone.
+    a foe shows its state word alone. A character's shape has ``form_hp``, which a
+    screen shows only to that character's own player.
     """
 
     label: str
@@ -399,8 +401,12 @@ class SeenCombatant:
     id: str = ""
     # Its round token (documentation/TOKENS.md).
     token: Token | None = None
-    # The beast a druid's Wild Shape made it, by its English name; no hit points.
+    # The creature it is in the shape of (Wild Shape, Polymorph), by its English name,
+    # and the spell that holds it ("Polymorph"; "" for Wild Shape).
     form: str = ""
+    form_spell: str = ""
+    # A character's 2014 shape's hit points (now, most): its own player's to see only.
+    form_hp: tuple[int, int] | None = None
 
 
 @dataclass(frozen=True)
@@ -1651,6 +1657,8 @@ class CombatService:
                     else row.monster.name
                     if row.combatant.form is not None and row.monster is not None
                     else "",
+                    _form_spell(row),
+                    row.character.form_hp if row.character is not None else None,
                 )
                 for row in turn.rows
                 if not row.combatant.hidden
@@ -2346,15 +2354,22 @@ class CombatService:
         def apply(combat: Combat) -> None:
             target = self._member(combat, combatant_id)
             label = self.label_of(target)
+            held_by_caster = caster
+            if polymorph_self_only(spell):  # Shapechange: the target is its own caster
+                held_by_caster = (
+                    f"character:{target.character_id}"
+                    if target.character_id
+                    else f"combatant:{target.id}"
+                )
             if not polymorph_allows(spell, self._target_cr(target), monster):
                 raise CombatError("play.error.shape_refused", shape=monster.name, target=label)
-            form = form_for(spell, monster, caster)
+            form = form_for(spell, monster, held_by_caster)
             if target.character_id is not None:
                 params = {
                     "op": "assume",
                     "form": form.form,
                     "spell": spell,
-                    "caster": caster,
+                    "caster": held_by_caster,
                     "hp": str(monster.hp or 1),
                 }
                 # The sheet logs the shape, in this fight.
@@ -3123,6 +3138,15 @@ class CombatService:
 
 
 _DICE_ONLY = re.compile(r"\d*d\d+")
+
+
+def _form_spell(row: Row) -> str:
+    """The spell that holds a row in its shape, by name ("" for Wild Shape or none)."""
+    if row.character is not None and row.character.spell_form is not None:
+        return row.character.spell_form.spell.partition("|")[0]
+    if row.combatant.form is not None:
+        return row.combatant.form.spell.partition("|")[0]
+    return ""
 
 
 def pending_attacks(combat: Combat) -> list[CombatLogEntry]:

@@ -64,6 +64,7 @@ from app.services.knowledge import Revealable, action_name
 from app.services.monster_attacks import MonsterSpell, attack_of, encode, monster_spells, save_of
 from app.services.polymorph import SPELLS as POLYMORPH_SPELLS
 from app.services.polymorph import Shape
+from app.services.polymorph import self_only as polymorph_self_only
 from app.services.protocol_view import Filter
 from app.services.references import ReferenceEntry
 from app.services.search import SearchResult
@@ -2161,7 +2162,9 @@ def polymorph_page(
                             option(value="")[t("combat.polymorph.no_caster")],
                             [option(value=key)[label_] for key, label_ in casters],
                         ],
-                    ],
+                    ]
+                    if not polymorph_self_only(kind)
+                    else p(class_="field-hint")[t("combat.polymorph.self", name=name)],
                     div(class_="form-actions")[
                         button(type="submit", class_="btn btn-primary")[
                             icon("footprints"), span[t("combat.polymorph.submit")]
