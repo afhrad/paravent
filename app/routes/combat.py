@@ -101,6 +101,9 @@ def _ctx(page: Page, registry: StoreRegistry, combat: Combat) -> RenderContext:
 def _entry(registry: StoreRegistry, combat: Combat, row: Row | None) -> ReferenceEntry | None:
     if row is None or row.combatant.shown_ref is None:
         return None
+    summoned = registry.combats.summoned_data(row.combatant)
+    if summoned is not None:  # scaled to the spell's level and its caster
+        return ReferenceEntry("monster", summoned, combat.world_id)
     name, _, source = row.combatant.shown_ref.partition("|")
     try:
         return registry.references.get("monster", source, name, combat.world_id)

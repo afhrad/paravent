@@ -701,6 +701,20 @@ class SpellForm(GameStateModel):
     hp: int | None = Field(default=None, ge=0)
 
 
+class Summoned(GameStateModel):
+    """A creature a spell summoned (Summon Beast, Find Steed): the spell, the level it was
+    cast with, the variant (``Air``), and the caster (``character:<id>``,
+    ``combatant:<id>``) with the spell attack bonus and save DC it had then. The
+    statblock is the corpus's, scaled to these (app/services/summons.py)."""
+
+    spell: str
+    level: int = Field(ge=1, le=9)
+    variant: str = ""
+    caster: str = ""
+    attack: int | None = None
+    dc: int | None = None
+
+
 class Combatant(GameStateModel):
     """One participant in a combat: a monster, a character or someone ad hoc.
 
@@ -746,6 +760,8 @@ class Combatant(GameStateModel):
     spent: dict[str, int] = Field(default_factory=dict)
     # A monster turned into another creature by a spell; a character's form is in its file.
     form: SpellForm | None = None
+    # A creature a spell summoned, scaled to the spell's level.
+    summon: Summoned | None = None
 
     @model_validator(mode="after")
     def _one_identity(self) -> Combatant:

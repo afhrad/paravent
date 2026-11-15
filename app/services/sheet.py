@@ -586,6 +586,9 @@ class Sheet:
     # creatures to offer as shapes.
     shape_targets: list[tuple[str, str]] = field(default_factory=list)
     shapes: list[Any] = field(default_factory=list)
+    # Set by the page: what each of the character's spells summons (Summon Beast), by
+    # the spell's lowercased reference (app/services/summons.py).
+    summons: dict[str, Any] = field(default_factory=dict)
     wild_shape: WildShapeView | None = None
     spell_form: SpellFormView | None = None
 

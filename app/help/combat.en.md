@@ -118,6 +118,11 @@ end by themselves.
   concentrating.
 - What the party sees a creature in a shape do counts for the shape in **What the players
   know**.
+- **Summoned creatures** — a summoning spell (*Summon Beast*, *Summon Fey*, *Find Steed* …)
+  has **Summon** in its cast form on the caster's sheet during a fight, with the kind (Air,
+  Land, Water). The creature joins beside the caster, scaled to the slot: AC, hit points,
+  attacks at the caster's spell attack, save DCs at the caster's. Its statblock has the
+  usual Attack buttons. It vanishes when the caster's concentration ends.
 
 ## 6. Ending
 

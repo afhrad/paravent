@@ -107,8 +107,8 @@ class PlayService:
         self._dice = dice or Dice()
         self._protocol = protocol
         self._fight_of = fight_of
-        # Told when a character's concentration on Polymorph ends (caster, spell, actor),
-        # so the shapes it held end with it (CharacterService ends them).
+        # Told when a character's concentration ends (caster, spell, actor), so what it
+        # held ends with it: Polymorph's shapes, a summoned creature (CharacterService).
         self.on_released: Callable[[str, str, Actor], None] | None = None
         # Told when a shape ends by itself (0 HP, its temporary HP gone): the spell is
         # over, so its caster's concentration ends (caster, spell, actor).
@@ -169,7 +169,7 @@ class PlayService:
             self._record_hit_points(pc, sheet)
             self._lose_concentration(pc, actor)
             now = pc.state.concentration
-            if held is not None and polymorph.is_polymorph(held.name) and now != held:
+            if held is not None and now != held:
                 released.append(held.reference)
 
         # mutate() hands the handler a copy and writes only if it returns normally, so

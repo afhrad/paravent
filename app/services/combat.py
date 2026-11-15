@@ -45,6 +45,7 @@ from app.models.gamestate import (
     KnownFact,
     RepeatSave,
     SpellForm,
+    Summoned,
     health_word,
 )
 from app.models.protocol import EntryKind, ProtocolEntry, RollRecord, Scope
@@ -76,6 +77,7 @@ from app.services.protocol import (
 )
 from app.services.protocol import verdict as attack_verdict
 from app.services.sheet import CONDITIONS, damage_at, spell_view
+from app.services.summons import scaled, summoning
 from app.services.tokens import Token
 from app.store.gamestate import GameStateStore
 from app.store.projections import MonsterProjection
@@ -2451,24 +2453,46 @@ class CombatService:
                 pending.append((caster, spell, by))
                 return
         for combat in self._store.combats.list(
-            lambda c: c.running and any(held_by(m.form, caster, spell) for m in c.combatants)
+            lambda c: (
+                c.running
+                and any(
+                    held_by(m.form, caster, spell) or _summoned_by(m, caster, spell)
+                    for m in c.combatants
+                )
+            )
         ):
             self._mutate(combat.id, lambda draft: self._release(draft, caster, spell, by))
 
     def _release(self, combat: Combat, caster: str, spell: str, by: str) -> None:
-        for member in combat.combatants:
+        for member in list(combat.combatants):
             if member.character_id is None and held_by(member.form, caster, spell):
                 self._end_shape(combat, member, by)
+            if _summoned_by(member, caster, spell):
+                self._dismiss(combat, member, by)
+
+    def _dismiss(self, combat: Combat, member: Combatant, by: str) -> None:
+        """A summoned creature vanishes with the spell that held it (logged)."""
+        combat.combatants = [c for c in combat.combatants if c.id != member.id]
+        if combat.turn == member.group and not any(
+            c.group == member.group for c in combat.combatants
+        ):
+            combat.turn = None
+        self._log(combat, "remove", by, subject=member.label)
 
     def _concentration_lost(self, before: Combat, after: Combat, by: str) -> None:
         """A monster's concentration on Polymorph ended in this change: the shapes it held
         end too, a character's through its sheet."""
         held = {m.id: m.concentration for m in before.combatants}
-        for member in after.combatants:
+        for member in list(after.combatants):
             was = held.get(member.id)
-            if not was or not is_polymorph(was) or member.concentration == was:
+            if not was or member.concentration == was:
                 continue
             caster = f"combatant:{member.id}"
+            for other in list(after.combatants):
+                if _summoned_by(other, caster, was):
+                    self._dismiss(after, other, by)
+            if not is_polymorph(was):
+                continue
             for other in after.combatants:
                 if other.character_id is not None:
                     pc = self._characters.snapshot(other.character_id)
@@ -2685,6 +2709,77 @@ class CombatService:
             self._log(combat, "add", by, subject=monster.name, amount=count)
 
         return self._mutate(combat_id, apply)
+
+    def summon(
+        self,
+        combat_id: str,
+        caster_id: str,
+        ref: str,
+        spell: str,
+        level: int,
+        by: str,
+        *,
+        variant: str = "",
+        attack: int | None = None,
+        dc: int | None = None,
+    ) -> Combat:
+        """A creature ``spell`` summons joins the fight beside its caster (a combatant),
+        scaled to ``level``: its AC and hit points, its attacks at the caster's ``attack``
+        bonus and its saves at the caster's ``dc``. It acts right after the caster."""
+        name, _, source = ref.partition("|")
+        monster = self._monster(name.strip(), source.strip()) if source else None
+        data = monster.entry.model_dump(by_alias=True, exclude_none=True) if monster else {}
+        found = summoning(data) if monster is not None else None
+        if found is None or not same_spell(found.spell, spell):
+            raise CombatError("combat.error.monster", ref=ref)
+        if not found.min_level <= level <= 9 or (found.variants and variant not in found.variants):
+            raise CombatError("combat.error.bad_input")
+        shape = scaled(data, level, variant, attack, dc)
+        hp = int((shape.get("hp") or {}).get("average") or 1)
+        ac = next((a for a in shape.get("ac") or [] if isinstance(a, int)), None)
+
+        def apply(combat: Combat) -> None:
+            caster = self._member(combat, caster_id)
+            key = (
+                f"character:{caster.character_id}"
+                if caster.character_id
+                else f"combatant:{caster.id}"
+            )
+            taken = [c.label for c in combat.combatants]
+            label = _numbered(str(shape.get("name") or found.name), taken, 1)[0]
+            combat.combatants.append(
+                Combatant(
+                    label=label,
+                    ref=found.reference,
+                    ac=ac,
+                    hp=hp,
+                    hp_max=hp,
+                    initiative=caster.initiative,
+                    order=caster.order + 1,
+                    ally=caster.is_friend,
+                    summon=Summoned(
+                        spell=spell,
+                        level=level,
+                        variant=variant,
+                        caster=key,
+                        attack=attack,
+                        dc=dc,
+                    ),
+                )
+            )
+            self._log(combat, "add", by, subject=label, amount=1)
+
+        return self._mutate(combat_id, apply)
+
+    def summoned_data(self, combatant: Combatant) -> dict[str, Any] | None:
+        """A summoned creature's statblock as cast: the corpus's, scaled to its spell's
+        level, variant and caster; None for anyone else."""
+        held = combatant.summon
+        monster = self.monster_of(combatant) if held is not None else None
+        if held is None or monster is None:
+            return None
+        data = monster.entry.model_dump(by_alias=True, exclude_none=True)
+        return scaled(data, held.level, held.variant, held.attack, held.dc)
 
     def add_character(self, combat_id: str, character_id: str, by: str) -> Combat:
         """A character joins; its initiative waits for the player's roll."""
@@ -3138,6 +3233,12 @@ class CombatService:
 
 
 _DICE_ONLY = re.compile(r"\d*d\d+")
+
+
+def _summoned_by(member: Combatant, caster: str, spell: str) -> bool:
+    """Whether ``member`` was summoned by ``caster``'s ``spell``."""
+    held = member.summon
+    return held is not None and held.caster == caster and same_spell(held.spell, spell)
 
 
 def _form_spell(row: Row) -> str:

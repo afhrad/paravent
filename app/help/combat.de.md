@@ -132,6 +132,12 @@ Zustände mit einer Rundenzahl enden von selbst.
   sich nicht mehr darauf.
 - Was die Gruppe eine Kreatur in einer Gestalt tun sieht, zählt in **Was die Spieler wissen**
   für die Gestalt.
+- **Beschworene Kreaturen** — ein Beschwörungszauber (*Summon Beast*, *Summon Fey*,
+  *Find Steed* …) hat im Kampf auf dem Bogen des Zaubernden **Beschwören**
+  neben Wirken, mit der Art (Luft, Land, Wasser). Die Kreatur tritt neben dem Zaubernden in
+  den Kampf, passend zum Grad: RK, Trefferpunkte, Angriffe mit seinem Zauberangriff,
+  Rettungswurf-SG mit seinem. Ihr Werteblock hat die üblichen Angriffsschaltflächen. Sie
+  verschwindet, wenn die Konzentration des Zaubernden endet.
 
 ## 6. Das Ende
 

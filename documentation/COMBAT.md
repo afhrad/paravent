@@ -154,6 +154,18 @@ guard, a summoned wolf, a charmed ogre.
   construct or undead, up to the caster's level, and casting stays allowed in the shape.
   On the players' view a character's 2014 shape shows its hit points to its own player
   only; everyone else reads the shape's name.
+- **Summoned creatures** (2026-11-15, `app/services/summons.py`): a spell that summons a
+  creature (Summon Beast, Summon Fey, Find Steed … — the corpus marks the creature with
+  `summonedBySpell`) gets **Summon** in the cast form on the caster's sheet while they
+  fight, with the creature's variant (Air, Land, Water). The slot is spent and the
+  creature joins the fight beside the caster, on its side, at the caster's initiative,
+  scaled to the slot's level: its AC and hit points read from the corpus's text ("11 +
+  the spell's level", "30 + 5 for each spell level above 2"), its attacks at the caster's
+  spell attack bonus, its damage, attack count and save DCs filled in, so the statblock's
+  Attack and save buttons work as for any monster. It vanishes with the caster's
+  concentration (a monster caster's too). `Combatant.summon` keeps the spell, level,
+  variant, caster, attack bonus and DC; the statblock is scaled again from the corpus
+  whenever it is shown.
 - **Dead**: a monster at 0 HP, or a character with three failed death saves, carries a
   skull "Dead" pill and is struck through. A dying character is down, not dead.
 - **XP** comes only from fallen foes; an ally that falls earns nothing.

@@ -70,6 +70,7 @@ from app.services.session_notes import SessionNoteService
 from app.services.sheet import CONDITIONS
 from app.services.sound import SoundDesk, SoundLibrary
 from app.services.style_drafts import ApiAgent, StyleDrafts
+from app.services.summons import Summoning, summoning
 from app.services.themes import ThemeLibrary, ThemeService
 from app.services.tokens import Token, Tokens
 from app.services.translation_coverage import TranslationCoverage, TranslationJobs
@@ -128,6 +129,7 @@ class StoreRegistry:
         self.gamestate.prose.subscribe(self._prose_changed)
         self._books: BookCatalog | None = None
         self._subclass_names: dict[tuple[str, str], str] | None = None
+        self._summonings: tuple[int, dict[str, Summoning]] | None = None
         self._watcher: JsonWatcher | None = None
 
     @cached_property
@@ -690,6 +692,19 @@ class StoreRegistry:
                 self.compendium, self.references.source_set(world_id), spell, cr
             ),
         )
+
+    def summoning_for(self, spell: str) -> Summoning | None:
+        """What a spell (``"Summon Beast|XPHB"``) summons, read once per corpus load."""
+        generation = self.compendium.generation
+        if self._summonings is None or self._summonings[0] != generation:
+            found: dict[str, Summoning] = {}
+            for monster in self.compendium.monsters():
+                data = monster.entry.model_dump(by_alias=True, exclude_none=True)
+                made = summoning(data)
+                if made is not None:
+                    found.setdefault(made.spell.lower(), made)
+            self._summonings = (generation, found)
+        return self._summonings[1].get(spell.lower())
 
     def _spell_data(
         self, name: str, source: str | None, world_id: str | None

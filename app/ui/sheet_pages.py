@@ -824,6 +824,21 @@ def _cast_form(page: Page, sheet: Sheet, spell: SpellView) -> Element:
                 cls="roll heal",
             ),
         ]
+    summon: Node = None
+    summoned = sheet.summons.get(spell.reference.lower())
+    if summoned is not None and sheet.in_fight:
+        summon = [
+            select(name="variant", class_="cs-slot-pick", aria_label=t("sheet.summon_variant"))[
+                [option(value=v)[v] for v in summoned.variants]
+            ]
+            if summoned.variants
+            else None,
+            go(
+                _url(sheet, "/summon"),
+                [icon("user-plus", "sm"), span[t("sheet.summon")]],
+                t("sheet.summon_title", name=summoned.name),
+            ),
+        ]
     fight: Node = None
     dc = sheet.save_dc_for(spell)
     if sheet.in_fight and spell.save and dc is not None:
@@ -846,6 +861,7 @@ def _cast_form(page: Page, sheet: Sheet, spell: SpellView) -> Element:
         else None,
         fight,
         heal,
+        summon,
         go(
             cast_url,
             [icon("sparkles"), span[t("sheet.cast")]] if spell.level else t("sheet.cast"),

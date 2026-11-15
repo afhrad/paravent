@@ -62,6 +62,10 @@ def _sheet(characters: CharactersDep, registry: RegistryDep, character: PlayerCh
     held = character.state.concentration
     if held is not None and polymorph.is_polymorph(held.name):
         _shape_choices(sheet, characters, registry, character, held.reference, fights)
+    for spell in sheet.spells:
+        summoned = registry.summoning_for(spell.reference)
+        if summoned is not None:
+            sheet.summons[spell.reference.lower()] = summoned
     return sheet
 
 
@@ -371,6 +375,66 @@ async def heal_spell(
         )
     )
     return response if error else announce_roll(response)
+
+
+@router.post("/characters/{character_id}/summon", response_class=HTMLResponse)
+async def summon_creature(
+    request: Request,
+    identity: IdentityDep,
+    page: PageDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+    spell: Annotated[str, Form()],
+    level: Annotated[str, Form()] = "0",
+    variant: Annotated[str, Form()] = "",
+) -> Response:
+    """Cast a summoning spell in a fight: the slot is spent, and the creature joins the
+    caster's fight beside it, scaled to the slot's level."""
+    character = characters.get_for(identity, character_id)
+    sheet = characters.sheet(character)
+    view = sheet.spell(spell)
+    summoned = registry.summoning_for(view.reference) if view is not None else None
+    fights = registry.combats.joined_by([character_id])
+    who = identity.user.username
+    flash: str | None = None
+    try:
+        if view is None or summoned is None or not fights:
+            raise PlayError("play.error.bad_input")
+        cast_level = max(_slot_level(level) or view.level, view.level)
+        characters.act(identity, character_id, "cast", {"spell": view.reference, "level": level})
+        combat = fights[0]
+        row = next(c for c in combat.combatants if c.character_id == character_id)
+        attack = sheet.attack_for(view)
+        dc = sheet.save_dc_for(view)
+        registry.combats.summon(
+            combat.id,
+            row.id,
+            summoned.reference,
+            view.reference,
+            cast_level,
+            who,
+            variant=variant,
+            attack=attack.value if attack is not None else None,
+            dc=dc.value if dc is not None else None,
+        )
+        flash = page.t("sheet.summoned", name=summoned.name)
+    except (PlayError, CombatError) as exc:
+        flash = page.t.error(exc)
+    if not _is_htmx(request):
+        return redirect(f"/characters/{character_id}")
+    character = characters.get_for(identity, character_id)
+    label = characters.file_label(character_id) if identity.is_gamemaster else None
+    return html(
+        sheet_fragment(
+            page,
+            _sheet(characters, registry, character),
+            flash=flash,
+            file_label=label,
+            resolver=characters.resolver(),
+            source_set=characters.source_set(character),
+        )
+    )
 
 
 @router.post("/characters/{character_id}/polymorph", response_class=HTMLResponse)
