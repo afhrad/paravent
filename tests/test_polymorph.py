@@ -223,6 +223,46 @@ async def gm(fight: Fight) -> AsyncIterator[AsyncClient]:
 
 
 @requires_corpus
+class TestASpellOverByItself:
+    """A shape that ends by itself ends the spell, so the caster stops concentrating."""
+
+    def test_the_frogs_fall_ends_its_casters_concentration(self, fight: Fight) -> None:
+        goblin = fight.member("Goblin")
+        fight.concentrate_lyra()
+        combats = fight.registry.combats
+        caster = f"character:{fight.lyra.id}"
+        combats.polymorph(fight.combat.id, goblin, "Frog|MM", "Polymorph|PHB", caster, GM)
+        combats.damage(fight.combat.id, goblin, 3, GM)
+        assert fight.pc().state.concentration is None
+
+    def test_a_characters_lost_shape_ends_a_monsters_concentration(self, fight: Fight) -> None:
+        combats = fight.registry.combats
+        bugbear = fight.member("Bugbear")
+        combats.concentrate(fight.combat.id, bugbear, "Polymorph", GM)
+        combats.polymorph(
+            fight.combat.id,
+            fight.lyra_row(),
+            "Frog|MM",
+            "Polymorph|XPHB",
+            f"combatant:{bugbear}",
+            GM,
+        )
+        combats.damage(fight.combat.id, fight.lyra_row(), 3, GM)  # the frog's 1 temporary HP
+        assert fight.pc().state.polymorph is None
+        assert next(c for c in fight.now.combatants if c.id == bugbear).concentration is None
+
+    def test_revert_by_hand_leaves_the_concentration(self, fight: Fight) -> None:
+        goblin = fight.member("Goblin")
+        fight.concentrate_lyra()
+        combats = fight.registry.combats
+        caster = f"character:{fight.lyra.id}"
+        combats.polymorph(fight.combat.id, goblin, "Frog|MM", "Polymorph|PHB", caster, GM)
+        combats.end_form(fight.combat.id, goblin, GM)
+        held = fight.pc().state.concentration
+        assert held is not None and held.name == "Polymorph"
+
+
+@requires_corpus
 class TestOnScreen:
     async def test_the_tracker_turns_a_goblin_into_a_frog(
         self, fight: Fight, gm: AsyncClient

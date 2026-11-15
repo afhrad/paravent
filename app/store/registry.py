@@ -549,6 +549,9 @@ class StoreRegistry:
             fight_of=self._fight_of,
             # A caster's lost concentration on Polymorph ends the shapes in the fights too.
             on_released=lambda caster, spell, by: self.combats.release_forms(caster, spell, by),
+            on_shape_ended=lambda caster, spell, by: self.combats.end_concentration_of(
+                caster, spell, by
+            ),
         )
 
     @cached_property

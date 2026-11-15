@@ -90,11 +90,14 @@ def form_for(spell: str, shape: Any, caster: str) -> SpellForm:
     )
 
 
+def same_spell(one: str, other: str) -> bool:
+    """Whether two spell references or names name the same spell, printing aside."""
+    return spell_name(one) == spell_name(other)
+
+
 def held_by(form: SpellForm | None, caster: str, spell: str) -> bool:
     """Whether ``form`` is held up by ``caster``'s concentration on ``spell``."""
-    return (
-        form is not None and form.caster == caster and spell_name(form.spell) == spell_name(spell)
-    )
+    return form is not None and form.caster == caster and same_spell(form.spell, spell)
 
 
 __all__ = [
@@ -106,6 +109,7 @@ __all__ = [
     "form_for",
     "held_by",
     "is_polymorph",
+    "same_spell",
     "shapes",
     "spell_name",
 ]

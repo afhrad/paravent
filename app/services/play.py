@@ -107,6 +107,10 @@ class PlayService:
         # Told when a character's concentration on Polymorph ends (caster, spell, actor),
         # so the shapes it held end with it (CharacterService ends them).
         self.on_released: Callable[[str, str, Actor], None] | None = None
+        # Told when a shape ends by itself (0 HP, its temporary HP gone): the spell is
+        # over, so its caster's concentration ends (caster, spell, actor).
+        self.on_shape_ended: Callable[[str, str, Actor], None] | None = None
+        self._ends = threading.local()
         # The log entries of the action this thread is applying (PROTOCOL.md §9 step 1).
         self._staged = threading.local()
         self._actions: dict[
@@ -151,10 +155,12 @@ class PlayService:
 
         staged: list[ProtocolEntry] = []
         released: list[str] = []
+        ended: list[tuple[str, str]] = []
 
         def apply(pc: PlayerCharacter) -> None:
             staged.clear()  # a retried mutation starts its entries afresh
             released.clear()
+            ended.clear()
             held = pc.state.concentration
             handler(pc, sheet, params, actor)
             self._record_hit_points(pc, sheet)
@@ -165,11 +171,14 @@ class PlayService:
         # mutate() hands the handler a copy and writes only if it returns normally, so
         # a refused action changes nothing — and logs nothing.
         outer = getattr(self._staged, "items", None)
+        outer_ends = getattr(self._ends, "items", None)
         self._staged.items = staged
+        self._ends.items = ended
         try:
             changed = self._store.mutate(character_id, apply)
         finally:
             self._staged.items = outer
+            self._ends.items = outer_ends
         if self._protocol is not None and staged:
             if action in PRIVATE_ACTIONS and params.get("private") == "1":
                 # Rolled privately: only the roller and the gamemaster read it (§4).
@@ -177,6 +186,9 @@ class PlayService:
             self._protocol.append(staged)
         if released and self.on_released is not None:
             self.on_released(f"character:{character_id}", released[0], actor)
+        for caster, spell in dict.fromkeys(ended):
+            if self.on_shape_ended is not None:
+                self.on_shape_ended(caster, spell, actor)
         return changed
 
     @staticmethod
@@ -301,7 +313,9 @@ class PlayService:
         state.temp_hp -= absorbed
         rest = amount - absorbed
         if shape is not None and shape.hp is None and absorbed and not state.temp_hp:
-            self._end_polymorph(pc, actor)  # 2024: the shape lasts while its temporary HP do
+            self._end_polymorph(
+                pc, actor, natural=True
+            )  # 2024: the shape lasts while its temporary HP do
         elif shape is not None and shape.hp is not None and rest > 0:
             # A 2014 shape takes the damage; what it cannot take carries over.
             taken = min(shape.hp, rest)
@@ -311,7 +325,7 @@ class PlayService:
                 if state.concentration is not None:
                     self._concentration_check(pc, sheet, taken, actor)
                 return
-            self._end_polymorph(pc, actor)
+            self._end_polymorph(pc, actor, natural=True)
         if state.wild_shape_hp is not None and rest > 0:
             # A 2014 form takes the damage; what it cannot take carries over (PHB).
             taken = min(state.wild_shape_hp, rest)
@@ -328,7 +342,7 @@ class PlayService:
         if state.hp == 0 and state.wild_shape is not None:
             self._leave_form(pc, actor)
         if state.hp == 0 and state.polymorph is not None:
-            self._end_polymorph(pc, actor)
+            self._end_polymorph(pc, actor, natural=True)
         if rest > 0 and state.concentration is not None:
             self._concentration_check(pc, sheet, rest, actor)
 
@@ -829,11 +843,16 @@ class PlayService:
             state.temp_hp = max(state.temp_hp, hp)
         self._stage(pc, actor, EntryKind.CUSTOM, what=f"polymorph:on:{form}")
 
-    def _end_polymorph(self, pc: PlayerCharacter, actor: Actor) -> None:
+    def _end_polymorph(self, pc: PlayerCharacter, actor: Actor, natural: bool = False) -> None:
+        """Leave a spell's shape; ``natural`` when it ended by itself, which ends the spell
+        and so the caster's concentration."""
         shape = pc.state.polymorph
         pc.state.polymorph = None
         if shape is None:
             return
+        ends = getattr(self._ends, "items", None)
+        if natural and shape.caster and ends is not None:
+            ends.append((shape.caster, shape.spell))
         if shape.hp is None:  # 2024: the shape's temporary hit points go with it
             pc.state.temp_hp = 0
         self._stage(pc, actor, EntryKind.CUSTOM, what=f"polymorph:off:{shape.form}")

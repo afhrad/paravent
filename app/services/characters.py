@@ -73,18 +73,22 @@ class CharacterService:
         protocol: ProtocolService | None = None,
         fight_of: Callable[[str], tuple[str, int | None, str | None] | None] | None = None,
         on_released: Callable[[str, str, str], None] | None = None,
+        on_shape_ended: Callable[[str, str, str], None] | None = None,
     ) -> None:
         """Bind to the library, the loaded compendium, the library root and the log;
         ``fight_of(character_id)`` names the running fight a character is in;
         ``on_released(caster, spell, by)`` ends the shapes a caster's lost concentration
-        held in the fights (CombatService.release_forms)."""
+        held in the fights (CombatService.release_forms); ``on_shape_ended(combatant, spell,
+        by)`` ends a monster caster's concentration when its shape ended by itself."""
         self._store = store
         self._compendium = compendium
         self._library_dir = library_dir
         self._protocol = protocol
         self.play = PlayService(store.characters, protocol=protocol, fight_of=fight_of)
         self.play.on_released = self._released
+        self.play.on_shape_ended = self._shape_ended
         self._on_released = on_released
+        self._on_shape_ended = on_shape_ended
         # Sheets made lately, by everything a sheet is made from (see :meth:`sheet`).
         self._sheets: OrderedDict[tuple[Any, ...], Sheet] = OrderedDict()
         self._sheets_lock = threading.Lock()
@@ -430,6 +434,18 @@ class CharacterService:
             self.end_polymorph(pc.id, by)
         if self._on_released is not None:
             self._on_released(caster, spell, by.username or by.name)
+
+    def _shape_ended(self, caster: str, spell: str, by: Actor) -> None:
+        """A shape ended by itself: the spell is over, so the caster stops concentrating
+        on it — a character here, a monster in its fight."""
+        kind, _, caster_id = caster.partition(":")
+        if kind == "character":
+            pc = self._store.characters.find(caster_id)
+            held = pc.state.concentration if pc is not None else None
+            if pc is not None and held is not None and polymorph.same_spell(held.name, spell):
+                self.play.act(caster_id, "concentration", {}, self.sheet(pc), by)
+        elif kind == "combatant" and self._on_shape_ended is not None:
+            self._on_shape_ended(caster_id, spell, by.username or by.name)
 
     def allies(self, character: PlayerCharacter) -> list[tuple[str, str]]:
         """Who a healing spell may reach: the characters of the caster's world (or, with no

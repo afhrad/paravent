@@ -55,7 +55,8 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       §3): a character or a monster turned into a creature the world's books allow (no
       stronger than the target, a beast for Polymorph), from the tracker's ⋯ menu or the
       caster's sheet; it fights as the shape (statblock, attacks, AC), with the shape's own
-      hit points (2014) or temporary ones (2024), and ends with the caster's concentration.
+      hit points (2014) or temporary ones (2024), and ends with the caster's concentration;
+      one that ends by itself ends the caster's concentration too.
       Phased in TECHSTACK.md §6b:
   - [x] **Phase 1 complete.** `class` (30), `subclass` (315), `classFeature` (677),
         `subclassFeature` (1,397), `legendaryGroup` (171), both `generated/` lookups, and
@@ -908,7 +909,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2298 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2301 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the

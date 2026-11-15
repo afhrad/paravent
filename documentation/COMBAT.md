@@ -144,7 +144,9 @@ guard, a summoned wolf, a charmed ogre.
   points of its own that take damage first, the rest carrying over at 0, which ends it;
   under the 2024 rules it gives temporary hit points and ends when they are gone. It ends
   with the caster's concentration, however that goes (Drop, a failed save, a new spell),
-  logged; "Revert" ends it by hand. A monster's form is `Combatant.form`, a character's
+  logged; and a shape that ends by itself (0 HP, its temporary HP gone) ends the spell,
+  so its caster stops concentrating on it. "Revert" ends it by hand and leaves the
+  concentration alone, for a correction. A monster's form is `Combatant.form`, a character's
   `state.polymorph` in its file (`SpellForm`: shape, spell, caster, 2014 hit points).
   Turning into an object, and True Polymorph made permanent, are left to the table.
 - **Dead**: a monster at 0 HP, or a character with three failed death saves, carries a

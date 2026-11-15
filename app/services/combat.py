@@ -64,7 +64,7 @@ from app.services.monster_attacks import (
 )
 from app.services.naming import NamingError, creature_races
 from app.services.play import Actor, PlayError
-from app.services.polymorph import Shape, form_for, held_by, is_polymorph
+from app.services.polymorph import Shape, form_for, held_by, is_polymorph, same_spell
 from app.services.polymorph import allows as polymorph_allows
 from app.services.protocol import (
     ProtocolService,
@@ -2215,19 +2215,21 @@ class CombatService:
                 rest = amount - absorbed
                 shape = target.form
                 if shape is not None and shape.hp is None and absorbed and not target.hp_temp:
-                    self._end_shape(combat, target, by)  # 2024: gone with its temporary HP
+                    self._end_shape(
+                        combat, target, by, natural=True
+                    )  # 2024: gone with its temporary HP
                 elif shape is not None and shape.hp is not None and rest:
                     # A 2014 shape takes the damage; what it cannot take carries over.
                     taken = min(shape.hp, rest)
                     shape.hp -= taken
                     rest -= taken
                     if not shape.hp:
-                        self._end_shape(combat, target, by)
+                        self._end_shape(combat, target, by, natural=True)
                     elif target.concentration is not None:
                         target.save_due = max(10, taken // 2, target.save_due or 0)
                 target.hp = max(0, target.hp - rest)
                 if target.hp == 0 and target.form is not None:
-                    self._end_shape(combat, target, by)
+                    self._end_shape(combat, target, by, natural=True)
                 if rest and target.concentration is not None:
                     target.save_due = max(10, rest // 2, target.save_due or 0)
                 if target.hp == 0:
@@ -2376,8 +2378,10 @@ class CombatService:
 
         return self._mutate(combat_id, apply)
 
-    def _end_shape(self, combat: Combat, target: Combatant, by: str) -> None:
-        """A monster leaves its shape (logged); a 2024 shape's temporary HP go with it."""
+    def _end_shape(self, combat: Combat, target: Combatant, by: str, natural: bool = False) -> None:
+        """A monster leaves its shape (logged); a 2024 shape's temporary HP go with it.
+        ``natural`` when it ended by itself (0 HP, its temporary HP gone): the spell is
+        over, so its caster stops concentrating on it."""
         shape = target.form
         if shape is None:
             return
@@ -2385,6 +2389,38 @@ class CombatService:
         if shape.hp is None:
             target.hp_temp = 0
         self._log(combat, "form_off", by, subject=target.label, detail=shape.form)
+        if natural:
+            self._stop_concentrating(combat, shape.caster, shape.spell, by)
+
+    def _stop_concentrating(self, combat: Combat, caster: str, spell: str, by: str) -> None:
+        """The caster of a spell that is over stops concentrating on it: a character
+        through its sheet, a monster of this fight here."""
+        kind, _, caster_id = caster.partition(":")
+        if kind == "character":
+            pc = self._characters.snapshot(caster_id)
+            if pc is not None and pc.concentration and same_spell(pc.concentration, spell):
+                self._characters.act(caster_id, "concentration", {}, by, combat)
+            return
+        member = next((m for m in combat.combatants if m.id == caster_id), None)
+        if member is not None and member.concentration and same_spell(member.concentration, spell):
+            member.concentration = None
+            member.save_due = None
+            self._log(combat, "concentration", by, subject=member.label, detail="")
+
+    def end_concentration_of(self, combatant_id: str, spell: str, by: str) -> None:
+        """A monster's spell is over (its shape on a character ended by itself): it stops
+        concentrating on it, in whichever running fight it is in."""
+        if getattr(self._writing, "active", False):
+            pending = getattr(self._writing, "spells_over", None)
+            if pending is not None:
+                pending.append((f"combatant:{combatant_id}", spell, by))
+                return
+        caster = f"combatant:{combatant_id}"
+        for combat in self.running():
+            if any(m.id == combatant_id for m in combat.combatants):
+                self._mutate(
+                    combat.id, lambda draft: self._stop_concentrating(draft, caster, spell, by)
+                )
 
     def release_forms(self, caster: str, spell: str, by: str) -> None:
         """A caster's concentration on Polymorph ended: the monsters it held in shapes
@@ -3037,17 +3073,22 @@ class CombatService:
         staged: builtins.list[ProtocolEntry] = []
 
         released: builtins.list[tuple[str, str, str]] = []
+        spells_over: builtins.list[tuple[str, str, str]] = []
 
         def guarded(record: Combat) -> None:
             # Work on a copy: a refused change must leave the stored record untouched.
             draft = record.model_copy(deep=True)
             staged.clear()
             released.clear()
+            spells_over.clear()
             self._writing.by = ""
             apply(draft)
             # Concentration on Polymorph lost in this change ends the shapes it held:
             # a monster's here, a character caster's as its sheet reported it.
             self._concentration_lost(record, draft, self._writing.by)
+            while spells_over:
+                caster, spell, by = spells_over.pop(0)
+                self._stop_concentrating(draft, caster, spell, by)
             while released:
                 caster, spell, by = released.pop(0)
                 self._release(draft, caster, spell, by)
@@ -3057,12 +3098,14 @@ class CombatService:
         outer = getattr(self._staged, "items", None)
         self._writing.active = True
         self._writing.released = released
+        self._writing.spells_over = spells_over
         self._staged.items = staged
         try:
             changed = self._store.combats.mutate(combat_id, guarded)
         finally:
             self._writing.active = False
             self._writing.released = None
+            self._writing.spells_over = None
             self._staged.items = outer
         # Logged once stored: a refused change leaves nothing in the log.
         self._flush(staged)
