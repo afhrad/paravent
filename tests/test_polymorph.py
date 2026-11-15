@@ -251,6 +251,28 @@ class TestASpellOverByItself:
         assert fight.pc().state.polymorph is None
         assert next(c for c in fight.now.combatants if c.id == bugbear).concentration is None
 
+    def test_the_caster_falling_unconscious_frees_the_frog(self, fight: Fight) -> None:
+        goblin = fight.member("Goblin")
+        fight.concentrate_lyra()
+        combats = fight.registry.combats
+        caster = f"character:{fight.lyra.id}"
+        combats.polymorph(fight.combat.id, goblin, "Frog|MM", "Polymorph|PHB", caster, GM)
+        combats.toggle_condition(fight.combat.id, fight.lyra_row(), "unconscious", GM)
+        assert fight.pc().state.concentration is None
+        assert next(c for c in fight.now.combatants if c.id == goblin).form is None
+
+    def test_a_stunned_monster_lets_its_shape_go(self, fight: Fight) -> None:
+        combats = fight.registry.combats
+        bugbear = fight.member("Bugbear")
+        goblin = fight.member("Goblin")
+        combats.concentrate(fight.combat.id, bugbear, "Polymorph", GM)
+        combats.polymorph(
+            fight.combat.id, goblin, "Frog|MM", "Polymorph|PHB", f"combatant:{bugbear}", GM
+        )
+        combats.toggle_condition(fight.combat.id, bugbear, "stunned", GM)
+        assert next(c for c in fight.now.combatants if c.id == bugbear).concentration is None
+        assert next(c for c in fight.now.combatants if c.id == goblin).form is None
+
     def test_revert_by_hand_leaves_the_concentration(self, fight: Fight) -> None:
         goblin = fight.member("Goblin")
         fight.concentrate_lyra()

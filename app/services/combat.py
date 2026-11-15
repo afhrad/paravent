@@ -63,7 +63,7 @@ from app.services.monster_attacks import (
     spell_effect,
 )
 from app.services.naming import NamingError, creature_races
-from app.services.play import Actor, PlayError
+from app.services.play import INCAPACITATING, Actor, PlayError
 from app.services.polymorph import Shape, form_for, held_by, is_polymorph, same_spell
 from app.services.polymorph import allows as polymorph_allows
 from app.services.protocol import (
@@ -2269,6 +2269,11 @@ class CombatService:
                 )
             else:
                 target.conditions = [*target.conditions, condition]
+                if condition in INCAPACITATING and target.concentration is not None:
+                    # Incapacitated, it cannot keep concentrating.
+                    target.concentration = None
+                    target.save_due = None
+                    self._log(combat, "concentration", by, subject=label, detail="")
             if rounds is not None:
                 target.timers = [
                     *target.timers,

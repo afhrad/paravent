@@ -45,6 +45,9 @@ from app.store.characters import CharacterStore
 # The actions whose log entries the sheet's "private" switch keeps between the roller
 # and the gamemaster (PROTOCOL.md §4): rolls, never the hit points or conditions.
 PRIVATE_ACTIONS = frozenset({"roll", "death_save", "hit_die"})
+# The conditions under which a creature cannot keep concentrating (each one is, or
+# includes, Incapacitated); dropping to 0 HP leaves it Unconscious too.
+INCAPACITATING = frozenset({"incapacitated", "paralyzed", "petrified", "stunned", "unconscious"})
 
 
 class PlayError(Translatable):
@@ -164,6 +167,7 @@ class PlayService:
             held = pc.state.concentration
             handler(pc, sheet, params, actor)
             self._record_hit_points(pc, sheet)
+            self._lose_concentration(pc, actor)
             now = pc.state.concentration
             if held is not None and polymorph.is_polymorph(held.name) and now != held:
                 released.append(held.reference)
@@ -449,6 +453,16 @@ class PlayService:
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
     ) -> None:
         pc.state.concentration = None
+
+    def _lose_concentration(self, pc: PlayerCharacter, actor: Actor) -> None:
+        """At 0 HP (unconscious) or incapacitated, a character cannot keep concentrating:
+        the spell ends, logged, whatever action put it there."""
+        held = pc.state.concentration
+        if held is None:
+            return
+        if pc.state.hp == 0 or INCAPACITATING & set(pc.state.conditions):
+            pc.state.concentration = None
+            self._stage(pc, actor, EntryKind.CONCENTRATION, what=f"lost:{held.reference}")
 
     # -- conditions and resources ------------------------------------------------
 

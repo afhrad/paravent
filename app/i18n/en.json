@@ -258,6 +258,7 @@
   "protocol.wild_shape_off": "Leaves the form of {form}",
   "protocol.polymorph_on": "Turned into {form}",
   "protocol.polymorph_off": "Back from the shape of {form}",
+  "protocol.concentration_lost": "Concentration on {spell} ends",
   "combat.mastery.cleave": "you can attack a second creature within reach of {target}",
   "combat.mastery.graze": "{target} still takes damage equal to the attack's ability modifier",
   "combat.mastery.nick": "the Light weapon's extra attack is part of this Attack action",

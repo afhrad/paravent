@@ -258,6 +258,7 @@
   "protocol.wild_shape_off": "Verlässt die Gestalt: {form}",
   "protocol.polymorph_on": "Verwandelt in: {form}",
   "protocol.polymorph_off": "Zurückverwandelt aus: {form}",
+  "protocol.concentration_lost": "Konzentration auf {spell} endet",
   "combat.mastery.cleave": "du kannst eine zweite Kreatur in Reichweite von {target} angreifen",
   "combat.mastery.graze": "{target} erleidet trotzdem Schaden in Höhe des Attributsmodifikators",
   "combat.mastery.nick": "der zusätzliche Angriff der leichten Waffe gehört zu dieser Angriffsaktion",

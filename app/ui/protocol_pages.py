@@ -368,6 +368,9 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
         name, _, level = rest.partition(":")
         return t("log.cast", subject=f"{name} ({level})" if level else name)
     if kind is EntryKind.CONCENTRATION:
+        if head == "lost":
+            spell = name_text(page, "spell", rest.partition("|")[0])
+            return t("protocol.concentration_lost", spell=spell)
         return t("log.concentration", subject=rest if head == "concentration" else what)
     if kind is EntryKind.DEATH_SAVE:
         return t("log.death_save")

@@ -148,6 +148,20 @@ class TestConcentration:
         fighter.act("concentration", op="drop")
         assert fighter.now.state.concentration is None
 
+    def test_dropping_to_0_hp_ends_it_even_on_a_kept_save(self, fighter: Table) -> None:
+        fighter.store.update(fighter.pc.id, state={"concentration": "Bless|PHB"})
+        fighter.roll(20).act("hp", mode="damage", amount=41)  # DC 20, kept with 22; HP 0
+        assert fighter.now.state.concentration is None
+        recent = fighter.log.newest(log_key(fighter.pc.world_id), limit=5)
+        assert "lost:Bless|PHB" in [e.what for e in recent]
+
+    def test_an_incapacitating_condition_ends_it(self, fighter: Table) -> None:
+        fighter.store.update(fighter.pc.id, state={"concentration": "Bless|PHB"})
+        fighter.act("condition", key="prone")
+        assert fighter.now.state.concentration is not None  # prone does not
+        fighter.act("condition", key="stunned")
+        assert fighter.now.state.concentration is None
+
 
 class TestSlotsAndResources:
     def test_spend_and_recover(self, fighter: Table) -> None:
