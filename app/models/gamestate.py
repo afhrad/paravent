@@ -1021,10 +1021,19 @@ class KnownFact(GameStateModel):
 
 class BastionFacility(GameStateModel):
     """A special facility of a bastion (``Smithy|XDMG``) and the order it carries out
-    on the next bastion turn ("craft"; "" for none)."""
+    on the next bastion turn ("craft"; "" for none). ``shut`` after an attack it was
+    damaged in: it takes no order on the next turn."""
 
     ref: str
     order: str = ""
+    shut: bool = False
+
+
+class BasicFacility(GameStateModel):
+    """A basic facility of a bastion (``Kitchen|XDMG``) and its space."""
+
+    ref: str
+    space: Literal["cramped", "roomy", "vast"] = "roomy"
 
 
 class Bastion(Record):
@@ -1038,6 +1047,13 @@ class Bastion(Record):
     # The world's clock (in minutes, app/services/clock.py) at the last turn, which
     # tells when the next is due: one every seven days.
     last_turn: int | None = None
+    basic: list[BasicFacility] = Field(default_factory=list)
+    # Bastion Defenders on the roster; an attack may cost some.
+    defenders: int = Field(default=0, ge=0, le=999)
+    # The Maintain order for the next turn: no facility orders, a bastion event instead.
+    maintain: bool = False
+    # The event the last Maintain turn rolled: ``"<roll>|<book entry id>|<name>"``.
+    event: str = ""
 
 
 class SafetySuggestion(GameStateModel):
@@ -1072,12 +1088,76 @@ class ClockTimer(GameStateModel):
     concentration: bool = False
 
 
+class Journey(GameStateModel):
+    """The party's last stretch of travel (app/services/travel.py): when it set out and
+    stopped, its pace, the travelling hours planned and covered, the distance, the
+    rations eaten and who went hungry, and the encounter that stopped it, if any."""
+
+    started: int
+    ended: int
+    pace: Literal["slow", "normal", "fast"] = "normal"
+    planned: int = Field(default=0, ge=0)
+    hours: int = Field(default=0, ge=0)
+    miles: float = Field(default=0, ge=0)
+    difficult: bool = False
+    environment: str = ""
+    rations: int = Field(default=0, ge=0)
+    hungry: list[str] = Field(default_factory=list)
+    exhausted: list[str] = Field(default_factory=list)
+    # The encounter check (a d20) that came up, the table's roll and the row it read.
+    check: int | None = None
+    encounter: str = ""
+    encounter_roll: int | None = None
+    monsters: list[EncounterMonster] = Field(default_factory=list)
+    unresolved: list[str] = Field(default_factory=list)
+    encounter_id: str | None = None
+
+
 class WorldClock(Record):
     """A world's time in the game: minutes since midnight of its first day, and the
-    timers running against it. The id is the world's."""
+    timers running against it. The id is the world's. ``hungry`` counts, per character,
+    the days in a row it has gone without food on the road."""
 
     minute: int = Field(default=8 * 60, ge=0)
     timers: list[ClockTimer] = Field(default_factory=list)
+    journey: Journey | None = None
+    hungry: dict[str, int] = Field(default_factory=dict)
+
+
+class DowntimeProject(GameStateModel):
+    """Something a character spends downtime days on (app/services/downtime.py):
+    crafting an item (``label`` its reference), training in a language or tool (its
+    reference), research, recuperating, working, or anything else (``label`` its text).
+    ``needed`` is the days it takes (None: as long as it is kept up); ``paid`` the
+    copper spent on it so far."""
+
+    id: str
+    kind: Literal["craft", "train", "research", "recuperate", "work", "other"]
+    label: str = Field(default="", max_length=200)
+    needed: int | None = Field(default=None, ge=1)
+    done: int = Field(default=0, ge=0)
+    paid: int = Field(default=0, ge=0)
+    finished: bool = False
+
+
+class Downtime(Record):
+    """A character's downtime: the days it has free to spend, and its projects. The id
+    is the character's."""
+
+    days: int = Field(default=0, ge=0)
+    projects: list[DowntimeProject] = Field(default_factory=list)
+
+
+class Shop(Record):
+    """A shop the gamemaster opens in a world for its characters (or those ticked):
+    priced mundane gear at ``markup`` percent of the list price, buying back at
+    ``buys`` percent. The id is the world's."""
+
+    open: bool = False
+    name: str = Field(default="", max_length=80)
+    characters: list[str] = Field(default_factory=list)
+    markup: int = Field(default=100, ge=10, le=1000)
+    buys: int = Field(default=50, ge=0, le=100)
 
 
 class PartyNotes(Record):
@@ -1141,12 +1221,17 @@ __all__ = [
     "health_word",
     "CheckCall",
     "ClockTimer",
+    "Downtime",
+    "DowntimeProject",
+    "Journey",
+    "Shop",
     "WorldClock",
     "Knowledge",
     "PartyNotes",
     "SafetySuggestion",
     "Bastion",
     "BastionFacility",
+    "BasicFacility",
     "TableSafety",
     "KnownFact",
     "Encounter",

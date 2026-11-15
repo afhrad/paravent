@@ -26,8 +26,9 @@ from app.services.adventures import AdventureService
 from app.services.auth import AuthService, Identity
 from app.services.backlinks import BacklinkIndex
 from app.services.backup import BackupService
-from app.services.bastions import BastionService
+from app.services.bastions import BastionEvent, BastionService, event_rows
 from app.services.characters import CharacterService
+from app.services.chargen.catalogue import Catalogue, Edition
 from app.services.chargen.drafts import Drafts
 from app.services.chargen.levelup import LevelUps
 from app.services.chargen.prepare import Preparations
@@ -45,6 +46,7 @@ from app.services.creature_builder import (
 from app.services.creature_pictures import CreaturePictures, design_ref, slug
 from app.services.creature_sight import Sight, fluff_image, sight
 from app.services.difficulty import DifficultyRules
+from app.services.downtime import DowntimeService
 from app.services.encounters import EncounterService
 from app.services.events import COMBATS, PARTY, PROSE, PROTOCOL, ChangeHub, combat_key
 from app.services.glossary import Glossary, LinkCounts
@@ -62,7 +64,7 @@ from app.services.naming_workshop import NamingWorkshop
 from app.services.npcs import NpcService, TreasureService
 from app.services.party_notes import PartyNotesService
 from app.services.places import PlaceService
-from app.services.play import Actor
+from app.services.play import Actor, PlayError
 from app.services.player_view import Reader, needs_reader, reader_for
 from app.services.players import PlayerService
 from app.services.protocol import ProtocolService
@@ -75,6 +77,7 @@ from app.services.safety import SafetyService
 from app.services.search import SearchService
 from app.services.session_notes import SessionNoteService
 from app.services.sheet import CONDITIONS
+from app.services.shop import ShopService
 from app.services.sound import SoundDesk, SoundLibrary
 from app.services.style_drafts import ApiAgent, StyleDrafts
 from app.services.summons import Summoning, summoning
@@ -83,6 +86,7 @@ from app.services.tokens import Token, Tokens
 from app.services.translation_coverage import TranslationCoverage, TranslationJobs
 from app.services.translation_targets import FLUFF_OF, TranslationTargets, fluff_category
 from app.services.translations import TranslationStore, record_key
+from app.services.travel import TravelService
 from app.services.world_instructions import WorldInstructionService
 from app.services.worlds import BookCatalog, WorldService
 from app.store.compendium import CompendiumStore, LoadReport
@@ -619,7 +623,93 @@ class StoreRegistry:
     @cached_property
     def bastions(self) -> BastionService:
         """Characters' bastions (app/services/bastions.py)."""
-        return BastionService(self.gamestate, self.protocol)
+        return BastionService(self.gamestate, self.protocol, events=self._bastion_events)
+
+    def _bastion_events(self) -> list[BastionEvent]:
+        """The 2024 guide's Bastion Events table, when the corpus has it."""
+        try:
+            table = self.compendium.find("table", "Bastion Events", "XDMG")
+        except EntryNotFound:
+            return []
+        return event_rows(getattr(table, "rows", None) or []) if table is not None else []
+
+    def catalogue(self, world_id: str | None) -> Catalogue:
+        """What a world's books offer, as the wizard reads them (its shop, languages,
+        tools): the shop and downtime use it."""
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        return Catalogue(self.compendium, world.source_set if world else None)
+
+    def rules_of(self, world_id: str | None) -> Edition:
+        """``one`` when a world's books include the 2024 rules (as supersession reads
+        them), else ``classic``."""
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        return "one" if world is not None and "one" in world.source_set.editions else "classic"
+
+    @cached_property
+    def travel(self) -> TravelService:
+        """The party on the road (app/services/travel.py)."""
+        characters = self.characters
+
+        def party(world_id: str) -> list[PlayerCharacter]:
+            return [pc for pc in self.gamestate.characters.list() if pc.world_id == world_id]
+
+        def eat(pc: PlayerCharacter) -> bool:
+            try:
+                characters.act_for(pc.id, "eat", {}, Actor("Paravent", username=""))
+            except PlayError:
+                return False
+            return True
+
+        def tire(pc: PlayerCharacter) -> None:
+            characters.act_for(pc.id, "exhaustion", {"delta": "1"}, Actor("Paravent", username=""))
+
+        def con_mod(pc: PlayerCharacter) -> int:
+            return characters.sheet(pc).ability("con").modifier
+
+        def rest(world_id: str) -> None:
+            characters.rest_party(world_id, "long", Actor("Paravent", username=""))
+
+        return TravelService(
+            self.clock,
+            self.protocol,
+            party=party,
+            eat=eat,
+            tire=tire,
+            con_mod=con_mod,
+            rest=rest,
+        )
+
+    @cached_property
+    def downtime(self) -> DowntimeService:
+        """Characters' downtime days and projects (app/services/downtime.py)."""
+        characters = self.characters
+        by = Actor("Paravent", username="")
+
+        def pay(character_id: str, copper: int, what: str) -> None:
+            characters.act_for(character_id, "spend", {"amount": str(copper), "for": what}, by)
+
+        def give(character_id: str, ref: str) -> None:
+            characters.receive(character_id, [(ref, 1)], {}, by)
+
+        def learn(character_id: str, kind: str, ref: str) -> None:
+            characters.act_for(character_id, "learn", {"kind": kind, "ref": ref}, by)
+
+        def recuperate(character_id: str) -> None:
+            characters.act_for(character_id, "roll", {"kind": "save", "subject": "con"}, by)
+
+        return DowntimeService(
+            self.gamestate,
+            self.protocol,
+            pay=pay,
+            give=give,
+            learn=learn,
+            recuperate=recuperate,
+        )
+
+    @cached_property
+    def shops(self) -> ShopService:
+        """The shop each world's gamemaster opens (app/services/shop.py)."""
+        return ShopService(self.gamestate, self.protocol)
 
     @cached_property
     def safety(self) -> SafetyService:

@@ -11,7 +11,8 @@
 * ``POST /gm/characters/{id}/world``   — place a character in a world
 * ``/gm/checks…``                      — call for a check outside a fight, and close it
 * ``/gm/clock…``                       — a world's time in the game: move it, rest the
-  party, timers
+  party, timers, travel, downtime
+* ``/gm/shop…``                        — open a shop for a world's characters, and close it
 """
 
 from __future__ import annotations
@@ -39,14 +40,18 @@ from app.services.auth import AuthError
 from app.services.characters import CharacterService
 from app.services.checks import CheckError
 from app.services.clock import DAY, ClockError, bastions_due
+from app.services.downtime import DowntimeError
 from app.services.events import PARTY, revision_stream
 from app.services.play import Actor, PlayError
 from app.services.player_view import player_choice, player_ticks
+from app.services.shop import ShopError
+from app.services.travel import PACES, TRAVEL_DAY, Plan, TravelError
 from app.services.worlds import WorldInput
+from app.store.encounter_tables import Environment
 from app.store.registry import StoreRegistry
 from app.ui.adventure_pages import images_panel
 from app.ui.check_pages import CHECKS_URL, checks_panel
-from app.ui.clock_pages import CLOCK_URL, clock_panel
+from app.ui.clock_pages import CLOCK_URL, clock_label, clock_panel
 from app.ui.combat_pages import party_combats
 from app.ui.context import Page
 from app.ui.forms import alert, notice
@@ -59,6 +64,7 @@ from app.ui.gm_pages import (
     world_form_page,
     worlds_page,
 )
+from app.ui.shop_pages import SHOP_URL, shop_panel
 
 router = APIRouter(tags=["gamemaster"])
 
@@ -101,7 +107,63 @@ def _clock(page: Page, registry: StoreRegistry, world_id: str | None) -> Element
     names = {pc.id: pc.name or "?" for pc in members}
     built = [(pc.name or "?", registry.bastions.of(pc.id)) for pc in members if pc.total_level >= 5]
     due = bastions_due(clock.minute, [(name, b.last_turn) for name, b in built if b.facilities])
-    return clock_panel(page, shown, clock.minute, registry.clock.active(shown), names, due)
+    return clock_panel(
+        page,
+        shown,
+        clock.minute,
+        registry.clock.active(shown),
+        names,
+        due,
+        journey=clock.journey,
+        environments=[(e.key, f"{e.name} ({e.source})") for e in _environments(registry, shown)],
+    )
+
+
+def _environments(registry: StoreRegistry, world_id: str) -> list[Environment]:
+    """The random-encounter tables of a world's books (every table for a world that
+    declares none)."""
+    world = registry.gamestate.worlds.find(world_id)
+    tables = registry.encounter_tables.all()
+    if world is None or world.source_set.is_unrestricted:
+        return tables
+    books = set(world.source_set.normalized)
+    return [e for e in tables if e.source.lower() in books]
+
+
+def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_name: str) -> None:
+    """Set out on the road with the travel form's plan."""
+    amount = str(form.get("amount", "")).strip()
+    hours = (
+        int(amount) * (TRAVEL_DAY if form.get("unit") == "day" else 1) if amount.isdigit() else 0
+    )
+    pace = str(form.get("pace", "normal"))
+    checks = str(form.get("checks", "1"))
+    environment = registry.encounter_tables.get(str(form.get("environment", "")))
+    world = registry.gamestate.worlds.find(world_id)
+    resolver = registry.references.resolver()
+
+    def resolve(name: str, source: str | None) -> tuple[str, str] | None:
+        found = resolver.resolve_parts(
+            "monster", name, source, world.source_set if world else None
+        ).entry
+        return (str(found.name), str(found.source)) if found is not None else None
+
+    registry.travel.travel(
+        world_id,
+        Plan(
+            hours=hours,
+            pace=pace if pace in PACES else "normal",  # type: ignore[arg-type]
+            difficult=form.get("difficult") == "1",
+            environment=environment,
+            checks=int(checks) if checks.isdigit() and int(checks) <= 3 else 1,
+            rations=form.get("rations") == "1",
+            rest=form.get("rest") == "1",
+        ),
+        rules=registry.rules_of(world_id),
+        resolve=resolve,
+        by=by,
+        by_name=by_name,
+    )
 
 
 _UNIT_MINUTES = {"minute": 1, "hour": 60, "day": DAY}
@@ -112,6 +174,18 @@ def _minutes(form: FormData) -> int:
     amount = str(form.get("amount", "")).strip()
     unit = _UNIT_MINUTES.get(str(form.get("unit", "")), 0)
     return int(amount) * unit if amount.isdigit() else 0
+
+
+def _shop(page: Page, registry: StoreRegistry, world_id: str | None) -> Element | None:
+    shown = _clock_world(registry, world_id)
+    if shown is None:
+        return None
+    members = [
+        (pc.id, pc.name or "?")
+        for pc in registry.gamestate.characters.list()
+        if pc.world_id == shown and not pc.in_wizard
+    ]
+    return shop_panel(page, shown, registry.shops.of(shown), members)
 
 
 def _cards(page: Page, characters: CharacterService, world_id: str | None) -> list[Element]:
@@ -151,6 +225,7 @@ async def party(
             combats=_combats(page, registry, world_id),
             checks=_checks(page, registry, characters, world_id),
             clock=_clock(page, registry, world_id),
+            shop=_shop(page, registry, world_id),
         )
     )
 
@@ -210,9 +285,52 @@ async def change_clock(
             )
         elif op == "timer":
             clock.start(world_id, "custom", str(form.get("label", "")), _minutes(form))
+        elif op == "travel":
+            _travel(registry, world_id, form, user.username, name)
+        elif op == "travel_clear":
+            clock.keep(world_id, None)
+        elif op == "travel_encounter":
+            journey = clock.of(world_id).journey
+            if journey is None or not journey.monsters:
+                raise TravelError("travel.error.bad")
+            if journey.encounter_id is None:
+                where = journey.environment.partition("|")[0] or page.t("travel.road")
+                made = registry.encounters.create(
+                    page.t(
+                        "travel.encounter_name", where=where, when=clock_label(page, journey.ended)
+                    ),
+                    world_id,
+                )
+                registry.encounters.set_monsters(made.id, journey.monsters)
+                notes = journey.encounter
+                registry.encounters.update(
+                    made.id,
+                    name=made.name,
+                    scope=made.scope,
+                    notes=notes,
+                    rules=made.rules,
+                    party=made.party,
+                )
+                clock.keep(world_id, journey.model_copy(update={"encounter_id": made.id}))
+                journey = clock.of(world_id).journey
+            if journey is not None and journey.encounter_id:
+                return redirect(f"/gm/encounters/{journey.encounter_id}")
+        elif op == "downtime":
+            raw = str(form.get("days", "")).strip()
+            party = [
+                pc
+                for pc in registry.gamestate.characters.list()
+                if pc.world_id == world_id and not pc.in_wizard
+            ]
+            days = int(raw) if raw.isdigit() else 0
+            registry.downtime.grant(party, days, world_id, user.username, name)
+            characters.rest_party(world_id, "long", Actor(name, username=user.username))
+            clock.advance(world_id, days * DAY, user.username, name, "downtime")
+            for pc in party:
+                registry.events.publish(pc.id, f"downtime-{days}")
         else:
             raise ClockError("clock.error.bad_time")
-    except (ClockError, PlayError) as exc:
+    except (ClockError, PlayError, TravelError, DowntimeError) as exc:
         flash = page.t.error(exc)
     if request.headers.get("HX-Request") != "true":
         return redirect(f"/gm?{urlencode({'world': world_id})}")
@@ -234,6 +352,58 @@ async def stop_timer(
     if request.headers.get("HX-Request") != "true":
         return redirect(f"/gm?{urlencode({'world': world_id})}")
     return html(_clock(page, registry, world_id))
+
+
+# -- the shop ---------------------------------------------------------------------------
+
+
+@router.post(f"{SHOP_URL}/{{world_id}}/{{op}}", response_class=HTMLResponse)
+async def change_shop(
+    request: Request,
+    gm: GamemasterDep,
+    page: PageDep,
+    worlds: WorldsDep,
+    registry: RegistryDep,
+    world_id: str,
+    op: str,
+) -> Response:
+    """Open or change the world's shop (``open``), or close it (``close``)."""
+    if worlds.find(world_id) is None:
+        return redirect("/gm")
+    form = await request.form()
+    user = gm.user
+    name = user.display_name or user.username
+    flash: str | None = None
+    try:
+        if op == "open":
+            members = {
+                pc.id for pc in registry.gamestate.characters.list() if pc.world_id == world_id
+            }
+
+            def number(key: str, default: int) -> int:
+                raw = str(form.get(key, "")).strip()
+                return int(raw) if raw.isdigit() else default
+
+            registry.shops.open(
+                world_id,
+                name=str(form.get("name", "")),
+                characters=[str(c) for c in form.getlist("characters") if str(c) in members],
+                markup=number("markup", 100),
+                buys=number("buys", 50),
+                by=user.username,
+                by_name=name,
+            )
+        else:
+            registry.shops.close(world_id, user.username, name)
+    except ShopError as exc:
+        flash = page.t.error(exc)
+    for pc in registry.gamestate.characters.list():
+        if pc.world_id == world_id:
+            registry.events.publish(pc.id, f"shop-{datetime.now(UTC).isoformat()}")
+    if request.headers.get("HX-Request") != "true":
+        return redirect(f"/gm?{urlencode({'world': world_id})}")
+    panel = _shop(page, registry, world_id)
+    return html(panel if flash is None else [alert(flash), panel])
 
 
 # -- checks outside a fight --------------------------------------------------------------

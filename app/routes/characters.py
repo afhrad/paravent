@@ -18,11 +18,12 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from fractions import Fraction
-from typing import Annotated
+from typing import Annotated, Any
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response, StreamingResponse
+from htpy import Node
 
 from app.dependencies import (
     CharactersDep,
@@ -33,23 +34,31 @@ from app.dependencies import (
     RegistryDep,
     WorldsDep,
 )
-from app.models.gamestate import Combat
+from app.models.gamestate import Combat, Shop
 from app.models.pc import PlayerCharacter
 from app.routes.auth import html, redirect
 from app.routes.play_combat import strip
 from app.routes.rolls import announce_roll, new_roll
 from app.services import polymorph
 from app.services.auth import Identity
-from app.services.bastions import BastionError, facilities
+from app.services.bastions import BastionError, basic_facilities, facilities
+from app.services.chargen.catalogue import SHELVES, TOOL_TYPES, Offer
+from app.services.chargen.plan import price
 from app.services.clock import BASTION_TURN, day_of
 from app.services.combat import CombatError
+from app.services.downtime import DowntimeError, crafting_days, materials
 from app.services.events import revision_stream
 from app.services.play import Actor, PlayError
 from app.services.sheet import Sheet
+from app.services.shop import Ware
 from app.ui.bastion_pages import bastion_page
 from app.ui.character_list_pages import character_delete_page, characters_page
 from app.ui.context import Page
+from app.ui.downtime_pages import downtime_page
+from app.ui.names import name_text
 from app.ui.sheet_pages import sheet_fragment, sheet_page
+from app.ui.shop_pages import shop_page
+from app.ui.tags import localized_context, render_entries
 
 router = APIRouter(tags=["characters"])
 
@@ -70,6 +79,11 @@ def _sheet(characters: CharactersDep, registry: RegistryDep, character: PlayerCh
     if character.world_id:
         sheet.clock = registry.clock.of(character.world_id).minute
         sheet.timers = registry.clock.of_character(character.world_id, character.id)
+        shop = registry.shops.serves(character.world_id, character.id)
+        sheet.shop = shop.name if shop is not None else None
+    spare = registry.downtime.of(character.id)
+    if spare.days or any(not x.finished for x in spare.projects):
+        sheet.downtime = spare.days
     for spell in sheet.spells:
         summoned = registry.summoning_for(spell.reference)
         if summoned is not None:
@@ -411,6 +425,8 @@ def _bastion(
             built=[every.get(f.ref.lower()) for f in bastion.facilities],
             offered=offered,
             gamemaster=identity.is_gamemaster,
+            basic_offered=basic_facilities(entries, characters.source_set(character)),
+            event_text=_event_text(page, characters, registry, character, bastion.event),
             next_turn=day_of(bastion.last_turn + BASTION_TURN)
             if bastion.last_turn is not None and character.world_id
             else None,
@@ -418,6 +434,48 @@ def _bastion(
             message=message,
         )
     )
+
+
+def _event_text(
+    page: Page,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character: PlayerCharacter,
+    event: str,
+) -> Node:
+    """The books' text of a rolled bastion event (``"<roll>|<entry id>|<name>…"``),
+    when the guide's body has an entry of that name under that id."""
+    parts = event.split("|")
+    if len(parts) < 3:
+        return None
+    body = registry.rulebooks.body("xdmg")
+    if body is None:
+        return None
+    entry = _entry_by_id([s.entry for s in body.sections], parts[1])
+    if entry is None or str(entry.get("name", "")).lower() != parts[2].lower():
+        return None
+    context = localized_context(
+        page.t,
+        resolver=characters.resolver(),
+        source_set=characters.source_set(character),
+        world_id=character.world_id,
+        units=page.u,
+    )
+    return render_entries(entry.get("entries") or [], context)
+
+
+def _entry_by_id(nodes: list[Any], wanted: str) -> dict[str, Any] | None:
+    """The entry with ``id`` ``wanted`` anywhere under ``nodes``."""
+    stack = list(nodes)
+    while stack:
+        node = stack.pop()
+        if isinstance(node, dict):
+            if node.get("id") == wanted:
+                return node
+            stack.extend(node.values())
+        elif isinstance(node, list):
+            stack.extend(node)
+    return None
 
 
 @router.get("/characters/{character_id}/bastion", response_class=HTMLResponse)
@@ -468,6 +526,31 @@ async def change_bastion(
             service.add(character_id, level, chosen)
         elif op == "remove":
             service.remove(character_id, index)
+        elif op == "add_basic":
+            basic = {
+                f.reference.lower(): f
+                for f in basic_facilities(
+                    registry.compendium.all("facility"), characters.source_set(character)
+                )
+            }.get(str(form.get("facility", "")).lower())
+            if basic is None:
+                raise BastionError("bastion.error.order")
+            service.add_basic(character_id, level, basic, str(form.get("space", "")))
+        elif op == "remove_basic":
+            service.remove_basic(character_id, index)
+        elif op == "defenders":
+            change = 1 if str(form.get("change", "")) == "1" else -1
+            user = identity.user
+            service.defenders(
+                character_id,
+                change,
+                character.name or "?",
+                user.username,
+                user.display_name or user.username,
+                character.world_id,
+            )
+        elif op == "maintain":
+            service.maintain(character_id, form.get("on") == "1")
         elif op == "order":
             held = service.of(character_id).facilities
             ref = held[index].ref.lower() if 0 <= index < len(held) else ""
@@ -496,6 +579,275 @@ async def change_bastion(
     except BastionError as exc:
         return _bastion(identity, page, characters, registry, character, error=page.t.error(exc))
     return redirect(f"/characters/{character_id}/bastion")
+
+
+def _shop(
+    page: Page,
+    registry: RegistryDep,
+    character: PlayerCharacter,
+    *,
+    shelf: str = "",
+    query: str = "",
+    error: str | None = None,
+    message: str | None = None,
+) -> HTMLResponse:
+    shop = registry.shops.serves(character.world_id, character.id)
+    if shop is None:
+        raise HTTPException(status_code=404)
+    catalogue = registry.catalogue(character.world_id)
+    wares = _wares(registry, character, shop)
+    sellable = []
+    for n, item in enumerate(character.inventory):
+        price = registry.shops.buys_for(shop, catalogue.item(item.item.reference))
+        if price > 0 and not item.equipped and item.quantity > 0:
+            sellable.append((n, item, price))
+    return html(
+        shop_page(
+            page,
+            character_id=character.id,
+            character_name=character.name or "?",
+            world_id=character.world_id,
+            shop=shop,
+            purse=character.currency,
+            wares=wares,
+            sellable=sellable,
+            shelf_shown=shelf if shelf in SHELVES else "",
+            query=query.strip()[:60],
+            error=error,
+            message=message,
+        )
+    )
+
+
+def _wares(registry: RegistryDep, character: PlayerCharacter, shop: Shop) -> list[Ware]:
+    """The shop's shelves for a character: the world's mundane gear in its edition."""
+    catalogue = registry.catalogue(character.world_id)
+    bases = catalogue.index("baseitem")
+    offers = catalogue.shop(registry.rules_of(character.world_id))
+    return registry.shops.wares(shop, offers, lambda o: o.reference.lower() in bases)
+
+
+@router.get("/characters/{character_id}/shop", response_class=HTMLResponse)
+async def shop(
+    identity: IdentityDep,
+    page: PageDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+    shelf: str = "",
+    q: str = "",
+) -> HTMLResponse:
+    """The open shop of the character's world, if it serves this character."""
+    character = characters.get_for(identity, character_id)
+    return _shop(page, registry, character, shelf=shelf, query=q)
+
+
+@router.post("/characters/{character_id}/shop", response_class=HTMLResponse)
+async def trade(
+    request: Request,
+    identity: IdentityDep,
+    page: PageDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+) -> Response:
+    """Buy from the shelves or sell something carried, at the shop's prices."""
+    character = characters.get_for(identity, character_id)
+    shop = registry.shops.serves(character.world_id, character.id)
+    if shop is None:
+        raise HTTPException(status_code=404)
+    form = await request.form()
+    raw_count = str(form.get("count", "1"))
+    count = max(1, min(99, int(raw_count))) if raw_count.isdigit() else 1
+    actor = Actor(
+        identity.user.display_name or identity.user.username, username=identity.user.username
+    )
+    message = None
+    try:
+        if form.get("op") == "buy":
+            wanted = str(form.get("item", "")).lower()
+            ware = next(
+                (w for w in _wares(registry, character, shop) if w.reference.lower() == wanted),
+                None,
+            )
+            if ware is None:
+                raise PlayError("play.error.bad_input")
+            characters.act_for(
+                character.id,
+                "buy",
+                {"item": ware.reference, "count": str(count), "price": str(ware.price)},
+                actor,
+            )
+            message = page.t(
+                "shop.bought", name=name_text(page, ("item", "baseitem"), ware.offer.name), n=count
+            )
+        elif form.get("op") == "sell":
+            raw = str(form.get("index", ""))
+            index = int(raw) if raw.isdigit() else -1
+            if not 0 <= index < len(character.inventory) or character.inventory[index].equipped:
+                raise PlayError("play.error.bad_input")
+            item = character.inventory[index]
+            price = registry.shops.buys_for(
+                shop, registry.catalogue(character.world_id).item(item.item.reference)
+            )
+            if price <= 0:
+                raise PlayError("play.error.bad_input")
+            characters.act_for(
+                character.id,
+                "sell",
+                {"index": str(index), "count": str(min(count, item.quantity)), "price": str(price)},
+                actor,
+            )
+            message = page.t(
+                "shop.sold", name=name_text(page, ("item", "baseitem"), item.item.name)
+            )
+        else:
+            raise PlayError("play.error.bad_input")
+    except PlayError as exc:
+        fresh = characters.get_for(identity, character_id)
+        return _shop(page, registry, fresh, error=page.t.error(exc))
+    return _shop(page, registry, characters.get_for(identity, character_id), message=message)
+
+
+def _downtime(
+    page: Page,
+    registry: RegistryDep,
+    character: PlayerCharacter,
+    *,
+    error: str | None = None,
+    message: str | None = None,
+) -> HTMLResponse:
+    rules = registry.rules_of(character.world_id)
+    craftable = [
+        (
+            o.reference,
+            str(name_text(page, ("item", "baseitem"), o.name)),
+            crafting_days(p, rules),
+            materials(p),
+        )
+        for o in _craftable(registry, character)
+        if (p := price(o)) > 0
+    ]
+    return html(
+        downtime_page(
+            page,
+            character_id=character.id,
+            character_name=character.name or "?",
+            downtime=registry.downtime.of(character.id),
+            craftable=craftable,
+            trainable=_trainable(page, registry, character),
+            error=error,
+            message=message,
+        )
+    )
+
+
+def _craftable(registry: RegistryDep, character: PlayerCharacter) -> list[Offer]:
+    """What a character may craft: the mundane gear the shop would sell."""
+    return registry.catalogue(character.world_id).shop(registry.rules_of(character.world_id))
+
+
+def _trainable(
+    page: Page, registry: RegistryDep, character: PlayerCharacter
+) -> list[tuple[str, str]]:
+    """Languages and tools of the world's books the character does not know yet."""
+    catalogue = registry.catalogue(character.world_id)
+    known = {o.name.lower() for o in [*character.languages, *character.tools]}
+    out = [
+        (f"language:{o.reference}", str(name_text(page, "language", o.name)))
+        for o in catalogue.rows("language")
+        if o.name.lower() not in known and o.data.get("type") != "secret"
+    ]
+    tools = TOOL_TYPES["any"]
+    seen: set[str] = set()
+    for category in ("baseitem", "item"):
+        for o in catalogue.rows(category):
+            code = str(o.data.get("type", "")).split("|")[0]
+            if code in tools and o.name.lower() not in known and o.name.lower() not in seen:
+                seen.add(o.name.lower())
+                out.append(
+                    (f"tool:{o.reference}", str(name_text(page, ("item", "baseitem"), o.name)))
+                )
+    return sorted(out, key=lambda pair: (not pair[0].startswith("language:"), pair[1].lower()))
+
+
+@router.get("/characters/{character_id}/downtime", response_class=HTMLResponse)
+async def downtime(
+    identity: IdentityDep,
+    page: PageDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+) -> HTMLResponse:
+    """The character's free downtime days and its projects."""
+    return _downtime(page, registry, characters.get_for(identity, character_id))
+
+
+@router.post("/characters/{character_id}/downtime", response_class=HTMLResponse)
+async def change_downtime(
+    request: Request,
+    identity: IdentityDep,
+    page: PageDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+) -> Response:
+    """Start a project, spend days on one, or give one up."""
+    character = characters.get_for(identity, character_id)
+    form = await request.form()
+    op = str(form.get("op", ""))
+    service = registry.downtime
+    user = identity.user
+    name = user.display_name or user.username
+    try:
+        if op == "start":
+            kind = str(form.get("kind", ""))
+            label = str(form.get("label", ""))
+            item_price = None
+            if kind == "craft":
+                wanted = str(form.get("item", "")).lower()
+                offer = next(
+                    (o for o in _craftable(registry, character) if o.reference.lower() == wanted),
+                    None,
+                )
+                if offer is None:
+                    raise DowntimeError("downtime.error.item")
+                label, item_price = offer.reference, price(offer)
+            elif kind == "train":
+                label = str(form.get("item", ""))
+                if label not in {ref for ref, _ in _trainable(page, registry, character)}:
+                    raise DowntimeError("downtime.error.item")
+            raw = str(form.get("needed", "")).strip()
+            service.start(
+                character,
+                kind,
+                label,
+                needed=int(raw) if raw.isdigit() else None,
+                price=item_price,
+                rules=registry.rules_of(character.world_id),
+                by=user.username,
+                by_name=name,
+            )
+            message = page.t("downtime.started")
+        elif op == "spend":
+            raw = str(form.get("days", ""))
+            project = service.spend(
+                character,
+                str(form.get("project", "")),
+                int(raw) if raw.isdigit() else 0,
+                user.username,
+                name,
+            )
+            message = page.t("downtime.finished_now" if project.finished else "downtime.spent")
+        elif op == "drop":
+            service.drop(character.id, str(form.get("project", "")))
+            message = None
+        else:
+            raise DowntimeError("downtime.error.project")
+    except (DowntimeError, PlayError) as exc:
+        return _downtime(page, registry, character, error=page.t.error(exc))
+    registry.events.publish(character.id, f"downtime-{datetime.now(UTC).isoformat()}")
+    return _downtime(page, registry, characters.get_for(identity, character_id), message=message)
 
 
 @router.post("/characters/{character_id}/timer/{timer_id}/stop")

@@ -24,7 +24,7 @@ from app.services import polymorph
 from app.services.auth import Identity
 from app.services.clock import light_minutes, spell_minutes
 from app.services.experience import award
-from app.services.play import Actor, PlayError, PlayService
+from app.services.play import INTERNAL_ACTIONS, Actor, PlayError, PlayService
 from app.services.protocol import ProtocolService, for_character, roll_record
 from app.services.sheet import Sheet, build_sheet, heal_at
 from app.store.gamestate import GameStateStore
@@ -224,6 +224,8 @@ class CharacterService:
         """Apply a sheet action as ``identity``. Rules refusals raise ``PlayError``."""
         character = self.get_for(identity, character_id)
         actor = _actor(identity)
+        if action in INTERNAL_ACTIONS:
+            raise PlayError("play.error.unknown_action", action=action)
         if action == "polymorph" and params.get("op") != "end":
             # A shape is taken through :meth:`polymorph`, where the spell's rules are checked.
             raise PlayError("play.error.bad_input")
@@ -275,6 +277,16 @@ class CharacterService:
             **{d: str(amount) for d, amount in coins.items() if amount},
         }
         return self.play.act(character_id, "receive", params, self.sheet(pc), by)
+
+    def act_for(
+        self, character_id: str, action: str, params: Mapping[str, str], by: Actor
+    ) -> PlayerCharacter:
+        """An action the server takes for a character — buying, selling, paying for
+        downtime, learning — with what the shop or downtime worked out, never a form's."""
+        pc = self._store.characters.find(character_id)
+        if pc is None:
+            raise CharacterNotFound(character_id)
+        return self.play.act(character_id, action, params, self.sheet(pc), by)
 
     def roll_for(self, character_id: str, kind: str, subject: str, by: str) -> int | None:
         """The gamemaster rolls a check on a character's sheet, privately (a secret

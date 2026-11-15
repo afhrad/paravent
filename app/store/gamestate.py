@@ -233,6 +233,7 @@ class GameStateStore:
             CheckCall,
             Combat,
             CreatureDesign,
+            Downtime,
             Encounter,
             Handout,
             Knowledge,
@@ -243,6 +244,7 @@ class GameStateStore:
             Place,
             Session,
             SessionNote,
+            Shop,
             Sound,
             SoundScene,
             TableSafety,
@@ -297,6 +299,10 @@ class GameStateStore:
         self.bastions: Collection[Bastion] = Collection(root / "bastions.json", Bastion)
         # Each world's time in the game and the timers running against it.
         self.clocks: Collection[WorldClock] = Collection(root / "clocks.json", WorldClock)
+        # Characters' downtime days and projects, by character id.
+        self.downtime: Collection[Downtime] = Collection(root / "downtime.json", Downtime)
+        # The shop each world's gamemaster opens for its characters.
+        self.shops: Collection[Shop] = Collection(root / "shops.json", Shop)
         self.npcs: Collection[Npc] = Collection(root / "npcs.json", Npc)
         # The campaign's places, ``{@place}`` (documentation/ADVENTURES.md §4).
         self.locations: Collection[Location] = Collection(root / "locations.json", Location)

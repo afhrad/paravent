@@ -34,7 +34,7 @@ from typing import Any
 from app.models.gamestate import SpellForm
 from app.models.pc import ChosenOption, InventoryItem, LogKind, PlayerCharacter, Recharge
 from app.models.protocol import EntryKind, ProtocolEntry, RollRecord, Scope, Visibility
-from app.services import polymorph, wild_shape
+from app.services import coins, polymorph, wild_shape
 from app.services.clock import OIL, OIL_LIGHTS, light_minutes
 from app.services.condition_rolls import bend
 from app.services.dice import Advantage, Dice, DiceError, Roll, is_expression
@@ -46,6 +46,11 @@ from app.store.characters import CharacterStore
 # The actions whose log entries the sheet's "private" switch keeps between the roller
 # and the gamemaster (PROTOCOL.md §4): rolls, never the hit points or conditions.
 PRIVATE_ACTIONS = frozenset({"roll", "death_save", "hit_die"})
+# Actions the server takes for a character and the sheet may never post: their prices
+# and goods are worked out by the shop, downtime and treasure, not by the form.
+INTERNAL_ACTIONS = frozenset({"receive", "buy", "sell", "spend", "learn", "eat"})
+# A day's food on the road, by item name.
+RATIONS = frozenset({"rations", "rations (1 day)"})
 # The conditions under which a creature cannot keep concentrating (each one is, or
 # includes, Incapacitated); dropping to 0 HP leaves it Unconscious too.
 # How long a character's own notes may grow.
@@ -154,6 +159,11 @@ class PlayService:
             "wild_forms": self._wild_forms,
             "polymorph": self._polymorph,
             "receive": self._receive,
+            "buy": self._buy,
+            "sell": self._sell,
+            "spend": self._spend,
+            "learn": self._learn,
+            "eat": self._eat,
             "use": self._use,
             "light": self._light,
             "notes": self._notes,
@@ -948,19 +958,7 @@ class PlayService:
             if not ref or count < 1:
                 raise PlayError("play.error.bad_input")
             option = ChosenOption.model_validate(ref)
-            stack = next(
-                (
-                    i
-                    for i in pc.inventory
-                    if i.item.name.lower() == option.name.lower()
-                    and (i.item.source or "").lower() == (option.source or "").lower()
-                ),
-                None,
-            )
-            if stack is not None:
-                stack.quantity += count
-            else:
-                pc.inventory = [*pc.inventory, InventoryItem(item=option, quantity=count)]
+            self._add_items(pc, option, count)
             got.append(f"{option.reference}*{count}")
         coins = {d: max(0, _int(params, d, 0)) for d in ("cp", "sp", "ep", "gp", "pp")}
         for denomination, amount in coins.items():
@@ -968,6 +966,104 @@ class PlayService:
         purse = ",".join(f"{amount}{d}" for d, amount in coins.items() if amount)
         if got or purse:
             self._stage(pc, actor, EntryKind.CUSTOM, what=f"receive:{';'.join(got)}:{purse}")
+
+    def _buy(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Buy ``count`` of ``item`` at ``price`` copper each (the shop's price), paid out
+        of the purse; refused when it holds too little."""
+        option = ChosenOption.model_validate(params.get("item", ""))
+        count = max(1, _int(params, "count", 1))
+        cost = max(0, _int(params, "price", 0)) * count
+        purse = coins.pay(pc.currency, cost)
+        if purse is None:
+            raise PlayError("play.error.no_money")
+        pc.currency = purse
+        self._add_items(pc, option, count)
+        self._stage(
+            pc, actor, EntryKind.CUSTOM, what=f"buy:{option.reference}*{count}:{coins.text(cost)}"
+        )
+
+    def _sell(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Sell ``count`` of the carried item at ``index`` for ``price`` copper each."""
+        index = _int(params, "index")
+        count = max(1, _int(params, "count", 1))
+        if not 0 <= index < len(pc.inventory) or pc.inventory[index].quantity < count:
+            raise PlayError("play.error.bad_input")
+        item = pc.inventory[index]
+        earned = max(0, _int(params, "price", 0)) * count
+        item.quantity -= count
+        if item.quantity == 0:
+            pc.inventory = [i for n, i in enumerate(pc.inventory) if n != index]
+        pc.currency = coins.earn(pc.currency, earned)
+        self._stage(
+            pc,
+            actor,
+            EntryKind.CUSTOM,
+            what=f"sell:{item.item.reference}*{count}:{coins.text(earned)}",
+        )
+
+    def _spend(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Pay ``amount`` copper for something (``for``: what, for the log)."""
+        cost = max(0, _int(params, "amount", 0))
+        purse = coins.pay(pc.currency, cost)
+        if purse is None:
+            raise PlayError("play.error.no_money")
+        pc.currency = purse
+        if cost:
+            reason = params.get("for", "").replace(":", " ")
+            self._stage(pc, actor, EntryKind.CUSTOM, what=f"spend:{coins.text(cost)}:{reason}")
+
+    def _learn(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Learn a language or gain proficiency with a tool (``kind``, ``ref``), as
+        training in downtime gives."""
+        kind = params.get("kind", "")
+        option = ChosenOption.model_validate(params.get("ref", ""))
+        if kind not in ("language", "tool"):
+            raise PlayError("play.error.bad_input")
+        held = pc.languages if kind == "language" else pc.tools
+        if all(o.name.lower() != option.name.lower() for o in held):
+            held.append(option)
+        self._stage(pc, actor, EntryKind.CUSTOM, what=f"learn:{kind}:{option.reference}")
+
+    def _eat(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """A day's rations eaten on the road; refused when the pack has none."""
+        found = next(
+            (
+                n
+                for n, i in enumerate(pc.inventory)
+                if i.item.name.lower() in RATIONS and i.quantity
+            ),
+            None,
+        )
+        if found is None:
+            raise PlayError("play.error.no_rations")
+        _take_one(pc, found)
+
+    @staticmethod
+    def _add_items(pc: PlayerCharacter, option: ChosenOption, count: int) -> None:
+        """Put ``count`` of an item in the pack, on a stack of the same thing if any."""
+        stack = next(
+            (
+                i
+                for i in pc.inventory
+                if i.item.name.lower() == option.name.lower()
+                and (i.item.source or "").lower() == (option.source or "").lower()
+            ),
+            None,
+        )
+        if stack is not None:
+            stack.quantity += count
+        else:
+            pc.inventory = [*pc.inventory, InventoryItem(item=option, quantity=count)]
 
     def _end_polymorph(self, pc: PlayerCharacter, actor: Actor, natural: bool = False) -> None:
         """Leave a spell's shape; ``natural`` when it ended by itself, which ends the spell
@@ -1036,4 +1132,4 @@ def _physical(sheet: Sheet, kind: str, subject: str) -> bool:
     return kind == "initiative"
 
 
-__all__ = ["Actor", "PlayError", "PlayService"]
+__all__ = ["INTERNAL_ACTIONS", "RATIONS", "Actor", "PlayError", "PlayService"]

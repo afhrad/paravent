@@ -80,6 +80,7 @@ from app.ui import rules_text
 from app.ui.check_pages import check_banner
 from app.ui.clock_pages import remaining, sheet_time, sheet_timers
 from app.ui.context import Page
+from app.ui.downtime_pages import sheet_downtime_link
 from app.ui.forms import hidden
 from app.ui.icons import icon
 from app.ui.layout import app_shell
@@ -88,6 +89,7 @@ from app.ui.names import summary as summary_line
 from app.ui.protocol_pages import log_embed_slot
 from app.ui.ref_pages import statblock
 from app.ui.safety_pages import xcard_button
+from app.ui.shop_pages import sheet_shop_link
 from app.ui.tags import RenderContext, localized_context, plain, ref_url, render_entries
 from app.ui.tokens import token, token_panel
 from app.ui.translate_pages import translate_url
@@ -1604,6 +1606,10 @@ def _head(page: Page, sheet: Sheet, *, file_label: str | None) -> Element:
                 icon("vault", "sm"), span[t("bastion.short")]
             ]
             if pc.total_level >= 5
+            else None,
+            sheet_shop_link(page, pc.id, sheet.shop) if sheet.shop is not None else None,
+            sheet_downtime_link(page, pc.id, sheet.downtime)
+            if sheet.downtime is not None
             else None,
             # The X-card, for the player at the table (the gamemaster has no need of it).
             xcard_button(page, pc.world_id)

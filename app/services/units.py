@@ -82,6 +82,12 @@ class UnitFormat:
             return f"{self.number(feet)} ft."
         return f"{self.number(Decimal(str(feet)) * FOOT)} m"
 
+    def miles(self, miles: int | float | Decimal) -> str:
+        """``24`` → ``"24 mi."`` or ``"36 km"``, a travel distance."""
+        if not self.metric:
+            return f"{self.number(miles)} mi."
+        return f"{self.number(Decimal(str(miles)) * MILE)} km"
+
     def weight(self, pounds: int | float | Decimal) -> str:
         """``3`` → ``"3 lb."`` or ``"1.5 kg"``."""
         if not self.metric:

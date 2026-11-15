@@ -20,6 +20,7 @@ from htpy import Element, Node, a, b, button, dialog, div, form, li, ol, p, span
 
 from app.models.protocol import Die, EntryKind, ProtocolEntry, RollRecord, Visibility
 from app.services.protocol_view import Filter, LogPage, Shown
+from app.services.travel import PACES
 from app.ui.clock_pages import clock_label, remaining
 from app.ui.context import Page
 from app.ui.forms import hidden
@@ -454,9 +455,7 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             spent = remaining(page, int(span_text)) if span_text.isdigit() else span_text
             if not why:
                 return t("protocol.clock", span=spent, when=when)
-            reason = (
-                t(f"clock.reason.{why}") if why in ("short_rest", "long_rest", "fight") else why
-            )
+            reason = t(f"clock.reason.{why}") if why in CLOCK_REASONS else why
             return t("protocol.clock_why", why=reason, span=spent, when=when)
         if head == "timer":
             timer, _, label = rest.partition(":")
@@ -484,11 +483,109 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
                 amount, denomination = coin[:-2], coin[-2:]
                 parts.append(f"{amount} {t(f'treasure.coin.{denomination}')}")
             return t("protocol.receive", what=", ".join(parts))
+        if head in ("buy", "sell"):
+            item, _, purse = rest.partition(":")
+            ref, _, count = item.rpartition("*")
+            name = name_text(page, ("item", "baseitem"), ref.partition("|")[0])
+            what_text = f"{name} ×{count}" if count not in ("", "1") else str(name)
+            return t(f"protocol.{head}", item=what_text, coins=_purse_words(page, purse))
+        if head == "spend":
+            purse, _, reason = rest.partition(":")
+            return t("protocol.spend", coins=_purse_words(page, purse))
+        if head == "learn":
+            learned, _, ref = rest.partition(":")
+            categories = "language" if learned == "language" else ("item", "baseitem")
+            return t("protocol.learn", name=name_text(page, categories, ref.partition("|")[0]))
+        if head == "travel":
+            fields = rest.split(":")
+            pace, hours, miles = (fields + ["", "", ""])[:3]
+            where = fields[3] if len(fields) > 3 else ""
+            hungry = fields[4] if len(fields) > 4 else ""
+            spent = remaining(page, int(hours) * 60) if hours.isdigit() else hours
+            try:
+                distance = page.u.miles(float(miles))
+            except ValueError:
+                distance = miles
+            line = t(
+                "protocol.travel",
+                span=spent,
+                distance=distance,
+                pace=t(f"travel.pace.{pace}") if pace in PACES else pace,
+            )
+            if where:
+                line += f" · {where}"
+            if hungry:
+                line += " · " + t("travel.hungry", names=hungry.replace(",", ", "))
+            return line
+        if head == "travel_encounter":
+            return t("protocol.travel_encounter", row=rest) if rest else t("protocol.travel_check")
+        if head == "downtime":
+            return t.plural("protocol.downtime", int(rest) if rest.isdigit() else 0, n=rest)
+        if head in ("downtime_start", "downtime_done"):
+            job, _, label = rest.partition(":")
+            return t(
+                f"protocol.{head}",
+                kind=t(f"downtime.kind.{job}"),
+                what=_project_words(page, job, label),
+            )
+        if head == "downtime_spent":
+            job, _, more = rest.partition(":")
+            days, _, label = more.partition(":")
+            return t.plural(
+                "protocol.downtime_spent",
+                int(days) if days.isdigit() else 0,
+                n=days,
+                kind=t(f"downtime.kind.{job}"),
+                what=_project_words(page, job, label),
+            )
+        if head == "shop":
+            op, _, name = rest.partition(":")
+            return t(
+                f"protocol.shop_{'open' if op == 'open' else 'close'}",
+                name=name or t("shop.heading"),
+            )
+        if head == "bastion_defenders":
+            change, _, count = rest.partition(":")
+            key = (
+                "protocol.defenders_up" if not change.startswith("-") else "protocol.defenders_down"
+            )
+            return t(key, n=change.lstrip("-+"), total=count, subject=entry.subject_name)
+        if head == "bastion_event":
+            name, _, lost = rest.partition(":")
+            if lost not in ("", "0"):
+                return t(
+                    "protocol.bastion_event_lost", subject=entry.subject_name, name=name, n=lost
+                )
+            return t("protocol.bastion_event", subject=entry.subject_name, name=name)
         if head in ("wild_shape", "polymorph"):
             on, _, form = rest.partition(":")
             name = name_text(page, "monster", form.partition("|")[0])
             return t(f"protocol.{head}_{on}", form=name)
     return what
+
+
+# The reasons the clock is moved for that have words of their own.
+CLOCK_REASONS = ("short_rest", "long_rest", "fight", "travel", "downtime")
+
+
+def _purse_words(page: Page, purse: str) -> str:
+    """``"12gp,5sp"`` in the reader's coin names."""
+    parts = []
+    for coin in filter(None, purse.split(",")):
+        amount, denomination = coin[:-2], coin[-2:]
+        parts.append(f"{amount} {page.t(f'treasure.coin.{denomination}')}")
+    return " ".join(parts) or f"0 {page.t('treasure.coin.gp')}"
+
+
+def _project_words(page: Page, kind: str, label: str) -> str:
+    """What a downtime project works on, named for the reader."""
+    if kind == "craft":
+        return str(name_text(page, ("item", "baseitem"), label.partition("|")[0]))
+    if kind == "train":
+        what, _, ref = label.partition(":")
+        categories = "language" if what == "language" else ("item", "baseitem")
+        return str(name_text(page, categories, ref.partition("|")[0]))
+    return label
 
 
 def _breakdown(page: Page, entry: ProtocolEntry) -> Node:

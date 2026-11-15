@@ -290,11 +290,13 @@ def party_page(
     combats: Node = None,
     checks: Node = None,
     clock: Node = None,
+    shop: Node = None,
 ) -> Element:
     """The gamemaster's landing screen: every character at the table, live.
 
     ``combats`` is the strip of running fights above the cards, ``clock`` the world's
-    time in the game, ``checks`` the panel that calls for a check outside a fight.
+    time in the game, ``shop`` its shop, ``checks`` the panel that calls for a check
+    outside a fight.
     """
     t = page.t
     if world is not None:
@@ -330,6 +332,7 @@ def party_page(
             ),
             combats,
             clock,
+            shop,
             checks,
             party_grid(page, cards, world_id=world.id if world else None),
         ],

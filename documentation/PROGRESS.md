@@ -460,6 +460,35 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         early goes quietly), and the gamemaster's own reminders; each runs out in the
         log. The sheet shows the time and its own timers, to put out early. A bastion
         turn falls due seven days after the last
+  - [x] **Travel** (2026-11-15, `app/services/travel.py`): from the party view's clock,
+        hours or travelling days of eight hours at a slow, normal or fast pace (2, 3 or 4
+        miles an hour, half in difficult terrain), through one of the world's
+        random-encounter tables, with up to three checks a day (a d20 of 18 or more);
+        a check that comes up stops the party there, its table rolled for the party's
+        level, and the gamemaster makes it an encounter in one press. Each travelling
+        evening every character eats a day's rations from the pack; one without goes
+        hungry, and hunger brings exhaustion by the world's rules (2014: after 3 + CON
+        days; 2024: from the fifth day), which the night's long rest does not take away.
+        Water is left to the table. The journey stays on the panel and goes into the log
+  - [x] **Downtime** (2026-11-15, `app/services/downtime.py`): the gamemaster grants the
+        party days (the clock moves on after a long rest); each character spends them on
+        its downtime page on crafting an item the shop sells (materials half its price,
+        5 gp of progress a day under the 2014 rules, a day per 10 GP under the 2024
+        rules; the item lands in the pack), training in a language or tool (250 days at
+        1 gp a day, then known), research (1 gp a day), recuperating (three days, then a
+        DC 15 Constitution save is rolled), working or anything else
+  - [x] **A shop during play** (2026-11-15, `app/services/shop.py`): the gamemaster opens
+        a named shop for the world's characters or those ticked, at a share of the list
+        price and buying back at another; the sheet shows it while open, and the shop
+        page sells the wizard's mundane gear of the world's books and buys back what the
+        books price, paid from the purse with change (`app/services/coins.py`), logged.
+        The sheet's own action route can no longer hand out goods or coins
+  - [x] **Bastions, the rest** (2026-11-15): basic facilities with their space, Bastion
+        Defenders on a roster, and the Maintain order, whose turn rolls the 2024
+        guide's Bastion Events table from the corpus and shows the event's text; an
+        attack rolls 6d6 and loses a defender per 1, and with none left shuts a special
+        facility for the next turn. What other orders and events yield stays with the
+        table
   - [x] **Image effects** (2026-11-04, ADVENTURES.md §5.5, `app/services/image_effects.py`):
         `torn`, `fade`, `oval`, `sepia`, `aged`, `mono`, `banner` written beside an image
         (`![[tavern.jpg|torn sepia]]`, `cover: media/x.jpg|fade`), rendered once with
@@ -948,7 +977,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2342 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2356 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the

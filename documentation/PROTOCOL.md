@@ -195,6 +195,14 @@ What just happened, without stopping play.
   `light:<item>` (a torch or lantern lit on the sheet), and `timer:<kind>:<label>` when a
   light burns out, a spell's duration ends or the gamemaster's reminder (`custom`, for the
   gamemaster alone) comes due.
+  On the road and between adventures (app/services/travel.py, downtime.py, shop.py):
+  `travel:<pace>:<hours>:<miles>:<table>:<hungry names>` for a stretch of travel, and
+  `travel_encounter:<row>` (for the gamemaster alone) when a check comes up; `downtime:<days>`
+  when the party is granted downtime, `downtime_start:`, `downtime_spent:` and
+  `downtime_done:<kind>:…` for a character's projects; `shop:open:<name>` and
+  `shop:close:<name>`, `buy:` and `sell:<item>*<count>:<coins>`, `spend:<coins>:<for>`
+  (materials, a day of training) and `learn:<language|tool>:<ref>`. The bastion adds
+  `bastion_defenders:<change>:<count>` and `bastion_event:<name>:<defenders lost>`.
 - The device that rolled hears the dice (`sound.js`) as today; a toast never plays a sound
   of its own.
 

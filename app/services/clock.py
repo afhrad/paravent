@@ -17,7 +17,7 @@ import uuid
 from collections.abc import Callable, Iterable, Sequence
 from typing import Any
 
-from app.models.gamestate import ClockTimer, WorldClock
+from app.models.gamestate import ClockTimer, Journey, WorldClock
 from app.models.protocol import EntryKind, ProtocolEntry, Scope, Visibility
 from app.services.i18n import Translatable
 from app.services.protocol import ProtocolService
@@ -202,6 +202,16 @@ class ClockService:
             if t.id != timer_id or (character_id is not None and t.character_id != character_id)
         ]
         return self._save(clock.model_copy(update={"timers": kept}))
+
+    def keep(
+        self, world_id: str, journey: Journey | None, hungry: dict[str, int] | None = None
+    ) -> WorldClock:
+        """Keep the party's last journey (None forgets it) and, with ``hungry``, how
+        many days each character has gone without food (app/services/travel.py)."""
+        update: dict[str, Any] = {"journey": journey}
+        if hungry is not None:
+            update["hungry"] = hungry
+        return self._save(self.of(world_id).model_copy(update=update))
 
     def _stale(self, timer: ClockTimer) -> bool:
         if not (timer.concentration and timer.character_id):

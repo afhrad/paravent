@@ -3,12 +3,13 @@ and the time and a character's own timers on its sheet."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from urllib.parse import quote, urlencode
 
 from htpy import (
     Element,
     Node,
+    a,
     b,
     button,
     details,
@@ -17,6 +18,7 @@ from htpy import (
     label,
     li,
     option,
+    p,
     select,
     small,
     span,
@@ -25,8 +27,9 @@ from htpy import (
 )
 from htpy import input as input_el
 
-from app.models.gamestate import ClockTimer
+from app.models.gamestate import ClockTimer, Journey
 from app.services.clock import day_of, part_of_day, time_of
+from app.services.travel import PACES
 from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
@@ -77,8 +80,12 @@ def clock_panel(
     timers: Sequence[ClockTimer],
     names: Mapping[str, str],
     due: Sequence[str],
+    *,
+    journey: Journey | None = None,
+    environments: Sequence[tuple[str, str]] = (),
 ) -> Element:
-    """The time, the moves, a party rest, the timers and what is due."""
+    """The time, the moves, a party rest, the timers and what is due; the party's last
+    journey and the forms to travel on and to grant downtime."""
     t = page.t
     base = f"{CLOCK_URL}/{quote(world_id)}"
 
@@ -134,6 +141,11 @@ def clock_panel(
         ]
         if due
         else None,
+        _journey(page, base, journey) if journey is not None else None,
+        details(class_="party-clock-more party-travel")[
+            summary[icon("footprints", "sm"), span[t("travel.heading")]],
+            _travel_form(page, post, environments),
+        ],
         details(class_="party-clock-more")[
             summary[t("clock.more")],
             post(
@@ -185,6 +197,177 @@ def clock_panel(
                 ],
                 cls="party-clock-form",
             ),
+            post(
+                "downtime",
+                label(class_="party-clock-label")[
+                    span[t("downtime.grant_days")],
+                    input_el(
+                        type="number",
+                        name="days",
+                        min="1",
+                        max="365",
+                        value="7",
+                        inputmode="numeric",
+                        class_="mono party-clock-amount",
+                    ),
+                ],
+                button(type="submit", class_="btn btn-sm", title=t("downtime.grant_hint"))[
+                    icon("hourglass", "sm"), span[t("downtime.grant")]
+                ],
+                cls="party-clock-form",
+            ),
+        ],
+    ]
+
+
+def _travel_form(
+    page: Page, post: Callable[..., Element], environments: Sequence[tuple[str, str]]
+) -> Element:
+    """How long, how fast, through what, how watchful, with what."""
+    t = page.t
+    return post(
+        "travel",
+        input_el(
+            type="number",
+            name="amount",
+            min="1",
+            value="1",
+            inputmode="numeric",
+            class_="mono party-clock-amount",
+            aria_label=t("clock.amount"),
+        ),
+        select(name="unit", aria_label=t("clock.unit"))[
+            option(value="hour")[t("clock.unit.hour")],
+            option(value="day", selected=True)[t("travel.unit.day")],
+        ],
+        select(name="pace", aria_label=t("travel.pace"))[
+            [
+                option(value=pace, selected=pace == "normal", title=t(f"travel.pace.{pace}_hint"))[
+                    t(f"travel.pace.{pace}")
+                ]
+                for pace in PACES
+            ]
+        ],
+        select(name="environment", aria_label=t("travel.environment"))[
+            option(value="")[t("travel.no_table")],
+            [option(value=key)[name] for key, name in environments],
+        ],
+        select(name="checks", aria_label=t("travel.checks"))[
+            [
+                option(value=str(n), selected=n == 1)[t.plural("travel.checks_n", n, n=n)]
+                for n in range(4)
+            ]
+        ],
+        label(class_="party-clock-label")[
+            input_el(type="checkbox", name="difficult", value="1"), span[t("travel.difficult")]
+        ],
+        label(class_="party-clock-label")[
+            input_el(type="checkbox", name="rations", value="1", checked=True),
+            span[t("travel.rations")],
+        ],
+        label(class_="party-clock-label")[
+            input_el(type="checkbox", name="rest", value="1", checked=True),
+            span[t("travel.rest")],
+        ],
+        button(type="submit", class_="btn btn-sm btn-primary")[
+            icon("footprints", "sm"), span[t("travel.go")]
+        ],
+        p(class_="muted party-travel-hint")[t("travel.hint")],
+        cls="party-clock-form party-travel-form",
+    )
+
+
+def _journey(page: Page, base: str, journey: Journey) -> Element:
+    """The party's last stretch of road: how far, what was eaten, what stopped it."""
+    t = page.t
+    spent = remaining(page, journey.hours * 60)
+    lines: list[Node] = [
+        p[
+            b[t("travel.went", span=spent, distance=page.u.miles(journey.miles))],
+            " · ",
+            span(class_="muted")[t(f"travel.pace.{journey.pace}")],
+            span(class_="muted")[f" · {t('travel.difficult')}"] if journey.difficult else None,
+            span(class_="muted")[f" · {journey.environment.partition('|')[0]}"]
+            if journey.environment
+            else None,
+        ]
+    ]
+    if journey.rations:
+        lines.append(
+            p(class_="muted")[t.plural("travel.rations_eaten", journey.rations, n=journey.rations)]
+        )
+    if journey.hungry:
+        lines.append(
+            p[icon("triangle-alert", "sm"), t("travel.hungry", names=", ".join(journey.hungry))]
+        )
+    if journey.exhausted:
+        lines.append(
+            p[
+                icon("triangle-alert", "sm"),
+                t("travel.exhausted", names=", ".join(journey.exhausted)),
+            ]
+        )
+    if journey.check is not None:
+        left = remaining(page, max(0, journey.planned - journey.hours) * 60)
+        lines.append(
+            div(class_="party-travel-encounter")[
+                p[
+                    icon("swords", "sm"),
+                    b[t("travel.encounter", when=clock_label(page, journey.ended))],
+                    span(class_="muted")[f" · d20 {journey.check}"],
+                    span(class_="muted")[f" · {t('travel.left', span=left)}"]
+                    if journey.planned > journey.hours
+                    else None,
+                ],
+                p(class_="muted")[journey.encounter]
+                if journey.encounter
+                else p(class_="muted")[t("travel.your_call")],
+                p[
+                    b[
+                        ", ".join(
+                            f"{m.count} × {name_text(page, 'monster', m.name)}"
+                            for m in journey.monsters
+                        )
+                    ]
+                ]
+                if journey.monsters
+                else None,
+                p(class_="muted")[t("travel.unresolved", names=", ".join(journey.unresolved))]
+                if journey.unresolved
+                else None,
+                a(href=f"/gm/encounters/{journey.encounter_id}", class_="btn btn-sm")[
+                    icon("swords", "sm"), span[t("travel.open_encounter")]
+                ]
+                if journey.encounter_id
+                else form(
+                    method="post",
+                    action=f"{base}/travel_encounter",
+                    class_="inline-form",
+                )[
+                    button(type="submit", class_="btn btn-sm")[
+                        icon("plus", "sm"), span[t("travel.make_encounter")]
+                    ]
+                ]
+                if journey.monsters
+                else None,
+            ]
+        )
+    return div(class_="party-journey")[
+        lines,
+        form(
+            method="post",
+            action=f"{base}/travel_clear",
+            hx_post=f"{base}/travel_clear",
+            hx_target="#party-clock",
+            hx_swap="outerHTML",
+            class_="inline-form party-journey-clear",
+        )[
+            button(
+                type="submit",
+                class_="btn btn-sm btn-ghost",
+                title=t("travel.clear"),
+                aria_label=t("travel.clear"),
+            )[icon("x", "sm")]
         ],
     ]
 

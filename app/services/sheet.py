@@ -606,6 +606,10 @@ class Sheet:
     # world, and the character's lights and spells running against it.
     clock: int | None = None
     timers: list[Any] = field(default_factory=list)
+    # Set by the page: the open shop the character may use (its name, "" unnamed; None
+    # when none), and its free downtime days (None while it has no downtime at all).
+    shop: str | None = None
+    downtime: int | None = None
     wild_shape: WildShapeView | None = None
     spell_form: SpellFormView | None = None
 

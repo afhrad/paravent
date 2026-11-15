@@ -2479,3 +2479,52 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .maps-title{ font-weight:600; color:var(--text); }
 .maps-links{ display:flex; flex-wrap:wrap; gap:4px 10px; font-size:12px; }
 .maps-share{ display:inline-flex; align-items:center; gap:4px; }
+
+/* Travel, the shop and downtime (app/ui/clock_pages.py, shop_pages.py, downtime_pages.py) */
+.party-travel > summary{ display:inline-flex; align-items:center; gap:6px; }
+.party-travel-form{ align-items:center; }
+.party-travel-hint{ flex-basis:100%; margin:0; font-size:.85rem; }
+.party-journey{ position:relative; display:grid; gap:4px; padding:10px 40px 10px 12px; border:1px solid var(--border); border-radius:var(--r); background:var(--surface-2); }
+.party-journey p{ margin:0; display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.party-journey-clear{ position:absolute; top:6px; right:6px; }
+.party-travel-encounter{ display:grid; gap:6px; margin-top:6px; }
+.party-travel-encounter .btn{ justify-self:start; }
+.party-shop{ display:grid; gap:10px; margin:0 0 16px; }
+.party-shop .party-clock-head form{ margin-left:auto; }
+.shop-form{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-top:10px; }
+.shop-form input, .shop-form select{ font:inherit; font-size:.9rem; padding:4px 8px; }
+.shop-form input[type=number]{ width:80px; }
+.shop-who{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; flex-basis:100%; }
+.shop-purse{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.shop-wares, .shop-sell, .downtime-projects, .downtime-new, .downtime-done{ display:grid; gap:12px; margin-bottom:16px; }
+.shop-search{ display:flex; gap:6px; }
+.shop-search input{ flex:1 1 auto; min-width:0; font:inherit; padding:6px 10px; }
+.shop-shelves{ display:flex; flex-wrap:wrap; gap:6px; }
+.shop-list, .downtime-list{ list-style:none; margin:0; padding:0; display:grid; gap:6px; }
+.shop-row{ display:flex; align-items:center; gap:8px 12px; flex-wrap:wrap; padding:4px 0; border-bottom:1px solid var(--border); }
+.shop-row > a, .shop-row > span:first-child{ flex:1 1 160px; min-width:0; }
+.shop-price{ white-space:nowrap; }
+.shop-trade{ display:inline-flex; align-items:center; gap:6px; }
+.shop-trade input[type=number]{ width:64px; font:inherit; padding:4px 6px; }
+.downtime-days{ display:flex; align-items:center; gap:6px; }
+.downtime-row{ display:grid; grid-template-columns:1fr auto; align-items:center; gap:6px 12px; padding:6px 0; border-bottom:1px solid var(--border); }
+.downtime-what{ grid-column:1 / -1; }
+.downtime-progress{ grid-column:1 / -1; display:flex; align-items:center; gap:8px; }
+.downtime-progress small{ white-space:nowrap; }
+.downtime-spend{ justify-self:start; }
+.downtime-progress .bar{ flex:1 1 auto; height:8px; border-radius:4px; background:var(--surface-3); border:1px solid var(--border); overflow:hidden; min-width:80px; }
+.downtime-progress .bar-fill{ height:100%; background:var(--accent); }
+.downtime-spend input[type=number]{ width:70px; font:inherit; padding:4px 6px; }
+.downtime-start{ border-bottom:1px solid var(--border); padding:6px 0; }
+.downtime-start > summary{ cursor:pointer; }
+.downtime-form{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:8px; }
+.downtime-form select, .downtime-form input[type=text]{ flex:1 1 220px; min-width:0; font:inherit; padding:4px 8px; }
+.downtime-form input[type=number]{ width:80px; font:inherit; padding:4px 6px; }
+.bastion-event, .bastion-maintain, .bastion-basic, .bastion-defenders{ display:grid; gap:10px; margin-bottom:16px; }
+.bastion-event .panel-head, .bastion-basic .panel-head, .bastion-defenders .panel-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.bastion-maintain-form{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:0; }
+.bastion-defenders-row{ display:flex; align-items:center; gap:10px; }
+.bastion-defenders-count{ font-size:1.25rem; min-width:2ch; text-align:center; }
+.bastion-row.is-shut > a{ opacity:.6; }
+.shop-shelves a.chip{ text-decoration:none; color:var(--text-2); }
+.shop-shelves a.chip.is-on{ background:var(--accent-weak); border-color:var(--accent); color:var(--accent-text); }
