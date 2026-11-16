@@ -19,7 +19,7 @@ with its statblock's numbers.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 
 from app.models.gamestate import Chase, ChaseRunner
@@ -171,10 +171,19 @@ class ChaseService:
         self._log(world_id, by, by_name, [what])
         return self._save(chase)
 
-    def end_turn(self, world_id: str, rows: Rows | None, die: int, by: str, by_name: str) -> Chase:
+    def end_turn(
+        self,
+        world_id: str,
+        rows: Rows | None,
+        die: int,
+        by: str,
+        by_name: str,
+        translated: Mapping[str, Rows] | None = None,
+    ) -> Chase:
         """The participant whose turn it is ends it: the complication die (``die``
         faces, as the table is printed) is rolled on ``rows``, and what it brings falls
-        on the next participant still running."""
+        on the next participant still running; ``translated`` holds the table in other
+        languages, by language, so each reader reads the complication in theirs."""
         chase = self._running(world_id)
         active = [n for n, r in enumerate(chase.runners) if _running(r)]
         if not active or chase.turn >= len(chase.runners):
@@ -191,10 +200,16 @@ class ChaseService:
         lines = []
         if text and following != current:
             chase.runners[following].complication = text
+            chase.runners[following].complication_texts = {
+                lang: said
+                for lang, table in (translated or {}).items()
+                if (said := complication(table, roll))
+            }
             lines.append(
                 f"chase:complication:{_safe(chase.runners[following].name)}:{roll}:{_safe(text)}"
             )
         chase.runners[current].complication = ""
+        chase.runners[current].complication_texts = {}
         # The last turn of the round leaves the escape checks to come.
         chase.turn = later[0] if later else len(chase.runners)
         self._log(world_id, by, by_name, lines)

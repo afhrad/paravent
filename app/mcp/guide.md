@@ -36,6 +36,22 @@ A `{@sound Name}` inside a sentence is a button that plays a sound or scene of t
 desk on the table's speaker: `{@sound Crowded Pub}`. `list_sounds` names them; there are
 none in the books, and a name that does not exist shows as missing.
 
+## Traps, hazards and chases
+
+A trap or hazard of the books, its tag alone on a line, is folded into the text with a
+**Spring it** button for the gamemaster: `{@trap Collapsing Roof|XDMG}`,
+`{@hazard Brown Mold|XDMG}`. `find_traps` lists those of the world's books and says
+which ones Paravent rolls by itself. Put the tag where the party meets the trap, and say
+in the text what gives it away.
+
+A chase is run from the party view, not written as an object. Describe it in the
+chapter — who flees and who pursues, the head start, the streets or wilds it runs
+through — and check its pursuers with `plan_chase`.
+
+The world's date (`world_overview.today`, with its calendar and season) and its
+factions are there to write by: a festival on the right day, snow in winter, a
+faction's agent who knows how the party stands with it.
+
 ## Callouts
 
 ```

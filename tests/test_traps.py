@@ -112,6 +112,71 @@ def test_springing_it() -> None:
     assert hurt["b"] == 2 + 10  # the dart's 1d4 (2) and the poison's 2d10 (5 + 5)
 
 
+NEEDLE = {
+    "entries": ["A tiny needle hidden in a lock."],
+    "effect": [
+        "The triggering creature must make a {@dc 20} Constitution saving throw. On a failed "
+        "save, the creature takes 14 ({@damage 4d6}) poison damage and is {@condition "
+        "poisoned} for 10 minutes. On a successful save, the creature takes half as much "
+        "damage and isn't {@condition poisoned}."
+    ],
+    "countermeasures": ["A successful {@dc 20} Wisdom ({@skill Perception}) check reveals it."],
+}
+PIT = {
+    "entries": [
+        "A creature that falls into the pit takes 3 ({@damage 1d6}) Bludgeoning damage from "
+        "the fall plus 9 ({@damage 2d8}) Piercing damage from the spikes.",
+        "The DC to spot the lid is 12.",
+    ]
+}
+DARTS_2024 = {
+    "entries": [
+        "Each creature in the darts' path must succeed on a {@dc 13} Dexterity {@variantrule "
+        "Saving Throw|XPHB} or be struck by {@dice 1d3} darts, taking 3 ({@damage 1d6}) "
+        "Poison damage per dart.",
+        "You can scale the trap by increasing each dart's damage as follows: 7 ({@damage "
+        "2d6}) at levels 5–10, or 14 ({@damage 4d6}) at levels 11–16.",
+    ]
+}
+
+
+def test_reading_what_the_older_reader_missed() -> None:
+    needle = read_trap(NEEDLE)
+    (save,) = needle.saves
+    assert (save.dc, save.ability, save.damage, save.half) == (20, "con", "4d6", True)
+    assert save.conditions == ("poisoned",) and needle.checks[0].skill == "perception"
+    pit = read_trap(PIT)
+    assert pit.automatic and pit.damage == (("1d6", "bludgeoning"), ("2d8", "piercing"))
+    assert pit.checks[0].dc == 12 and pit.checks[0].skill == "perception"
+    darts = read_trap(DARTS_2024)
+    assert darts.saves[0].times == "1d3" and darts.saves[0].dc == 13
+    assert darts.at_level(7).saves[0].damage == "2d6"
+
+
+def test_darts_and_a_pit() -> None:
+    hurt: dict[str, int] = {}
+    service = TrapService(
+        None,
+        save=lambda cid, ability: 1,
+        hurt=lambda cid, n: hurt.__setitem__(cid, hurt.get(cid, 0) + n),
+        afflict=lambda cid, c: None,
+        # The shared 1d6 (2), then Ana's 1d3 darts (3) of 1d6 each (1, 2, 3).
+        dice=FixedDice([2, 3, 1, 2, 3]),
+    )
+    service.spring("w", "Darts", read_trap(DARTS_2024), [Target("a", "Ana")], "dm", "DM")
+    assert hurt == {"a": 6}
+    hurt.clear()
+    service = TrapService(
+        None,
+        save=lambda cid, ability: 1,
+        hurt=lambda cid, n: hurt.__setitem__(cid, hurt.get(cid, 0) + n),
+        afflict=lambda cid, c: None,
+        dice=FixedDice([4, 3, 5]),  # 1d6 (4) + 2d8 (3 + 5)
+    )
+    (caught,) = service.spring("w", "Pit", read_trap(PIT), [Target("a", "Ana")], "dm", "DM")
+    assert caught.roll is None and hurt == {"a": 12}
+
+
 @requires_corpus
 async def test_from_a_reference_page(table: tuple[AsyncClient, StoreRegistry, str]) -> None:
     ac, registry, lyra = table
@@ -152,3 +217,48 @@ async def test_from_a_reference_page(table: tuple[AsyncClient, StoreRegistry, st
         },
     )
     assert "The check is called" in called.text and registry.checks.open_for(lyra)
+
+
+@requires_corpus
+async def test_the_players_roll_the_saves(table: tuple[AsyncClient, StoreRegistry, str]) -> None:
+    ac, registry, lyra = table
+    world = registry.gamestate.characters.get(lyra).world_id
+    assert world is not None
+    trap = {"world": world, "category": "trap", "name": "Collapsing Roof", "source": "XDMG"}
+    form = await ac.get("/gm/traps/form", params=trap)
+    assert "Players roll the saves" in form.text
+    asked = await ac.post("/gm/traps/spring", data={**trap, "character": lyra, "op": "ask"})
+    assert "The players are rolling their saves" in asked.text and "every 3s" in asked.text
+    (call,) = registry.checks.open_for(lyra)
+    assert (call.kind, call.subject, call.dc, call.purpose) == (
+        "save",
+        "dex",
+        15,
+        "Collapsing Roof",
+    )
+    sheet = (await ac.get(f"/characters/{lyra}")).text
+    assert "Collapsing Roof" in sheet
+    registry.checks.answer(lyra, "save", "dex", 30)  # made it: half damage at most
+    waited = await ac.post("/gm/traps/spring", data={**trap, "call_0": call.id, "op": "wait"})
+    assert "30" in waited.text and "every 3s" not in waited.text
+    sprung = await ac.post("/gm/traps/spring", data={**trap, "call_0": call.id, "op": "apply"})
+    assert "Collapsing Roof is sprung" in sprung.text
+    assert "30" in sprung.text and not registry.checks.open_for(lyra)
+    # A stale wait springs nothing.
+    again = await ac.post("/gm/traps/spring", data={**trap, "call_0": "gone", "op": "wait"})
+    assert "is sprung" not in again.text
+
+
+@requires_corpus
+async def test_a_xanathar_trap_shows_its_parts(
+    table: tuple[AsyncClient, StoreRegistry, str],
+) -> None:
+    ac, registry, lyra = table
+    world = registry.gamestate.characters.get(lyra).world_id
+    page = (await ac.get(f"/ref/trap/XGE/Poison%20Needle%20Trap?world={world}")).text
+    assert "Trigger" in page and "Countermeasures" in page and "Effect" in page
+    form = await ac.get(
+        "/gm/traps/form",
+        params={"world": world, "category": "trap", "name": "Poison Needle Trap", "source": "XGE"},
+    )
+    assert "Constitution save DC 20" in form.text

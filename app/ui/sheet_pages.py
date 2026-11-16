@@ -79,6 +79,7 @@ from app.services.translations import COMPOSITE
 from app.services.wild_shape import RESOURCE as WILD_SHAPE
 from app.services.wild_shape import Form
 from app.ui import rules_text
+from app.ui.chase_pages import chase_banner
 from app.ui.check_pages import check_banner
 from app.ui.clock_pages import remaining, sheet_time, sheet_timers
 from app.ui.context import Page
@@ -1852,6 +1853,7 @@ def sheet_fragment(
             )
             for call in sheet.calls
         ],
+        chase_banner(page, sheet.chase, sheet.character.id) if sheet.chase is not None else None,
         sheet_timers(page, sheet.character.id, sheet.clock, sheet.timers)
         if sheet.clock is not None
         else None,

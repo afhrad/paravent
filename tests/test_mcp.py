@@ -162,6 +162,38 @@ class TestReading:
         assert overview["rules"] == "classic"
         assert overview["npcs"][0]["name"] == "Hob Wade"
         assert len(overview["party"]) == 2
+        assert overview["today"] == "Day 1, 08:00" and overview["calendar"] == ""
+
+    async def test_date_factions_traps_and_chases(
+        self, table: tuple[httpx.AsyncClient, Any]
+    ) -> None:
+        _raw, facts = table
+        registry = facts["app"].state.stores
+        world = facts["world"]
+        lyra = facts["ids"][0]
+        harptos = next(c for c in registry.calendars(world.id) if "Harptos" in c.key)
+        mirtul = next(n for n, m in enumerate(harptos.months) if m.name == "Mirtul")
+        registry.clock.dated(world.id, harptos.key, harptos.index(1492, mirtul, 14), "DR")
+        harpers = registry.factions.create(world.id, "Harpers", ranks=[])
+        registry.factions.adjust(
+            harpers.id, world.id, registry.gamestate.characters.get(lyra), 3, "dm", "DM"
+        )
+        async with session(table) as mcp:
+            overview = await call(mcp, "world_overview", world_id=world.id)
+            road = await call(mcp, "plan_journey", world_id=world.id, days=2)
+            traps = await call(mcp, "find_traps", world_id=world.id, query="pit")
+            chase = await call(
+                mcp, "plan_chase", world_id=world.id, creatures=["2 Goblin", "Nobody"]
+            )
+        assert overview["today"] == "14 Mirtul 1492 DR, 08:00"
+        assert overview["season"] == "spring"
+        assert overview["factions"][0]["renown"] == {"Lyra Mooncaller": 3}
+        assert road["arrival"] == "15 Mirtul 1492 DR, 16:00"
+        assert traps and all("pit" in t["name"].lower() for t in traps)
+        assert all(t["source"] == "DMG" for t in traps) and traps[0]["tag"].startswith("{@trap ")
+        assert chase["complications"] == "Urban Chase Complications|DMG (d20)"
+        assert [r["name"] for r in chase["runners"]] == ["Goblin 1", "Goblin 2"]
+        assert chase["runners"][0]["stealth"] == 6 and chase["unresolved"] == ["Nobody"]
 
     async def test_party(self, table: tuple[httpx.AsyncClient, Any]) -> None:
         _raw, facts = table

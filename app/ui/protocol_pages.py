@@ -504,6 +504,11 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             return _chase_words(page, rest.split(":"))
         if head == "trap":
             return _trap_words(page, rest.split(":"))
+        if head == "renown":
+            faction, delta, total = ([*rest.split(":"), "", ""])[:3]
+            return t("protocol.renown", faction=faction, delta=delta, total=total)
+        if head == "session":
+            return t(f"protocol.session_{rest}")
         if head == "contact":
             step, sort, more = ([*rest.split(":", 2), "", ""])[:3]
             kind_text = t(f"contacts.kind.{sort}")
@@ -652,6 +657,14 @@ def _trap_words(page: Page, fields: list[str]) -> str:
     if step == "sprung":
         return t("protocol.trap_sprung", name=rest[0])
     name, roll, against, failed, damage, kind, conditions = rest[:7]
+    if step == "hit":  # damage with no save or attack
+        word = t(f"rules.damage.{kind}") if kind else ""
+        word = kind if word == f"rules.damage.{kind}" else word
+        return t(
+            "protocol.trap_target",
+            name=name,
+            result=t("trap.result_damage", amount=damage, type=word).strip(),
+        )
     result = t(
         "trap.result_hit" if failed == "1" else "trap.result_safe",
         roll=roll if roll not in ("", "None") else "—",

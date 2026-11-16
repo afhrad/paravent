@@ -20,7 +20,7 @@ as the books' text, and the gamemaster's.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from typing import Any
 
@@ -38,7 +38,10 @@ ABILITIES = {
     "wisdom": "wis",
     "charisma": "cha",
 }
-_SAVE = re.compile(r"\{@dc (\d+)\}\s+(\w+)\s+saving throw", re.IGNORECASE)
+_SAVE = re.compile(
+    r"\{@dc (\d+)\}\s+(\w+)\s+(?:saving throw|\{@variantrule saving throw[^}]*\})",
+    re.IGNORECASE,
+)
 _DAMAGE = re.compile(r"\{@damage ([^}|]+)[^}]*\}\)?\s+(\w+)\s+damage", re.IGNORECASE)
 _HALF = re.compile(r"half as much damage", re.IGNORECASE)
 _CONDITION = re.compile(r"\{@condition ([^}|]+)", re.IGNORECASE)
@@ -47,6 +50,14 @@ _CHECK = re.compile(r"\{@dc (\d+)\}\s+(\w+)\s+\(\{@skill ([^}|]+)[^}]*\}\)\s+che
 # A sentence ends at a full stop (one closing a bracket too), or where a bracketed
 # remark starts after another: "(vision is irrelevant to this attack roll). (If…"
 _SENTENCE = re.compile(r"(?<=[.!?])\s+(?=[A-Z{(])|(?<=[.!?]\))\s+(?=[A-Z{(])|(?<=\))\s+(?=\()")
+# The 2014 guide's plain wording: "The DC to spot the trip wire is 10."
+_SPOT = re.compile(r"\bThe DC (?:to spot [^.]*? is (\d+)|is (\d+) to spot)", re.IGNORECASE)
+# "struck by {@dice 1d3} darts, taking … damage per dart"
+_TIMES = re.compile(r"by \{@dice ([^}|]+)[^}]*\}\s+(?:darts|bolts|needles|arrows)", re.IGNORECASE)
+# A creature takes damage with no save or attack: "a creature that falls … takes"
+_TAKES = re.compile(r"\b(?:creature|target|character)\b[^.]*\btakes\b", re.IGNORECASE)
+# Scaling written out: "7 ({@damage 2d6}) at levels 5–10"
+_SCALED = re.compile(r"\{@damage ([^}|]+)[^}]*\}\)? at levels (\d+)\s*[–-]\s*(\d+)")
 _HIT_FIRST = re.compile(r"\b(?:is hit|that is hit|hit by)\b", re.IGNORECASE)
 
 
@@ -61,6 +72,7 @@ class TrapSave:
     half: bool = False
     conditions: tuple[str, ...] = ()
     on_hit: bool = False  # only a creature the trap's attack hit makes it
+    times: str = ""  # dice for how many hits a failure takes ("1d3" darts), each dealing damage
 
 
 @dataclass(frozen=True)
@@ -89,10 +101,12 @@ class TrapEffect:
     attack: TrapAttack | None = None
     checks: tuple[TrapCheck, ...] = ()
     levels: tuple[tuple[int, int, str, int | None], ...] = field(default=())
+    # Damage every creature caught takes, with no save or attack (a pit's fall).
+    damage: tuple[tuple[str, str], ...] = ()
 
     @property
     def automatic(self) -> bool:
-        return bool(self.saves or self.attack)
+        return bool(self.saves or self.attack or self.damage)
 
     def at_level(self, level: int) -> TrapEffect:
         """The trap scaled to a party of ``level`` by its *At Higher Levels* table."""
@@ -105,7 +119,9 @@ class TrapEffect:
             for s in self.saves
         )
         attack = replace(self.attack, damage=dice or self.attack.damage) if self.attack else None
-        return replace(self, saves=saves, attack=attack)
+        # A table's damage replaces the plain damage only where there is one kind.
+        damage = ((dice, self.damage[0][1]),) if dice and len(self.damage) == 1 else self.damage
+        return replace(self, saves=saves, attack=attack, damage=damage)
 
 
 def _strings(node: Any, skip: tuple[str, ...] = ()) -> list[str]:
@@ -124,15 +140,25 @@ def _strings(node: Any, skip: tuple[str, ...] = ()) -> list[str]:
 def read_trap(data: dict[str, Any]) -> TrapEffect:
     """What a trap or hazard does, from its text (see the module's note)."""
     entries = data.get("entries")
-    effect_text = _strings(entries, ("detect and disarm", "countermeasures", "at higher levels"))
+    # Xanathar's traps keep what they do and how to stop them in fields of their own.
+    effect_text = _strings(
+        entries, ("detect and disarm", "countermeasures", "at higher levels")
+    ) + _strings(data.get("effect"))
+    finding = _strings(entries) + _strings(data.get("countermeasures"))
     saves: list[TrapSave] = []
     attack: TrapAttack | None = None
     for paragraph in effect_text:
+        held = len(saves)  # saves read from this paragraph start here
         for sentence in _SENTENCE.split(paragraph):
             hit = _ATTACK.search(sentence)
             if hit is not None and attack is None:
                 attack = TrapAttack(int(hit[1] or hit[2]))
             save = _SAVE.search(sentence)
+            if (save is None or save[2].lower() not in ABILITIES) and len(saves) > held:
+                # What follows a save in its own sentences: "On a failed save, the
+                # creature takes 14 (4d6) poison damage and is poisoned… On a successful
+                # save, the creature takes half as much damage."
+                saves[-1] = _follow(saves[-1], sentence)
             if save is None or save[2].lower() not in ABILITIES:
                 damage = _DAMAGE.search(sentence)
                 if damage is not None and attack is not None and not attack.damage:
@@ -147,6 +173,7 @@ def read_trap(data: dict[str, Any]) -> TrapEffect:
             if first is not None and attack is not None and not attack.damage:
                 attack = replace(attack, damage=first[1].strip(), damage_type=first[2].lower())
             damage = _DAMAGE.search(after) or (first if attack is None else None)
+            times = _TIMES.search(after)
             saves.append(
                 TrapSave(
                     dc=int(save[1]),
@@ -158,16 +185,55 @@ def read_trap(data: dict[str, Any]) -> TrapEffect:
                         dict.fromkeys(c.strip().lower() for c in _CONDITION.findall(sentence))
                     ),
                     on_hit=attack is not None and bool(_HIT_FIRST.search(before)),
+                    times=times[1].strip() if times and "per " in after.lower() else "",
                 )
             )
-    checks = tuple(
-        dict.fromkeys(
-            TrapCheck(int(m[1]), ABILITIES.get(m[2].lower(), m[2].lower()), m[3].strip().lower())
-            for text in _strings(entries)
-            for m in _CHECK.finditer(text)
-        )
+    found = [
+        TrapCheck(int(m[1]), ABILITIES.get(m[2].lower(), m[2].lower()), m[3].strip().lower())
+        for text in finding
+        for m in _CHECK.finditer(text)
+    ]
+    found += [
+        TrapCheck(int(m[1] or m[2]), "wis", "perception")
+        for text in finding
+        for m in _SPOT.finditer(text)
+    ]
+    plain: list[tuple[str, str]] = []
+    if not saves and attack is None:
+        # No save and no attack: damage a creature simply takes (a pit's fall and spikes).
+        for paragraph in effect_text:
+            for sentence in _SENTENCE.split(paragraph):
+                if _TAKES.search(sentence):
+                    plain += [(d.strip(), t.lower()) for d, t in _DAMAGE.findall(sentence)]
+    levels = _levels(entries) or _scaled(entries)
+    return TrapEffect(tuple(saves), attack, tuple(dict.fromkeys(found)), levels, tuple(plain))
+
+
+def _follow(save: TrapSave, sentence: str) -> TrapSave:
+    """A save completed by a sentence after it that says what failing or making it does."""
+    lower = sentence.lower()
+    if lower.startswith(
+        ("on a failed save", "on a failure", "if it fails", "a creature that fails")
+    ):
+        damage = _DAMAGE.search(sentence)
+        conditions = tuple(dict.fromkeys(c.strip().lower() for c in _CONDITION.findall(sentence)))
+        if damage is not None and not save.damage:
+            save = replace(save, damage=damage[1].strip(), damage_type=damage[2].lower())
+        if conditions and not save.conditions:
+            save = replace(save, conditions=conditions)
+    elif lower.startswith(("on a successful save", "on a success")) and _HALF.search(sentence):
+        save = replace(save, half=True)
+    return save
+
+
+def _scaled(entries: Any) -> tuple[tuple[int, int, str, int | None], ...]:
+    """Scaling written as a sentence rather than a table: "7 ({@damage 2d6}) at levels
+    5–10, 14 ({@damage 4d6}) at levels 11–16"."""
+    return tuple(
+        (int(m[2]), int(m[3]), m[1].strip(), None)
+        for text in _strings(entries)
+        for m in _SCALED.finditer(text)
     )
-    return TrapEffect(tuple(saves), attack, checks, _levels(entries))
 
 
 def _levels(entries: Any) -> tuple[tuple[int, int, str, int | None], ...]:
@@ -260,9 +326,12 @@ class TrapService:
         targets: Sequence[Target],
         by: str,
         by_name: str,
+        totals: Mapping[tuple[str, int], int] | None = None,
     ) -> list[Caught]:
         """Carry the trap out on ``targets``: each save in turn (damage rolled once for
-        all), or the attack against each; what it did to each, logged."""
+        all), or the attack against each; what it did to each, logged. ``totals`` holds
+        saves the players rolled themselves, by character and the save's place; the
+        rest are rolled on their sheets now."""
         out: list[Caught] = []
         lines = [f"trap:sprung:{_safe(name)}"]
         for target in targets:
@@ -289,9 +358,14 @@ class TrapService:
             for n, save in enumerate(effect.saves):
                 if save.on_hit and target.character_id not in hit:
                     continue
-                total = self._save(target.character_id, save.ability)
+                held = (totals or {}).get((target.character_id, n))
+                total = held if held is not None else self._save(target.character_id, save.ability)
                 failed = total < save.dc
                 full = rolled[n]
+                if save.times and save.damage:
+                    # Each hit its own damage: "struck by 1d3 darts … per dart".
+                    hits = self._dice.roll(save.times).total
+                    full = sum(self._dice.roll(save.damage).total for _ in range(hits))
                 dealt = full if failed else (full // 2 if save.half else 0)
                 caught = Caught(
                     target.character_id,
@@ -305,6 +379,20 @@ class TrapService:
                 )
                 out.append(caught)
                 lines.append(_line("save", caught))
+        for target in targets if effect.damage and not effect.saves and not effect.attack else ():
+            # Damage with no save: every part rolled for each creature, defences counted.
+            parts = [
+                (_taken(self._dice.roll(dice).total, kind, target), kind)
+                for dice, kind in effect.damage
+            ]
+            caught = Caught(
+                target.character_id,
+                target.name,
+                damage=sum(n for n, _ in parts),
+                damage_type=parts[0][1] if len({k for _, k in parts}) == 1 else "",
+            )
+            out.append(caught)
+            lines.append(_line("hit", caught))
         for caught in out:
             if caught.damage:
                 self._hurt(caught.character_id, caught.damage)

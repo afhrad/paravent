@@ -237,6 +237,7 @@ class GameStateStore:
             CreatureDesign,
             Downtime,
             Encounter,
+            Faction,
             Handout,
             Knowledge,
             Location,
@@ -244,6 +245,7 @@ class GameStateStore:
             Npc,
             PartyNotes,
             Place,
+            PlaySession,
             Session,
             SessionNote,
             Shop,
@@ -309,6 +311,12 @@ class GameStateStore:
         self.contacts: Collection[Contact] = Collection(root / "contacts.json", Contact)
         # The chase each world's gamemaster runs (app/services/chase.py).
         self.chases: Collection[Chase] = Collection(root / "chases.json", Chase)
+        # Each world's factions and the characters' renown with them.
+        self.factions: Collection[Faction] = Collection(root / "factions.json", Faction)
+        # Each world's day of play, begun and ended from the session page.
+        self.play_sessions: Collection[PlaySession] = Collection(
+            root / "play_sessions.json", PlaySession
+        )
         self.npcs: Collection[Npc] = Collection(root / "npcs.json", Npc)
         # The campaign's places, ``{@place}`` (documentation/ADVENTURES.md §4).
         self.locations: Collection[Location] = Collection(root / "locations.json", Location)

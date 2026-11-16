@@ -230,7 +230,12 @@ class ClockService:
     def dated(self, world_id: str, calendar: str, epoch: int, era: str) -> WorldClock:
         """Date the days by a calendar (its key; "" for plain day numbers): ``epoch`` is
         the calendar's day of the clock's first day (app/services/calendar.py)."""
-        update = {"calendar": calendar, "calendar_epoch": epoch, "calendar_era": era}
+        update = {
+            "calendar": calendar,
+            "calendar_epoch": epoch,
+            "calendar_era": era,
+            "calendar_leaps": True,
+        }
         return self._save(self.of(world_id).model_copy(update=update))
 
     def _stale(self, timer: ClockTimer) -> bool:

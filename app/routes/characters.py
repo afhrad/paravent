@@ -16,6 +16,7 @@ one, or hand one to a player.
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from fractions import Fraction
@@ -47,12 +48,14 @@ from app.services.bastion_orders import OrderOption
 from app.services.bastions import BastionError, basic_facilities, facilities
 from app.services.chargen.catalogue import SHELVES, TOOL_TYPES, Offer
 from app.services.chargen.plan import price
+from app.services.chase import ChaseError
 from app.services.clock import BASTION_TURN, day_of
 from app.services.combat import CombatError
 from app.services.contacts import ContactError
 from app.services.crafting import craft_rules, tools_for
 from app.services.downtime import DowntimeError, crafting_days, materials, training_plan
 from app.services.events import revision_stream
+from app.services.factions import granted, title_of
 from app.services.play import Actor, PlayError
 from app.services.sheet import Sheet
 from app.services.shop import ShopError, Ware, priced
@@ -60,7 +63,7 @@ from app.store.errors import EntryNotFound
 from app.ui.bastion_pages import bastion_page
 from app.ui.character_list_pages import character_delete_page, characters_page
 from app.ui.context import Page
-from app.ui.downtime_pages import StartOptions, downtime_page
+from app.ui.downtime_pages import FactionView, StartOptions, downtime_page
 from app.ui.names import name_text
 from app.ui.sheet_pages import sheet_fragment, sheet_page
 from app.ui.shop_pages import shop_page
@@ -88,6 +91,10 @@ def _sheet(characters: CharactersDep, registry: RegistryDep, character: PlayerCh
         shop = registry.shops.serves(character.world_id, character.id)
         sheet.shop = shop.name if shop is not None else None
         sheet.lifestyle_costs = registry.lifestyle_costs(character.world_id)
+        # Always set: the sheet object is cached per character state.
+        chase = registry.chases.of(character.world_id)
+        runs = chase is not None and any(r.character_id == character.id for r in chase.runners)
+        sheet.chase = chase if runs else None
     spare = registry.downtime.of(character.id)
     if spare.days or any(not x.finished for x in spare.projects):
         sheet.downtime = spare.days
@@ -875,6 +882,18 @@ def _downtime(
             downtime=registry.downtime.of(character.id),
             start=start,
             contacts=registry.contacts.of(character.id),
+            factions=[
+                FactionView(
+                    faction,
+                    renown,
+                    title_of(faction, renown),
+                    granted(registry.renown_rewards(character.world_id, faction), renown),
+                )
+                for faction, renown in registry.factions.standing(character.id, character.world_id)
+            ],
+            faction_choices=[
+                (f.id, f.name) for f in registry.factions.of(character.world_id or "")
+            ],
             error=error,
             message=message,
         )
@@ -1081,6 +1100,7 @@ async def change_downtime(
                 str(form.get("kind", "contact")),
                 str(form.get("name", "")),
                 str(form.get("note", "")),
+                str(form.get("faction", "")),
             )
             message = None
         elif op == "contact_edit":
@@ -1089,6 +1109,7 @@ async def change_downtime(
                 str(form.get("contact", "")),
                 str(form.get("name", "")),
                 str(form.get("note", "")),
+                str(form.get("faction", "")),
             )
             message = None
         elif op == "contact_call":
@@ -1143,6 +1164,48 @@ async def stop_timer(
     character = characters.get_for(identity, character_id)
     if character.world_id:
         registry.clock.stop(character.world_id, timer_id, character_id=character.id)
+    if request.headers.get("HX-Request") == "true":
+        return Response(status_code=204)
+    return redirect(f"/characters/{character_id}")
+
+
+@router.post("/characters/{character_id}/chase/{op}")
+async def chase_turn(
+    request: Request,
+    identity: IdentityDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+    op: str,
+) -> Response:
+    """A runner's own turn in the world's chase: Dash (``dash``) or end it (``turn``);
+    refused on anyone else's turn. The sheet follows over its live stream."""
+    character = characters.get_for(identity, character_id)
+    chases = registry.chases
+    world_id = character.world_id
+    chase = chases.of(world_id) if world_id else None
+    user = identity.user
+    name = user.display_name or user.username
+    if (
+        world_id
+        and chase is not None
+        and not chase.over
+        and chase.turn < len(chase.runners)
+        and chase.runners[chase.turn].character_id == character.id
+    ):
+        with contextlib.suppress(ChaseError, PlayError):
+            if op == "dash":
+                chases.dash(world_id, chase.turn, user.username, name)
+            elif op == "turn":
+                rows, die = registry.chase_complications(world_id, chase.environment)
+                chases.end_turn(
+                    world_id,
+                    rows,
+                    die,
+                    user.username,
+                    name,
+                    registry.chase_translations(world_id, chase.environment),
+                )
     if request.headers.get("HX-Request") == "true":
         return Response(status_code=204)
     return redirect(f"/characters/{character_id}")

@@ -29,7 +29,7 @@ from htpy import (
 )
 from htpy import input as input_el
 
-from app.models.gamestate import Contact, Downtime, DowntimeProject
+from app.models.gamestate import Contact, Downtime, DowntimeProject, Faction
 from app.services.activities import (
     CAROUSING,
     CRIME_DCS,
@@ -40,6 +40,7 @@ from app.services.activities import (
 )
 from app.services.contacts import KINDS as CONTACT_KINDS
 from app.services.downtime import DAILY, RECUPERATING_DAYS
+from app.services.factions import Reward
 from app.ui.context import Page
 from app.ui.forms import alert, hidden, notice
 from app.ui.home_pages import page_head
@@ -98,6 +99,17 @@ def project_label(page: Page, project: DowntimeProject) -> str:
     return project.label
 
 
+@dataclass(frozen=True)
+class FactionView:
+    """A faction as a character stands with it: its renown, the title it holds and the
+    rewards reached."""
+
+    faction: Faction
+    renown: int
+    title: str
+    rewards: Sequence[Reward]
+
+
 def downtime_page(
     page: Page,
     *,
@@ -106,6 +118,8 @@ def downtime_page(
     downtime: Downtime,
     start: StartOptions,
     contacts: Sequence[Contact] = (),
+    factions: Sequence[FactionView] = (),
+    faction_choices: Sequence[tuple[str, str]] = (),
     error: str | None = None,
     message: str | None = None,
 ) -> Element:
@@ -151,7 +165,8 @@ def downtime_page(
             ]
             if start.activities
             else None,
-            _contacts(page, url, contacts),
+            _factions(page, factions) if factions else None,
+            _contacts(page, url, contacts, faction_choices),
             section(class_="panel downtime-done")[
                 div(class_="panel-head")[h2[t("downtime.finished")]],
                 ul(class_="downtime-list")[[_project(page, url, x, 0) for x in reversed(finished)]],
@@ -162,7 +177,48 @@ def downtime_page(
     )
 
 
-def _contacts(page: Page, url: str, contacts: Sequence[Contact]) -> Element:
+def _factions(page: Page, factions: Sequence[FactionView]) -> Element:
+    """The factions the character stands with: renown, title and rewards reached."""
+    t = page.t
+    return section(class_="panel downtime-factions")[
+        div(class_="panel-head")[h2[t("factions.heading")]],
+        ul(class_="faction-list")[
+            [
+                li(class_="faction-row")[
+                    div(class_="faction-head")[
+                        b[view.faction.name],
+                        span(class_="pill accent mono")[t("factions.renown", renown=view.renown)],
+                        span(class_="pill")[view.title] if view.title else None,
+                    ],
+                    p(class_="muted")[view.faction.note] if view.faction.note else None,
+                    ul(class_="faction-rewards")[
+                        [
+                            li[small(class_="mono muted")[f"{r.renown}+"], " ", span[r.text]]
+                            for r in view.rewards
+                        ]
+                    ]
+                    if view.rewards
+                    else None,
+                ]
+                for view in factions
+            ]
+        ],
+    ]
+
+
+def _faction_select(page: Page, choices: Sequence[tuple[str, str]], selected: str | None) -> Node:
+    if not choices:
+        return None
+    t = page.t
+    return select(name="faction", aria_label=t("factions.of_contact"))[
+        option(value="")[t("factions.none")],
+        [option(value=fid, selected=fid == selected)[name] for fid, name in choices],
+    ]
+
+
+def _contacts(
+    page: Page, url: str, contacts: Sequence[Contact], choices: Sequence[tuple[str, str]] = ()
+) -> Element:
     """Whom the character knows: allies, enemies, rivals and favours owed, each named
     and noted, called on once; and a way to write one down."""
     t = page.t
@@ -191,6 +247,7 @@ def _contacts(page: Page, url: str, contacts: Sequence[Contact]) -> Element:
                     placeholder=t("contacts.note"),
                     aria_label=t("contacts.note"),
                 ),
+                _faction_select(page, choices, contact.faction_id),
                 button(type="submit", class_="btn btn-sm")[t("contacts.save")],
             ],
             small(class_="muted")[t(f"contacts.from.{contact.source}")] if contact.source else None,
@@ -241,6 +298,7 @@ def _contacts(page: Page, url: str, contacts: Sequence[Contact]) -> Element:
                     placeholder=t("contacts.note"),
                     aria_label=t("contacts.note"),
                 ),
+                _faction_select(page, choices, None),
                 button(type="submit", class_="btn btn-sm")[
                     icon("user-plus", "sm"), span[t("contacts.add")]
                 ],

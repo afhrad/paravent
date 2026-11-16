@@ -29,6 +29,9 @@ from app.mcp.models import (
     BudgetAnswer,
     BuiltEncounterAnswer,
     CampaignObject,
+    ChasePlan,
+    ChaseRunnerInfo,
+    FactionInfo,
     GeneratedNames,
     JourneyPlan,
     MonsterAnswer,
@@ -46,6 +49,7 @@ from app.mcp.models import (
     ShopStockAnswer,
     SoundInfo,
     SpellKnown,
+    TrapInfo,
     UnservedPeople,
     WorldOverview,
     WorldSummary,
@@ -53,6 +57,8 @@ from app.mcp.models import (
 from app.models.gamestate import Location, Npc, SourceSet, Treasure, World
 from app.models.naming import SUBJECTS, Subject
 from app.services.activities import RARITIES
+from app.services.calendar import date_words
+from app.services.clock import DAY
 from app.services.difficulty import rules_for
 from app.services.encounter_gen import EncounterGenerator, bands_of, pool_of
 from app.services.encounter_roll import EncounterRoller
@@ -60,6 +66,7 @@ from app.services.naming import GENDERS, FoundStyle, NamingError
 from app.services.naming_workshop import race_names
 from app.services.npc_gen import edition_for
 from app.services.search import GROUP_KEYS, Row
+from app.services.traps import read_trap
 from app.services.travel import ENCOUNTER_ON, PACES, TRAVEL_DAY
 from app.ui.insert import tag_maker
 from app.ui.tags import ENTITY_CATEGORY
@@ -265,6 +272,9 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
         world = world_of(world_id)
         adventures = registry.adventures.adventures(world.id)
         names = {a.id: a.name for a in adventures}
+        dated = registry.calendar_of(world.id)
+        today, season = date_words(dated, registry.clock.of(world.id).minute)
+        names_of = {pc.id: pc.name or pc.id for pc in registry.gamestate.characters.list()}
 
         def placed(item: Npc | Treasure | Location) -> CampaignObject:
             scope = item.scope
@@ -305,6 +315,19 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
                 if pc.total_level > 0
             ],
             instructions=registry.instructions.given(registry.instructions.get(world.id)),
+            today=today,
+            calendar=dated[0].key if dated else "",
+            season=season,
+            factions=[
+                FactionInfo(
+                    name=f.name,
+                    note=f.note,
+                    renown={names_of.get(cid, cid): n for cid, n in f.renown.items() if n},
+                    ranks=[f"{r.renown}: {r.title}" for r in f.ranks],
+                    rewards=f.table,
+                )
+                for f in registry.factions.of(world.id)
+            ],
         )
 
     @server.tool()
@@ -653,6 +676,13 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
         bonus = mph * whole if mounted and ship is None else 0
         miles = round(mph * hours + bonus, 1)
         miss = ((ENCOUNTER_ON - 1) / 20) ** (checks * whole)
+        # Minutes from setting out to arriving: around the clock straight through, else
+        # each travelling day followed by its night, the last day cut short.
+        on_the_way = (
+            hours * 60
+            if day_hours == 24
+            else (whole - 1) * DAY + max(0, hours - (whole - 1) * TRAVEL_DAY) * 60
+        )
         return JourneyPlan(
             travelling_days=round(days, 2),
             hours=hours,
@@ -664,12 +694,132 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
             environments=[e.key for e in registry.encounter_tables.all()],
             vessels=[f"{v.name} ({v.mph:g} mph)" for v in ships],
             weather=registry.weather(world.id) is not None,
+            arrival=date_words(
+                registry.calendar_of(world.id), registry.clock.of(world.id).minute + on_the_way
+            )[0],
             advice=(
                 "Write the road into the chapter: where it leads, its landmarks, and the "
                 "encounter table that fits. Each check comes up on a d20 of 18 or more. "
                 "A character without rations goes hungry and, after a few days, tires; "
                 "half water or none costs a level of exhaustion by the world's rules. "
                 "For a fixed fight on the way, make an encounter as usual."
+            ),
+        )
+
+    @server.tool()
+    def find_traps(
+        world_id: str,
+        query: Annotated[str, Field(description="Part of a name; empty for all")] = "",
+        character_ids: Annotated[
+            list[str] | None,
+            Field(description="The party, for traps that scale; the world's characters"),
+        ] = None,
+        automatic_only: Annotated[
+            bool, Field(description="Only those Paravent springs by itself")
+        ] = False,
+    ) -> list[TrapInfo]:
+        """The traps and hazards of the world's books. Write one's `tag` alone on a line
+        in a chapter: the gamemaster gets its text and a "Spring it" button there, which
+        rolls its saves or attack on the ticked characters and deals the damage (an
+        `automatic` one; the rest are run by the table), scaled to the party's level."""
+        registry = stores()
+        world = world_of(world_id)
+        levels = party_levels(registry, world, character_ids) or [1]
+        level = round(sum(levels) / len(levels))
+        wanted = query.strip().lower()
+        out: list[TrapInfo] = []
+        for category in ("trap", "hazard"):
+            for entry in registry.compendium.all(category):
+                name, source = str(getattr(entry, "name", "")), str(getattr(entry, "source", ""))
+                if wanted and wanted not in name.lower():
+                    continue
+                if not world.source_set.is_unrestricted and (
+                    source.lower() not in world.source_set.normalized
+                ):
+                    continue
+                effect = read_trap(entry.model_dump(by_alias=True, exclude_none=True))
+                if automatic_only and not effect.automatic:
+                    continue
+                scaled = effect.at_level(level)
+                lines = [
+                    f"DC {x.dc} {x.ability.upper()} save"
+                    + (f", {x.damage} {x.damage_type}".rstrip() if x.damage else "")
+                    + (" (half on a success)" if x.half else "")
+                    + (f", {', '.join(x.conditions)}" if x.conditions else "")
+                    for x in scaled.saves
+                ]
+                if scaled.attack is not None:
+                    lines.insert(
+                        0,
+                        f"attack {scaled.attack.bonus:+d}, "
+                        f"{scaled.attack.damage} {scaled.attack.damage_type}".rstrip(),
+                    )
+                out.append(
+                    TrapInfo(
+                        tag=f"{{@{category} {name}|{source}}}",
+                        name=name,
+                        source=source,
+                        kind=category,
+                        automatic=effect.automatic,
+                        effect=lines,
+                        checks=[f"{c.skill.title()} DC {c.dc}" for c in effect.checks],
+                    )
+                )
+                if len(out) >= 60:
+                    return out
+        return out
+
+    @server.tool()
+    def plan_chase(
+        world_id: str,
+        environment: Annotated[str, Field(description="urban or wilderness")] = "urban",
+        creatures: Annotated[
+            list[str] | None,
+            Field(description='Who runs besides the party: "2 Thug", "Guard|XMM"'),
+        ] = None,
+    ) -> ChasePlan:
+        """Plan a chase for a chapter: the world's complication table for the place and
+        the numbers the chase uses for the creatures named. Nothing is saved: write the
+        chase into the chapter (who flees, who pursues, the head start, where it runs),
+        and the gamemaster starts it from the party view, which rolls initiative,
+        Dashes, complications and the escape checks."""
+        registry = stores()
+        world = world_of(world_id)
+        if environment not in ("urban", "wilderness"):
+            raise ToolError("environment is urban or wilderness.")
+        rows, die = registry.chase_complications(world.id, environment)
+        caption = f"{environment.title()} Chase Complications"
+        source = "XDMG" if die == 12 else "DMG"
+        runners: list[ChaseRunnerInfo] = []
+        unresolved: list[str] = []
+        for line in creatures or []:
+            found = registry.chase_runner(world.id, line, "pursuer")
+            if not found or not found[0].monster:
+                unresolved.append(line)
+                continue
+            runners.extend(
+                ChaseRunnerInfo(
+                    name=r.name,
+                    reference=r.monster,
+                    con=r.con_mod,
+                    stealth=r.stealth,
+                    passive_perception=r.passive,
+                )
+                for r in found
+            )
+        return ChasePlan(
+            environment=environment,
+            complications=f"{caption}|{source} (d{die})" if rows else "",
+            runners=runners,
+            unresolved=unresolved,
+            advice=(
+                "A chase needs a quarry and pursuers and a head start in feet. Each "
+                "participant Dashes freely 3 + its Constitution modifier times; past that a "
+                "DC 10 Constitution roll or a level of exhaustion. A complication die is "
+                "rolled at the end of each turn and hits the next participant. At the end of "
+                "each round a quarry out of sight makes a Stealth check against the "
+                "pursuers' best passive Perception to escape. Name the place's features "
+                "(alleys, crowds, a river) in the chapter so the complications fit."
             ),
         )
 

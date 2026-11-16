@@ -602,6 +602,8 @@ class Sheet:
     summons: dict[str, Any] = field(default_factory=dict)
     # Set by the page: the gamemaster's open calls for a check asking this character.
     calls: list[Any] = field(default_factory=list)
+    # Set by the page: the world's chase, when the character runs in it.
+    chase: Any = None
     # Set by the page: the world's clock (minutes, app/services/clock.py), None in no
     # world, and the character's lights and spells running against it.
     clock: int | None = None

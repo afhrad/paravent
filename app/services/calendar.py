@@ -6,8 +6,8 @@ twelve months of twenty-eight days, Exandria's, Theros's and Ravnica's. A world 
 books hold one may use it: the gamemaster says what date the clock's day is, and from
 then on every day reads as a date ("14 Mirtul 1492 DR"), a holiday by its name, each
 with its season. The months and their lengths are read from the table; where it prints
-no lengths, the setting's (thirty, Eberron's twenty-eight) apply. Leap days are left to
-the table.
+no lengths, the setting's (thirty, Eberron's twenty-eight) apply. Harptos's Shieldmeet
+comes every fourth year, the day after Midsummer; other leap days are left to the table.
 """
 
 from __future__ import annotations
@@ -58,6 +58,10 @@ class Month:
     days: int
     holiday: bool = False
     season: str = ""
+    every: int = 1  # a leap day falls only in years divisible by this (Shieldmeet: 4)
+
+    def in_year(self, year: int) -> bool:
+        return year % self.every == 0
 
 
 @dataclass(frozen=True)
@@ -79,12 +83,30 @@ class Calendar:
 
     @property
     def year_length(self) -> int:
-        return sum(m.days for m in self.months)
+        """The days of an ordinary year, leap days aside."""
+        return sum(m.days for m in self.months if m.every == 1)
+
+    def length_of(self, year: int) -> int:
+        """The days of one year, its leap days counted."""
+        return sum(m.days for m in self.months if m.in_year(year))
+
+    @property
+    def _cycle(self) -> int:
+        """Years after which the leap days repeat."""
+        return max((m.every for m in self.months), default=1)
 
     def date(self, index: int) -> CalendarDate:
-        """The date of day ``index``, counted from the first day of year 0."""
-        year, rest = divmod(index, self.year_length)
+        """The date of day ``index``, counted from the first day of year 0 (a leap
+        year, where the calendar has leap days)."""
+        cycle = self._cycle
+        cycles, rest = divmod(index, sum(self.length_of(y) for y in range(cycle)))
+        year = cycles * cycle
+        while rest >= self.length_of(year):
+            rest -= self.length_of(year)
+            year += 1
         for month in self.months:
+            if not month.in_year(year):
+                continue
             if rest < month.days:
                 return CalendarDate(year, month, rest + 1)
             rest -= month.days
@@ -92,8 +114,33 @@ class Calendar:
 
     def index(self, year: int, month: int, day: int) -> int:
         """Day index of a date (``month`` among :attr:`months`, ``day`` from 1)."""
-        before = sum(m.days for m in self.months[:month])
-        return year * self.year_length + before + day - 1
+        cycle = self._cycle
+        cycles, within = divmod(year, cycle)
+        days = cycles * sum(self.length_of(y) for y in range(cycle))
+        days += sum(self.length_of(cycles * cycle + y) for y in range(within))
+        before = sum(m.days for m in self.months[:month] if m.in_year(year))
+        return days + before + day - 1
+
+    def from_flat(self, index: int) -> int:
+        """An index counted the old way, every year holding every leap day, as this
+        calendar counts it: the same date."""
+        flat = sum(m.days for m in self.months)
+        year, rest = divmod(index, flat)
+        for n, month in enumerate(self.months):
+            if rest < month.days:
+                if not month.in_year(year):  # a leap day that year lacks: the day after
+                    return self.index(year, n, 1)
+                return self.index(year, n, rest + 1)
+            rest -= month.days
+        return self.index(year, 0, 1)  # pragma: no cover
+
+    def has(self, year: int, month: int, day: int) -> bool:
+        """Whether a date exists: its month in range, in that year, the day within it."""
+        return (
+            0 <= month < len(self.months)
+            and self.months[month].in_year(year)
+            and 1 <= day <= self.months[month].days
+        )
 
 
 def months_of(rows: Rows, default_days: int) -> tuple[Month, ...]:
@@ -107,7 +154,9 @@ def months_of(rows: Rows, default_days: int) -> tuple[Month, ...]:
         if holiday is not None:
             name = holiday.partition(":")[2].strip() or holiday
             season = months[-1].season if months else ""
-            months.append(Month(name, 1, holiday=True, season=season))
+            # Harptos's Shieldmeet comes every fourth year, the day after Midsummer.
+            every = 4 if "shieldmeet" in name.lower() or "leap" in holiday.lower() else 1
+            months.append(Month(name, 1, holiday=True, season=season, every=every))
             continue
         name = cells[1] if cells[0].isdigit() and len(cells) > 1 else cells[0]
         days = next(
@@ -129,12 +178,29 @@ def months_of(rows: Rows, default_days: int) -> tuple[Month, ...]:
         placed: list[Month] = []
         for month in months:
             if month.holiday:
-                placed.append(Month(month.name, 1, True, placed[-1].season if placed else ""))
+                season = placed[-1].season if placed else ""
+                placed.append(Month(month.name, 1, True, season, month.every))
             else:
                 place = next(seasons)
                 placed.append(Month(month.name, month.days, False, month.season or place))
         months = placed
     return tuple(months)
+
+
+def date_words(dated: tuple[Calendar, int, str] | None, minute: int) -> tuple[str, str]:
+    """A clock minute in English, for readers outside a page (Claude over MCP): the
+    date ("14 Mirtul 1492 DR, 08:00", or "Day 3, 08:00" without a calendar) and its
+    season ("" without one)."""
+    day, rest = divmod(minute, 24 * 60)
+    time = f"{rest // 60:02d}:{rest % 60:02d}"
+    if dated is None:
+        return f"Day {day + 1}, {time}", ""
+    calendar, epoch, era = dated
+    date = calendar.date(epoch + day)
+    year = f"{date.year} {era}".strip()
+    if date.month.holiday:
+        return f"{date.month.name}, {year}, {time}", date.month.season
+    return f"{date.day} {date.month.name} {year}, {time}", date.month.season
 
 
 def calendar_from(key: str, source: str, rows: Sequence[Sequence[str]], days: int) -> Calendar:
@@ -148,5 +214,6 @@ __all__ = [
     "CalendarDate",
     "Month",
     "calendar_from",
+    "date_words",
     "months_of",
 ]

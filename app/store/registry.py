@@ -17,12 +17,13 @@ from collections.abc import Callable, Sequence
 from dataclasses import replace
 from functools import cached_property
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 from app import __version__
 from app.config import Settings
 from app.models.compendium import score_of
-from app.models.gamestate import CheckCall, Combat, Combatant, WorldClock
+from app.models.gamestate import CheckCall, Combat, Combatant, Faction, FactionRank, WorldClock
 from app.models.pc import PlayerCharacter
 from app.models.protocol import EntryKind, ProtocolEntry
 from app.services import media, polymorph
@@ -33,7 +34,7 @@ from app.services.backlinks import BacklinkIndex
 from app.services.backup import BackupService
 from app.services.bastion_orders import OrderOption, OrderYields, options_of, tool_choice
 from app.services.bastions import BastionEvent, BastionService, event_rows
-from app.services.book_tables import Rows, copper, days, find_in, rolled, row_for
+from app.services.book_tables import Rows, copper, days, find_in, rolled, row_for, rows_of
 from app.services.calendar import CALENDARS, Calendar, calendar_from
 from app.services.character import ability_modifier
 from app.services.characters import CharacterService
@@ -43,7 +44,7 @@ from app.services.chargen.levelup import LevelUps
 from app.services.chargen.prepare import Preparations
 from app.services.chase import ChaseService, Runner
 from app.services.checks import CheckService
-from app.services.clock import ClockService
+from app.services.clock import DAY, ClockService
 from app.services.coins import coins_for, worth
 from app.services.combat import CombatService, SheetCharacters
 from app.services.contacts import ContactService
@@ -62,6 +63,7 @@ from app.services.difficulty import DifficultyRules
 from app.services.downtime import DowntimeService
 from app.services.encounters import EncounterService
 from app.services.events import COMBATS, PARTY, PROSE, PROTOCOL, ChangeHub, combat_key
+from app.services.factions import FactionService, Reward, ranks_from, rewards_of
 from app.services.glossary import Glossary, LinkCounts
 from app.services.handouts import HandoutService
 from app.services.i18n import FALLBACK, UiCatalogue
@@ -79,6 +81,7 @@ from app.services.npcs import NpcService, TreasureService
 from app.services.party_notes import PartyNotesService
 from app.services.places import PlaceService
 from app.services.play import Actor, PlayError
+from app.services.play_session import PlaySessionService
 from app.services.player_view import Reader, needs_reader, reader_for
 from app.services.players import PlayerService
 from app.services.protocol import ProtocolService
@@ -646,7 +649,14 @@ class StoreRegistry:
         if clock is None or not clock.calendar:
             return None
         found = next((c for c in self.calendars(world_id) if c.key == clock.calendar), None)
-        return (found, clock.calendar_epoch, clock.calendar_era) if found else None
+        if found is None:
+            return None
+        if not clock.calendar_leaps:
+            # Set before leap days were counted: the same date, counted with them.
+            epoch = found.from_flat(clock.calendar_epoch + clock.minute // DAY)
+            epoch -= clock.minute // DAY
+            clock = self.clock.dated(world_id, clock.calendar, epoch, clock.calendar_era)
+        return found, clock.calendar_epoch, clock.calendar_era
 
     def lifestyle_costs(self, world_id: str | None) -> dict[str, int]:
         """Copper a day by lifestyle, by the world's books: the 2014 handbook's table,
@@ -1130,6 +1140,13 @@ class StoreRegistry:
             characters.act_for(character_id, "exhaustion", {"delta": "1"}, by)
 
         def changed(world_id: str) -> None:
+            # Every sheet of the world: a runner's shows the chase, and one that ran
+            # loses it when the chase ends.
+            chase = self.gamestate.chases.find(world_id)
+            state = f"chase-{chase.updated_at.isoformat() if chase else 'none'}"
+            for pc in self.gamestate.characters.list():
+                if pc.world_id == world_id:
+                    self.events.publish(pc.id, state)
             self.events.publish(PARTY, f"*chase {world_id}")
 
         return ChaseService(
@@ -1149,6 +1166,39 @@ class StoreRegistry:
             if rows:
                 return rows, die
         return [], 20
+
+    def chase_translations(self, world_id: str | None, environment: str) -> dict[str, Rows]:
+        """The world's chase complications for an environment in every language that
+        translates the table (TRANSLATION.md), by language."""
+        rows, die = self.chase_complications(world_id, environment)
+        if not rows:
+            return {}
+        caption = f"{environment.title()} Chase Complications".lower()
+        source = "xdmg" if die == 12 else "dmg"
+        table = next(
+            (
+                t
+                for t in self.compendium.all("table")
+                if str(getattr(t, "source", "")).lower() == source
+                and (
+                    str(getattr(t, "name", "")).lower() == caption
+                    or str(getattr(t, "name", "")).lower().endswith(f"; {caption}")
+                )
+            ),
+            None,
+        )
+        if table is None:
+            return {}
+        data = table.model_dump(by_alias=True, exclude_none=True)
+        key = record_key(str(getattr(table, "name", "")), str(getattr(table, "source", "")))
+        out: dict[str, Rows] = {}
+        for lang in self.translations.languages():
+            if lang == "en":
+                continue
+            shown = self.translations.overlay(lang, "table", key, data, ("rows",))
+            if shown.coverage.translated:
+                out[lang] = rows_of(SimpleNamespace(rows=shown.data.get("rows")))
+        return out
 
     def chase_runner(self, world_id: str | None, line: str, side: str) -> list[Runner]:
         """The creatures a line of the chase form names ("2 Thug", "Thug|MM"), from the
@@ -1185,6 +1235,70 @@ class StoreRegistry:
         if count == 1:
             return [stats]
         return [replace(stats, name=f"{stats.name} {n}") for n in range(1, count + 1)]
+
+    @cached_property
+    def play_sessions(self) -> PlaySessionService:
+        """Each world's day of play: the briefing and the closing note
+        (app/services/play_session.py)."""
+        return PlaySessionService(
+            self.gamestate,
+            self.protocol,
+            minute_of=lambda world_id: self.clock.of(world_id).minute,
+            timers_of=self.clock.active,
+        )
+
+    @cached_property
+    def factions(self) -> FactionService:
+        """Each world's factions and renown (app/services/factions.py)."""
+        return FactionService(self.gamestate, self.protocol)
+
+    def renown_tables(self, world_id: str | None) -> list[tuple[str, str]]:
+        """The renown tables the world's books print, ``(name, source)``: a faction's
+        rewards by renown score."""
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        out = []
+        for table in self.compendium.all("table"):
+            data = table.model_dump(by_alias=True, exclude_none=True)
+            labels = [str(c) for c in data.get("colLabels") or []]
+            source = str(data.get("source", ""))
+            if (
+                str(data.get("name", "")).endswith(" Renown")
+                and labels[:2] == ["Renown Score", "Reward"]
+                and (
+                    world is None
+                    or world.source_set.is_unrestricted
+                    or source.lower() in world.source_set.normalized
+                )
+            ):
+                out.append((str(data["name"]), source))
+        return sorted(out)
+
+    def faction_ranks(self, world_id: str | None) -> dict[str, list[FactionRank]]:
+        """The 2014 guide's example factions and their titles, where the world has it."""
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        if (
+            world is not None
+            and not world.source_set.is_unrestricted
+            and "dmg" not in world.source_set.normalized
+        ):
+            return {}
+        for table in self.compendium.all("table"):
+            if (
+                str(getattr(table, "name", "")) == "Examples of Faction Ranks"
+                and str(getattr(table, "source", "")) == "DMG"
+            ):
+                data = table.model_dump(by_alias=True, exclude_none=True)
+                labels = [str(c) for c in data.get("colLabels") or []]
+                return ranks_from(labels, rows_of(table))
+        return {}
+
+    def renown_rewards(self, world_id: str | None, faction: Faction) -> list[Reward]:
+        """A faction's rewards, from its book table."""
+        name, _, source = faction.table.partition("|")
+        if not name:
+            return []
+        rows = self.book_table(world_id, name, [source]) if source else None
+        return rewards_of(rows or [])
 
     @cached_property
     def contacts(self) -> ContactService:

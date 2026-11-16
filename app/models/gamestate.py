@@ -1154,6 +1154,9 @@ class WorldClock(Record):
     calendar: str = ""
     calendar_epoch: int = 0
     calendar_era: str = Field(default="", max_length=12)
+    # The epoch counts leap days (Shieldmeet); one set before they were counted is
+    # converted once when read.
+    calendar_leaps: bool = False
 
 
 class DowntimeProject(GameStateModel):
@@ -1237,6 +1240,7 @@ class Contact(Record):
     note: str = Field(default="", max_length=2000)
     source: str = ""  # the downtime activity it came from ("carouse", "service")
     spent: bool = False
+    faction_id: str | None = None  # the faction the contact belongs to
 
 
 class ChaseRunner(GameStateModel):
@@ -1258,6 +1262,8 @@ class ChaseRunner(GameStateModel):
     out: bool = False  # dropped out (five levels of exhaustion, or by the gamemaster)
     escaped: bool = False
     complication: str = ""  # what hit it on the last turn before its own
+    # The same complication in each language that translates the table, by language.
+    complication_texts: dict[str, str] = Field(default_factory=dict)
 
 
 class Chase(Record):
@@ -1272,6 +1278,37 @@ class Chase(Record):
     turn: int = Field(default=0, ge=0)
     runners: list[ChaseRunner] = Field(default_factory=list)
     over: str = ""
+
+
+class FactionRank(GameStateModel):
+    """A title a faction gives from a renown on ("Harpshadow" at 3)."""
+
+    renown: int = Field(ge=0, le=1000)
+    title: str = Field(max_length=80)
+
+
+class Faction(Record):
+    """A faction of a world (app/services/factions.py): its name and the gamemaster's
+    note, the book's renown table its rewards come from (``"Dale Renown|FRAiF"``), the
+    titles it gives, and each character's renown with it."""
+
+    world_id: str
+    name: str = Field(max_length=120)
+    note: str = Field(default="", max_length=4000)
+    table: str = ""
+    ranks: list[FactionRank] = Field(default_factory=list)
+    renown: dict[str, int] = Field(default_factory=dict)  # by character id
+
+
+class PlaySession(Record):
+    """A day of play in a world, from the gamemaster's "Start the session" to "End the
+    session" (app/services/play_session.py); the id is the world's. ``minute`` is the
+    world's clock when it began."""
+
+    started_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    minute: int = 0
+    ended_at: datetime | None = None
+    note_id: str | None = None  # the session note written when it ended
 
 
 class PartyNotes(Record):
@@ -1299,6 +1336,9 @@ class CheckCall(Record):
     results: dict[str, int] = Field(default_factory=dict)
     by: str = ""
     open: bool = True
+    # What the call is for, shown with it (a trap's name when its saves are the
+    # players' to roll); "" for a plain call.
+    purpose: str = Field(default="", max_length=200)
 
     def passed(self, character_id: str) -> bool | None:
         """Whether one character's total met the DC; None without a DC or a total."""

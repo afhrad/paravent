@@ -56,6 +56,15 @@ ENTRY_FIELDS = (
     "spellcasting",
     "headerEntries",
     "footerEntries",
+    # A trap's parts, as Xanathar's prints them.
+    "trigger",
+    "effect",
+    "countermeasures",
+    # A table's own rows and footnotes (a table record carries no entries).
+    "caption",
+    "colLabels",
+    "rows",
+    "footnotes",
     # A recipe's and a crochet pattern's text.
     "ingredients",
     "equipment",
@@ -119,7 +128,9 @@ def passages(
 
 def _walk(value: Any, path: str) -> Iterator[tuple[str, str]]:
     if isinstance(value, str):
-        if value.strip():
+        # A table's cell of numbers alone ("1–4", "+2") has nothing to translate.
+        numbers = "rows" in path.split("/") and not any(c.isalpha() for c in value)
+        if value.strip() and not numbers:
             yield path, value
     elif isinstance(value, list):
         for index, item in enumerate(value):

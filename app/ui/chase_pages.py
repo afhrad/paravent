@@ -243,7 +243,9 @@ def _runner(
             )
         ],
         span(class_="pill")[state] if state else None,
-        div(class_="chase-complication")[icon("triangle-alert", "sm"), span[runner.complication]]
+        div(class_="chase-complication")[
+            icon("triangle-alert", "sm"), span[_complication(page, runner)]
+        ]
         if runner.complication
         else None,
         div(class_="chase-acts")[
@@ -273,6 +275,74 @@ def _runner(
     ]
 
 
+def chase_banner(page: Page, chase: Chase, character_id: str) -> Node:
+    """The chase on a runner's sheet: the round, the distance, whose turn it is, what it
+    has left of its Dashes and the complication that fell on it; on its own turn, Dash
+    and End turn. Pursuers' passive Perception and the quarry's Stealth stay hidden."""
+    t = page.t
+    mine = [(n, r) for n, r in enumerate(chase.runners) if r.character_id == character_id]
+    if not mine:
+        return None
+    index, runner = mine[0]
+    base = f"/characters/{quote(character_id)}/chase"
+    current = chase.runners[chase.turn] if chase.turn < len(chase.runners) else None
+    own_turn = chase.turn == index and not chase.over and _active(runner)
+    left = max(0, runner.free_dashes - runner.dashes)
+    state = t("chase.escaped") if runner.escaped else t("chase.out") if runner.out else None
+    if chase.over:
+        whose = t(f"chase.over.{chase.over}")
+    elif own_turn:
+        whose = t("chase.your_turn")
+    elif current is not None:
+        whose = t("chase.turn_of", name=current.name)
+    else:
+        whose = t("chase.round_end")
+    htmx = {"hx_swap": "none"}
+    return div(class_="notice cs-chase" + (" is-turn" if own_turn else ""), role="status")[
+        icon("footprints"),
+        b[t("chase.heading")],
+        span(class_="pill accent")[t("chase.round", round=chase.round)] if not chase.over else None,
+        span(class_="pill")[t(f"chase.side.{runner.side}")],
+        span[t("chase.distance_is", distance=page.u.distance(chase.distance))],
+        b[whose],
+        small(class_="muted")[
+            t("chase.dashes", left=left, used=runner.dashes)
+            + (f" · {t('sheet.exhaustion')} {runner.exhaustion}" if runner.exhaustion else "")
+        ],
+        span(class_="pill")[state] if state else None,
+        div(class_="chase-complication")[
+            icon("triangle-alert", "sm"), span[_complication(page, runner)]
+        ]
+        if runner.complication and not chase.over
+        else None,
+        div(class_="chase-acts")[
+            _post(
+                base,
+                "dash",
+                htmx,
+                button(type="submit", class_="btn btn-sm", title=t("chase.dash_hint"))[
+                    t("chase.dash")
+                ],
+            ),
+            _post(
+                base,
+                "turn",
+                htmx,
+                button(type="submit", class_="btn btn-sm btn-primary")[
+                    icon("hourglass", "sm"), span[t("chase.end_turn")]
+                ],
+            ),
+        ]
+        if own_turn
+        else None,
+    ]
+
+
+def _complication(page: Page, runner: ChaseRunner) -> str:
+    """The complication in the reader's language where the table is translated."""
+    return runner.complication_texts.get(page.lang) or runner.complication
+
+
 def _unit(page: Page) -> str:
     return "m" if page.u.metric else "ft."
 
@@ -286,4 +356,4 @@ def _active(runner: ChaseRunner) -> bool:
     return not runner.out and not runner.escaped
 
 
-__all__ = ["CHASE_URL", "chase_panel"]
+__all__ = ["CHASE_URL", "chase_banner", "chase_panel"]

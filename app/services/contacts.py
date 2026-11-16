@@ -89,7 +89,9 @@ class ContactService:
             )
         return out
 
-    def add(self, pc: PlayerCharacter, kind: str, name: str, note: str) -> Contact:
+    def add(
+        self, pc: PlayerCharacter, kind: str, name: str, note: str, faction_id: str = ""
+    ) -> Contact:
         if kind not in KINDS:
             raise ContactError("contacts.error.kind")
         return self._store.contacts.create(
@@ -99,13 +101,20 @@ class ContactService:
                 kind=kind,
                 name=" ".join(name.split())[:120],
                 note=note.strip()[:2000],
+                faction_id=self._faction(pc.world_id, faction_id),
             )
         )
 
-    def edit(self, character_id: str, contact_id: str, name: str, note: str) -> Contact:
+    def edit(
+        self, character_id: str, contact_id: str, name: str, note: str, faction_id: str = ""
+    ) -> Contact:
         contact = self._own(character_id, contact_id)
         changed = contact.model_copy(
-            update={"name": " ".join(name.split())[:120], "note": note.strip()[:2000]}
+            update={
+                "name": " ".join(name.split())[:120],
+                "note": note.strip()[:2000],
+                "faction_id": self._faction(contact.world_id, faction_id),
+            }
         )
         changed.touch()
         return self._store.contacts.upsert(changed)
@@ -124,6 +133,11 @@ class ContactService:
     def remove(self, character_id: str, contact_id: str) -> None:
         self._own(character_id, contact_id)
         self._store.contacts.delete(contact_id)
+
+    def _faction(self, world_id: str | None, faction_id: str) -> str | None:
+        """A faction of the contact's world, or none."""
+        faction = self._store.factions.find(faction_id) if faction_id else None
+        return faction.id if faction is not None and faction.world_id == world_id else None
 
     def _own(self, character_id: str, contact_id: str) -> Contact:
         contact = self._store.contacts.find(contact_id)

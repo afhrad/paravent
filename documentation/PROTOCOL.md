@@ -215,8 +215,14 @@ What just happened, without stopping play.
   `chase:dash:<name>:<n>[:<total>:<kept>[:out]]`,
   `chase:complication:<name>:<roll>:<text>`, `chase:escape:<name>:<total|->:<dc>:<escaped>`
   and `chase:end:<outcome>`; a trap (app/services/traps.py) `trap:sprung:<name>`, then
-  `trap:<save|attack>:<character>:<roll>:<against>:<failed>:<damage>:<type>:<conditions>`
-  for each it caught, its saves rolled on the sheets as `save` entries.
+  `trap:<save|attack|hit>:<character>:<roll>:<against>:<failed>:<damage>:<type>:<conditions>`
+  for each it caught (`hit` for damage with no save or attack), its saves rolled on the
+  sheets as `save` entries, or answered there when the gamemaster leaves them to the
+  players (a check call naming the trap). A runner ends its own chase turn from its
+  sheet as the gamemaster would, under its player's name. Renown is
+  `renown:<faction>:<change>:<total>` (app/services/factions.py); a day of play
+  `session:start` and `session:end` (app/services/play_session.py), whose session page
+  reads the log since the start for the session note.
 - The device that rolled hears the dice (`sound.js`) as today; a toast never plays a sound
   of its own.
 

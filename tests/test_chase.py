@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 from pathlib import Path
 
 import pytest
@@ -151,3 +152,62 @@ async def test_the_party_view_runs_it(table: tuple[AsyncClient, StoreRegistry, s
     assert "A chase begins, through the streets" in (await ac.get("/log")).text
     ended = await ac.post(f"/gm/chase/{world}/end", headers={"HX-Request": "true"})
     assert "chase-form" in ended.text and registry.chases.of(world) is None
+
+
+@requires_corpus
+async def test_a_runner_takes_its_turn_on_its_sheet(
+    table: tuple[AsyncClient, StoreRegistry, str],
+) -> None:
+    ac, registry, lyra = table
+    world = registry.gamestate.characters.get(lyra).world_id
+    assert world is not None
+    await ac.post(
+        f"/gm/chase/{world}/start",
+        data={f"side_{lyra}": "quarry", "pursuer": "Goblin", "distance": "30"},
+    )
+    chase = registry.chases.of(world)
+    assert chase is not None
+    mine = next(n for n, r in enumerate(chase.runners) if r.character_id == lyra)
+    other = 1 - mine
+    registry.gamestate.chases.upsert(chase.model_copy(update={"turn": other}))
+    sheet = html.unescape((await ac.get(f"/characters/{lyra}")).text)
+    assert "Goblin's turn" in sheet and "cs-chase" in sheet
+    await ac.post(f"/characters/{lyra}/chase/dash", headers={"HX-Request": "true"})
+    chase = registry.chases.of(world)
+    assert chase is not None and chase.runners[mine].dashes == 0  # not her turn
+    registry.gamestate.chases.upsert(chase.model_copy(update={"turn": mine}))
+    assert "Your turn!" in (await ac.get(f"/characters/{lyra}")).text
+    done = await ac.post(f"/characters/{lyra}/chase/dash", headers={"HX-Request": "true"})
+    assert done.status_code == 204
+    chase = registry.chases.of(world)
+    assert chase is not None and chase.runners[mine].dashes == 1
+    await ac.post(f"/characters/{lyra}/chase/turn", headers={"HX-Request": "true"})
+    chase = registry.chases.of(world)
+    assert chase is not None and chase.turn != mine
+    await ac.post(f"/gm/chase/{world}/end")
+    assert "cs-chase" not in (await ac.get(f"/characters/{lyra}")).text
+
+
+def test_a_complication_in_each_language(tmp_path: Path) -> None:
+    service = ChaseService(
+        GameStateStore(tmp_path),
+        None,
+        sheet_roll=lambda *_: 10,
+        tire=lambda _: None,
+        dice=FixedDice([20, 1, 1]),
+    )
+    service.start(
+        "w",
+        [Runner("Ana", "quarry"), Runner("Thug", "pursuer")],
+        environment="urban",
+        distance=30,
+        rules="classic",
+        by="dm",
+        by_name="DM",
+    )
+    english = [["1", "A cart blocks the way."], ["2–20", "No complication."]]
+    german = [["1", "Ein Karren versperrt den Weg."], ["2–20", "Keine Komplikation."]]
+    chase = service.end_turn("w", english, 20, "dm", "DM", {"de": german})
+    hit = next(r for r in chase.runners if r.complication)
+    assert hit.complication == "A cart blocks the way."
+    assert hit.complication_texts == {"de": "Ein Karren versperrt den Weg."}

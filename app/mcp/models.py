@@ -55,6 +55,18 @@ class CampaignObject(BaseModel):
     statblock: str | None = None
 
 
+class FactionInfo(BaseModel):
+    """A faction of the world and the characters' renown with it."""
+
+    name: str
+    note: str = ""
+    renown: dict[str, int] = Field(
+        default_factory=dict, description="Renown by character name; titles come with it"
+    )
+    ranks: list[str] = Field(default_factory=list, description="Titles, as 'renown: title'")
+    rewards: str = Field(default="", description="The book's renown table, as Name|SOURCE")
+
+
 class WorldOverview(BaseModel):
     """What `world_overview` gives."""
 
@@ -71,6 +83,13 @@ class WorldOverview(BaseModel):
     )
     treasures: list[CampaignObject]
     party: list[str] = Field(description="The world's characters: name, level")
+    today: str = Field(
+        default="",
+        description="The world's date and time now, by its calendar where one is set",
+    )
+    calendar: str = Field(default="", description="The calendar the world dates by, if any")
+    season: str = Field(default="", description="The season now, where the calendar has one")
+    factions: list[FactionInfo] = Field(default_factory=list)
     instructions: dict[str, str] = Field(
         default_factory=dict,
         description="The gamemaster's instructions for this world — follow them: `setting` "
@@ -277,6 +296,49 @@ class JourneyPlan(BaseModel):
         description="Ships and airships of the world's books, with their speed"
     )
     weather: bool = Field(description="Whether the world's books print a weather table")
+    arrival: str = Field(
+        default="",
+        description="The world's date on arrival if the party set out now, nights included",
+    )
+    advice: str
+
+
+class TrapInfo(BaseModel):
+    """A trap or hazard of the world's books, as Paravent springs it."""
+
+    tag: str = Field(description="The tag to write alone on a line in a chapter")
+    name: str
+    source: str
+    kind: str = Field(description="trap or hazard")
+    automatic: bool = Field(
+        description="Whether 'Spring it' rolls it by itself; otherwise the table runs it"
+    )
+    effect: list[str] = Field(
+        default_factory=list, description="Its saves and attack at the party's level"
+    )
+    checks: list[str] = Field(default_factory=list, description="Checks that find or undo it")
+
+
+class ChaseRunnerInfo(BaseModel):
+    """A creature that could run in a chase, with the numbers the chase uses."""
+
+    name: str
+    reference: str = ""
+    con: int
+    stealth: int
+    passive_perception: int
+
+
+class ChasePlan(BaseModel):
+    """What `plan_chase` gives: the rules a chase runs by at this table, and the
+    creatures named, read from the world's books."""
+
+    environment: str
+    complications: str = Field(
+        description="The world's complication table for it, as Name|SOURCE, and its die"
+    )
+    runners: list[ChaseRunnerInfo]
+    unresolved: list[str] = Field(default_factory=list)
     advice: str
 
 

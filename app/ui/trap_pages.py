@@ -10,6 +10,7 @@ from urllib.parse import urlencode
 from htpy import Element, Node, b, button, div, form, label, li, p, small, span, ul
 from htpy import input as input_el
 
+from app.models.gamestate import CheckCall
 from app.services.traps import Caught, TrapCheck, TrapEffect, TrapSave
 from app.ui.context import Page
 from app.ui.forms import hidden
@@ -51,12 +52,50 @@ def spring_form(
     level: int,
     *,
     result: Node = None,
+    waiting: Sequence[tuple[int, CheckCall]] = (),
 ) -> Element:
     """Whom the trap catches, what it will do (scaled to the party's ``level``), and the
-    checks that find or undo it, to call for."""
+    checks that find or undo it, to call for. ``waiting`` holds the calls for its saves
+    while the players roll them (by the save's place), which the form shows as they
+    come in."""
     t = page.t
     scaled = effect.at_level(level)
     url = f"{TRAPS_URL}/spring"
+    if waiting:
+        return form(
+            method="post",
+            action=url,
+            hx_post=url,
+            hx_target="closest .trap-spring",
+            hx_swap="innerHTML",
+            class_="trap-form",
+        )[
+            hidden("world", world_id),
+            hidden("category", category),
+            hidden("name", name),
+            hidden("source", source),
+            [hidden(f"call_{n}", call.id) for n, call in waiting],
+            _waiting(page, waiting, dict(members)),
+            # Asks again every few seconds while saves are still to come.
+            div(
+                hx_post=url,
+                hx_trigger="every 3s",
+                hx_vals='{"op": "wait"}',
+                hx_target="closest .trap-spring",
+                hx_swap="innerHTML",
+            )
+            if any(len(c.results) < len(c.characters) for _, c in waiting)
+            else None,
+            div(class_="trap-buttons")[
+                button(type="submit", name="op", value="apply", class_="btn btn-sm btn-primary")[
+                    icon("zap", "sm"), span[t("trap.apply")]
+                ],
+                button(type="submit", name="op", value="cancel", class_="btn btn-sm btn-ghost")[
+                    t("trap.cancel")
+                ],
+            ],
+        ]
+    by_players = bool(scaled.saves) and scaled.attack is None
     return form(
         method="post",
         action=url,
@@ -81,6 +120,14 @@ def spring_form(
             ]
             if scaled.attack
             else None,
+            li[
+                t(
+                    "trap.takes",
+                    damage=" + ".join(_damage_words(page, d, k) for d, k in scaled.damage),
+                )
+            ]
+            if scaled.damage and not scaled.saves and scaled.attack is None
+            else None,
         ]
         if scaled.automatic
         else p(class_="muted")[t("trap.by_hand")],
@@ -101,6 +148,15 @@ def spring_form(
             ]
             if scaled.automatic and members
             else None,
+            button(
+                type="submit",
+                name="op",
+                value="ask",
+                class_="btn btn-sm",
+                title=t("trap.ask_hint"),
+            )[icon("dices", "sm"), span[t("trap.ask")]]
+            if by_players and members
+            else None,
             [
                 button(
                     type="submit",
@@ -113,6 +169,34 @@ def spring_form(
             ]
             if members
             else None,
+        ],
+    ]
+
+
+def _waiting(
+    page: Page, waiting: Sequence[tuple[int, CheckCall]], names: dict[str, str]
+) -> Element:
+    """Each save the players are rolling, and who has rolled what."""
+    t = page.t
+    return div(class_="trap-waiting notice")[
+        b[t("trap.waiting")],
+        [
+            ul[
+                [
+                    li[
+                        span[names.get(cid, "?")],
+                        ": ",
+                        b(class_="mono")[str(call.results[cid])]
+                        if cid in call.results
+                        else small(class_="muted")[t("checks.waiting")],
+                        small(class_="muted")[
+                            " · " + t("trap.save", ability=t(f"ability.{call.subject}"), dc=call.dc)
+                        ],
+                    ]
+                    for cid in call.characters
+                ]
+            ]
+            for _n, call in waiting
         ],
     ]
 
@@ -130,10 +214,12 @@ def spring_result(page: Page, name: str, caught: Sequence[Caught]) -> Element:
                     span[
                         t(
                             "trap.result_hit" if c.failed else "trap.result_safe",
-                            roll=c.roll if c.roll is not None else "—",
+                            roll=c.roll,
                             against=c.against if c.against is not None else "—",
                         )
-                    ],
+                    ]
+                    if c.roll is not None
+                    else None,
                     (
                         " · "
                         + t("trap.result_damage", amount=c.damage, type=_type(page, c.damage_type))
@@ -156,7 +242,12 @@ def _save_words(page: Page, save: TrapSave) -> str:
     t = page.t
     parts = [t("trap.save", ability=t(f"ability.{save.ability}"), dc=save.dc)]
     if save.damage:
-        parts.append(_damage_words(page, save.damage, save.damage_type))
+        dealt = _damage_words(page, save.damage, save.damage_type)
+        parts.append(
+            t("trap.per_hit", times=_damage_words(page, save.times, ""), damage=dealt)
+            if save.times
+            else dealt
+        )
         if save.half:
             parts.append(t("trap.half"))
     if save.conditions:

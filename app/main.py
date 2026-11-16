@@ -40,6 +40,7 @@ from app.routes import corpus as corpus_routes
 from app.routes import creatures as creature_routes
 from app.routes import editor as editor_routes
 from app.routes import encounters as encounter_routes
+from app.routes import factions as faction_routes
 from app.routes import glossary as glossary_routes
 from app.routes import gm as gm_routes
 from app.routes import help as help_routes
@@ -53,6 +54,7 @@ from app.routes import media as media_routes
 from app.routes import naming as naming_routes
 from app.routes import npc_gen as npc_gen_routes
 from app.routes import play_combat as play_combat_routes
+from app.routes import play_session as play_session_routes
 from app.routes import players as players_routes
 from app.routes import prepare as prepare_routes
 from app.routes import protocol as protocol_routes
@@ -327,6 +329,8 @@ def create_app() -> FastAPI:
     app.include_router(backup_routes.router)
     app.include_router(mcp_routes.router)
     app.include_router(session_routes.router)
+    app.include_router(play_session_routes.router)
+    app.include_router(faction_routes.router)
     app.include_router(instruction_routes.router)
     app.include_router(naming_routes.router)
     app.include_router(translate_routes.router)

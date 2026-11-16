@@ -38,6 +38,7 @@ from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.names import class_line
+from app.ui.play_session_pages import session_url
 from app.ui.protocol_pages import headline
 from app.ui.sheet_pages import form_pill, speed_text
 from app.ui.tokens import token
@@ -323,6 +324,11 @@ def party_page(
                             title=t("levelup.grant_all_hint"),
                         )[icon("sparkles", "sm"), span[t("levelup.grant_all")]],
                     ],
+                    a(href=session_url(world.id), class_="btn btn-sm")[
+                        icon("clipboard-list", "sm"), span[t("session.open")]
+                    ]
+                    if world is not None
+                    else None,
                     a(href=f"/help/start?back={PARTY_URL}", class_="btn btn-sm btn-ghost")[
                         icon("book-open", "sm"), span[t("help.start")]
                     ],

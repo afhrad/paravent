@@ -15,6 +15,8 @@
 .cs-flash{ margin:0; }
 .cs-call{ margin:0; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .cs-call .btn{ margin-left:auto; }
+.cs-chase{ margin:0; display:flex; align-items:center; gap:6px 10px; flex-wrap:wrap; }
+.cs-chase.is-turn{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
 .cs-ammo{ font-variant-numeric:tabular-nums; }
 .cs-clock{ display:inline-flex; align-items:center; gap:4px; }
 .cs-timers{ list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:6px 16px; }

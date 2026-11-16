@@ -532,6 +532,25 @@ def _coins(copper: int) -> str:
     return f"{copper:,} cp"
 
 
+# Xanathar's traps print what sets them off, what they do and how to stop them as fields
+# of their own, each a named paragraph after the description.
+TRAP_PARTS = (
+    ("trigger", "ref.trap_trigger"),
+    ("effect", "ref.trap_effect"),
+    ("countermeasures", "ref.trap_countermeasures"),
+)
+
+
+def _trap(page: Page, data: dict[str, Any], ctx: RenderContext) -> list[Node]:
+    """A trap: its text, then its trigger, effect and countermeasures where printed."""
+    parts = [
+        {"type": "entries", "name": page.t(label), "entries": data[key]}
+        for key, label in TRAP_PARTS
+        if isinstance(data.get(key), list) and data[key]
+    ]
+    return [div(class_="ref-body")[render_entries([*(data.get("entries") or []), *parts], ctx)]]
+
+
 def _generic(page: Page, data: dict[str, Any], ctx: RenderContext) -> list[Node]:
     return [
         div(class_="ref-body")[render_entries(data.get("entries") or data.get("entry") or [], ctx)]
@@ -1154,6 +1173,7 @@ def statblock(page: Page, entry: ReferenceEntry, ctx: RenderContext) -> Element:
         "itemGroup": _item_group,
         "table": _table_entry,
         "tableGroup": _table_group,
+        "trap": _trap,
         "vehicle": _vehicle,
         "facility": _facility,
         "cult": _cult,

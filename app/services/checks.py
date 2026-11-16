@@ -72,6 +72,7 @@ class CheckService:
         dc: int | None = None,
         group: bool = False,
         secret: bool = False,
+        purpose: str = "",
     ) -> CheckCall:
         """Ask ``character_ids`` for a check, or (``secret``) roll it for them now."""
         subject = subject.strip().lower()
@@ -93,6 +94,7 @@ class CheckService:
             secret=secret,
             characters=chosen,
             by=by,
+            purpose=" ".join(purpose.split())[:200],
         )
         if secret:
             for character_id in chosen:

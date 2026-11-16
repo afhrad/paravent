@@ -205,7 +205,7 @@ def _calendar(registry: StoreRegistry, world_id: str, form: FormData) -> None:
     if found is None or not all(v.isdigit() for v in values):
         raise ClockError("clock.error.bad_date")
     day, month, year = (int(v) for v in values)
-    if not 0 <= month < len(found.months) or not 1 <= day <= found.months[month].days:
+    if not found.has(year, month, day):
         raise ClockError("clock.error.bad_date")
     today = found.index(year, month, day)
     era = " ".join(str(form.get("era", "")).split())[:12]
@@ -467,10 +467,16 @@ async def run_chase(
             chases.dash(world_id, index, user.username, name)
         elif op == "turn":
             held = chases.of(world_id)
-            rows, die = registry.chase_complications(
-                world_id, held.environment if held else "urban"
+            environment = held.environment if held else "urban"
+            rows, die = registry.chase_complications(world_id, environment)
+            chases.end_turn(
+                world_id,
+                rows,
+                die,
+                user.username,
+                name,
+                registry.chase_translations(world_id, environment),
             )
-            chases.end_turn(world_id, rows, die, user.username, name)
         elif op == "round":
             sight = [int(str(v)) for v in form.getlist("sight") if str(v).isdigit()]
             edges = {
@@ -576,7 +582,9 @@ async def spring_trap(
     request: Request, gm: GamemasterDep, page: PageDep, worlds: WorldsDep, registry: RegistryDep
 ) -> Response:
     """Spring the trap on the ticked characters (``op=spring``), or call for one of its
-    checks from them (``op=call:<skill>:<dc>``)."""
+    checks from them (``op=call:<skill>:<dc>``). ``op=ask`` lets the players roll its
+    saves on their sheets; ``wait`` shows them coming in, ``apply`` springs it with them
+    (rolling for whoever has not), ``cancel`` takes the calls back."""
     form = await request.form()
     world_id = str(form.get("world", ""))
     category, name = str(form.get("category", "")), str(form.get("name", ""))
@@ -590,8 +598,65 @@ async def spring_trap(
     user = gm.user
     by_name = user.display_name or user.username
     op = str(form.get("op", "spring"))
-    result: Node
+    calls = registry.gamestate.checks
+    waiting = [
+        (n, call)
+        for n in range(len(effect.saves))
+        if (call := calls.find(str(form.get(f"call_{n}", "")))) is not None
+    ]
+    scaled = effect.at_level(level)
+    result: Node = None
+    if op == "wait" and waiting:
+        return html(
+            spring_form(
+                page, world_id, category, shown, source, effect, members, level, waiting=waiting
+            )
+        )
+    if op in ("wait", "apply") and not waiting:
+        # The calls are gone (closed elsewhere): nothing is sprung without them.
+        return html(spring_form(page, world_id, category, shown, source, effect, members, level))
+    if op == "cancel":
+        for _n, call in waiting:
+            if call.open:
+                registry.checks.close(call.id)
+        return html(spring_form(page, world_id, category, shown, source, effect, members, level))
+    if op == "apply" and waiting:
+        # The players' saves as they rolled them; whoever has not rolled is rolled for.
+        chosen = list(dict.fromkeys(cid for _n, call in waiting for cid in call.characters))
+        totals = {(cid, n): total for n, call in waiting for cid, total in call.results.items()}
+        for _n, call in waiting:
+            if call.open:
+                registry.checks.close(call.id)
+        op = "spring"
+    else:
+        totals = {}
     if not chosen:
+        result = alert(page.t("trap.error.no_one"))
+    elif op == "ask":
+        if scaled.attack is not None or not scaled.saves:
+            result = alert(page.t("trap.error.ask"))
+        else:
+            asked = [
+                (
+                    n,
+                    registry.checks.call(
+                        world_id,
+                        "save",
+                        save.ability,
+                        chosen,
+                        user.username,
+                        dc=save.dc,
+                        purpose=shown,
+                    ),
+                )
+                for n, save in enumerate(scaled.saves)
+                if not save.on_hit
+            ]
+            return html(
+                spring_form(
+                    page, world_id, category, shown, source, effect, members, level, waiting=asked
+                )
+            )
         result = alert(page.t("trap.error.no_one"))
     elif op.startswith("call:"):
         _call, skill, dc = op.split(":", 2)
@@ -611,7 +676,9 @@ async def spring_trap(
         characters = registry.characters
         targets = []
         for cid in chosen:
-            pc = registry.gamestate.characters.get(cid)
+            pc = registry.gamestate.characters.find(cid)
+            if pc is None:
+                continue
             sheet = characters.sheet(pc)
             targets.append(
                 Target(
@@ -624,7 +691,7 @@ async def spring_trap(
                 )
             )
         caught = registry.traps.spring(
-            world_id, shown, effect.at_level(level), targets, user.username, by_name
+            world_id, shown, scaled, targets, user.username, by_name, totals=totals
         )
         result = spring_result(page, shown, caught)
     return html(

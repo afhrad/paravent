@@ -162,6 +162,7 @@ def _call(page: Page, call: CheckCall, names: Mapping[str, str], world_id: str |
     return li(class_=f"panel party-check {'open' if call.open else 'closed'}")[
         div(class_="party-check-head")[
             b[check_label(page, call)],
+            small(class_="muted")[call.purpose] if call.purpose else None,
             span(class_="pill neutral mono")[t("checks.dc_value", dc=call.dc)] if call.dc else None,
             span(class_="pill neutral")[t("checks.group_check")] if call.group else None,
             span(class_="pill neutral")[t("checks.secret")] if call.secret else None,
@@ -189,6 +190,7 @@ def check_banner(page: Page, call: CheckCall, character_id: str, roll: Node) -> 
     return div(class_="notice cs-call", role="status")[
         icon("dices"),
         span[t("checks.asked", what=check_label(page, call))],
+        small(class_="muted")[call.purpose] if call.purpose else None,
         b(class_="mono")[t("checks.you_rolled", total=total)] if total is not None else roll,
     ]
 

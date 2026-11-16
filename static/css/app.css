@@ -2562,6 +2562,8 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .chase-round > button{ justify-self:start; }
 .chase-escape-row{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; }
 .trap-spring{ margin:8px 0; }
+.trap-waiting{ display:grid; gap:6px; }
+.trap-waiting ul{ margin:0; padding-left:18px; }
 .trap-form{ display:grid; gap:8px; }
 .trap-effects{ margin:0; padding-left:18px; }
 .trap-buttons{ display:flex; flex-wrap:wrap; gap:6px; }
@@ -2574,3 +2576,19 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .contact-edit{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:0; flex:1 1 320px; }
 .contact-edit input[name="note"]{ flex:1 1 200px; }
 .contact-new{ margin-top:10px; }
+.session-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; align-items:start; }
+.session-panel{ display:grid; gap:10px; }
+.session-head{ display:flex; align-items:center; gap:8px; margin:0; font-size:1rem; }
+.session-list{ list-style:none; margin:0; padding:0; display:grid; gap:6px; }
+.session-list li{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+.session-note{ max-height:22rem; overflow:auto; }
+.faction-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; align-items:start; margin-bottom:16px; }
+.faction-panel{ display:grid; gap:10px; }
+.faction-head{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+.faction-head h2{ margin:0; font-size:1.05rem; }
+.faction-renown, .faction-list, .faction-rewards{ list-style:none; margin:0; padding:0; display:grid; gap:6px; }
+.faction-member{ display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:8px; }
+.faction-steps{ display:flex; gap:4px; }
+.faction-form{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px; }
+.faction-form textarea{ flex-basis:100%; }
+.faction-row{ display:grid; gap:6px; }

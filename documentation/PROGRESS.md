@@ -531,23 +531,43 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         the distance, free Dashes (3 + CON) and the DC 10 Constitution roll past them,
         the complication die on the guide's urban or wilderness table falling on the
         next participant, and the quarry's Stealth against the pursuers' passive
-        Perception at the end of each round
+        Perception at the end of each round. **On the runners' sheets** (2026-11-16): a
+        character in the chase sees the round, the distance, whose turn it is, its
+        Dashes and the complication on it, and on its own turn Dashes and ends it there;
+        a complication reads in the reader's language where the table is translated
   - [x] **Traps and hazards in play** (2026-11-16, `app/services/traps.py`): "Spring it"
         beside a trap or hazard in a chapter or on its page reads its save or attack,
         damage, half on a save and conditions from the text (a 2024 trap scaled by its
         *At Higher Levels* table to the party's level), rolls the saves on the ticked
         characters' sheets and applies the damage with their defences; its Perception
-        or Investigation checks are called for in one press. 55 of the corpus's 110
-        traps and hazards spring by themselves; the rest are the table's
+        or Investigation checks are called for in one press. 73 of the corpus's 110
+        traps and hazards spring by themselves (Xanathar's effect and countermeasures
+        fields read, and shown on their pages; damage with no save; darts counted per
+        hit; a spotting DC written as prose); the rest are the table's. **The players
+        roll the saves** (2026-11-16) if the gamemaster says so: a check call naming the
+        trap on each sheet, the DC hidden, the totals coming in on the form, sprung with
+        them (whoever has not rolled is rolled for)
   - [x] **A calendar per world** (2026-11-16, `app/services/calendar.py`): the setting
         calendars the world's books print (Harptos, Eberron, Exandria, Theros, Ravnica)
         on the clock panel; with one chosen and today's date set, every clock label
         reads a date ("14 Mirtul 1492 DR"), holidays by name, with the season, which
-        also turns the weather's rain or snow
+        also turns the weather's rain or snow; Harptos's Shieldmeet every fourth year
   - [x] **Contacts and favours** (2026-11-16, `app/services/contacts.py`): carousing's
         allies and enemies, religious service's favours and the rivals behind the book's
         starred complications become a character's contacts on its downtime page, named,
         noted and called on there; anyone else written down by hand
+  - [x] **Factions and renown** (2026-11-16, `app/services/factions.py`, `/gm/factions`):
+        a world's factions by hand, from a book's renown table (its rewards by score)
+        or the 2014 guide's example factions (titles by renown); the gamemaster raises
+        or lowers each character's renown, logged; the character's downtime page shows
+        its renown, title and the rewards reached; a contact may belong to a faction
+  - [x] **The session page** (2026-11-16, `app/services/play_session.py`,
+        `/gm/session`): before play, the last session's note, the date and timers,
+        bastion turns due, lifestyle owed since last time, unnamed contacts, downtime
+        days to spend and whatever is still open; started and ended there, the end
+        writing the day's session note from its fights' recap and what the log says
+        happened since the start (time, miles, encounters, chases, traps, contacts,
+        lifestyle)
   - [x] **Image effects** (2026-11-04, ADVENTURES.md §5.5, `app/services/image_effects.py`):
         `torn`, `fade`, `oval`, `sepia`, `aged`, `mono`, `banner` written beside an image
         (`![[tavern.jpg|torn sepia]]`, `cover: media/x.jpg|fade`), rendered once with
@@ -766,7 +786,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       and the shop** (2026-11-15): `plan_journey` works a stretch of road out for a chapter
       (distance, rations, water, the chance of an encounter, the world's tables and
       ships), and `shop_stock` suggests priced magic items for a shop, kept in a draft's
-      treasure that the gamemaster stocks the shop from
+      treasure that the gamemaster stocks the shop from. **The table's new pieces**
+      (2026-11-16): `world_overview` gives the date by the world's calendar, the season
+      and the factions with the characters' renown; `plan_journey` the date on arrival;
+      `find_traps` the traps of the world's books with their tags (Spring it in the
+      chapter) and `plan_chase` a chase's complication table and runners
 - [x] Wizard state when going back a step — checked 2026-11-02 (CHARGEN-WIZARD.md §6): answers
       live in the draft's file, a step is a GET of them, and a changed answer marks later
       steps for review without dropping them. Typed text followed by a footer click now
@@ -1040,7 +1064,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2394 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2406 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the
