@@ -71,3 +71,28 @@ async def test_a_session_from_brief_to_note(table: tuple[AsyncClient, StoreRegis
     # The debt was before this session ended: no longer listed.
     assert "owes" not in again
     assert "The session begins" in (await ac.get("/log")).text
+
+
+@requires_corpus
+async def test_the_players_home_says_what_is_going_on(
+    table: tuple[AsyncClient, StoreRegistry, str],
+) -> None:
+    from app.models.gamestate import Role
+    from tests.test_travel_downtime_shop import PASSWORD
+
+    ac, registry, lyra = table
+    world = registry.gamestate.characters.get(lyra).world_id or ""
+    registry.auth.create_user("ana", PASSWORD, Role.PLAYER)
+    registry.gamestate.characters.update(lyra, player="ana")
+    registry.play_sessions.start(world, "dm", "DM")
+    registry.quests.save(world, {"name": "Find the bell", "shown": True})
+    await ac.post(
+        f"/gm/chase/{world}/start",
+        data={f"side_{lyra}": "quarry", "pursuer": "Goblin", "distance": "30"},
+    )
+    await ac.post("/logout")
+    await ac.post("/login", data={"username": "ana", "password": PASSWORD})
+    home = html.unescape((await ac.get("/play")).text)
+    assert "The session in W is running" in home
+    assert "Lyra Mooncaller is in a chase" in home
+    assert "1 open quest in W" in home

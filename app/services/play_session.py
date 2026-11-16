@@ -6,8 +6,8 @@ characters could not pay since the last session, contacts nobody has named yet, 
 days still to spend, and whatever is still open (a chase, a shop, calls for checks).
 Ending it writes the day's session note: the recap of its fights, as the session notes
 always began, and what else happened in the world since it started, read from the log:
-the time that passed, the miles travelled, chases, traps, contacts made and lifestyle
-paid or owed.
+the time that passed, the miles travelled, quests finished or failed, chases, traps,
+contacts made and lifestyle paid or owed.
 """
 
 from __future__ import annotations
@@ -35,6 +35,7 @@ class Happened:
     travel_encounters: int = 0
     chases: list[str] = field(default_factory=list)  # how each ended
     traps: list[str] = field(default_factory=list)  # the traps sprung, by name
+    quests: list[tuple[str, str]] = field(default_factory=list)  # (done|failed, name)
     contacts: dict[str, int] = field(default_factory=dict)  # made, by kind
     paid: int = 0  # lifestyle paid, in copper
     owed: int = 0  # lifestyle the purses lacked, in copper
@@ -46,6 +47,7 @@ class Happened:
             or self.travel_encounters
             or self.chases
             or self.traps
+            or self.quests
             or self.contacts
             or self.paid
             or self.owed
@@ -68,6 +70,7 @@ class Brief:
     chase: bool = False
     shop: str | None = None
     calls: int = 0
+    quests: int = 0  # quests still open
 
 
 class PlaySessionService:
@@ -131,6 +134,8 @@ class PlaySessionService:
                 out.chases.append(parts[1])
             elif head == "trap" and parts[0] == "sprung" and len(parts) > 1:
                 out.traps.append(parts[1])
+            elif head == "quest" and parts[0] in ("done", "failed") and len(parts) > 1:
+                out.quests.append((parts[0], parts[1]))
             elif head == "contact" and parts[0] == "new" and len(parts) > 2:
                 out.contacts[parts[1]] = out.contacts.get(parts[1], 0) + int(_number(parts[2]))
             elif head == "lifestyle" and len(parts) > 3:
@@ -191,6 +196,7 @@ class PlaySessionService:
             chase=store.chases.find(world_id) is not None,
             shop=shop.name if shop is not None and shop.open else None,
             calls=len(store.checks.list(lambda c: c.open and c.world_id == world_id)),
+            quests=len(store.quests.list(lambda q: q.world_id == world_id and q.status == "open")),
         )
 
     def _entries(self, world_id: str, since: datetime | None) -> list[ProtocolEntry]:

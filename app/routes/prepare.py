@@ -17,6 +17,7 @@ from app.dependencies import IdentityDep, PageDep, RegistryDep
 from app.models.pc import PREPARED_PREFIX
 from app.routes.auth import html, redirect
 from app.services.chargen.prepare import PrepareError
+from app.services.spellbook import copyable
 from app.ui.prepare_pages import prepare_form, prepare_page
 
 router = APIRouter(tags=["prepare"])
@@ -32,7 +33,9 @@ async def show(
     except PrepareError:
         return redirect(f"/characters/{character_id}")
     planner = registry.drafts.planner(pc)
-    return html(prepare_page(page, pc, prep, planner))
+    books = copyable(pc, planner.catalogue, prep.sheet)
+    shown = [(o.reference, o.name, int(o.data.get("level", 0))) for o in books]
+    return html(prepare_page(page, pc, prep, planner, copyable=shown))
 
 
 @router.post("/characters/{character_id}/prepare", response_class=HTMLResponse)

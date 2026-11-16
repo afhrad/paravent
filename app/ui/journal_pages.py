@@ -191,6 +191,7 @@ def journal_page(
     names: dict[str, list[str]] | None = None,
     message: str | None = None,
     notes: Sequence[PartyNotesView] = (),
+    quests: Sequence[Node] = (),
 ) -> Element:
     """Every handout the reader holds, newest first. The gamemaster's list names who each
     went to (``names``); a player's marks what they have not opened. ``notes`` are the
@@ -208,6 +209,7 @@ def journal_page(
                 t("journal.lede_gm") if gm else t("journal.lede"),
             ),
             notice(message),
+            quests,
             [_party_notes(page, n) for n in notes],
             ul(class_="list journal-list")[rows]
             if rows

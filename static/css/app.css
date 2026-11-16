@@ -2592,3 +2592,30 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .faction-form{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px; }
 .faction-form textarea{ flex-basis:100%; }
 .faction-row{ display:grid; gap:6px; }
+.quest-list{ display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px; align-items:start; margin-bottom:16px; }
+.quest-panel, .quest-row{ display:grid; gap:8px; }
+.quest-panel.is-done, .quest-panel.is-failed{ opacity:.8; }
+.quest-head{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.quest-head h2{ margin:0; font-size:1.05rem; }
+.quest-text{ margin:0; white-space:pre-line; }
+.quest-steps, .quest-read{ list-style:none; margin:0; padding:0; display:grid; gap:4px; }
+.quest-done{ text-decoration:line-through; opacity:.75; }
+.quest-tick{ text-align:left; }
+.quest-tick.is-on span{ text-decoration:line-through; }
+.quest-finish, .quest-acts{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.quest-give{ display:flex; gap:6px; align-items:center; }
+.quest-form{ display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:10px; }
+.quest-form .quest-wide, .quest-form .form-actions{ grid-column:1 / -1; }
+.quest-who{ display:flex; flex-wrap:wrap; gap:6px 14px; }
+.quest-read > li{ padding:8px 0; border-bottom:1px solid var(--border); }
+.follower-list{ list-style:none; margin:0; padding:0; display:grid; gap:10px; }
+.follower-row{ display:grid; gap:6px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+.follower-head, .follower-acts{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; }
+.follower-hp{ min-width:4.5em; }
+.follower-form{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+.bastion-event-yields{ margin:0; padding-left:18px; }
+.bastion-offer{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.bastion-offer p{ flex-basis:100%; margin:0; }
+.play-news{ list-style:none; margin:0 0 16px; padding:0; display:flex; flex-wrap:wrap; gap:8px; }
+.play-news a{ display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border:1px solid var(--border); border-radius:999px; background:var(--surface); text-decoration:none; }
+.quest-box{ display:inline-block; width:.9em; height:.9em; border:1.5px solid currentColor; border-radius:3px; vertical-align:-1px; }

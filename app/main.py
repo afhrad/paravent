@@ -58,6 +58,7 @@ from app.routes import play_session as play_session_routes
 from app.routes import players as players_routes
 from app.routes import prepare as prepare_routes
 from app.routes import protocol as protocol_routes
+from app.routes import quests as quest_routes
 from app.routes import ref as ref_routes
 from app.routes import safety as safety_routes
 from app.routes import search as search_routes
@@ -331,6 +332,7 @@ def create_app() -> FastAPI:
     app.include_router(session_routes.router)
     app.include_router(play_session_routes.router)
     app.include_router(faction_routes.router)
+    app.include_router(quest_routes.router)
     app.include_router(instruction_routes.router)
     app.include_router(naming_routes.router)
     app.include_router(translate_routes.router)

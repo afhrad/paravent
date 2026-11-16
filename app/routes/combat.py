@@ -874,7 +874,11 @@ async def delete_combat(_gm: GamemasterDep, registry: RegistryDep, combat_id: st
 
 
 def _progress(registry: StoreRegistry, combat: Combat) -> list[XpRow]:
-    """Each character who took part, with their experience against the table."""
+    """Each character who took part, with their experience against the table; none
+    in a world that levels by milestone, where no XP is awarded."""
+    world = registry.gamestate.worlds.find(combat.world_id) if combat.world_id else None
+    if world is not None and world.milestone:
+        return []
     rows = []
     for combatant in combat.combatants:
         if not combatant.character_id:

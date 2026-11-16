@@ -58,6 +58,18 @@ _TIMES = re.compile(r"by \{@dice ([^}|]+)[^}]*\}\s+(?:darts|bolts|needles|arrows
 _TAKES = re.compile(r"\b(?:creature|target|character)\b[^.]*\btakes\b", re.IGNORECASE)
 # Scaling written out: "7 ({@damage 2d6}) at levels 5–10"
 _SCALED = re.compile(r"\{@damage ([^}|]+)[^}]*\}\)? at levels (\d+)\s*[–-]\s*(\d+)")
+# An ability check that fails into a condition: "must succeed on a {@dc 10} Dexterity
+# ({@skill Acrobatics}) check or fall {@condition prone}"
+_CHECK_OR = re.compile(
+    r"\{@dc (\d+)\}\s+(\w+)\s+\(\{@skill ([^}|]+)[^}]*\}\)\s+check or\b", re.IGNORECASE
+)
+# A trap that works as a spell: "(treat as a {@dc 15} {@spell cloudkill} spell)", "as if a
+# {@spell Fireball|XPHB} spell (save {@dc 15})"
+_AS_SPELL = re.compile(
+    r"(?:\{@dc (\d+)\}\s+)?\{@spell ([^}|]+)\|?([^}|]*)[^}]*\}\s+spell"
+    r"(?:\s+\(save \{@dc (\d+)\}\))?",
+    re.IGNORECASE,
+)
 _HIT_FIRST = re.compile(r"\b(?:is hit|that is hit|hit by)\b", re.IGNORECASE)
 
 
@@ -73,6 +85,7 @@ class TrapSave:
     conditions: tuple[str, ...] = ()
     on_hit: bool = False  # only a creature the trap's attack hit makes it
     times: str = ""  # dice for how many hits a failure takes ("1d3" darts), each dealing damage
+    skill: str = ""  # an ability check with this skill rather than a save ("acrobatics")
 
 
 @dataclass(frozen=True)
@@ -137,8 +150,12 @@ def _strings(node: Any, skip: tuple[str, ...] = ()) -> list[str]:
     return []
 
 
-def read_trap(data: dict[str, Any]) -> TrapEffect:
-    """What a trap or hazard does, from its text (see the module's note)."""
+def read_trap(
+    data: dict[str, Any],
+    spell: Callable[[str, str], dict[str, Any] | None] | None = None,
+) -> TrapEffect:
+    """What a trap or hazard does, from its text (see the module's note). ``spell(name,
+    source)`` finds a spell's data, for a trap that works as one."""
     entries = data.get("entries")
     # Xanathar's traps keep what they do and how to stop them in fields of their own.
     effect_text = _strings(
@@ -188,10 +205,37 @@ def read_trap(data: dict[str, Any]) -> TrapEffect:
                     times=times[1].strip() if times and "per " in after.lower() else "",
                 )
             )
+    if not saves and attack is None:
+        # A check that fails into a condition (slippery ice), rolled as the save would be.
+        for paragraph in effect_text:
+            for sentence in _SENTENCE.split(paragraph):
+                m = _CHECK_OR.search(sentence)
+                if m is not None and m[2].lower() in ABILITIES:
+                    conditions = tuple(
+                        dict.fromkeys(c.strip().lower() for c in _CONDITION.findall(sentence))
+                    )
+                    saves.append(
+                        TrapSave(
+                            dc=int(m[1]),
+                            ability=ABILITIES[m[2].lower()],
+                            conditions=conditions,
+                            skill=m[3].strip().lower(),
+                        )
+                    )
+    if not saves and attack is None and spell is not None:
+        for paragraph in effect_text:
+            m = _AS_SPELL.search(paragraph)
+            if m is not None and (m[1] or m[4]):
+                cast = _as_spell(spell(m[2].strip(), m[3].strip()), int(m[1] or m[4]))
+                if cast is not None:
+                    saves.append(cast)
+                    break
+    checks_or = {(s.dc, s.skill) for s in saves if s.skill}
     found = [
         TrapCheck(int(m[1]), ABILITIES.get(m[2].lower(), m[2].lower()), m[3].strip().lower())
         for text in finding
         for m in _CHECK.finditer(text)
+        if (int(m[1]), m[3].strip().lower()) not in checks_or
     ]
     found += [
         TrapCheck(int(m[1] or m[2]), "wis", "perception")
@@ -207,6 +251,29 @@ def read_trap(data: dict[str, Any]) -> TrapEffect:
                     plain += [(d.strip(), t.lower()) for d, t in _DAMAGE.findall(sentence)]
     levels = _levels(entries) or _scaled(entries)
     return TrapEffect(tuple(saves), attack, tuple(dict.fromkeys(found)), levels, tuple(plain))
+
+
+def _as_spell(data: dict[str, Any] | None, dc: int) -> TrapSave | None:
+    """The save a spell calls for, at the trap's DC, with its damage and whether a
+    success halves it, from the spell's data."""
+    if not data:
+        return None
+    abilities = [str(a).lower() for a in data.get("savingThrow") or []]
+    ability = ABILITIES.get(abilities[0]) if abilities else None
+    if ability is None:
+        return None
+    text = " ".join(_strings(data.get("entries")))
+    damage = _DAMAGE.search(text)
+    return TrapSave(
+        dc=dc,
+        ability=ability,
+        damage=damage[1].strip() if damage else "",
+        damage_type=damage[2].lower() if damage else "",
+        half=bool(_HALF.search(text)),
+        conditions=tuple(dict.fromkeys(c.strip().lower() for c in _CONDITION.findall(text)))
+        if not damage
+        else (),
+    )
 
 
 def _follow(save: TrapSave, sentence: str) -> TrapSave:
@@ -307,6 +374,7 @@ class TrapService:
         save: Callable[[str, str], int],
         hurt: Callable[[str, int], None],
         afflict: Callable[[str, str], None],
+        check: Callable[[str, str], int] | None = None,
         dice: Dice | None = None,
     ) -> None:
         """``save(character, ability)`` rolls a saving throw on the sheet and gives the
@@ -316,6 +384,7 @@ class TrapService:
         self._save = save
         self._hurt = hurt
         self._afflict = afflict
+        self._check = check
         self._dice = dice or Dice()
 
     def spring(
@@ -359,7 +428,12 @@ class TrapService:
                 if save.on_hit and target.character_id not in hit:
                     continue
                 held = (totals or {}).get((target.character_id, n))
-                total = held if held is not None else self._save(target.character_id, save.ability)
+                if held is not None:
+                    total = held
+                elif save.skill and self._check is not None:
+                    total = self._check(target.character_id, save.skill)
+                else:
+                    total = self._save(target.character_id, save.ability)
                 failed = total < save.dc
                 full = rolled[n]
                 if save.times and save.damage:

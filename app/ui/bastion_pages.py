@@ -66,6 +66,7 @@ def bastion_page(
     equipment: Sequence[tuple[int, Sequence[tuple[str, str]]]] = (),
     costs: tuple[Mapping[str, tuple[int, int]], ...] = ({}, {}),
     day_of: Mapping[int, str] | None = None,
+    discoveries: Sequence[tuple[str, str]] = (),
     error: str | None = None,
     message: str | None = None,
 ) -> Element:
@@ -148,7 +149,7 @@ def bastion_page(
                 else None,
             ],
             _yields(page, bastion, day_of or {}) if bastion.yields or bastion.pending else None,
-            _event(page, bastion, event_text) if bastion.event else None,
+            _event(page, bastion, event_text, character_id, discoveries) if bastion.event else None,
             section(class_="panel bastion-maintain")[
                 form(method="post", action=url, class_="bastion-maintain-form")[
                     hidden("op", "maintain"),
@@ -189,8 +190,15 @@ def bastion_page(
     )
 
 
-def _event(page: Page, bastion: Bastion, text: Node) -> Element:
-    """The event the last Maintain turn rolled, with the books' text."""
+def _event(
+    page: Page,
+    bastion: Bastion,
+    text: Node,
+    character_id: str = "",
+    discoveries: Sequence[tuple[str, str]] = (),
+) -> Element:
+    """The event the last Maintain turn rolled, with the books' text, what it brought
+    and the decision it waits for."""
     t = page.t
     parts = bastion.event.split("|")
     roll, name = parts[0], parts[2] if len(parts) > 2 else ""
@@ -206,7 +214,90 @@ def _event(page: Page, bastion: Bastion, text: Node) -> Element:
         p(class_="notice")[t("bastion.attack_shut", name=page.t.term("facility", shut) or shut)]
         if shut
         else None,
+        ul(class_="bastion-event-yields")[[li[_event_line(page, y)] for y in bastion.event_yields]]
+        if bastion.event_yields
+        else None,
+        p(class_="pill heal")[t("bastion.guardian")] if bastion.guardian else None,
+        _offer(page, bastion, character_id, discoveries) if bastion.offer else None,
         div(class_="entries bastion-event-text")[text] if text is not None else None,
+    ]
+
+
+def _event_line(page: Page, line: str) -> str:
+    """One thing an event brought, in words."""
+    t = page.t
+    kind, _, rest = line.partition("|")
+    parts = rest.split("|")
+    if kind in ("gold", "paid"):
+        return t(f"bastion.event_{kind}", coins=coin_text(page, int(parts[0] or 0)))
+    if kind == "refugees":
+        return t("bastion.event_refugees", n=parts[0], coins=coin_text(page, int(parts[1] or 0)))
+    if kind in ("shut", "item"):
+        ref = parts[0]
+        category = "facility" if kind == "shut" else "item"
+        name = page.t.term(category, ref.partition("|")[0]) or ref.partition("|")[0]
+        return t(f"bastion.event_{kind}", name=name)
+    if kind == "aid":
+        total, reward, lost = (parts + ["", "", ""])[:3]
+        return t(
+            "bastion.event_aid_lost" if lost == "1" else "bastion.event_aid",
+            total=total,
+            coins=coin_text(page, int(reward or 0)),
+        )
+    if kind in ("detail", "guest"):
+        return rest
+    return t(f"bastion.event_{kind}", name=rest)
+
+
+def _offer(
+    page: Page, bastion: Bastion, character_id: str, discoveries: Sequence[tuple[str, str]]
+) -> Element:
+    """The decision the last event waits for."""
+    t = page.t
+    kind, _, amount = bastion.offer.partition("|")
+    url = f"/characters/{character_id}/bastion"
+    decline = button(type="submit", name="accept", value="0", class_="btn btn-sm btn-ghost")[
+        t("bastion.offer_decline")
+    ]
+    body: list[Node] = []
+    if kind in ("bribe", "opportunity"):
+        coins = coin_text(page, int(amount or 0))
+        body = [
+            p[t(f"bastion.offer_{kind}", coins=coins)],
+            button(type="submit", name="accept", value="1", class_="btn btn-sm btn-primary")[
+                t("bastion.offer_pay", coins=coins)
+            ],
+            decline,
+        ]
+    elif kind == "aid":
+        body = [
+            p[t("bastion.offer_aid")],
+            input_el(
+                type="number",
+                name="value",
+                min="1",
+                max=str(bastion.defenders),
+                value="1",
+                inputmode="numeric",
+                aria_label=t("bastion.offer_aid_count"),
+            ),
+            button(type="submit", name="accept", value="1", class_="btn btn-sm btn-primary")[
+                t("bastion.offer_send")
+            ],
+            decline,
+        ]
+    elif kind == "discovery":
+        body = [
+            p[t("bastion.offer_discovery")],
+            select(name="value", aria_label=t("bastion.offer_discovery"))[
+                [option(value=ref)[page.t.term("item", name) or name] for ref, name in discoveries]
+            ],
+            button(type="submit", name="accept", value="1", class_="btn btn-sm btn-primary")[
+                t("bastion.offer_take")
+            ],
+        ]
+    return form(method="post", action=url, class_="bastion-offer notice")[
+        input_el(type="hidden", name="op", value="offer"), body
     ]
 
 

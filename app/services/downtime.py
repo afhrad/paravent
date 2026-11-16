@@ -270,7 +270,7 @@ class DowntimeService:
         if project.kind == "craft":
             self._give(pc.id, project.label)
         elif project.kind == "scribe":
-            self._give(pc.id, project.label.partition(";")[0])
+            self._give(pc.id, project.label)  # "<scroll>;<spell>": it keeps its spell
         elif project.kind == "train":
             kind, _, ref = project.label.partition(":")
             self._learn(pc.id, kind, ref)

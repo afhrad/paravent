@@ -400,6 +400,9 @@ class ItemView:
     pack: tuple[str, int] | None = None
     # How long it burns once lit, in minutes: a torch, candle, lamp or lantern.
     light: int = 0
+    # A spell scroll, and the spell it holds ("" while nobody wrote it in).
+    scroll: bool = False
+    spell: str = ""
 
 
 @dataclass(frozen=True)
@@ -602,6 +605,10 @@ class Sheet:
     summons: dict[str, Any] = field(default_factory=dict)
     # Set by the page: the gamemaster's open calls for a check asking this character.
     calls: list[Any] = field(default_factory=list)
+    # Set by the page: how many hirelings and creatures follow the character.
+    followers: int = 0
+    # Set by the page: the world levels by milestone, so no XP is shown.
+    milestone: bool = False
     # Set by the page: the world's chase, when the character runs in it.
     chase: Any = None
     # Set by the page: the world's clock (minutes, app/services/clock.py), None in no
@@ -1295,6 +1302,8 @@ def _armor_and_attacks(
                 data is not None and "CNS" in (data.get("miscTags") or []),
                 pack,
                 light_minutes(entry.item.name),
+                entry.item.name.lower().startswith("spell scroll"),
+                entry.spell,
             )
         )
     sheet.attacks = [

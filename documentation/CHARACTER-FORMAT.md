@@ -102,7 +102,7 @@ is meant: `{"item": "Letter from a dead colleague"}`.
 | `feats`, `optional_features` | `["Alert|PHB"]`, `["Cantrip Formulas|TCE"]` | an optional class feature from another book appears only when listed here |
 | `wild_shapes` | `["Wolf|XMM"]` | a 2024 druid's known Wild Shape forms, chosen on the sheet up to the number the level allows; a 2014 druid may take any beast that fits and lists none |
 | `spells` | `{"cantrips": […], "known": […], "prepared": […]}` | see below |
-| `inventory` | `[{"item": "Quarterstaff|PHB", "quantity": 1, "equipped": true, "attuned": false, "notes": ""}]` | equipped armour, shields and protective items set AC; equipped weapons become attacks |
+| `inventory` | `[{"item": "Quarterstaff|PHB", "quantity": 1, "equipped": true, "attuned": false, "notes": ""}]` | equipped armour, shields and protective items set AC; equipped weapons become attacks; a spell scroll carries `"spell": "Fireball|PHB"`, the spell it holds (left out while none), cast from the sheet or copied into a spellbook (`app/services/spellbook.py`) |
 | `currency` | `{"cp": 0, "sp": 14, "ep": 0, "gp": 230, "pp": 2}` | |
 | `lifestyle` | `"modest"`, `""` | how the character lives: `wretched` … `aristocratic`; each day the world's clock passes off the road costs that from `currency` (app/services/lifestyle.py); `""` keeps none |
 | `resources` | `[{"name": "Arcane Recovery", "max": 1, "recharge": "long"}]` | limited-use features; `recharge` is `short`, `long` or `none` |

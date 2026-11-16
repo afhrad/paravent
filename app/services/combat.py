@@ -2710,6 +2710,27 @@ class CombatService:
 
         return self._mutate(combat_id, apply)
 
+    def add_follower(
+        self, combat_id: str, ref: str, label: str, hp: int, hp_max: int, by: str
+    ) -> Combat:
+        """A character's companion, mount or sidekick joins on the party's side, under
+        its own name and with the hit points it has (app/services/followers.py)."""
+        name, _, source = ref.partition("|")
+        monster = self._monster(name.strip(), source.strip()) if source else None
+        if monster is None:
+            raise CombatError("combat.error.monster", ref=ref)
+
+        def apply(combat: Combat) -> None:
+            before = {c.id for c in combat.combatants}
+            self._add_monsters(combat, monster, 1, ally=True)
+            for member in combat.combatants:
+                if member.id not in before:
+                    member.label = label[:120] or member.label
+                    member.hp_max = max(1, hp_max)
+                    member.hp = max(0, min(hp, member.hp_max))
+
+        return self._mutate(combat_id, apply)
+
     def summon(
         self,
         combat_id: str,

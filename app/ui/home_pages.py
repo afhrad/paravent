@@ -75,8 +75,15 @@ def delete_link(page: Page, pc: PlayerCharacter) -> Element:
     )[icon("trash-2")]
 
 
-def player_home(page: Page, characters: Sequence[PlayerCharacter], fights: Node = None) -> Element:
-    """The player's landing screen: their characters, and ``fights`` they are in now."""
+def player_home(
+    page: Page,
+    characters: Sequence[PlayerCharacter],
+    fights: Node = None,
+    news: Sequence[tuple[str, str, str]] = (),
+) -> Element:
+    """The player's landing screen: their characters, ``fights`` they are in now, and
+    ``news`` of their worlds — a session running, a chase, open quests — each
+    ``(icon, text, link)``."""
     t = page.t
     body: Node
     if characters:
@@ -90,7 +97,14 @@ def player_home(page: Page, characters: Sequence[PlayerCharacter], fights: Node 
         page,
         t("play.page_title"),
         div(class_="play-home")[
-            page_head(t("play.eyebrow"), t("play.heading"), t("play.lede"), new), fights, body
+            page_head(t("play.eyebrow"), t("play.heading"), t("play.lede"), new),
+            ul(class_="play-news")[
+                [li[a(href=href)[icon(ic, "sm"), span[text]]] for ic, text, href in news]
+            ]
+            if news
+            else None,
+            fights,
+            body,
         ],
     )
 

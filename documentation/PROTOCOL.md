@@ -222,7 +222,12 @@ What just happened, without stopping play.
   sheet as the gamemaster would, under its player's name. Renown is
   `renown:<faction>:<change>:<total>` (app/services/factions.py); a day of play
   `session:start` and `session:end` (app/services/play_session.py), whose session page
-  reads the log since the start for the session note.
+  reads the log since the start for the session note. Quests write `quest:new:<name>`,
+  `quest:done:<name>` and `quest:failed:<name>` (app/services/quests.py), their reward
+  landing as the usual `receive`, experience and renown entries; hirelings' pay is
+  `wages:<days>:<paid>:<owed>` (app/services/followers.py); a spell scroll used up
+  `scroll:<cast|copy>:<spell>:<kept>[:<total>:<dc>]`, and a spell copied into a
+  spellbook `learn:spell:<ref>` (app/services/spellbook.py).
 - The device that rolled hears the dice (`sound.js`) as today; a toast never plays a sound
   of its own.
 

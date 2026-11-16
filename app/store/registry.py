@@ -32,6 +32,7 @@ from app.services.adventures import AdventureService
 from app.services.auth import AuthService, Identity
 from app.services.backlinks import BacklinkIndex
 from app.services.backup import BackupService
+from app.services.bastion_events import EventTools, item_ref
 from app.services.bastion_orders import OrderOption, OrderYields, options_of, tool_choice
 from app.services.bastions import BastionEvent, BastionService, event_rows
 from app.services.book_tables import Rows, copper, days, find_in, rolled, row_for, rows_of
@@ -64,6 +65,7 @@ from app.services.downtime import DowntimeService
 from app.services.encounters import EncounterService
 from app.services.events import COMBATS, PARTY, PROSE, PROTOCOL, ChangeHub, combat_key
 from app.services.factions import FactionService, Reward, ranks_from, rewards_of
+from app.services.followers import FollowerService, Statblock, hit_die
 from app.services.glossary import Glossary, LinkCounts
 from app.services.handouts import HandoutService
 from app.services.i18n import FALLBACK, UiCatalogue
@@ -87,6 +89,7 @@ from app.services.players import PlayerService
 from app.services.protocol import ProtocolService
 from app.services.protocol_migration import copy_old_logs
 from app.services.protocol_view import ProtocolReader, Viewer
+from app.services.quests import QuestService
 from app.services.ratelimit import LoginThrottle
 from app.services.references import ReferenceEntry, ReferenceService
 from app.services.revisions import Revisions
@@ -96,6 +99,7 @@ from app.services.session_notes import SessionNoteService
 from app.services.sheet import CONDITIONS
 from app.services.shop import ShopService
 from app.services.sound import SoundDesk, SoundLibrary
+from app.services.spellbook import SpellbookService
 from app.services.style_drafts import ApiAgent, StyleDrafts
 from app.services.summons import Summoning, summoning
 from app.services.text import strip_tags
@@ -621,9 +625,12 @@ class StoreRegistry:
 
     def _days_passed(self, world_id: str, days: int, why: str, by: str, by_name: str) -> None:
         """Days passed off the road cost each character its lifestyle; on the road the
-        party eats its rations instead (app/services/lifestyle.py)."""
+        party eats its rations instead (app/services/lifestyle.py). Hirelings are paid
+        either way (app/services/followers.py)."""
         if why != "travel":
             self.lifestyle.charge(world_id, days, self.lifestyle_costs(world_id), by, by_name)
+        # Hirelings are paid for every day, on the road too.
+        self.followers.pay_wages(world_id, days, by, by_name)
 
     def calendars(self, world_id: str | None) -> list[Calendar]:
         """The setting calendars the world's books print, each once."""
@@ -665,6 +672,103 @@ class StoreRegistry:
         new = costs_2024(self.book_table(world_id, "Food, Drink, and Lodging", ["XPHB"]))
         first, second = (new, old) if self.rules_of(world_id) == "one" else (old, new)
         return first or second
+
+    def spellbook_for(self, by: Actor) -> SpellbookService:
+        """Scrolls cast and spells copied into spellbooks, as ``by``
+        (app/services/spellbook.py)."""
+        characters = self.characters
+
+        def roll(character_id: str, kind: str, subject: str) -> int:
+            return characters.roll_for(character_id, kind, subject, by, private=False) or 0
+
+        def act(character_id: str, action: str, params: dict[str, str]) -> None:
+            characters.act_for(character_id, action, params, by)
+
+        return SpellbookService(
+            # The wizard's catalogue: it carries the spell lists.
+            catalogue=lambda pc: self.drafts.planner(pc).catalogue,
+            sheet=characters.sheet,
+            roll=roll,
+            act=act,
+        )
+
+    @cached_property
+    def followers(self) -> FollowerService:
+        """Characters' hirelings, companions, mounts and sidekicks
+        (app/services/followers.py)."""
+        characters = self.characters
+        by = Actor("Paravent", username="")
+
+        def purse(character_id: str) -> int:
+            pc = self.gamestate.characters.find(character_id)
+            return worth(pc.currency) if pc is not None else 0
+
+        def pay(character_id: str, amount: int) -> None:
+            characters.act_for(
+                character_id,
+                "spend",
+                {"amount": str(amount), "for": "wages", "quiet": "1"},
+                by,
+            )
+
+        return FollowerService(
+            self.gamestate,
+            self.protocol,
+            wages=self.wages,
+            statblock=self.follower_statblock,
+            purse=purse,
+            pay=pay,
+        )
+
+    def wages(self, world_id: str | None) -> dict[str, int]:
+        """Copper a day for a skilled and an untrained hireling, by the world's books:
+        the 2024 handbook's *Hirelings* table, or the 2014 *Services* table."""
+        found: dict[str, int] = {}
+        tables = [("Hirelings", "XPHB"), ("Services", "PHB")]
+        if self.rules_of(world_id) != "one":
+            tables.reverse()
+        for caption, book in tables:
+            for row in self.book_table(world_id, caption, [book]) or []:
+                if len(row) < 2:
+                    continue
+                label = strip_tags(row[0]).lower()
+                kind = (
+                    "untrained" if "untrained" in label else "skilled" if "skilled" in label else ""
+                )
+                if kind and kind not in found and copper(row[1]):
+                    found[kind] = copper(row[1])
+            if found:
+                return found
+        return found
+
+    def follower_statblock(self, world_id: str | None, name: str) -> Statblock | None:
+        """A creature of the world's books as a follower needs it."""
+        creature, _, source = name.partition("|")
+        if not creature.strip():
+            return None
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        found = (
+            self.references.resolver()
+            .resolve_parts(
+                "monster",
+                creature.strip(),
+                source.strip() or None,
+                world.source_set if world else None,
+            )
+            .entry
+        )
+        if found is None:
+            return None
+        data = found.model_dump(by_alias=True, exclude_none=True)
+        hp = data.get("hp") or {}
+        average = hp.get("average") if isinstance(hp, dict) else None
+        return Statblock(
+            name=str(getattr(found, "name", creature)),
+            reference=f"{getattr(found, 'name', creature)}|{getattr(found, 'source', '')}",
+            hp=int(average) if isinstance(average, int) else 1,
+            die=hit_die(str(hp.get("formula", "")) if isinstance(hp, dict) else ""),
+            con=ability_modifier(score_of(data.get("con"))),
+        )
 
     @cached_property
     def lifestyle(self) -> LifestyleService:
@@ -745,9 +849,53 @@ class StoreRegistry:
         yields = OrderYields(
             options=self.facility_options, pay=pay, earn=earn, give=give, price=price
         )
+        dice = Dice()
+
+        def table(caption: str) -> Rows:
+            try:
+                found = self.compendium.find("table", caption, "XDMG")
+            except EntryNotFound:
+                return []
+            return rows_of(found) if found is not None else []
+
+        def art(value: int) -> str:
+            found = self.loot.art("XDMG", value) or self.loot.art("DMG", value)
+            pieces = [item_ref(x) for x in (found or {}).get("table") or []]
+            pieces = [x for x in pieces if x]
+            return pieces[dice.die(len(pieces)) - 1] if pieces else ""
+
+        def magic(character_id: str, rarity: str) -> str:
+            pc = self.gamestate.characters.find(character_id)
+            drawn = self.magic_roll(pc.world_id if pc else None, rarity, 1, dice)
+            return drawn[0][0] if drawn else ""
+
+        tools = EventTools(earn=earn, pay=pay, give=give, table=table, art=art, magic=magic)
         return BastionService(
-            self.gamestate, self.protocol, events=self._bastion_events, yields=yields, pay=pay
+            self.gamestate,
+            self.protocol,
+            events=self._bastion_events,
+            yields=yields,
+            pay=pay,
+            tools=tools,
         )
+
+    def discoveries(self, world_id: str | None) -> list[tuple[str, str]]:
+        """The uncommon potions and scrolls of the world's books, ``(ref, name)``: what a
+        bastion's Magical Discovery may make."""
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        source_set = world.source_set if world is not None else None
+        resolver = self.compendium.resolver()
+        out = []
+        for item in self.compendium.all("item"):
+            data = item.model_dump(by_alias=True, exclude_none=True)
+            code = str(data.get("type", "")).split("|")[0]
+            if code not in ("P", "SC") or rarity_of(data.get("rarity")) != "uncommon":
+                continue
+            name, source = str(data.get("name", "")), str(data.get("source", ""))
+            found = resolver.resolve_parts("item", name, None, source_set).entry
+            if found is not None and str(getattr(found, "source", "")) == source:
+                out.append((f"{name}|{source}", name))
+        return sorted(out, key=lambda x: x[1])
 
     def facility_options(self, ref: str) -> dict[str, list[OrderOption]]:
         """A special facility's options per order, read from its text."""
@@ -910,7 +1058,9 @@ class StoreRegistry:
             characters.act_for(character_id, "spend", {"amount": str(copper), "for": what}, by)
 
         def give(character_id: str, ref: str) -> None:
-            characters.receive(character_id, [(ref, 1)], {}, by)
+            # A scribed scroll comes as "<scroll>;<spell>", holding its spell.
+            item, _, spell = ref.partition(";")
+            characters.receive(character_id, [(item, 1)], {}, by, spell=spell)
 
         def learn(character_id: str, kind: str, ref: str) -> None:
             characters.act_for(character_id, "learn", {"kind": kind, "ref": ref}, by)
@@ -1248,6 +1398,11 @@ class StoreRegistry:
         )
 
     @cached_property
+    def quests(self) -> QuestService:
+        """Each world's quests (app/services/quests.py)."""
+        return QuestService(self.gamestate, self.protocol)
+
+    @cached_property
     def factions(self) -> FactionService:
         """Each world's factions and renown (app/services/factions.py)."""
         return FactionService(self.gamestate, self.protocol)
@@ -1300,6 +1455,19 @@ class StoreRegistry:
         rows = self.book_table(world_id, name, [source]) if source else None
         return rewards_of(rows or [])
 
+    def spell_data(self, world_id: str | None) -> Callable[[str, str], dict[str, Any] | None]:
+        """A finder of spells in the world's books, as plain data (a trap that works as
+        one, app/services/traps.py)."""
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        books = world.source_set if world else None
+        resolver = self.references.resolver()
+
+        def find(name: str, source: str) -> dict[str, Any] | None:
+            entry = resolver.resolve_parts("spell", name, source or None, books).entry
+            return entry.model_dump(by_alias=True, exclude_none=True) if entry else None
+
+        return find
+
     @cached_property
     def contacts(self) -> ContactService:
         """Whom each character knows (app/services/contacts.py)."""
@@ -1314,6 +1482,9 @@ class StoreRegistry:
         def save(character_id: str, ability: str) -> int:
             return characters.roll_for(character_id, "save", ability, by, private=False) or 0
 
+        def check(character_id: str, skill: str) -> int:
+            return characters.roll_for(character_id, "skill", skill, by, private=False) or 0
+
         def hurt(character_id: str, amount: int) -> None:
             characters.act_for(character_id, "hp", {"mode": "damage", "amount": str(amount)}, by)
 
@@ -1322,7 +1493,7 @@ class StoreRegistry:
             if pc is not None and condition in CONDITIONS and condition not in pc.state.conditions:
                 characters.act_for(character_id, "condition", {"key": condition}, by)
 
-        return TrapService(self.protocol, save=save, hurt=hurt, afflict=afflict)
+        return TrapService(self.protocol, save=save, hurt=hurt, afflict=afflict, check=check)
 
     @cached_property
     def safety(self) -> SafetyService:

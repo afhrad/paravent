@@ -238,6 +238,7 @@ class GameStateStore:
             Downtime,
             Encounter,
             Faction,
+            Follower,
             Handout,
             Knowledge,
             Location,
@@ -246,6 +247,7 @@ class GameStateStore:
             PartyNotes,
             Place,
             PlaySession,
+            Quest,
             Session,
             SessionNote,
             Shop,
@@ -311,6 +313,10 @@ class GameStateStore:
         self.contacts: Collection[Contact] = Collection(root / "contacts.json", Contact)
         # The chase each world's gamemaster runs (app/services/chase.py).
         self.chases: Collection[Chase] = Collection(root / "chases.json", Chase)
+        # Characters' hirelings, companions, mounts and sidekicks.
+        self.followers: Collection[Follower] = Collection(root / "followers.json", Follower)
+        # Each world's quests, their steps and rewards.
+        self.quests: Collection[Quest] = Collection(root / "quests.json", Quest)
         # Each world's factions and the characters' renown with them.
         self.factions: Collection[Faction] = Collection(root / "factions.json", Faction)
         # Each world's day of play, begun and ended from the session page.

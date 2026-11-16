@@ -127,6 +127,7 @@ def _clock(page: Page, registry: StoreRegistry, world_id: str | None) -> Element
         journey=clock.journey,
         environments=[(e.key, f"{e.name} ({e.source})") for e in _environments(registry, shown)],
         vessels=[v.name for v in registry.vessels(shown)],
+        mounted=registry.followers.mounted([pc.id for pc in members]),
         weather=registry.weather(shown) is not None,
         calendars=registry.calendars(shown),
         calendar=clock.calendar,
@@ -340,6 +341,10 @@ async def change_clock(
         elif op == "rest":
             kind = "long" if form.get("kind") == "long" else "short"
             characters.rest_party(world_id, kind, Actor(name, username=user.username))
+            if kind == "long":  # their companions, mounts and sidekicks rest too
+                for pc in registry.gamestate.characters.list():
+                    if pc.world_id == world_id:
+                        registry.followers.rest(pc.id)
             clock.advance(
                 world_id, 480 if kind == "long" else 60, user.username, name, f"{kind}_rest"
             )
@@ -552,7 +557,7 @@ def _trap(
     levels = [max(1, pc.total_level) for pc in party] or [1]
     return (
         str(entry.data.get("name", name)),
-        read_trap(entry.data),
+        read_trap(entry.data, registry.spell_data(world_id)),
         [(pc.id, pc.name or "?") for pc in party],
         round(sum(levels) / len(levels)),
     )
@@ -641,8 +646,8 @@ async def spring_trap(
                     n,
                     registry.checks.call(
                         world_id,
-                        "save",
-                        save.ability,
+                        "skill" if save.skill else "save",
+                        save.skill or save.ability,
                         chosen,
                         user.username,
                         dc=save.dc,
@@ -1041,6 +1046,7 @@ def _world_input(
     rerolls: str,
     language: str,
     encumbrance: str = "",
+    milestone: str = "",
 ) -> WorldInput:
     """What the world form posted; the players' ticks stored only where they differ from
     the defaults."""
@@ -1052,6 +1058,7 @@ def _world_input(
         declared,
         allow_rerolls=bool(rerolls),
         variant_encumbrance=bool(encumbrance),
+        milestone=bool(milestone),
         language=_language(registry, language),
         player_sources=tuple(chosen) if chosen is not None else None,
     )
@@ -1088,10 +1095,11 @@ async def create_world(
     rerolls: Annotated[str, Form()] = "",
     language: Annotated[str, Form()] = "",
     encumbrance: Annotated[str, Form()] = "",
+    milestone: Annotated[str, Form()] = "",
 ) -> Response:
     """Create a world, or show the form again with the reason it was refused."""
     data = _world_input(
-        registry, name, description, sources, players, rerolls, language, encumbrance
+        registry, name, description, sources, players, rerolls, language, encumbrance, milestone
     )
     try:
         world = worlds.create(data)
@@ -1106,6 +1114,7 @@ async def create_world(
             players=frozenset(p.upper() for p in players or ()),
             rerolls=data.allow_rerolls,
             encumbrance=data.variant_encumbrance,
+            milestone=data.milestone,
             language=data.language,
             languages=_languages(registry),
             error=page.t.error(exc),
@@ -1145,6 +1154,7 @@ async def edit_world(
             players=player_ticks(world, _groups(registry)),
             rerolls=world.allow_rerolls,
             encumbrance=world.variant_encumbrance,
+            milestone=world.milestone,
             language=world.language,
             languages=_languages(registry),
             extra=[notice(notice_text), alert(message), images],
@@ -1166,11 +1176,12 @@ async def update_world(
     rerolls: Annotated[str, Form()] = "",
     language: Annotated[str, Form()] = "",
     encumbrance: Annotated[str, Form()] = "",
+    milestone: Annotated[str, Form()] = "",
 ) -> Response:
     """Save a world's name, description and books."""
     world = worlds.get(world_id)
     data = _world_input(
-        registry, name, description, sources, players, rerolls, language, encumbrance
+        registry, name, description, sources, players, rerolls, language, encumbrance, milestone
     )
     try:
         worlds.update(world_id, data)
@@ -1185,6 +1196,7 @@ async def update_world(
             players=frozenset(p.upper() for p in players or ()),
             rerolls=data.allow_rerolls,
             encumbrance=data.variant_encumbrance,
+            milestone=data.milestone,
             language=data.language,
             languages=_languages(registry),
             error=page.t.error(exc),

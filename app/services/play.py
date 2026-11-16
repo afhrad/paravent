@@ -56,7 +56,9 @@ from app.store.characters import CharacterStore
 PRIVATE_ACTIONS = frozenset({"roll", "death_save", "hit_die"})
 # Actions the server takes for a character and the sheet may never post: their prices
 # and goods are worked out by the shop, downtime and treasure, not by the form.
-INTERNAL_ACTIONS = frozenset({"receive", "buy", "sell", "spend", "learn", "eat"})
+INTERNAL_ACTIONS = frozenset(
+    {"receive", "buy", "sell", "spend", "learn", "eat", "inscribe", "scroll"}
+)
 # A day's food on the road, by item name.
 RATIONS = frozenset({"rations", "rations (1 day)"})
 # The conditions under which a creature cannot keep concentrating (each one is, or
@@ -173,6 +175,8 @@ class PlayService:
             "wild_forms": self._wild_forms,
             "polymorph": self._polymorph,
             "receive": self._receive,
+            "inscribe": self._inscribe,
+            "scroll": self._scroll,
             "buy": self._buy,
             "sell": self._sell,
             "spend": self._spend,
@@ -1025,8 +1029,9 @@ class PlayService:
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
     ) -> None:
         """Items and coins handed to the character (a treasure shared out): ``items`` is
-        ``Name|SOURCE*count`` joined by ``;``, coins by denomination. Items join a
-        stack of the same thing already carried."""
+        ``Name|SOURCE*count`` joined by ``;``, coins by denomination, and ``spell`` the
+        spell a scroll among them holds. Items join a stack of the same thing already
+        carried."""
         got: list[str] = []
         for part in filter(None, params.get("items", "").split(";")):
             ref, _, count_text = part.rpartition("*")
@@ -1034,7 +1039,7 @@ class PlayService:
             if not ref or count < 1:
                 raise PlayError("play.error.bad_input")
             option = ChosenOption.model_validate(ref)
-            self._add_items(pc, option, count)
+            self._add_items(pc, option, count, params.get("spell", ""))
             got.append(f"{option.reference}*{count}")
         coins = {d: max(0, _int(params, d, 0)) for d in ("cp", "sp", "ep", "gp", "pp")}
         for denomination, amount in coins.items():
@@ -1099,15 +1104,53 @@ class PlayService:
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
     ) -> None:
         """Learn a language or gain proficiency with a tool (``kind``, ``ref``), as
-        training in downtime gives."""
+        training in downtime gives, or write a spell into the spellbook."""
         kind = params.get("kind", "")
         option = ChosenOption.model_validate(params.get("ref", ""))
-        if kind not in ("language", "tool"):
+        if kind not in ("language", "tool", "spell"):
             raise PlayError("play.error.bad_input")
-        held = pc.languages if kind == "language" else pc.tools
+        held = (
+            pc.languages
+            if kind == "language"
+            else pc.tools
+            if kind == "tool"
+            else pc.spells.known  # a spell copied into the spellbook
+        )
         if all(o.name.lower() != option.name.lower() for o in held):
             held.append(option)
         self._stage(pc, actor, EntryKind.CUSTOM, what=f"learn:{kind}:{option.reference}")
+
+    def _inscribe(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Write which spell a spell scroll holds (``index``, ``spell``), as the server
+        found it in the world's books; one of a stack is split off."""
+        index = _int(params, "index", -1)
+        spell = params.get("spell", "")
+        if not 0 <= index < len(pc.inventory) or not spell:
+            raise PlayError("play.error.bad_input")
+        item = pc.inventory[index]
+        if item.quantity > 1:
+            item.quantity -= 1
+            pc.inventory = [*pc.inventory, item.model_copy(update={"quantity": 1, "spell": spell})]
+        else:
+            item.spell = spell
+
+    def _scroll(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """A spell scroll used up (``index``): cast from (``cast``) or copied into the
+        spellbook (``copy``), with the check the server rolled, logged
+        ``scroll:<cast|copy>:<spell>:<kept>[:<total>:<dc>]``."""
+        index = _int(params, "index", -1)
+        if not 0 <= index < len(pc.inventory):
+            raise PlayError("play.error.bad_input")
+        spell = pc.inventory[index].spell
+        _take_one(pc, index)
+        what = f"scroll:{params.get('what', 'cast')}:{spell}:{params.get('ok', '1')}"
+        if params.get("total"):
+            what += f":{params.get('total')}:{params.get('dc', '')}"
+        self._stage(pc, actor, EntryKind.CUSTOM, what=what)
 
     def _eat(
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
@@ -1127,21 +1170,23 @@ class PlayService:
         pc.state.hunger_levels = 0
 
     @staticmethod
-    def _add_items(pc: PlayerCharacter, option: ChosenOption, count: int) -> None:
-        """Put ``count`` of an item in the pack, on a stack of the same thing if any."""
+    def _add_items(pc: PlayerCharacter, option: ChosenOption, count: int, spell: str = "") -> None:
+        """Put ``count`` of an item in the pack, on a stack of the same thing if any (a
+        spell scroll only on one of the same spell)."""
         stack = next(
             (
                 i
                 for i in pc.inventory
                 if i.item.name.lower() == option.name.lower()
                 and (i.item.source or "").lower() == (option.source or "").lower()
+                and i.spell.lower() == spell.lower()
             ),
             None,
         )
         if stack is not None:
             stack.quantity += count
         else:
-            pc.inventory = [*pc.inventory, InventoryItem(item=option, quantity=count)]
+            pc.inventory = [*pc.inventory, InventoryItem(item=option, quantity=count, spell=spell)]
 
     def _end_polymorph(self, pc: PlayerCharacter, actor: Actor, natural: bool = False) -> None:
         """Leave a spell's shape; ``natural`` when it ended by itself, which ends the spell

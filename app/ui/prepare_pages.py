@@ -8,11 +8,15 @@ the gamemaster's party card) follows at once.
 
 from __future__ import annotations
 
-from htpy import Element, a, button, div, form, h1, li, p, section, span, ul
+from collections.abc import Sequence
+
+from htpy import Element, a, button, div, form, h1, h2, li, option, p, section, select, span, ul
+from htpy import input as input_el
 
 from app.models.pc import PlayerCharacter
 from app.services.chargen import Pick, Plan, Planner, Step
 from app.services.chargen.prepare import Preparation
+from app.services.spellbook import GOLD_PER_LEVEL, HOURS_PER_LEVEL
 from app.ui.chargen_pages import SCRIPTS, View, _spell_question
 from app.ui.context import Page
 from app.ui.forms import alert
@@ -112,8 +116,10 @@ def prepare_page(
     planner: Planner,
     *,
     flash: str | None = None,
+    copyable: Sequence[tuple[str, str, int]] = (),
 ) -> Element:
-    """The prepare page."""
+    """The prepare page; ``copyable`` are the spells a spellbook caster may copy into
+    its book, ``(ref, name, level)``."""
     t = page.t
     return app_shell(
         page,
@@ -125,11 +131,39 @@ def prepare_page(
                 p(class_="muted")[t("prepare.intro")],
             ],
             prepare_form(page, pc, prep, planner, flash=flash),
+            _copy_form(page, pc.id, copyable) if copyable else None,
         ],
         extra_scripts=SCRIPTS,
         main_class="shell-main shell-wide",
         world_id=pc.world_id,
     )
+
+
+def _copy_form(page: Page, character_id: str, copyable: Sequence[tuple[str, str, int]]) -> Element:
+    """Copy a spell into the spellbook from another book, at its cost in gold and hours."""
+    t = page.t
+    return section(class_="panel prepare-copy")[
+        h2[t("spellbook.copy_heading")],
+        p(class_="muted")[t("spellbook.copy_hint")],
+        form(method="post", action=f"/characters/{character_id}/scroll", class_="inline-form")[
+            input_el(type="hidden", name="op", value="book"),
+            select(name="spell", aria_label=t("spellbook.copy_heading"))[
+                [
+                    option(value=ref)[
+                        t(
+                            "spellbook.copy_option",
+                            name=page.t.term("spell", name) or name,
+                            level=level,
+                            gold=GOLD_PER_LEVEL * level,
+                            hours=HOURS_PER_LEVEL * level,
+                        )
+                    ]
+                    for ref, name, level in copyable
+                ]
+            ],
+            button(type="submit", class_="btn btn-sm")[t("spellbook.copy")],
+        ],
+    ]
 
 
 __all__ = ["prepare_form", "prepare_page", "prepare_url"]

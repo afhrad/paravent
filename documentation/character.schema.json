@@ -332,6 +332,11 @@
           "default": "",
           "title": "Notes",
           "type": "string"
+        },
+        "spell": {
+          "default": "",
+          "title": "Spell",
+          "type": "string"
         }
       },
       "required": [

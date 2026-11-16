@@ -504,6 +504,27 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             return _chase_words(page, rest.split(":"))
         if head == "trap":
             return _trap_words(page, rest.split(":"))
+        if head == "scroll":
+            used, spell_ref, kept, *check = [*rest.split(":"), ""][:5]
+            spell_name = name_text(page, "spell", spell_ref.partition("|")[0])
+            line = t(
+                f"protocol.scroll_{used}" + ("" if kept == "1" else "_failed"), spell=spell_name
+            )
+            total, dc = (check + ["", ""])[:2]
+            return f"{line} ({total} / {dc})" if total else line
+        if head == "wages":
+            days, paid, owed = ([*rest.split(":"), "", "", ""])[:3]
+            wage_days = int(days) if days.isdigit() else 0
+            paid_text = _purse_words(page, coins.text(int(paid) if paid.isdigit() else 0))
+            if owed.isdigit() and int(owed):
+                owed_text = _purse_words(page, coins.text(int(owed)))
+                return t.plural(
+                    "protocol.wages_owed", wage_days, days=days, coins=paid_text, owed=owed_text
+                )
+            return t.plural("protocol.wages", wage_days, days=days, coins=paid_text)
+        if head == "quest":
+            step, _, quest_name = rest.partition(":")
+            return t(f"protocol.quest_{step}", name=quest_name)
         if head == "renown":
             faction, delta, total = ([*rest.split(":"), "", ""])[:3]
             return t("protocol.renown", faction=faction, delta=delta, total=total)
@@ -535,6 +556,9 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             )
         if head == "learn":
             learned, _, ref = rest.partition(":")
+            if learned == "spell":
+                spell_name = name_text(page, "spell", ref.partition("|")[0])
+                return t("protocol.learn_spell", name=spell_name)
             categories = "language" if learned == "language" else ("item", "baseitem")
             return t("protocol.learn", name=name_text(page, categories, ref.partition("|")[0]))
         if head == "travel":

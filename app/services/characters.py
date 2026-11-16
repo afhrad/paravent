@@ -267,8 +267,10 @@ class CharacterService:
         items: Sequence[tuple[str, int]],
         coins: Mapping[str, int],
         by: Actor,
+        spell: str = "",
     ) -> PlayerCharacter:
-        """Hand items (``"Name|SOURCE"``, count) and coins to a character, logged."""
+        """Hand items (``"Name|SOURCE"``, count) and coins to a character, logged;
+        ``spell`` is the spell a scroll among them holds."""
         pc = self._store.characters.find(character_id)
         if pc is None:
             raise CharacterNotFound(character_id)
@@ -276,6 +278,8 @@ class CharacterService:
             "items": ";".join(f"{ref}*{count}" for ref, count in items),
             **{d: str(amount) for d, amount in coins.items() if amount},
         }
+        if spell:
+            params["spell"] = spell
         return self.play.act(character_id, "receive", params, self.sheet(pc), by)
 
     def act_for(

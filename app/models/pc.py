@@ -315,6 +315,15 @@ class InventoryItem(GameStateModel):
     equipped: bool = False
     attuned: bool = False
     notes: str = ""
+    # The spell a spell scroll holds ("Fireball|PHB"); left out of the file while empty.
+    spell: str = ""
+
+    @model_serializer(mode="wrap")
+    def _without_empty_spell(self, handler: SerializerFunctionWrapHandler) -> Any:
+        data = handler(self)
+        if isinstance(data, dict) and not data.get("spell"):
+            data.pop("spell", None)
+        return data
 
 
 class Currency(GameStateModel):

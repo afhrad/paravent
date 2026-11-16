@@ -12,6 +12,7 @@ from htpy import input as input_el
 
 from app.models.gamestate import CheckCall
 from app.services.traps import Caught, TrapCheck, TrapEffect, TrapSave
+from app.ui.check_pages import check_label
 from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
@@ -190,7 +191,7 @@ def _waiting(
                         if cid in call.results
                         else small(class_="muted")[t("checks.waiting")],
                         small(class_="muted")[
-                            " · " + t("trap.save", ability=t(f"ability.{call.subject}"), dc=call.dc)
+                            f" · {check_label(page, call)} · {t('checks.dc_value', dc=call.dc)}"
                         ],
                     ]
                     for cid in call.characters
@@ -240,7 +241,11 @@ def spring_result(page: Page, name: str, caught: Sequence[Caught]) -> Element:
 
 def _save_words(page: Page, save: TrapSave) -> str:
     t = page.t
-    parts = [t("trap.save", ability=t(f"ability.{save.ability}"), dc=save.dc)]
+    parts = [
+        t("trap.check_dc", skill=t(f"skill.{save.skill}"), dc=save.dc)
+        if save.skill
+        else t("trap.save", ability=t(f"ability.{save.ability}"), dc=save.dc)
+    ]
     if save.damage:
         dealt = _damage_words(page, save.damage, save.damage_type)
         parts.append(

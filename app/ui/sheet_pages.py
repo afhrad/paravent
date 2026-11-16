@@ -84,6 +84,7 @@ from app.ui.check_pages import check_banner
 from app.ui.clock_pages import remaining, sheet_time, sheet_timers
 from app.ui.context import Page
 from app.ui.downtime_pages import sheet_downtime_link
+from app.ui.follower_pages import sheet_followers_link
 from app.ui.forms import hidden
 from app.ui.icons import icon
 from app.ui.layout import app_shell
@@ -1178,6 +1179,7 @@ def _item_row(page: Page, sheet: Sheet, item: ItemView) -> Element:
         div(class_="cs-item-main")[
             name_span(page, ITEM, item.name),
             span(class_="meta")[badges, span[item.notes] if item.notes else None],
+            _scroll_acts(page, sheet, item) if item.scroll else None,
         ],
         div(class_="cs-item-act")[
             act(
@@ -1219,6 +1221,49 @@ def _item_row(page: Page, sheet: Sheet, item: ItemView) -> Element:
             if item.consumable
             else None,
         ],
+    ]
+
+
+def _scroll_acts(page: Page, sheet: Sheet, item: ItemView) -> Element:
+    """A spell scroll: the spell it holds, to cast or copy into a spellbook; or, for
+    one found without, a box to write its spell in (app/services/spellbook.py)."""
+    t = page.t
+    url = f"/characters/{sheet.character.id}/scroll"
+
+    def post(op: str, *content: Node) -> Element:
+        return form(method="post", action=url, class_="inline-form cs-scroll")[
+            hidden("op", op), hidden("index", str(item.index)), content
+        ]
+
+    if not item.spell:
+        return post(
+            "inscribe",
+            input_el(
+                type="text",
+                name="spell",
+                placeholder=t("spellbook.which_spell"),
+                aria_label=t("spellbook.which_spell"),
+                class_="cs-scroll-spell",
+            ),
+            button(type="submit", class_="btn btn-sm")[t("spellbook.inscribe")],
+        )
+    name = item.spell.partition("|")[0]
+    return div(class_="cs-scroll")[
+        name_span(page, "spell", name),
+        post(
+            "cast",
+            button(type="submit", class_="btn btn-sm", title=t("spellbook.cast_hint"))[
+                icon("wand-sparkles", "sm"), span[t("spellbook.cast")]
+            ],
+        ),
+        post(
+            "copy",
+            button(type="submit", class_="btn btn-sm", title=t("spellbook.copy_scroll_hint"))[
+                icon("pencil", "sm"), span[t("spellbook.copy")]
+            ],
+        )
+        if any(p.from_book for p in sheet.preparing)
+        else None,
     ]
 
 
@@ -1655,6 +1700,7 @@ def _head(page: Page, sheet: Sheet, *, file_label: str | None) -> Element:
             ]
             if pc.total_level >= 5
             else None,
+            sheet_followers_link(page, pc.id, sheet.followers),
             sheet_shop_link(page, pc.id, sheet.shop) if sheet.shop is not None else None,
             sheet_downtime_link(page, pc.id, sheet.downtime)
             if sheet.downtime is not None
@@ -1722,7 +1768,7 @@ def _level_up(page: Page, sheet: Sheet) -> Node:
         return None
     gamemaster = page.identity is not None and page.identity.is_gamemaster
     pending = pc.pending_levels
-    xp = progress(pc)
+    xp = None if sheet.milestone else progress(pc)
     if not pending and not gamemaster and xp is None:
         return None
     take = (

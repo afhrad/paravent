@@ -289,7 +289,8 @@ class TestDowntimeScroll:
         )
         assert scroll.paid == 2500
         service.spend(pc, scroll.id, 1, "a", "Ana")
-        assert given == ["Spell Scroll (Level 1)|XDMG"]
+        # The scroll comes with the spell it holds.
+        assert given == ["Spell Scroll (Level 1)|XDMG;Magic Missile|XPHB"]
 
 
 class TestShopStock:

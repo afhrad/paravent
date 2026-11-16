@@ -132,6 +132,7 @@ def clock_panel(
     calendars: Sequence[Calendar] = (),
     calendar: str = "",
     era: str = "",
+    mounted: bool = False,
 ) -> Element:
     """The time, the moves, a party rest, the timers and what is due; the party's last
     journey and the forms to travel on and to grant downtime. ``vessels`` are the ships
@@ -207,7 +208,7 @@ def clock_panel(
         _journey(page, base, journey, world_id) if journey is not None else None,
         details(class_="party-clock-more party-travel")[
             summary[icon("footprints", "sm"), span[t("travel.heading")]],
-            _travel_form(page, post, environments, vessels, weather),
+            _travel_form(page, post, environments, vessels, weather, mounted),
         ],
         details(class_="party-clock-more")[
             summary[t("clock.more")],
@@ -363,6 +364,7 @@ def _travel_form(
     environments: Sequence[tuple[str, str]],
     vessels: Sequence[str] = (),
     weather: bool = False,
+    mounted: bool = False,
 ) -> Element:
     """How long, how fast, through what, how watchful, with what."""
     t = page.t
@@ -401,7 +403,8 @@ def _travel_form(
         ],
         select(name="vessel", aria_label=t("travel.by"))[
             option(value="")[t("travel.on_foot")],
-            option(value="mounted")[t("travel.mounted")],
+            # Chosen first when every character of the world has a mount.
+            option(value="mounted", selected=mounted)[t("travel.mounted")],
             [option(value=name)[t("travel.aboard", name=name)] for name in vessels],
         ],
         select(name="water", aria_label=t("travel.water"))[

@@ -17,6 +17,7 @@ from app.ui.home_pages import page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.markdown import Rendered
+from app.ui.quest_pages import quests_url
 from app.ui.session_pages import day_text, note_url, sessions_url
 from app.ui.shop_pages import coin_text
 
@@ -47,6 +48,8 @@ def happened_lines(page: Page, world_id: str, happened: Happened) -> list[str]:
         lines.append(t.plural("session.happened.encounters", happened.travel_encounters))
     for outcome in happened.chases:
         lines.append(t("session.happened.chase", outcome=t(f"chase.over.{outcome}")))
+    for outcome, name in happened.quests:
+        lines.append(t(f"session.happened.quest_{outcome}", name=name))
     for name in happened.traps:
         lines.append(t("session.happened.trap", name=name))
     for kind, count in sorted(happened.contacts.items()):
@@ -92,6 +95,9 @@ def session_page(
                 ]
             ],
             a(href=party, class_="btn btn-sm")[icon("users-round", "sm"), span[t("session.party")]],
+            a(href=quests_url(world.id), class_="btn btn-sm")[
+                icon("scroll", "sm"), span[t("quests.eyebrow")]
+            ],
             a(href=factions_url(world.id), class_="btn btn-sm")[
                 icon("shield", "sm"), span[t("factions.eyebrow")]
             ],
@@ -142,6 +148,10 @@ def _now(page: Page, world_id: str, brief: Brief, party: str) -> Element:
         still.append(li[a(href=party)[t("session.open_chase")]])
     if brief.shop:
         still.append(li[a(href=party)[t("session.open_shop", name=brief.shop)]])
+    if brief.quests:
+        still.append(
+            li[a(href=quests_url(world_id))[t.plural("session.open_quests", brief.quests)]]
+        )
     if brief.calls:
         still.append(li[a(href=party)[t.plural("session.open_calls", brief.calls)]])
     return _panel(

@@ -46,6 +46,7 @@ from app.ui.journal_pages import (
 )
 from app.ui.library_links import chapter_url, media_url
 from app.ui.markdown import MarkdownContext, render_markdown
+from app.ui.quest_pages import journal_quests
 
 router = APIRouter(tags=["journal"])
 
@@ -242,7 +243,17 @@ def _journal(
                 mine[2] if refused and mine is not None else None,
             )
         )
-    return html(journal_page(page, found, names=names, message=message, notes=notes))
+    mine_ids = [
+        pc.id
+        for pc in registry.gamestate.characters.list()
+        if identity.is_gamemaster or pc.player == identity.user.username
+    ]
+    quests = [
+        journal_quests(page, w.name, shown, w.milestone)
+        for w in _notes_worlds(identity, registry, world)
+        if (shown := registry.quests.shown_to(w.id, mine_ids))
+    ]
+    return html(journal_page(page, found, names=names, message=message, notes=notes, quests=quests))
 
 
 @router.get(JOURNAL_URL, response_class=HTMLResponse)

@@ -56,14 +56,17 @@ from app.services.crafting import craft_rules, tools_for
 from app.services.downtime import DowntimeError, crafting_days, materials, training_plan
 from app.services.events import revision_stream
 from app.services.factions import granted, title_of
+from app.services.followers import FollowerError
 from app.services.play import Actor, PlayError
 from app.services.sheet import Sheet
 from app.services.shop import ShopError, Ware, priced
+from app.services.spellbook import SpellbookError
 from app.store.errors import EntryNotFound
 from app.ui.bastion_pages import bastion_page
 from app.ui.character_list_pages import character_delete_page, characters_page
 from app.ui.context import Page
 from app.ui.downtime_pages import FactionView, StartOptions, downtime_page
+from app.ui.follower_pages import followers_page
 from app.ui.names import name_text
 from app.ui.sheet_pages import sheet_fragment, sheet_page
 from app.ui.shop_pages import shop_page
@@ -91,10 +94,13 @@ def _sheet(characters: CharactersDep, registry: RegistryDep, character: PlayerCh
         shop = registry.shops.serves(character.world_id, character.id)
         sheet.shop = shop.name if shop is not None else None
         sheet.lifestyle_costs = registry.lifestyle_costs(character.world_id)
+        world = registry.gamestate.worlds.find(character.world_id)
+        sheet.milestone = world is not None and world.milestone
         # Always set: the sheet object is cached per character state.
         chase = registry.chases.of(character.world_id)
         runs = chase is not None and any(r.character_id == character.id for r in chase.runners)
         sheet.chase = chase if runs else None
+    sheet.followers = len(registry.followers.of(character.id))
     spare = registry.downtime.of(character.id)
     if spare.days or any(not x.finished for x in spare.projects):
         sheet.downtime = spare.days
@@ -167,7 +173,7 @@ async def character_page(
             tab=shown.tab if tab is None else tab,
             view=(shown.view or "play") if view is None else view,
             spell_filter=shown.filter,
-            flash=page.t(flash) if flash.startswith("play.error.") else None,
+            flash=page.t(flash) if flash.startswith(("play.error.", "spellbook.")) else None,
             file_label=label,
             resolver=characters.resolver(),
             source_set=characters.source_set(character),
@@ -464,6 +470,9 @@ def _bastion(
             ],
             costs=registry.basic_costs(character.world_id),
             day_of={m: str(day_of(m)) for m in readies},
+            discoveries=registry.discoveries(character.world_id)
+            if bastion.offer == "discovery"
+            else (),
             error=error,
             message=message,
         )
@@ -671,6 +680,17 @@ async def change_bastion(
                     raise BastionError("bastion.error.order")
                 option = f"{n}|{item}" if item else str(n)
             service.order(character_id, index, order, known.orders if known else (), option)
+        elif op == "offer":
+            user = identity.user
+            service.answer(
+                character_id,
+                character.name or "?",
+                character.world_id,
+                form.get("accept") == "1",
+                str(form.get("value", "")),
+                user.username,
+                user.display_name or user.username,
+            )
         elif op == "turn" and identity.is_gamemaster:
             user = identity.user
             service.turn(
@@ -987,6 +1007,99 @@ def _trainable(
     return sorted(out, key=lambda pair: (not pair[0].startswith("language:"), pair[1].lower()))
 
 
+def _followers(
+    page: Page,
+    registry: RegistryDep,
+    character: PlayerCharacter,
+    error: str | None = None,
+    message: str | None = None,
+) -> HTMLResponse:
+    return html(
+        followers_page(
+            page,
+            character_id=character.id,
+            character_name=character.name or "?",
+            world_id=character.world_id,
+            followers=registry.followers.of(character.id),
+            wages=registry.wages(character.world_id),
+            in_fight=bool(registry.combats.joined_by([character.id])),
+            error=error,
+            message=message,
+        ),
+        status_code=200 if error is None else 422,
+    )
+
+
+@router.get("/characters/{character_id}/followers", response_class=HTMLResponse)
+async def followers(
+    identity: IdentityDep,
+    page: PageDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+) -> HTMLResponse:
+    """The character's hirelings, companions, mounts and sidekicks."""
+    return _followers(page, registry, characters.get_for(identity, character_id))
+
+
+@router.post("/characters/{character_id}/followers", response_class=HTMLResponse)
+async def change_followers(
+    request: Request,
+    identity: IdentityDep,
+    page: PageDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+) -> Response:
+    """Hire, add, hurt or heal, level, dismiss a follower, or bring one into the fight."""
+    character = characters.get_for(identity, character_id)
+    form = await request.form()
+    op = str(form.get("op", ""))
+    service = registry.followers
+    follower_id = str(form.get("follower", ""))
+    message = None
+    try:
+        if op == "hire":
+            service.hire(character, str(form.get("kind", "")), str(form.get("name", "")))
+        elif op == "creature":
+            service.add_creature(
+                character,
+                str(form.get("kind", "")),
+                str(form.get("creature", "")),
+                str(form.get("name", "")),
+            )
+        elif op == "hp":
+            delta = str(form.get("delta", "0"))
+            service.hit_points(
+                character.id, follower_id, int(delta) if delta.lstrip("+-").isdigit() else 0
+            )
+        elif op == "level":
+            service.level_up(character.id, follower_id)
+        elif op == "dismiss":
+            service.dismiss(character.id, follower_id)
+        elif op == "fight":
+            follower = service.get(character.id, follower_id)
+            fights = registry.combats.joined_by([character.id])
+            if not fights or not follower.monster:
+                raise FollowerError("followers.error.no_fight")
+            registry.combats.add_follower(
+                fights[0].id,
+                follower.monster,
+                follower.name,
+                follower.hp,
+                follower.hp_max,
+                identity.user.username,
+            )
+            message = page.t("followers.joined", name=follower.name)
+        else:
+            raise FollowerError("followers.error.unknown")
+    except (FollowerError, CombatError) as exc:
+        return _followers(page, registry, character, error=page.t.error(exc))
+    if message:
+        return _followers(page, registry, character, message=message)
+    return redirect(f"/characters/{character_id}/followers")
+
+
 @router.get("/characters/{character_id}/downtime", response_class=HTMLResponse)
 async def downtime(
     identity: IdentityDep,
@@ -1209,6 +1322,48 @@ async def chase_turn(
     if request.headers.get("HX-Request") == "true":
         return Response(status_code=204)
     return redirect(f"/characters/{character_id}")
+
+
+@router.post("/characters/{character_id}/scroll")
+async def use_scroll(
+    request: Request,
+    identity: IdentityDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+) -> Response:
+    """A spell scroll: write in its spell (``inscribe``), cast it (``cast``) or copy it
+    into the spellbook (``copy``); or copy a spell from another book (``book``). The
+    sheet says how it went."""
+    character = characters.get_for(identity, character_id)
+    form = await request.form()
+    op = str(form.get("op", ""))
+    index_text = str(form.get("index", ""))
+    index = int(index_text) if index_text.isdigit() else -1
+    user = identity.user
+    service = registry.spellbook_for(
+        Actor(user.display_name or user.username, username=user.username)
+    )
+    flash = ""
+    try:
+        if op == "inscribe":
+            service.inscribe(character, index, str(form.get("spell", "")))
+        elif op == "cast":
+            done = service.cast(character, index)
+            flash = "spellbook.cast_ok" if done.ok else "spellbook.cast_failed"
+        elif op == "copy":
+            done = service.copy(character, "", index)
+            flash = "spellbook.copied" if done.ok else "spellbook.copy_failed"
+        elif op == "book":
+            service.copy(character, str(form.get("spell", "")))
+            flash = "spellbook.copied"
+        else:
+            raise SpellbookError("spellbook.error.scroll")
+    except SpellbookError as exc:
+        flash = exc.key
+    except PlayError as exc:
+        flash = exc.key
+    return redirect(f"/characters/{character_id}?{urlencode({'tab': 'gear', 'flash': flash})}")
 
 
 @router.post("/characters/{character_id}/summon", response_class=HTMLResponse)

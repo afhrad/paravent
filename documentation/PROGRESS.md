@@ -515,8 +515,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         cost, a Smithy's or Workshop's craft by its tools (a long one arriving on a later
         turn) — and carried out on the turn; what the text leaves to the table is shown
         as such. Basic facilities past the first two are paid and built in the guide's
-        time, and enlarged a step the same way. What other events yield stays with the
-        table. **A Workshop's tools** (2026-11-16): the six kinds of Artisan's Tools it
+        time, and enlarged a step the same way. **Every event carried out** (2026-11-16,
+        `app/services/bastion_events.py`): visitors, refugees and guests pay or join, lost
+        hirelings shut a facility, treasure rolls an art object or a magic item of the
+        world's books; a bribe, an opportunity, a request for aid and a magical discovery
+        wait for the player's decision. **A Workshop's tools** (2026-11-16): the six kinds of Artisan's Tools it
         is equipped with, chosen from its text's list, decide what it crafts
   - [x] **Lifestyle, hunger's hold and tool checks** (2026-11-16): each character keeps a
         lifestyle on its sheet's gear (`app/services/lifestyle.py`), and every day the
@@ -543,7 +546,9 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         or Investigation checks are called for in one press. 73 of the corpus's 110
         traps and hazards spring by themselves (Xanathar's effect and countermeasures
         fields read, and shown on their pages; damage with no save; darts counted per
-        hit; a spotting DC written as prose); the rest are the table's. **The players
+        hit; a spotting DC written as prose); since 2026-11-16 76, with a trap that
+        works as a spell (its save and damage from the spell) and a check that fails
+        into a condition; the rest are the table's. **The players
         roll the saves** (2026-11-16) if the gamemaster says so: a check call naming the
         trap on each sheet, the DC hidden, the totals coming in on the form, sprung with
         them (whoever has not rolled is rolled for)
@@ -568,6 +573,26 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         writing the day's session note from its fights' recap and what the log says
         happened since the start (time, miles, encounters, chases, traps, contacts,
         lifestyle)
+  - [x] **Quests** (2026-11-16, `app/services/quests.py`, `/gm/quests`): who gave a
+        quest (anyone, or a faction it serves), its text and steps, who is on it, and
+        its reward — XP each, gold shared out, items to the characters picked, renown
+        with the faction; players read the quests shown to them in their journal;
+        marking one done hands the reward out through the play rules, once; failed or
+        taken up again; on the session page and in its note
+  - [x] **Milestone levelling** (2026-11-16): a world's switch; no XP is awarded after
+        fights or quests, nor shown on the sheet
+  - [x] **Followers** (2026-11-16, `app/services/followers.py`, a character's
+        Followers page): skilled and untrained hirelings at the handbook's wage, paid
+        from the purse every day the clock passes (logged with what is owed); companions,
+        mounts and sidekicks from the world's books with their own hit points, healed by
+        the party's long rest, joining the character's fight on its side under their
+        name; a sidekick's level adds its hit die's average and CON; the travel form
+        rides when every character has a mount
+  - [x] **Spell scrolls and spellbooks** (2026-11-16, `app/services/spellbook.py`): a
+        scroll keeps the spell it holds (scribed, or written in for a found one); cast
+        from the sheet when on one of the character's lists, with the check above its
+        level; a wizard copies a spell into the spellbook from a scroll (Arcana check)
+        or another book (the prepare page), at 50 GP a level
   - [x] **Image effects** (2026-11-04, ADVENTURES.md §5.5, `app/services/image_effects.py`):
         `torn`, `fade`, `oval`, `sepia`, `aged`, `mono`, `banner` written beside an image
         (`![[tavern.jpg|torn sepia]]`, `cover: media/x.jpg|fade`), rendered once with
@@ -1064,7 +1089,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2406 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2418 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the

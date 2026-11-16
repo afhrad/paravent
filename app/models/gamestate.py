@@ -207,6 +207,9 @@ class World(Record):
     # The PHB's optional variant encumbrance: past Strength × 5 lb. speed −10 ft., past
     # × 10 −20 ft. and disadvantage on Strength, Dexterity and Constitution rolls.
     variant_encumbrance: bool = False
+    # Characters level when the gamemaster says (milestones), not by experience: no XP
+    # is awarded or shown.
+    milestone: bool = False
     # The declared books players may read (documentation/PLAYER-VIEW.md). None: the
     # player's handbooks and the supplements among them.
     player_sources: list[str] | None = None
@@ -1066,6 +1069,15 @@ class Bastion(Record):
     yields: list[str] = Field(default_factory=list)
     # Crafts still under way: ``"<clock minute ready>|<item>"``.
     pending: list[str] = Field(default_factory=list)
+    # What the last event brought, a line each (app/services/bastion_events.py):
+    # ``"gold|<copper>"``, ``"defender|1"``, ``"shut|<facility>"``, ``"item|<ref>"``,
+    # ``"detail|<text>"``, ``"guest|<text>"``, ``"aid|<total>|<copper>|<lost>"``.
+    event_yields: list[str] = Field(default_factory=list)
+    # A decision the last event left to the player: ``"bribe|<copper>"``,
+    # ``"opportunity|<copper>"``, ``"aid"`` or ``"discovery"``; "" for none.
+    offer: str = ""
+    # A friendly monster staying as a guest: it defends the bastion from the next attack.
+    guardian: bool = False
 
 
 class SafetySuggestion(GameStateModel):
@@ -1278,6 +1290,57 @@ class Chase(Record):
     turn: int = Field(default=0, ge=0)
     runners: list[ChaseRunner] = Field(default_factory=list)
     over: str = ""
+
+
+class Follower(Record):
+    """Someone who follows a character (app/services/followers.py): a hireling paid by
+    the day, or a creature of the books — a companion, a mount or a sidekick — with its
+    own hit points. A sidekick's levels raise its hit points."""
+
+    character_id: str
+    world_id: str | None = None
+    kind: Literal["skilled", "untrained", "companion", "mount", "sidekick"]
+    name: str = Field(max_length=120)
+    note: str = Field(default="", max_length=2000)
+    monster: str = ""  # a creature's reference, ``"Riding Horse|XMM"``
+    hp: int = Field(default=0, ge=0)
+    hp_max: int = Field(default=0, ge=0)
+    levels: int = Field(default=0, ge=0, le=20)  # a sidekick's levels gained
+    wage: int = Field(default=0, ge=0)  # copper a day, for a hireling
+
+
+class QuestStep(GameStateModel):
+    """A step of a quest, ticked off when done."""
+
+    text: str = Field(max_length=500)
+    done: bool = False
+
+
+class QuestItem(GameStateModel):
+    """An item a quest rewards: ``"Name|SOURCE"`` and how many."""
+
+    ref: str = Field(max_length=200)
+    count: int = Field(default=1, ge=1, le=999)
+
+
+class Quest(Record):
+    """A quest of a world (app/services/quests.py): who gave it, what it asks, its steps
+    and its reward, handed out when the gamemaster marks it done. ``characters`` are
+    those on it (none: the world's party); ``shown`` lets the players read it."""
+
+    world_id: str
+    name: str = Field(max_length=160)
+    giver: str = Field(default="", max_length=160)
+    faction_id: str | None = None  # the faction it serves; its renown is the reward
+    text: str = Field(default="", max_length=8000)
+    steps: list[QuestStep] = Field(default_factory=list)
+    characters: list[str] = Field(default_factory=list)
+    shown: bool = True
+    status: Literal["open", "done", "failed"] = "open"
+    xp: int = Field(default=0, ge=0, le=1_000_000)  # for each character
+    coins: int = Field(default=0, ge=0, le=100_000_000)  # copper, shared out evenly
+    items: list[QuestItem] = Field(default_factory=list)  # each to the first on it
+    renown: int = Field(default=0, ge=0, le=50)  # with the faction, for each character
 
 
 class FactionRank(GameStateModel):

@@ -10,7 +10,9 @@ gamemaster runs the turn, which logs the orders and starts the next.
 A turn on Maintain rolls the books' Bastion Events table: the event is logged and shown
 on the page with its text. An attack rolls 6d6 and loses a Bastion Defender for each 1;
 with none left, a special facility picked at random is shut and takes no order on the
-next turn. What the other events yield is the books' own text, left to the table.
+next turn, unless a friendly monster stays as a guest and defends it. The other events
+are carried out as app/services/bastion_events.py says, some waiting for the player's
+decision.
 """
 
 from __future__ import annotations
@@ -22,6 +24,7 @@ from typing import Any
 
 from app.models.gamestate import BasicFacility, Bastion, BastionFacility, SourceSet
 from app.models.protocol import EntryKind, ProtocolEntry, Scope
+from app.services.bastion_events import EventTools, aid, carry_out
 from app.services.bastion_orders import OrderYields
 from app.services.dice import Dice
 from app.services.i18n import Translatable
@@ -133,16 +136,19 @@ class BastionService:
         events: Callable[[], list[BastionEvent]] = list,
         yields: OrderYields | None = None,
         pay: Callable[[str, int, str], bool] | None = None,
+        tools: EventTools | None = None,
         dice: Dice | None = None,
     ) -> None:
         """``events()`` reads the books' Bastion Events table (empty without it);
         ``yields`` carries orders out on the turn; ``pay(character, copper, why)`` pays
-        for building (False: the purse is short)."""
+        for building (False: the purse is short); ``tools`` carry events out
+        (app/services/bastion_events.py)."""
         self._store = store
         self._protocol = protocol
         self._events = events
         self._yields = yields
         self._pay = pay
+        self._tools = tools
         self._dice = dice or Dice()
 
     def of(self, character_id: str) -> Bastion:
@@ -356,12 +362,14 @@ class BastionService:
             "last_turn": at,
             "maintain": False,
             "event": "",
+            "event_yields": [],
+            "offer": "",
             "yields": lines,
             "pending": pending,
             "defenders": min(999, bastion.defenders + recruited),
         }
         if bastion.maintain:
-            update |= self._event(update["defenders"], cleared)
+            update |= self._event(character_id, update["defenders"], cleared, bastion.guardian)
             name = update["event"].split("|")[2] if update["event"] else ""
             if name:
                 lost = bastion.defenders - update.get("defenders", bastion.defenders)
@@ -375,17 +383,35 @@ class BastionService:
                 )
         return self._save(bastion.model_copy(update=update))
 
-    def _event(self, defenders: int, facilities: list[BastionFacility]) -> dict[str, Any]:
-        """Roll the Bastion Events table; an attack costs defenders, or shuts a facility."""
+    def _event(
+        self,
+        character_id: str,
+        defenders: int,
+        facilities: list[BastionFacility],
+        guardian: bool,
+        exclude: str = "",
+    ) -> dict[str, Any]:
+        """Roll the Bastion Events table and carry the event out: an attack costs
+        defenders (none while a friendly monster guards), or shuts a facility; the
+        others as app/services/bastion_events.py says. ``exclude`` rerolls that event."""
         rows = self._events()
         if not rows:
             return {}
-        roll = self._dice.die(100)
-        event = next((e for e in rows if e.low <= roll <= e.high), None)
+        event = None
+        for _ in range(20):
+            roll = self._dice.die(100)
+            event = next((e for e in rows if e.low <= roll <= e.high), None)
+            if event is None or event.name.lower() != exclude.lower():
+                break
         if event is None:
             return {}
         update: dict[str, Any] = {"event": f"{roll}|{event.entry}|{event.name}"}
         if event.name.lower() == "attack":
+            if guardian:
+                update["guardian"] = False
+                update["event"] += "|0"
+                update["event_yields"] = ["guarded|1"]
+                return update
             ones = sum(1 for _ in range(6) if self._dice.die(6) == 1)
             left = max(0, defenders - ones)
             update["defenders"] = left
@@ -397,7 +423,98 @@ class BastionService:
                     for n, f in enumerate(facilities)
                 ]
                 update["event"] += f"|{facilities[hit].ref}"
+            return update
+        if self._tools is None:
+            return update
+        done = carry_out(
+            event.name,
+            character_id,
+            defenders=defenders,
+            facilities=[f.ref for f in facilities],
+            guardian=guardian,
+            tools=self._tools,
+            dice=self._dice,
+        )
+        update["event_yields"] = done.lines
+        update["offer"] = done.offer
+        if done.defenders is not None:
+            update["defenders"] = done.defenders
+        if done.guardian is not None:
+            update["guardian"] = done.guardian
+        if done.shut:
+            update["facilities"] = [
+                f.model_copy(update={"shut": True}) if f.ref == done.shut else f for f in facilities
+            ]
         return update
+
+    def answer(
+        self,
+        character_id: str,
+        character_name: str,
+        world_id: str | None,
+        accept: bool,
+        value: str,
+        by: str,
+        by_name: str,
+    ) -> Bastion:
+        """The player's decision on the last event's offer: pay the bribe or the
+        opportunity, send defenders (``value`` how many), take a discovery (``value`` the
+        item); or decline it."""
+        bastion = self.of(character_id)
+        kind, _, amount_text = bastion.offer.partition("|")
+        if not kind or self._tools is None:
+            raise BastionError("bastion.error.order")
+        amount = int(amount_text) if amount_text.isdigit() else 0
+        tools = self._tools
+        update: dict[str, Any] = {"offer": ""}
+        lines = list(bastion.event_yields)
+        if kind == "bribe":
+            if accept and tools.pay(character_id, amount, "bribe"):
+                lines.append(f"paid|{amount}")
+            elif accept:
+                raise BastionError("bastion.error.short")
+            elif bastion.facilities:
+                hit = self._dice.die(len(bastion.facilities)) - 1
+                update["facilities"] = [
+                    f.model_copy(update={"shut": True}) if n == hit else f
+                    for n, f in enumerate(bastion.facilities)
+                ]
+                lines.append(f"shut|{bastion.facilities[hit].ref}")
+        elif kind == "opportunity" and accept:
+            if not tools.pay(character_id, amount, "opportunity"):
+                raise BastionError("bastion.error.short")
+            lines.append(f"paid|{amount}")
+            again = self._event(
+                character_id,
+                bastion.defenders,
+                bastion.facilities,
+                bastion.guardian,
+                exclude="Extraordinary Opportunity",
+            )
+            name = again.get("event", "").split("|")[2] if again.get("event") else ""
+            if name:
+                lines.append(f"again|{name}")
+                self._log(
+                    character_id, character_name, world_id, by, by_name, f"bastion_event:{name}:0"
+                )
+            lines += again.pop("event_yields", [])
+            again.pop("event", None)
+            update |= again
+        elif kind == "aid" and accept:
+            sent = int(value) if value.isdigit() else 0
+            if not 1 <= sent <= bastion.defenders:
+                raise BastionError("bastion.error.order")
+            total, reward, lost = aid(sent, self._dice)
+            tools.earn(character_id, reward)
+            update["defenders"] = bastion.defenders - lost
+            lines.append(f"aid|{total}|{reward}|{lost}")
+        elif kind == "discovery" and accept:
+            if not value:
+                raise BastionError("bastion.error.order")
+            tools.give(character_id, value, 1)
+            lines.append(f"item|{value}")
+        update["event_yields"] = lines
+        return self._save(bastion.model_copy(update=update))
 
     def _log(
         self,

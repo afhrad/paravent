@@ -737,7 +737,10 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
                     source.lower() not in world.source_set.normalized
                 ):
                     continue
-                effect = read_trap(entry.model_dump(by_alias=True, exclude_none=True))
+                effect = read_trap(
+                    entry.model_dump(by_alias=True, exclude_none=True),
+                    registry.spell_data(world.id),
+                )
                 if automatic_only and not effect.automatic:
                     continue
                 scaled = effect.at_level(level)

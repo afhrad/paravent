@@ -262,3 +262,43 @@ async def test_a_xanathar_trap_shows_its_parts(
         params={"world": world, "category": "trap", "name": "Poison Needle Trap", "source": "XGE"},
     )
     assert "Constitution save DC 20" in form.text
+
+
+ICE = {
+    "entries": [
+        "When a creature moves onto slippery ice for the first time on a turn, it must succeed "
+        "on a {@dc 10} Dexterity ({@skill Acrobatics}) check or fall {@condition prone}."
+    ]
+}
+FOG = {
+    "entries": [
+        "The doors slam shut as a poisonous cloud (treat as a {@dc 15} {@spell cloudkill} spell) "
+        "fills the room."
+    ]
+}
+CLOUDKILL = {
+    "savingThrow": ["constitution"],
+    "entries": [
+        "Each creature in the sphere must make a Constitution saving throw, taking 22 ({@damage "
+        "5d8}) poison damage on a failed save, or half as much damage on a successful one."
+    ],
+}
+
+
+def test_checks_and_spells() -> None:
+    (slip,) = read_trap(ICE).saves
+    assert (slip.skill, slip.dc, slip.conditions) == ("acrobatics", 10, ("prone",))
+    assert not read_trap(ICE).checks  # the check is the trap, not how to find it
+    (fog,) = read_trap(FOG, lambda name, _src: CLOUDKILL if name == "cloudkill" else None).saves
+    assert (fog.ability, fog.dc, fog.damage, fog.half) == ("con", 15, "5d8", True)
+    assert not read_trap(FOG).automatic  # without the spell's data, the table's
+    rolled: list[str] = []
+    service = TrapService(
+        None,
+        save=lambda cid, ability: 20,
+        check=lambda cid, skill: rolled.append(skill) or 3,
+        hurt=lambda cid, n: None,
+        afflict=lambda cid, c: rolled.append(c),
+    )
+    service.spring("w", "Ice", read_trap(ICE), [Target("a", "Ana")], "dm", "DM")
+    assert rolled == ["acrobatics", "prone"]
