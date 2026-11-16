@@ -464,7 +464,7 @@ def _defenders(page: Page, url: str, bastion: Bastion, gamemaster: bool) -> Elem
             ],
         ],
         div(class_="bastion-defenders-row")[
-            step("-1", "−", t("bastion.defender_lose")),
+            step("-1", "−", t("bastion.defender_lose")) if bastion.defenders else None,
             b(class_="mono bastion-defenders-count")[str(bastion.defenders)],
             step("1", "+", t("bastion.defender_add")) if gamemaster else None,
         ],

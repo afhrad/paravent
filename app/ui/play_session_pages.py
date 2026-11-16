@@ -17,6 +17,7 @@ from app.ui.home_pages import page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.markdown import Rendered
+from app.ui.names import ITEM, name_text
 from app.ui.quest_pages import quests_url
 from app.ui.session_pages import day_text, note_url, sessions_url
 from app.ui.shop_pages import coin_text
@@ -62,6 +63,24 @@ def happened_lines(page: Page, world_id: str, happened: Happened) -> list[str]:
                 owed=coin_text(page, happened.owed),
             )
         )
+    for name, xp in happened.xp.items():
+        lines.append(t("session.happened.xp", name=name, xp=xp))
+    for name in happened.levels:
+        lines.append(t("session.happened.level", name=name))
+    for name, (items, copper) in happened.received.items():
+        what = [
+            f"{count} × {name_text(page, ITEM, ref.partition('|')[0])}"
+            if count > 1
+            else name_text(page, ITEM, ref.partition("|")[0])
+            for ref, count in items
+        ]
+        if copper:
+            what.append(coin_text(page, copper))
+        lines.append(t("session.happened.received", name=name, what=", ".join(what)))
+    for name in happened.bastion_turns:
+        lines.append(t("session.happened.bastion", name=name))
+    if happened.downtime:
+        lines.append(t.plural("session.happened.downtime", happened.downtime))
     return [f"- {line}" for line in lines]
 
 

@@ -638,6 +638,15 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         challenge rating ½ (the gamemaster any), recruits defenders only through a
         Barrack, and cannot rebuild a shut facility; a monster's Polymorph keeps to the
         world's books
+  - [x] **An evening played through, phones and German** (2026-11-16): a test plays a whole
+        evening through the routes, the gamemaster and two players (`tests/test_an_evening.py`:
+        session, road, a fight from it, XP, treasure shared, a chase, downtime, the shop, a
+        bastion turn, a level), every page read along the way. The session note now also
+        tells the experience awarded, levels taken, what each character received, bastion
+        turns and downtime granted. A phone pass in both languages of the pages between the
+        fights: the clock's buttons in rows, form fields in the page's face, German spell
+        components (V, G, M), level chips and the Unarmed Strike; the session, quests and
+        factions pages open a table's only world when none is named
   - [x] **Image effects** (2026-11-04, ADVENTURES.md §5.5, `app/services/image_effects.py`):
         `torn`, `fade`, `oval`, `sepia`, `aged`, `mono`, `banner` written beside an image
         (`![[tavern.jpg|torn sepia]]`, `cover: media/x.jpg|fade`), rendered once with
@@ -1137,7 +1146,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2434 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2436 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the
@@ -1146,7 +1155,8 @@ tests that talk to `/mcp`); passwords hashed at the app's bcrypt cost (cost 4 in
 `pytest -n auto` (pytest-xdist) runs it on every core in about 2½ minutes. In the app, the
 tracker keeps each character's sheet per state (`CharacterService.sheet`): a click built up
 to 26 sheets for four characters, and took 60–134 ms; now 25–37 ms. Measured again
-2026-11-16 (three characters, the real corpus): a tracker click 16 ms, the sheet 38 ms,
+2026-11-16 (three characters, the real corpus): a tracker click 16 ms, the sheet 38 ms
+(33 since its spell and feature texts are kept as drawn, per books, language and glossary),
 the party view 23 ms (from 59: the world's ships are kept per set of books, and the
 books' small tables are indexed by caption once per load instead of walked on every page).
 

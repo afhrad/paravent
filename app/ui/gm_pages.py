@@ -207,7 +207,7 @@ def party_card(
             if pc.pending_levels
             else None,
             span(class_="pill cond", title=t("levelup.xp_due", level=xp.reached))[
-                icon("sparkles", "sm"), f"L{xp.reached}"
+                icon("sparkles", "sm"), page.t("party.level_short", level=xp.reached)
             ]
             if (xp := progress(pc)) is not None and xp.due
             else None,
@@ -237,7 +237,7 @@ def party_card(
         div(class_="pc-slots")[
             [
                 span(class_="pc-slot mono", title=t("sheet.spell_slots"))[
-                    f"L{s.level} {s.available}/{s.total}"
+                    f"{page.t('sheet.level_short', level=s.level)} {s.available}/{s.total}"
                 ]
                 for s in slots
             ],

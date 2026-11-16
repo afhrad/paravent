@@ -29,7 +29,7 @@ async def show_session(
     _gm: GamemasterDep, page: PageDep, worlds: WorldsDep, registry: RegistryDep, world: str = ""
 ) -> Response:
     """What to know before play, or what has happened since the session began."""
-    chosen = worlds.find(world)
+    chosen = worlds.find_or_only(world)
     if chosen is None:
         return redirect("/gm/worlds")
     sessions = registry.play_sessions

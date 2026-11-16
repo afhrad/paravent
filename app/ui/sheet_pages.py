@@ -19,7 +19,11 @@ they work without JavaScript too; ``sheet.js`` only makes them instant.
 
 from __future__ import annotations
 
+import json
 import re
+import threading
+import weakref
+from collections import OrderedDict
 from collections.abc import Mapping
 from fractions import Fraction
 
@@ -34,6 +38,7 @@ from htpy import (
     div,
     fieldset,
     form,
+    fragment,
     h2,
     h3,
     header,
@@ -53,6 +58,7 @@ from htpy import (
     ul,
 )
 from htpy import input as input_el
+from markupsafe import Markup
 
 from app.models.gamestate import SourceSet
 from app.models.pc import DraftStatus
@@ -63,6 +69,7 @@ from app.services.protocol_view import Filter
 from app.services.references import ReferenceEntry
 from app.services.sheet import (
     DAMAGE_TYPES,
+    UNARMED_STRIKE,
     AbilityView,
     AttackView,
     ConditionView,
@@ -88,7 +95,7 @@ from app.ui.follower_pages import sheet_followers_link
 from app.ui.forms import hidden
 from app.ui.icons import icon
 from app.ui.layout import app_shell
-from app.ui.names import ITEM, name_span, name_text, origin_text, training_text
+from app.ui.names import ITEM, name_span, name_text, named, origin_text, training_text
 from app.ui.names import summary as summary_line
 from app.ui.protocol_pages import log_embed_slot
 from app.ui.ref_pages import statblock
@@ -422,6 +429,14 @@ def _left(page: Page, sheet: Sheet) -> Element:
 # -- middle: what you do ---------------------------------------------------------------
 
 
+def _attack_name(page: Page, name: str) -> Element:
+    """An attack's name; the punch everyone has is named by the UI catalogue where the
+    glossary has no name for it."""
+    if name == UNARMED_STRIKE and not named(page, ITEM, name):
+        return span(class_="nm", title=name)[page.t("sheet.unarmed_strike")]
+    return name_span(page, ITEM, name)
+
+
 def _attack_row(page: Page, sheet: Sheet, attack: AttackView) -> Element:
     t = page.t
     world = sheet.character.world_id
@@ -458,7 +473,7 @@ def _attack_row(page: Page, sheet: Sheet, attack: AttackView) -> Element:
         )[name_text(page, "itemMastery", name)]
     return div(class_="cs-item")[
         div(class_="cs-item-main")[
-            name_span(page, ITEM, attack.name),
+            _attack_name(page, attack.name),
             span(class_="meta")[[span[m] for m in meta if m], mastery],
         ],
         div(class_="cs-item-act")[
@@ -482,7 +497,7 @@ def _attack_row(page: Page, sheet: Sheet, attack: AttackView) -> Element:
                 sheet,
                 "roll",
                 {"kind": "damage", "subject": attack.name, "versatile": "1"},
-                [icon("dices"), span(class_="mono")[attack.versatile]],
+                [icon("dices"), span(class_="mono")[rules_text.dice(page, attack.versatile)]],
                 cls="roll",
                 title=t("sheet.versatile"),
             )
@@ -772,13 +787,47 @@ def _roll_form_id(sheet: Sheet) -> str:
     return f"roll-{sheet.character.id}"
 
 
+# Rules text as drawn, per loaded set of books (the resolver's index, gone with a reload):
+# a sheet draws the same spells and features on every press, and the tag renderer is
+# most of a sheet's time. Keyed by everything the drawing reads.
+_DRAWN: weakref.WeakKeyDictionary[object, OrderedDict[tuple[object, ...], Markup]] = (
+    weakref.WeakKeyDictionary()
+)
+_DRAWN_MOST = 4000
+_DRAWN_LOCK = threading.Lock()
+
+
 def _text(
     page: Page, entries: tuple[object, ...], fallback: tuple[str, ...], ctx: RenderContext | None
 ) -> Node:
     """Rules text through the tag renderer — links, roll chips — or plain when it can't."""
-    if entries and ctx is not None:
+    if not entries or ctx is None:
+        return [p[para] for para in fallback]
+    index = getattr(ctx.resolver, "_index", None)
+    stamp = getattr(page.t, "stamp", None)
+    if index is None or stamp is None:
         return render_entries(list(entries), ctx)
-    return [p[para] for para in fallback]
+    key = (
+        stamp,
+        ctx.source_set.identity if ctx.source_set is not None else None,
+        ctx.world_id,
+        ctx.roll_form,
+        page.reader,
+        ctx.units.system if ctx.units is not None else None,
+        json.dumps(entries, sort_keys=True, default=str),
+    )
+    with _DRAWN_LOCK:
+        drawn = _DRAWN.setdefault(index, OrderedDict())
+        found = drawn.get(key)
+        if found is not None:
+            drawn.move_to_end(key)
+            return found
+    found = Markup(str(fragment[render_entries(list(entries), ctx)]))
+    with _DRAWN_LOCK:
+        drawn[key] = found
+        if len(drawn) > _DRAWN_MOST:
+            drawn.popitem(last=False)
+    return found
 
 
 def _spell_entries(page: Page, spell: SpellView) -> tuple[object, ...]:
@@ -941,7 +990,7 @@ def _spell_row(
         f"{level_label} {rules_text.school(page, spell.school_code) or spell.school}".strip(),
         rules_text.spell_time(page, spell),
         rules_text.spell_range(page, spell),
-        spell.components,
+        rules_text.components(page, spell.components),
     ]
     return details(
         class_=f"cs-spell {'held' if held else ''}",
@@ -987,7 +1036,7 @@ def _spells_pane(page: Page, sheet: Sheet, ctx: RenderContext | None = None) -> 
                 ],
                 [
                     button(type="button", class_="fchip", data_level=str(lv), aria_pressed="false")[
-                        t("sheet.cantrip") if lv == 0 else f"L{lv}"
+                        t("sheet.cantrip") if lv == 0 else t("sheet.level_short", level=lv)
                     ]
                     for lv in levels
                 ],
@@ -1505,7 +1554,9 @@ def _slot_row(page: Page, sheet: Sheet, slot: SlotLevel, *, pact: bool = False) 
         for i in range(slot.total)
     ]
     return div(class_="cs-slotrow")[
-        span(class_="lv mono")[t("sheet.pact_short") if pact else f"L{slot.level}"],
+        span(class_="lv mono")[
+            t("sheet.pact_short") if pact else t("sheet.level_short", level=slot.level)
+        ],
         div(class_="cs-pips")[pips],
         span(class_="cnt mono")[f"{slot.available}/{slot.total}"],
     ]

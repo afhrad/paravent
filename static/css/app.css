@@ -6,6 +6,9 @@
    ============================================================ */
 
 body{ min-height:100vh; min-height:100dvh; }
+/* Form fields write in the page's face, not the browser's; a field styled where it is
+   defined keeps its own. */
+input, select, textarea{ font-family:inherit; }
 
 /* Pills and chips are tags with a small corner, not capsules: components.css (kept
    verbatim from the design reference) rounds them fully, so the shape is set here. Every
@@ -286,6 +289,8 @@ a.btn{ text-decoration:none; }
 @media (max-width: 640px){
   .inline-form{ flex-basis:100%; }
   .inline-form select{ flex:1; min-height:44px; }
+  /* A row of one-button forms (the clock's steps) stays a row. */
+  .party-clock-steps > .inline-form{ flex-basis:auto; }
 }
 
 /* ---------------------------------------------------------- "new …" popover */
@@ -2574,6 +2579,7 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .contact-row{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; }
 .contact-row.is-spent .contact-edit input{ opacity:.65; }
 .contact-edit{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:0; flex:1 1 320px; }
+.contact-edit input[type=text]{ font:inherit; padding:4px 8px; min-width:0; }
 .contact-edit input[name="note"]{ flex:1 1 200px; }
 .contact-new{ margin-top:10px; }
 .session-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; align-items:start; }
@@ -2581,6 +2587,9 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .session-head{ display:flex; align-items:center; gap:8px; margin:0; font-size:1rem; }
 .session-list{ list-style:none; margin:0; padding:0; display:grid; gap:6px; }
 .session-list li{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+/* A long line wraps beside its icon, not below it. */
+.session-list li > svg{ flex:none; }
+.session-list li > a:only-of-type{ flex:1 1 0; min-width:0; }
 .session-note{ max-height:22rem; overflow:auto; }
 .faction-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; align-items:start; margin-bottom:16px; }
 .faction-panel{ display:grid; gap:10px; }
@@ -2613,6 +2622,7 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .follower-head, .follower-acts{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; }
 .follower-hp{ min-width:4.5em; }
 .follower-form{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px; }
+.follower-form input[type=text]{ flex:1 1 200px; min-width:0; font:inherit; padding:4px 8px; }
 .bastion-event-yields{ margin:0; padding-left:18px; }
 .bastion-offer{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 .bastion-offer p{ flex-basis:100%; margin:0; }

@@ -48,7 +48,7 @@ async def show_factions(
     _gm: GamemasterDep, page: PageDep, worlds: WorldsDep, registry: RegistryDep, world: str = ""
 ) -> Response:
     """A world's factions and renown."""
-    chosen = worlds.find(world)
+    chosen = worlds.find_or_only(world)
     if chosen is None:
         return redirect("/gm/worlds")
     return _page(page, registry, chosen)

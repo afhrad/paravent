@@ -39,6 +39,13 @@ class Happened:
     contacts: dict[str, int] = field(default_factory=dict)  # made, by kind
     paid: int = 0  # lifestyle paid, in copper
     owed: int = 0  # lifestyle the purses lacked, in copper
+    xp: dict[str, int] = field(default_factory=dict)  # experience awarded, by character
+    levels: list[str] = field(default_factory=list)  # a level taken, one name each
+    # What characters were handed (a treasure shared out, a quest's reward): character →
+    # item references with their counts, and the copper the coins were worth.
+    received: dict[str, tuple[list[tuple[str, int]], int]] = field(default_factory=dict)
+    bastion_turns: list[str] = field(default_factory=list)  # whose bastion took a turn
+    downtime: int = 0  # downtime days granted
 
     @property
     def empty(self) -> bool:
@@ -51,6 +58,11 @@ class Happened:
             or self.contacts
             or self.paid
             or self.owed
+            or self.xp
+            or self.levels
+            or self.received
+            or self.bastion_turns
+            or self.downtime
             or (self.minute_from is not None and self.minute_to != self.minute_from)
         )
 
@@ -141,6 +153,21 @@ class PlaySessionService:
             elif head == "lifestyle" and len(parts) > 3:
                 out.paid += int(_number(parts[2]))
                 out.owed += int(_number(parts[3]))
+            elif head == "receive" and len(parts) > 1:
+                items, copper = out.received.setdefault(entry.subject_name or "?", ([], 0))
+                for part in filter(None, parts[0].split(";")):
+                    ref, _, count = part.rpartition("*")
+                    items.append((ref, int(_number(count)) or 1))
+                out.received[entry.subject_name or "?"] = (items, copper + _copper(parts[1]))
+            elif head == "bastion" and parts[0].isdigit():
+                out.bastion_turns.append(entry.subject_name or "?")
+            elif head == "downtime" and parts[0].isdigit():
+                out.downtime += int(parts[0])
+            elif entry.kind == EntryKind.EXPERIENCE and entry.amount:
+                name = entry.subject_name or "?"
+                out.xp[name] = out.xp.get(name, 0) + entry.amount
+            elif entry.kind == EntryKind.LEVEL_UP:
+                out.levels.append(entry.subject_name or "?")
         return out
 
     def brief(self, world_id: str) -> Brief:
@@ -225,6 +252,19 @@ class PlaySessionService:
                 )
             ]
         )
+
+
+_COPPER = {"cp": 1, "sp": 10, "ep": 50, "gp": 100, "pp": 1000}
+
+
+def _copper(purse: str) -> int:
+    """A logged purse ("20gp,5sp") in copper."""
+    total = 0
+    for part in filter(None, purse.split(",")):
+        amount, unit = part[:-2], part[-2:]
+        if amount.isdigit() and unit in _COPPER:
+            total += int(amount) * _COPPER[unit]
+    return total
 
 
 def _number(text: str) -> float:

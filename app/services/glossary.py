@@ -109,6 +109,13 @@ class Glossary:
         self._cache[lang] = (mtime, table, still)
         return table, still
 
+    def stamp(self, lang: str) -> float:
+        """The language's glossary file's modification time; 0 without one."""
+        try:
+            return self.path(lang).stat().st_mtime
+        except OSError:
+            return 0.0
+
     def table(self, lang: str) -> dict[str, dict[str, tuple[str, str]]]:
         """The language's names as read: category → lower-case English → (English, name)."""
         return self._load(lang)

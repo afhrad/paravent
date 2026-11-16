@@ -358,7 +358,7 @@ def _spell(page: Page, data: dict[str, Any], ctx: RenderContext) -> list[Node]:
             _line(t("ref.range"), rules_text.spell_range(page, spell)),
             _line(
                 t("ref.components"),
-                spell.components,
+                rules_text.components(page, spell.components),
                 f" ({spell.material})" if spell.material else None,
             ),
             _line(t("ref.duration"), rules_text.spell_duration(page, spell)),

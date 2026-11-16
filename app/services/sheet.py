@@ -188,6 +188,10 @@ _SKIP_SPECIES_TRAITS = frozenset({"age", "alignment", "size", "speed", "language
 # -- view types ------------------------------------------------------------------------
 
 
+# The attack every character has, by the handbook's name.
+UNARMED_STRIKE = "Unarmed Strike"
+
+
 @dataclass(frozen=True)
 class Value:
     """A number on the sheet, how it was reached, and whether a person overrode it."""
@@ -1325,7 +1329,7 @@ def _armor_and_attacks(
     # Everyone can punch: 1 + STR, proficient (PHB "Unarmed Strike").
     sheet.attacks.append(
         AttackView(
-            "Unarmed Strike",
+            UNARMED_STRIKE,
             Value(
                 mods["str"] + prof,
                 f"STR {mods['str']:+d} + prof {prof:+d}",
@@ -2492,6 +2496,7 @@ def _class_proficiencies(
 
 
 __all__ = [
+    "UNARMED_STRIKE",
     "ABILITY_NAMES",
     "CASTER_SLOTS",
     "CONDITIONS",

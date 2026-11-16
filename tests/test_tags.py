@@ -424,3 +424,52 @@ class TestPreviews:
     ) -> None:
         ac, _ = client
         assert "/static/js/tooltips.js" in (await ac.get("/play")).text
+
+
+def test_the_sheet_draws_a_text_again_when_its_words_change(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The sheet keeps rules text as drawn, per loaded books, language and glossary."""
+    from app.services.glossary import Glossary
+    from app.services.i18n import UiCatalogue
+    from app.services.units import UnitFormat
+    from app.ui import sheet_pages
+    from app.ui.context import Page
+
+    glossary = Glossary(tmp_path)
+    catalogue = UiCatalogue()
+    drawings: list[object] = []
+
+    def counted(entries: object, ctx: object) -> object:
+        drawings.append(entries)
+        return render_entries(entries, ctx)  # type: ignore[arg-type]
+
+    monkeypatch.setattr(sheet_pages, "render_entries", counted)
+
+    class Index:
+        pass
+
+    class Books:
+        _index = Index()
+
+    books = Books()
+
+    def drawn(lang: str) -> str:
+        page = Page(t=catalogue.translator(lang, glossary=glossary))
+        ctx = RenderContext(resolver=books, term=page.t.term, units=UnitFormat())
+        return str(sheet_pages._text(page, ("See {@b bold} text.",), (), ctx))
+
+    first = drawn("de")
+    assert drawn("de") == first and len(drawings) == 1  # kept
+    drawn("en")
+    assert len(drawings) == 2  # another language, drawn
+    glossary.path("de").parent.mkdir(parents=True)
+    glossary.path("de").write_text('{"spell": {"Fireball": "Feuerball"}}')
+    drawn("de")
+    assert len(drawings) == 3  # an edited glossary, drawn again
+    catalogue.load()
+    drawn("de")
+    assert len(drawings) == 4  # reloaded strings, drawn again
+    Books._index = Index()
+    drawn("de")
+    assert len(drawings) == 5  # the books reloaded, drawn again

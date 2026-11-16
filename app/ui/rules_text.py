@@ -47,6 +47,11 @@ def _amount(page: Page, unit: str, count: Any) -> str:
 # -- spells ------------------------------------------------------------------------------
 
 
+def components(page: Page, letters: str) -> str:
+    """A spell's components by their letters: ``VSM`` → "VSM" / "VGM"."""
+    return "".join(_word(page, f"rules.component.{c.lower()}", c) for c in letters)
+
+
 def school(page: Page, code: str) -> str:
     """A school of magic by its letter: ``V`` → "Evocation" / "Hervorrufung"."""
     return _word(page, f"chargen.school.{code}", code) if code else ""
@@ -307,6 +312,7 @@ def joined(values: Iterable[str]) -> str:
 
 __all__ = [
     "challenge",
+    "components",
     "creature_type",
     "damage_word",
     "dice",

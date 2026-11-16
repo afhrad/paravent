@@ -11,6 +11,7 @@ Written specs. The visual counterpart is [`../design-reference/`](../design-refe
 | 2 | [TECHSTACK.md](TECHSTACK.md) | Stack decisions. §3 the two data roots · §6b corpus coverage · §6c reference resolution |
 | 3 | [DESIGN.md](DESIGN.md) | UI spec — tokens, layout, components, the `{@tag}` renderer, tooltips |
 | 4 | [PROGRESS.md](PROGRESS.md) | What is built, what is next, measured against the real corpus |
+| 5 | [IDEAS.md](IDEAS.md) | What is not built yet but worth doing: the guides' topics, findings of reviews |
 
 ## By topic
 

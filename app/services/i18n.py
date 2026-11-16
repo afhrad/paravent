@@ -108,6 +108,8 @@ class UiCatalogue:
         self._library_dir = library_ui_dir
         self._strings: dict[str, dict[str, Entry]] = {}
         self._names: dict[str, str] = {}
+        # Counts loads, so text drawn with these strings knows when they changed.
+        self.revision = 0
         self.load()
 
     def load(self) -> None:
@@ -127,6 +129,7 @@ class UiCatalogue:
             meta = data.pop("_meta", {})
             self._names[code] = str(meta.get("name", code)) if isinstance(meta, dict) else code
             self._strings[code] = {k: v for k, v in data.items() if isinstance(v, str | dict)}
+        self.revision += 1
 
     # -- languages ---------------------------------------------------------------
 
@@ -251,6 +254,13 @@ class Translator:
             # English and German both distinguish exactly one from everything else.
             text = entry.get("one" if count == 1 else "other") or entry.get("other", key)
         return text.format_map(_Missing({"count": count, **params}))
+
+    @property
+    def stamp(self) -> tuple[str, int, float]:
+        """Changes whenever what this translator says may have: the language, a
+        reloaded catalogue, an edited glossary. For caching text drawn with it."""
+        glossary = self._glossary.stamp(self.code) if self._glossary else 0.0
+        return (self.code, getattr(self._catalogue, "revision", 0), glossary)
 
     def term(self, category: str, english: str) -> str | None:
         """A corpus entry's name in this language (TRANSLATION.md §4); None if unnamed.

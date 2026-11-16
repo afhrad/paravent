@@ -468,7 +468,11 @@ class TestAtTheTable:
         # Pressed again from the same page: refused, the event kept.
         again = (await ac.post(url, data={"op": "turn", "turns": str(held.turns - 1)})).text
         assert registry.bastions.of(lyra) == held and "run already" in html.unescape(again)
-        # A player loses a defender but recruits none by hand.
+        # A player loses a defender but recruits none by hand (an attack event may have
+        # cost the one there was: one is put back first).
+        registry.gamestate.bastions.upsert(
+            registry.bastions.of(lyra).model_copy(update={"defenders": 1})
+        )
         async with player_of(registry, lyra) as player:
             await player.post(url, data={"op": "defenders", "change": "1"})
             assert registry.bastions.of(lyra).defenders == 1

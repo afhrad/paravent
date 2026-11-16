@@ -156,6 +156,13 @@ class WorldService:
         """One world, or None."""
         return self._store.worlds.find(world_id) if world_id else None
 
+    def find_or_only(self, world_id: str | None) -> World | None:
+        """The world named, or the table's only world when none is named."""
+        if world_id:
+            return self.find(world_id)
+        every = self.list()
+        return every[0] if len(every) == 1 else None
+
     @staticmethod
     def _clean(data: WorldInput) -> tuple[str, SourceSet]:
         name = data.name.strip()
