@@ -19,6 +19,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from fractions import Fraction
 
 from app.models.gamestate import Combatant, Follower
 from app.models.pc import PlayerCharacter
@@ -29,6 +30,8 @@ from app.store.gamestate import GameStateStore
 
 HIRELINGS = ("skilled", "untrained")
 CREATURES = ("companion", "mount", "sidekick")
+# The strongest creature a player adds alone: a sidekick's limit (Tasha's).
+PLAYER_FOLLOWER_CR = Fraction(1, 2)
 _HIT_DICE = re.compile(r"(\d+)d(\d+)")
 
 
@@ -45,6 +48,7 @@ class Statblock:
     hp: int
     die: int = 8
     con: int = 0
+    cr: Fraction | None = None
 
 
 def hit_die(formula: str) -> int:
@@ -129,9 +133,11 @@ class FollowerService:
         name: str = "",
         note: str = "",
         sidekick_class: str = "",
+        most_cr: Fraction | None = None,
     ) -> Follower:
-        """A companion, mount or sidekick: a creature of the world's books; a sidekick
-        may take a sidekick class of them."""
+        """A companion, mount or sidekick: a creature of the world's books, no stronger
+        than ``most_cr`` when given (what a player may add alone); a sidekick may take
+        a sidekick class of them."""
         if kind not in CREATURES:
             raise FollowerError("followers.error.kind")
         if sidekick_class and (
@@ -142,6 +148,8 @@ class FollowerService:
         found = self._statblock(pc.world_id, creature.strip())
         if found is None:
             raise FollowerError("followers.error.creature", name=creature.strip())
+        if most_cr is not None and (found.cr is None or found.cr > most_cr):
+            raise FollowerError("followers.error.too_strong", cr=str(most_cr))
         return self._store.followers.create(
             Follower(
                 character_id=pc.id,
@@ -249,6 +257,7 @@ def _name(text: str) -> str:
 __all__ = [
     "CREATURES",
     "HIRELINGS",
+    "PLAYER_FOLLOWER_CR",
     "FollowerError",
     "FollowerService",
     "Statblock",

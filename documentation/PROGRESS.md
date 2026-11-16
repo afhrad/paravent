@@ -626,6 +626,18 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         button refuses when the pack has changed under it; a day's lifestyle and wages
         are charged once though the clock is set back; a sidekick levels at the
         gamemaster's word, up to 20
+  - [x] **A review of the table's money and of what players may send** (2026-11-16): a
+        page's buttons read the character after their form, so a double press finds the
+        first's result; a sale, a downtime offer and a shop shelf's edit name the item they
+        were drawn for and refuse another in its place; a bastion turn runs once from its
+        page; an activity checks its choices before it charges; a shop buys back for no
+        more than it sells. On the road, an encounter at the day's end still brings supper,
+        and exhaustion gained on the way counts the next day; a chase counts the
+        exhaustion a character brings, and a runner out on its turn passes it on. A player
+        writes a scroll's spell once and of its level, adds a creature follower up to
+        challenge rating ½ (the gamemaster any), recruits defenders only through a
+        Barrack, and cannot rebuild a shut facility; a monster's Polymorph keeps to the
+        world's books
   - [x] **Image effects** (2026-11-04, ADVENTURES.md §5.5, `app/services/image_effects.py`):
         `torn`, `fade`, `oval`, `sepia`, `aged`, `mono`, `banner` written beside an image
         (`![[tavern.jpg|torn sepia]]`, `cover: media/x.jpg|fade`), rendered once with
@@ -1125,7 +1137,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2428 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2434 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the

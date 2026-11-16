@@ -10,7 +10,7 @@ from app.services.clock import DAY
 from app.services.followers import hit_die, level_hp
 from app.store.registry import StoreRegistry
 from tests.conftest import requires_corpus
-from tests.test_travel_downtime_shop import table
+from tests.test_travel_downtime_shop import player_of, table
 
 __all__ = ["table"]
 
@@ -135,3 +135,21 @@ async def test_a_sidekick_with_its_class(table: tuple[AsyncClient, StoreRegistry
         },
     )
     assert bad.status_code == 422
+
+
+@requires_corpus
+async def test_a_player_adds_no_creature_above_a_sidekicks_rating(
+    table: tuple[AsyncClient, StoreRegistry, str],
+) -> None:
+    ac, registry, lyra = table
+    url = f"/characters/{lyra}/followers"
+    async with player_of(registry, lyra) as player:
+        refused = await player.post(
+            url, data={"op": "creature", "kind": "mount", "creature": "Adult Red Dragon"}
+        )
+        assert "challenge rating 1/2" in html.unescape(refused.text)
+        await player.post(url, data={"op": "creature", "kind": "mount", "creature": "Riding Horse"})
+    assert [f.name for f in registry.followers.of(lyra)] == ["Riding Horse"]
+    # The gamemaster's word is enough.
+    await ac.post(url, data={"op": "creature", "kind": "mount", "creature": "Adult Red Dragon"})
+    assert len(registry.followers.of(lyra)) == 2

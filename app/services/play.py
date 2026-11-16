@@ -1068,12 +1068,16 @@ class PlayService:
     def _sell(
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
     ) -> None:
-        """Sell ``count`` of the carried item at ``index`` for ``price`` copper each."""
+        """Sell ``count`` of the carried item at ``index`` for ``price`` copper each;
+        ``ref``, when given, is the item the shop priced, refused if another lies there."""
         index = _int(params, "index")
         count = max(1, _int(params, "count", 1))
         if not 0 <= index < len(pc.inventory) or pc.inventory[index].quantity < count:
             raise PlayError("play.error.bad_input")
         item = pc.inventory[index]
+        ref = params.get("ref")
+        if item.equipped or (ref is not None and item.item.reference != ref):
+            raise PlayError("play.error.bad_input")
         earned = max(0, _int(params, "price", 0)) * count
         item.quantity -= count
         if item.quantity == 0:

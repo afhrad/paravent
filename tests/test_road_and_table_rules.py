@@ -205,7 +205,13 @@ TABLES: dict[str, list[list[str]]] = {
 class TestActivities:
     @pytest.fixture
     def week(self, tmp_path: Path) -> dict[str, Any]:
-        state: dict[str, Any] = {"paid": [], "earned": [], "given": [], "sold": [], "purse": 1000}
+        state: dict[str, Any] = {
+            "paid": [],
+            "earned": [],
+            "given": [],
+            "sold": [],
+            "purse": 100_000,
+        }
         downtime = DowntimeService(
             GameStateStore(tmp_path),
             None,
@@ -271,8 +277,11 @@ class TestActivities:
         week["totals"], week["purse"] = [1, 1, 1], 3000
         caught = self.run(week, "crime", {"dc": "10", "third": "deception"}, FixedDice())
         assert "caught:5000:2" in caught.result and "debt:4500" in caught.result
+        # A DC the book doesn't offer is refused before the 25 gp are paid.
+        paid = list(week["paid"])
         with pytest.raises(DowntimeError):
             self.run(week, "crime", {"dc": "12"}, FixedDice())
+        assert week["paid"] == paid
 
     def test_buying_magic_items(self, week: dict[str, Any]) -> None:
         week["totals"] = [7]
@@ -281,7 +290,12 @@ class TestActivities:
         done = self.run(week, "buy_magic", {}, FixedDice([2, 3, 2, 50]))
         assert done.offers == ["Potion of Climbing|DMG|2000", "Bag of Holding|DMG|20000"]
         activities = week["make"](FixedDice())
-        assert activities.take(week["pc"], done.id, 0) == "Potion of Climbing|DMG"
+        # A page drawn for another offer at that place takes nothing.
+        with pytest.raises(DowntimeError):
+            activities.take(week["pc"], done.id, 0, "Bag of Holding|DMG|20000")
+        assert activities.take(week["pc"], done.id, 0, done.offers[0]) == "Potion of Climbing|DMG"
+        with pytest.raises(DowntimeError):
+            activities.refuse(week["pc"], done.id, 0, "Potion of Climbing|DMG|2000")
         assert week["given"] == ["Potion of Climbing|DMG"] and week["paid"][-1] == 2000
         activities.refuse(week["pc"], done.id, 0)
         assert week["downtime"].of("a").projects[-1].offers == []
@@ -332,6 +346,20 @@ class TestShopStock:
         assert [s.ref for s in shops.of("w").stock] == ["Potion of Healing|XDMG"]
         with pytest.raises(ShopError):
             shops.sold("w", "Bag of Holding|XDMG", 1)
+        # A form drawn while the bag sat first edits nothing now the potion is there.
+        with pytest.raises(ShopError):
+            shops.reprice("w", 0, 1, None, "Bag of Holding|XDMG")
+        with pytest.raises(ShopError):
+            shops.unstock("w", 0, "Bag of Holding|XDMG")
+        assert shops.of("w").stock[0].price == 5000
+
+    def test_buying_back_never_pays_more_than_selling(self, tmp_path: Path) -> None:
+        shops = ShopService(GameStateStore(tmp_path), None)
+        with pytest.raises(ShopError):
+            shops.open("w", name="x", characters=[], markup=10, buys=100, by="dm", by_name="DM")
+        assert shops.open(
+            "w", name="x", characters=[], markup=50, buys=50, by="dm", by_name="DM"
+        ).open
 
 
 BARRACK = {

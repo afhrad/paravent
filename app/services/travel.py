@@ -215,6 +215,8 @@ class TravelService:
         if plan.weather and weather is not None and offset == 0:
             journey.weather.append(weather())
         while left > 0 and not stopped:
+            # Read afresh each day: exhaustion gained on the road counts from here on.
+            party = self._fresh(world_id, party)
             into = travelled % day_length
             today = min(left, day_length - into)
             moved = today
@@ -236,12 +238,14 @@ class TravelService:
             travelled += moved
             elapsed += moved
             left -= moved
-            if stopped or travelled % day_length:
+            if travelled % day_length:
                 break
-            # The end of a travelling day: supper, then the night if the road goes on.
+            # The end of a travelling day, though an encounter came with it: supper,
+            # then the night if the road goes on.
+            party = self._fresh(world_id, party)
             tired = self._supper(journey, party, hungry, plan.rations, rules)
             tired += self._drink(journey, party, plan.water, rules)
-            if left > 0:
+            if left > 0 and not stopped:
                 night = DAY - day_length
                 if plan.night_check and night > 0:
                     roll = self._dice.die(20)
@@ -277,6 +281,11 @@ class TravelService:
         )
         self._log(world_id, journey, by, by_name)
         return journey
+
+    def _fresh(self, world_id: str, party: Sequence[PlayerCharacter]) -> list[PlayerCharacter]:
+        """The same characters as they are now."""
+        now = {pc.id: pc for pc in self._party(world_id)}
+        return [now.get(pc.id, pc) for pc in party]
 
     def _meet(
         self,

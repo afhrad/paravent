@@ -435,12 +435,14 @@ def _offers(page: Page, url: str, project: DowntimeProject) -> Element:
                 hidden("op", "take"),
                 hidden("project", project.id),
                 hidden("offer", str(n)),
+                hidden("expected", project.offers[n]),
                 button(type="submit", class_="btn btn-sm btn-primary")[take],
             ],
             form(method="post", action=url, class_="inline-form")[
                 hidden("op", "refuse"),
                 hidden("project", project.id),
                 hidden("offer", str(n)),
+                hidden("expected", project.offers[n]),
                 button(type="submit", class_="btn btn-sm btn-ghost")[t("downtime.refuse")],
             ],
         ]

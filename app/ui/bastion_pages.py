@@ -167,7 +167,7 @@ def bastion_page(
             _basic(page, url, bastion, basic_offered, world_id, costs, day_of or {})
             if level >= FROM_LEVEL
             else None,
-            _defenders(page, url, bastion) if level >= FROM_LEVEL else None,
+            _defenders(page, url, bastion, gamemaster) if level >= FROM_LEVEL else None,
             section(class_="panel bastion-meta")[
                 form(method="post", action=url, class_="bastion-name")[
                     hidden("op", "rename"),
@@ -179,6 +179,7 @@ def bastion_page(
                 ],
                 form(method="post", action=url)[
                     hidden("op", "turn"),
+                    hidden("turns", str(bastion.turns)),
                     button(
                         type="submit", class_="btn btn-sm btn-primary", title=t("bastion.turn_hint")
                     )[icon("hourglass", "sm"), span[t("bastion.turn")]],
@@ -443,8 +444,9 @@ def _basic(
     ]
 
 
-def _defenders(page: Page, url: str, bastion: Bastion) -> Element:
-    """The Bastion Defenders on the roster, one more or one fewer at a press."""
+def _defenders(page: Page, url: str, bastion: Bastion, gamemaster: bool) -> Element:
+    """The Bastion Defenders on the roster, one fewer at a press; one more only for the
+    gamemaster (a player recruits through a Barrack)."""
     t = page.t
 
     def step(change: str, glyph: str, title: str) -> Element:
@@ -457,12 +459,14 @@ def _defenders(page: Page, url: str, bastion: Bastion) -> Element:
     return section(class_="panel bastion-defenders")[
         div(class_="panel-head")[
             h2[t("bastion.defenders")],
-            small(class_="muted")[t("bastion.defenders_hint")],
+            small(class_="muted")[
+                t("bastion.defenders_gm" if gamemaster else "bastion.defenders_hint")
+            ],
         ],
         div(class_="bastion-defenders-row")[
             step("-1", "−", t("bastion.defender_lose")),
             b(class_="mono bastion-defenders-count")[str(bastion.defenders)],
-            step("1", "+", t("bastion.defender_add")),
+            step("1", "+", t("bastion.defender_add")) if gamemaster else None,
         ],
     ]
 

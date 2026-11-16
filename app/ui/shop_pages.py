@@ -206,6 +206,7 @@ def _stock_forms(
             post(
                 "price",
                 hidden("index", str(n)),
+                hidden("ref", item.ref),
                 input_el(
                     type="number",
                     name="price",
@@ -221,6 +222,7 @@ def _stock_forms(
             post(
                 "remove",
                 hidden("index", str(n)),
+                hidden("ref", item.ref),
                 button(
                     type="submit",
                     class_="btn btn-sm btn-ghost",
@@ -450,6 +452,7 @@ def _sellable(page: Page, url: str, index: int, item: InventoryItem, price: int)
         form(method="post", action=url, class_="inline-form shop-trade")[
             hidden("op", "sell"),
             hidden("index", str(index)),
+            hidden("ref", item.item.reference),
             input_el(
                 type="number",
                 name="count",

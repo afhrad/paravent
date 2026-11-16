@@ -79,6 +79,9 @@ class ShopService:
         """Open (or change) the shop: its name, who may use it, its prices."""
         if not 10 <= markup <= 1000 or not 0 <= buys <= 100:
             raise ShopError("shop.error.prices")
+        if buys > markup:
+            # Else anything bought there sells back at a profit, over and over.
+            raise ShopError("shop.error.buys_more")
         shop = self.of(world_id).model_copy(
             update={
                 "open": True,
@@ -115,19 +118,27 @@ class ShopService:
                 stock[held] = stock[held].model_copy(update={"count": more})
         return self._save(shop.model_copy(update={"stock": stock}))
 
-    def reprice(self, world_id: str, index: int, price: int, count: int | None) -> Shop:
-        """Change a stocked item's price or count."""
+    def reprice(
+        self, world_id: str, index: int, price: int, count: int | None, ref: str = ""
+    ) -> Shop:
+        """Change a stocked item's price or count; ``ref``, when given, is the item the
+        form was drawn for, refused if a sale has moved another to its place."""
         shop = self.of(world_id)
         if not 0 <= index < len(shop.stock) or price < 0:
             raise ShopError("shop.error.prices")
+        if ref and shop.stock[index].ref != ref:
+            raise ShopError("shop.error.sold_out")
         stock = [
             s.model_copy(update={"price": price, "count": count}) if n == index else s
             for n, s in enumerate(shop.stock)
         ]
         return self._save(shop.model_copy(update={"stock": stock}))
 
-    def unstock(self, world_id: str, index: int) -> Shop:
+    def unstock(self, world_id: str, index: int, ref: str = "") -> Shop:
+        """Take an item off the shelf (``ref`` as for :meth:`reprice`)."""
         shop = self.of(world_id)
+        if ref and 0 <= index < len(shop.stock) and shop.stock[index].ref != ref:
+            raise ShopError("shop.error.sold_out")
         kept = [s for n, s in enumerate(shop.stock) if n != index]
         return self._save(shop.model_copy(update={"stock": kept}))
 

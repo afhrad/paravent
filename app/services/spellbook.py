@@ -14,6 +14,7 @@ spell's level, the scroll used up either way. The hours are the table's to pass.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 
@@ -97,6 +98,18 @@ def copyable(pc: PlayerCharacter, catalogue: Catalogue, sheet: Sheet) -> list[Of
     return sorted(unique.values(), key=lambda o: (int(o.data.get("level", 0)), o.name.lower()))
 
 
+_SCROLL_LEVEL = re.compile(r"\((?:level\s*(\d)|(\d)(?:st|nd|rd|th)\s*level|(cantrip))\)", re.I)
+
+
+def scroll_level(name: str) -> int | None:
+    """The spell level a scroll's name gives — "Spell Scroll (3rd Level)", "Spell
+    Scroll (Level 3)", "Spell Scroll (Cantrip)" — or None when it names none."""
+    found = _SCROLL_LEVEL.search(name)
+    if found is None:
+        return None
+    return 0 if found[3] else int(found[1] or found[2])
+
+
 class SpellbookService:
     """Casts from scrolls and copies into spellbooks, through the play rules."""
 
@@ -135,12 +148,19 @@ class SpellbookService:
         return item.spell
 
     def inscribe(self, pc: PlayerCharacter, index: int, spell: str) -> None:
-        """Write the spell a found scroll holds, as the world's books name it."""
+        """Write the spell a found scroll holds, as the world's books name it: once,
+        and of the level the scroll's name gives."""
         if not 0 <= index < len(pc.inventory) or not pc.inventory[
             index
         ].item.name.lower().startswith("spell scroll"):
             raise SpellbookError("spellbook.error.scroll")
+        item = pc.inventory[index]
+        if item.spell:
+            raise SpellbookError("spellbook.error.written")
         offer = self._spell(pc, spell)
+        level = scroll_level(item.item.name)
+        if level is not None and level != int(offer.data.get("level") or 0):
+            raise SpellbookError("spellbook.error.scroll_level")
         self._act(pc.id, "inscribe", {"index": str(index), "spell": offer.reference})
 
     def cast(self, pc: PlayerCharacter, index: int, expected: str = "") -> Outcome:
@@ -207,5 +227,6 @@ __all__ = [
     "copyable",
     "max_level",
     "on_list",
+    "scroll_level",
     "spellbook_class",
 ]

@@ -173,7 +173,11 @@ class BastionService:
         return self._save(bastion.model_copy(update={"facilities": built}))
 
     def remove(self, character_id: str, index: int) -> Bastion:
+        """Pull a facility down; not one shut after an attack, which building it anew
+        would open again."""
         bastion = self.of(character_id)
+        if 0 <= index < len(bastion.facilities) and bastion.facilities[index].shut:
+            raise BastionError("bastion.error.shut")
         kept = [f for n, f in enumerate(bastion.facilities) if n != index]
         return self._save(bastion.model_copy(update={"facilities": kept}))
 

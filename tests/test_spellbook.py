@@ -8,6 +8,7 @@ from httpx import AsyncClient
 
 from app.models.pc import Currency
 from app.services.play import Actor
+from app.services.spellbook import scroll_level
 from app.store.registry import StoreRegistry
 from tests.conftest import requires_corpus
 from tests.test_travel_downtime_shop import table
@@ -51,6 +52,12 @@ async def test_scrolls_and_the_spellbook(table: tuple[AsyncClient, StoreRegistry
     )
     pc = registry.gamestate.characters.get(lyra)
     held = next(n for n, i in enumerate(pc.inventory) if i.spell.startswith("Lightning Bolt"))
+    # Written once: another spell cannot replace it.
+    again = await ac.post(
+        f"/characters/{lyra}/scroll",
+        data={"op": "inscribe", "index": str(held), "spell": "Fireball"},
+    )
+    assert "spellbook.error.written" in again.headers["location"]
     copied = await ac.post(f"/characters/{lyra}/scroll", data={"op": "copy", "index": str(held)})
     location = copied.headers["location"]
     pc = registry.gamestate.characters.get(lyra)
@@ -72,3 +79,10 @@ async def test_scrolls_and_the_spellbook(table: tuple[AsyncClient, StoreRegistry
         f"/characters/{lyra}/scroll", data={"op": "book", "spell": "Cure Wounds|PHB"}
     )
     assert "spellbook.error.cannot_copy" in refused.headers["location"]
+
+
+def test_a_scrolls_level_from_its_name() -> None:
+    assert scroll_level("Spell Scroll (3rd Level)") == 3
+    assert scroll_level("Spell Scroll (Level 9)") == 9
+    assert scroll_level("Spell Scroll (Cantrip)") == 0
+    assert scroll_level("Spell Scroll") is None

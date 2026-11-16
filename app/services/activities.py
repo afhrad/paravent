@@ -133,13 +133,14 @@ class Activities:
         self._sell = sell
         self._dice = dice or Dice()
 
-    def take(self, pc: PlayerCharacter, project_id: str, index: int) -> str:
+    def take(self, pc: PlayerCharacter, project_id: str, index: int, expected: str = "") -> str:
         """Buy an item offered to a buying project, or take the offer a selling one
-        found: the coins change hands and the offer is gone. The item's reference."""
+        found: the coins change hands and the offer is gone. The item's reference.
+        ``expected`` is the offer the button was drawn for, refused if another is there."""
         project = next((p for p in self._downtime.of(pc.id).projects if p.id == project_id), None)
         if project is None or project.kind not in ("buy_magic", "sell_magic"):
             raise DowntimeError("downtime.error.project")
-        if not 0 <= index < len(project.offers):
+        if not 0 <= index < len(project.offers) or expected not in ("", project.offers[index]):
             raise DowntimeError("downtime.error.project")
         offer = project.offers[index]
         ref, _, price = offer.rpartition("|")
@@ -153,8 +154,13 @@ class Activities:
         self._downtime.take_offer(pc.id, project_id, index)
         return ref
 
-    def refuse(self, pc: PlayerCharacter, project_id: str, index: int) -> None:
-        """Let an offer go."""
+    def refuse(self, pc: PlayerCharacter, project_id: str, index: int, expected: str = "") -> None:
+        """Let an offer go (``expected``: as for :meth:`take`)."""
+        project = next((p for p in self._downtime.of(pc.id).projects if p.id == project_id), None)
+        if project is None or not 0 <= index < len(project.offers):
+            raise DowntimeError("downtime.error.project")
+        if expected not in ("", project.offers[index]):
+            raise DowntimeError("downtime.error.project")
         self._downtime.take_offer(pc.id, project_id, index)
 
     def run(
@@ -179,9 +185,12 @@ class Activities:
             raise DowntimeError("downtime.error.days")
         handler = getattr(self, f"_{kind}")
         cost, label = self._cost(pc, kind, options)
+        if cost > self._purse(pc.id):
+            raise DowntimeError("play.error.no_money")
+        # The activity first: one its options refuse costs nothing.
+        outcome: Outcome = handler(pc, options, tables, weeks)
         if cost:
             self._pay(pc.id, cost, f"{kind} {label}".strip())
-        outcome: Outcome = handler(pc, options, tables, weeks)
         if outcome.earned > 0:
             self._earn(pc.id, outcome.earned, kind)
         elif outcome.earned < 0:

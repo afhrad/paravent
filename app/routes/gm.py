@@ -800,8 +800,9 @@ async def change_shop(
         elif op in ("price", "remove"):
             raw = str(form.get("index", ""))
             index = int(raw) if raw.isdigit() else -1
+            ref = str(form.get("ref", ""))
             if op == "remove":
-                registry.shops.unstock(world_id, index)
+                registry.shops.unstock(world_id, index, ref)
             else:
                 raw_price = str(form.get("price", "")).strip()
                 registry.shops.reprice(
@@ -809,6 +810,7 @@ async def change_shop(
                     index,
                     int(raw_price) * 100 if raw_price.isdigit() else -1,
                     _count(form),
+                    ref,
                 )
         elif op == "close":
             registry.shops.close(world_id, user.username, name)

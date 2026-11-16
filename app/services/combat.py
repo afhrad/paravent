@@ -2340,15 +2340,18 @@ class CombatService:
         if not is_polymorph(spell):
             raise CombatError("combat.error.bad_input")
         name, _, source = shape.partition("|")
-        monster = self._monster(name.strip(), source.strip()) if source.strip() else None
-        if monster is None and name.strip():
-            # A name alone: the shape of that name the world's books offer for the target.
+        monster = None
+        if name.strip():
+            # Only a shape of the world's books, by name and, when given, book; how
+            # strong it may be for the target is checked below.
             combat = self.get(combat_id)
+            offered = self._shapes(combat.world_id, spell, Fraction(30)) if self._shapes else []
             found = next(
                 (
                     s
-                    for s in self.shapes(combat, self._member(combat, combatant_id), spell)
+                    for s in offered
                     if s.name.lower() == name.strip().lower()
+                    and (not source.strip() or s.source.lower() == source.strip().lower())
                 ),
                 None,
             )

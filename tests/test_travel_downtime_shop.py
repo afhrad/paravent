@@ -3,8 +3,10 @@
 
 from __future__ import annotations
 
+import html
 import json
 from collections.abc import AsyncIterator, Sequence
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -161,6 +163,43 @@ class TestTravel:
         assert [(m.name, m.count) for m in journey.monsters] == [("Wolf", 2)]
         assert road["clock"].of("w").journey == journey
 
+    def test_an_encounter_at_the_days_end_still_brings_supper(self, road: dict[str, Any]) -> None:
+        # The day's one check falls at its last minute and meets: no night, but supper.
+        journey = road["make"](FixedDice([19])).travel(
+            "w", Plan(hours=16), rules="classic", resolve=lambda n, s: None, by="dm", by_name="DM"
+        )
+        assert journey.hours == 8 and journey.check == 19
+        assert journey.rations == 1 and journey.hungry == ["Bo"]
+        assert road["rests"] == 0
+
+    def test_thirst_counts_exhaustion_gained_on_the_road(self, tmp_path: Path) -> None:
+        # Kept as files are: each read is a fresh copy, so a stale one would miss it.
+        held = {"a": _pc("a", "Ana", 9)}
+
+        def tire(pc: PlayerCharacter, _cause: str) -> None:
+            held[pc.id].state.exhaustion += 1
+
+        service = TravelService(
+            ClockService(GameStateStore(tmp_path), None),
+            None,
+            party=lambda _w: [p.model_copy(deep=True) for p in held.values()],
+            eat=lambda _pc: True,
+            tire=tire,
+            con_mod=lambda _pc: 0,
+            rest=lambda _w: None,
+            dice=FixedDice(),
+        )
+        service.travel(
+            "w",
+            Plan(hours=16, water="none"),
+            rules="classic",
+            resolve=lambda n, s: None,
+            by="dm",
+            by_name="DM",
+        )
+        # 2014: one level the first day, two the next (already exhausted).
+        assert held["a"].state.exhaustion == 3
+
 
 class TestDowntime:
     def test_projects(self, tmp_path: Path) -> None:
@@ -236,6 +275,19 @@ class TestBastionEvents:
         assert after.facilities[0].order == ""  # Maintain carries out no orders
         # The next turn opens it again.
         assert not any(f.shut for f in service.turn("a", "Ana", None, "dm", "DM").facilities)
+
+
+@asynccontextmanager
+async def player_of(registry: StoreRegistry, character_id: str) -> AsyncIterator[AsyncClient]:
+    """A client logged in as the character's player."""
+    if registry.auth.find_user("alice") is None:
+        registry.auth.create_user("alice", PASSWORD, Role.PLAYER)
+    registry.gamestate.characters.update(character_id, player="alice")
+    app = create_app()
+    app.state.stores = registry
+    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as player:
+        await player.post("/login", data={"username": "alice", "password": PASSWORD})
+        yield player
 
 
 @pytest.fixture
@@ -353,7 +405,12 @@ class TestAtTheTable:
         dagger = next(
             n for n, i in enumerate(pc.inventory) if i.item.name == "Dagger" and not i.equipped
         )
-        await ac.post(shop, data={"op": "sell", "index": str(dagger), "count": "1"})
+        ref = pc.inventory[dagger].item.reference
+        # A page drawn before the pack changed names another item there: nothing is sold.
+        other = next(n for n, i in enumerate(pc.inventory) if n != dagger and not i.equipped)
+        await ac.post(shop, data={"op": "sell", "index": str(other), "ref": ref, "count": "1"})
+        assert registry.gamestate.characters.get(lyra).inventory == pc.inventory
+        await ac.post(shop, data={"op": "sell", "index": str(dagger), "ref": ref, "count": "1"})
         assert coins.worth(registry.gamestate.characters.get(lyra).currency) == 2000 - 6 - 400 + 100
         log = (await ac.get("/log")).text
         assert "Buys Torch ×3" in log and "Sells Dagger" in log
@@ -404,7 +461,16 @@ class TestAtTheTable:
         held = registry.bastions.of(lyra)
         assert [(f.ref, f.space) for f in held.basic] == [("Kitchen|XDMG", "cramped")]
         assert held.defenders == 1 and held.maintain
-        page = (await ac.post(url, data={"op": "turn"})).text
+        page = (await ac.post(url, data={"op": "turn", "turns": str(held.turns)})).text
         held = registry.bastions.of(lyra)
         assert held.event and not held.maintain
         assert "Bastion event:" in page
+        # Pressed again from the same page: refused, the event kept.
+        again = (await ac.post(url, data={"op": "turn", "turns": str(held.turns - 1)})).text
+        assert registry.bastions.of(lyra) == held and "run already" in html.unescape(again)
+        # A player loses a defender but recruits none by hand.
+        async with player_of(registry, lyra) as player:
+            await player.post(url, data={"op": "defenders", "change": "1"})
+            assert registry.bastions.of(lyra).defenders == 1
+            await player.post(url, data={"op": "defenders", "change": "-1"})
+            assert registry.bastions.of(lyra).defenders == 0

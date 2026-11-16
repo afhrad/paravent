@@ -57,7 +57,7 @@ from app.services.downtime import DowntimeError, crafting_days, materials, train
 from app.services.events import revision_stream
 from app.services.experience import progress
 from app.services.factions import granted, title_of
-from app.services.followers import FollowerError, sidekick_level
+from app.services.followers import PLAYER_FOLLOWER_CR, FollowerError, sidekick_level
 from app.services.play import Actor, PlayError
 from app.services.sheet import Sheet
 from app.services.shop import ShopError, Ware, priced
@@ -589,8 +589,9 @@ async def change_bastion(
 ) -> Response:
     """Name the bastion, build or pull down a facility, give an order, or (the
     gamemaster) run a bastion turn."""
-    character = characters.get_for(identity, character_id)
     form = await request.form()
+    # Read after the form: a second press waiting on its form sees the first's result.
+    character = characters.get_for(identity, character_id)
     op = str(form.get("op", ""))
     service = registry.bastions
     level = character.total_level
@@ -642,6 +643,9 @@ async def change_bastion(
             service.remove_basic(character_id, index)
         elif op == "defenders":
             change = 1 if str(form.get("change", "")) == "1" else -1
+            if change > 0 and not identity.is_gamemaster:
+                # A player recruits through a Barrack's order.
+                raise BastionError("bastion.error.order")
             user = identity.user
             service.defenders(
                 character_id,
@@ -703,6 +707,10 @@ async def change_bastion(
                 user.display_name or user.username,
             )
         elif op == "turn" and identity.is_gamemaster:
+            drawn = str(form.get("turns", ""))
+            if drawn.isdigit() and int(drawn) != service.of(character_id).turns:
+                # Pressed again from the same page: the turn it was drawn for is run.
+                raise BastionError("bastion.error.turned")
             user = identity.user
             service.turn(
                 character_id,
@@ -794,11 +802,12 @@ async def trade(
     character_id: str,
 ) -> Response:
     """Buy from the shelves or sell something carried, at the shop's prices."""
+    form = await request.form()
+    # Read after the form: a second press waiting on its form sees the first's result.
     character = characters.get_for(identity, character_id)
     shop = registry.shops.serves(character.world_id, character.id)
     if shop is None:
         raise HTTPException(status_code=404)
-    form = await request.form()
     raw_count = str(form.get("count", "1"))
     count = max(1, min(99, int(raw_count))) if raw_count.isdigit() else 1
     actor = Actor(
@@ -849,6 +858,9 @@ async def trade(
             if not 0 <= index < len(character.inventory) or character.inventory[index].equipped:
                 raise PlayError("play.error.bad_input")
             item = character.inventory[index]
+            if str(form.get("ref", "")) != item.item.reference:
+                # The pack changed since the page was drawn: sell nothing in its place.
+                raise PlayError("play.error.bad_input")
             price = registry.shops.buys_for(
                 shop, registry.catalogue(character.world_id).item(item.item.reference)
             )
@@ -857,7 +869,12 @@ async def trade(
             characters.act_for(
                 character.id,
                 "sell",
-                {"index": str(index), "count": str(min(count, item.quantity)), "price": str(price)},
+                {
+                    "index": str(index),
+                    "ref": item.item.reference,
+                    "count": str(min(count, item.quantity)),
+                    "price": str(price),
+                },
                 actor,
             )
             message = page.t(
@@ -1092,8 +1109,9 @@ async def change_followers(
     character_id: str,
 ) -> Response:
     """Hire, add, hurt or heal, level, dismiss a follower, or bring one into the fight."""
-    character = characters.get_for(identity, character_id)
     form = await request.form()
+    # Read after the form: a second press waiting on its form sees the first's result.
+    character = characters.get_for(identity, character_id)
     op = str(form.get("op", ""))
     service = registry.followers
     follower_id = str(form.get("follower", ""))
@@ -1108,6 +1126,7 @@ async def change_followers(
                 str(form.get("creature", "")),
                 str(form.get("name", "")),
                 sidekick_class=str(form.get("sidekick_class", "")),
+                most_cr=None if identity.is_gamemaster else PLAYER_FOLLOWER_CR,
             )
         elif op == "hp":
             delta = str(form.get("delta", "0"))
@@ -1166,8 +1185,9 @@ async def change_downtime(
     character_id: str,
 ) -> Response:
     """Start a project, spend days on one, or give one up."""
-    character = characters.get_for(identity, character_id)
     form = await request.form()
+    # Read after the form: a second press waiting on its form sees the first's result.
+    character = characters.get_for(identity, character_id)
     op = str(form.get("op", ""))
     service = registry.downtime
     user = identity.user
@@ -1279,11 +1299,13 @@ async def change_downtime(
             raw = str(form.get("offer", ""))
             index = int(raw) if raw.isdigit() else -1
             project_id = str(form.get("project", ""))
+            # The offer the button was drawn for: a stale page takes nothing else.
+            expected = str(form.get("expected", ""))
             if op == "take":
-                registry.activities.take(character, project_id, index)
+                registry.activities.take(character, project_id, index, expected)
                 message = page.t("downtime.taken")
             else:
-                registry.activities.refuse(character, project_id, index)
+                registry.activities.refuse(character, project_id, index, expected)
                 message = None
         elif op == "spend":
             raw = str(form.get("days", ""))
@@ -1379,8 +1401,9 @@ async def use_scroll(
     """A spell scroll: write in its spell (``inscribe``), cast it (``cast``) or copy it
     into the spellbook (``copy``); or copy a spell from another book (``book``). The
     sheet says how it went."""
-    character = characters.get_for(identity, character_id)
     form = await request.form()
+    # Read after the form: a second press waiting on its form sees the first's result.
+    character = characters.get_for(identity, character_id)
     op = str(form.get("op", ""))
     index_text = str(form.get("index", ""))
     index = int(index_text) if index_text.isdigit() else -1

@@ -125,6 +125,38 @@ def test_in_sight_fails_and_characters_tire(tmp_path: Path) -> None:
     assert not chase.runners[1].escaped and chase.round == 2 and not chase.over
 
 
+def test_exhaustion_counts_the_levels_a_character_brings(tmp_path: Path) -> None:
+    # Bo comes with four levels: one failed Dash makes five, and Bo is out. Bo was the
+    # last to run this round, so the round ends instead of starting over.
+    levels = {"b": 4}
+
+    def tire(cid: str) -> int:
+        levels[cid] += 1
+        return levels[cid]
+
+    service = ChaseService(
+        GameStateStore(tmp_path),
+        None,
+        sheet_roll=lambda *_: 3,
+        tire=tire,
+        dice=FixedDice([15, 5]),
+    )
+    service.start(
+        "w",
+        [Runner("Rat", "quarry"), Runner("Bo", "pursuer", "b", con_mod=-3)],
+        environment="urban",
+        distance=20,
+        rules="classic",
+        by="dm",
+        by_name="DM",
+    )
+    chase = service.end_turn("w", URBAN, 12, "dm", "DM")
+    assert chase.runners[chase.turn].name == "Bo"
+    chase = service.dash("w", chase.turn, "dm", "DM")
+    bo = next(r for r in chase.runners if r.name == "Bo")
+    assert bo.out and bo.exhaustion == 1 and chase.turn == len(chase.runners)
+
+
 @requires_corpus
 async def test_the_party_view_runs_it(table: tuple[AsyncClient, StoreRegistry, str]) -> None:
     ac, registry, lyra = table

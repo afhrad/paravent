@@ -83,7 +83,7 @@ class ChaseService:
         protocol: ProtocolService | None,
         *,
         sheet_roll: SheetRoll,
-        tire: Callable[[str], None],
+        tire: Callable[[str], int | None],
         dice: Dice | None = None,
         changed: Callable[[str], None] | None = None,
     ) -> None:
@@ -163,11 +163,14 @@ class ChaseService:
             what += f":{total}:{int(not failed)}"
             if failed:
                 runner.exhaustion += 1
-                if runner.character_id:
-                    self._tire(runner.character_id)
-                if runner.exhaustion >= OUT_AT:
+                # A character counts the levels it came with too.
+                level = self._tire(runner.character_id) if runner.character_id else None
+                if (level if level is not None else runner.exhaustion) >= OUT_AT:
                     runner.out = True
                     what += ":out"
+                    if chase.turn == index:
+                        # Out on its own turn: the turn passes on, with no complication.
+                        chase.turn = _onward(chase, index)
         self._log(world_id, by, by_name, [what])
         return self._save(chase)
 
@@ -188,11 +191,10 @@ class ChaseService:
         active = [n for n, r in enumerate(chase.runners) if _running(r)]
         if not active or chase.turn >= len(chase.runners):
             raise ChaseError("chase.error.round")
-        current = (
-            chase.turn
-            if chase.turn in active
-            else next((n for n in active if n > chase.turn), active[0])
-        )
+        current = _onward(chase, chase.turn)
+        if current >= len(chase.runners):
+            chase.turn = current
+            return self._save(chase)
         roll = self._dice.die(die)
         text = complication(rows, roll)
         later = [n for n in active if n > current]
@@ -245,7 +247,7 @@ class ChaseService:
             runner.escaped = total > dc
             lines.append(f"chase:escape:{_safe(runner.name)}:{total}:{dc}:{int(runner.escaped)}")
         chase.round += 1
-        chase.turn = 0
+        chase.turn = _onward(chase, 0)
         quarry = [r for r in chase.runners if r.side == "quarry"]
         if quarry and not any(_running(r) for r in quarry):
             chase.over = "escaped" if any(r.escaped for r in quarry) else "stopped"
@@ -324,6 +326,14 @@ class ChaseService:
 
 def _running(runner: ChaseRunner) -> bool:
     return not runner.out and not runner.escaped
+
+
+def _onward(chase: Chase, start: int) -> int:
+    """The first runner still running from ``start`` on; past the last, the round's end."""
+    return next(
+        (n for n in range(start, len(chase.runners)) if _running(chase.runners[n])),
+        len(chase.runners),
+    )
 
 
 def _safe(text: str) -> str:

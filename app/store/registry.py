@@ -125,7 +125,7 @@ from app.store.lookups import LookupTables
 from app.store.loot import LootTables
 from app.store.maps import MapIndex
 from app.store.npc_tables import NpcTables
-from app.store.projections import MonsterProjection
+from app.store.projections import MonsterProjection, coerce_cr
 from app.store.protocol import ProtocolStore, log_key
 from app.store.published import PublishedAdventures, PublishedBooks, ReferenceScreens
 from app.store.snapshot import Snapshot, fingerprint
@@ -821,6 +821,7 @@ class StoreRegistry:
             hp=int(average) if isinstance(average, int) else 1,
             die=hit_die(str(hp.get("formula", "")) if isinstance(hp, dict) else ""),
             con=ability_modifier(score_of(data.get("con"))),
+            cr=cr.value if (cr := coerce_cr(data.get("cr"))) is not None else None,
         )
 
     @cached_property
@@ -1397,8 +1398,10 @@ class StoreRegistry:
             )
             return total or 0
 
-        def tire(character_id: str) -> None:
-            characters.act_for(character_id, "exhaustion", {"delta": "1"}, by)
+        def tire(character_id: str) -> int:
+            return characters.act_for(
+                character_id, "exhaustion", {"delta": "1"}, by
+            ).state.exhaustion
 
         def changed(world_id: str) -> None:
             # Every sheet of the world: a runner's shows the chase, and one that ran
