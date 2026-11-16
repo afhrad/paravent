@@ -244,6 +244,11 @@ async def test_the_players_roll_the_saves(table: tuple[AsyncClient, StoreRegistr
     sprung = await ac.post("/gm/traps/spring", data={**trap, "call_0": call.id, "op": "apply"})
     assert "Collapsing Roof is sprung" in sprung.text
     assert "30" in sprung.text and not registry.checks.open_for(lyra)
+    # Pressing Apply again finds the call closed: the trap is not sprung twice.
+    hp = registry.gamestate.characters.get(lyra).state.hp
+    again = await ac.post("/gm/traps/spring", data={**trap, "call_0": call.id, "op": "apply"})
+    assert "is sprung" not in again.text
+    assert registry.gamestate.characters.get(lyra).state.hp == hp
     # A stale wait springs nothing.
     again = await ac.post("/gm/traps/spring", data={**trap, "call_0": "gone", "op": "wait"})
     assert "is sprung" not in again.text

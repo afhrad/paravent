@@ -85,6 +85,16 @@ async def test_a_mount_joins_the_fight(table: tuple[AsyncClient, StoreRegistry, 
     assert "Ash joins the fight" in html.unescape(joined.text)
     ash = next(c for c in registry.combats.get(combat.id).combatants if c.label == "Ash")
     assert ash.hp == horse.hp - 3 and ash.hp_max == horse.hp_max
+    again = await ac.post(url, data={"op": "fight", "follower": horse.id})
+    assert "already in this fight" in html.unescape(again.text)
+    # Hurt in the fight, then the fight ends: the horse keeps its wounds.
+    registry.combats.damage(combat.id, ash.id, 4, "dm")
+    await ac.post(f"/gm/combat/{combat.id}/end")
+    assert registry.followers.get(lyra, horse.id).hp == horse.hp - 7
+    # Rested since, then "End" pressed again: the wounds do not come back.
+    registry.followers.rest(lyra)
+    await ac.post(f"/gm/combat/{combat.id}/end")
+    assert registry.followers.get(lyra, horse.id).hp == horse.hp
 
 
 @requires_corpus

@@ -1232,7 +1232,7 @@ def _scroll_acts(page: Page, sheet: Sheet, item: ItemView) -> Element:
 
     def post(op: str, *content: Node) -> Element:
         return form(method="post", action=url, class_="inline-form cs-scroll")[
-            hidden("op", op), hidden("index", str(item.index)), content
+            hidden("op", op), hidden("index", str(item.index)), hidden("held", item.spell), content
         ]
 
     if not item.spell:

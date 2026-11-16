@@ -2289,6 +2289,7 @@
   "combat.due_concentration": "{name} konzentriert sich auf {spell}.",
   "combat.due_regeneration": "{name} regeneriert {n} Trefferpunkte, sofern nichts es verhindert.",
   "combat.due_recharge": "{name}: {ability} lädt sich bei {on} auf.",
+  "combat.error.follower_in": "Dieses Gefolge ist schon in diesem Kampf.",
   "combat.log.lair": "Hort: {subject}",
   "combat.log.lair_on": "Hortaktionen an",
   "combat.log.lair_off": "Hortaktionen aus",

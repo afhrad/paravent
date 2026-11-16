@@ -608,10 +608,14 @@ async def spring_trap(
     by_name = user.display_name or user.username
     op = str(form.get("op", "spring"))
     calls = registry.gamestate.checks
+    # Only the open calls of this world: a closed one (sprung or taken back) never
+    # springs the trap again.
     waiting = [
         (n, call)
         for n in range(len(effect.saves))
         if (call := calls.find(str(form.get(f"call_{n}", "")))) is not None
+        and call.open
+        and call.world_id == world_id
     ]
     scaled = effect.at_level(level)
     result: Node = None
@@ -631,7 +635,9 @@ async def spring_trap(
         return html(spring_form(page, world_id, category, shown, source, effect, members, level))
     if op == "apply" and waiting:
         # The players' saves as they rolled them; whoever has not rolled is rolled for.
-        chosen = list(dict.fromkeys(cid for _n, call in waiting for cid in call.characters))
+        chosen = list(
+            dict.fromkeys(cid for _n, call in waiting for cid in call.characters if cid in known)
+        )
         totals = {(cid, n): total for n, call in waiting for cid, total in call.results.items()}
         for _n, call in waiting:
             if call.open:

@@ -618,6 +618,14 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         contacts, spells copied); a player sees only the quests shown to it
   - [x] **Secrets stay behind the screen** (2026-11-16): a session note sent to the
         players leaves out its `[!secret]` boxes
+  - [x] **A review of what pays and rewards** (2026-11-16): a follower keeps the wounds it
+        took when a fight ends (once); a quest and a fight's XP are marked handed out
+        before they pay, so a second press never pays twice; a deleted faction leaves its
+        quests finishable; a trap's player-rolled saves spring it once; a bastion's
+        discovery takes only an uncommon potion or scroll of the world's books; a scroll
+        button refuses when the pack has changed under it; a day's lifestyle and wages
+        are charged once though the clock is set back; a sidekick levels at the
+        gamemaster's word, up to 20
   - [x] **Image effects** (2026-11-04, ADVENTURES.md §5.5, `app/services/image_effects.py`):
         `torn`, `fade`, `oval`, `sepia`, `aged`, `mono`, `banner` written beside an image
         (`![[tavern.jpg|torn sepia]]`, `cover: media/x.jpg|fade`), rendered once with
@@ -1117,7 +1125,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2425 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2428 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the

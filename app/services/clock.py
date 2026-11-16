@@ -156,8 +156,14 @@ class ClockService:
         self._log(world_id, by, by_name, f"clock:{minutes}:{now}:{why}")
         for timer in done:
             self._run_out(world_id, timer, by, by_name)
-        saved = self._save(clock.model_copy(update={"minute": now, "timers": kept}))
-        days = now // DAY - clock.minute // DAY
+        # Only days not paid for before: one charged already (the clock was set back
+        # since) is not charged again.
+        paid_to = max(clock.minute // DAY, clock.charged_day or 0)
+        days = now // DAY - paid_to
+        update: dict[str, object] = {"minute": now, "timers": kept}
+        if days > 0:
+            update["charged_day"] = now // DAY
+        saved = self._save(clock.model_copy(update=update))
         if days > 0 and self._days_passed is not None:
             self._days_passed(world_id, days, why, by, by_name)
         return saved

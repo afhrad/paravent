@@ -5,12 +5,17 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from httpx import AsyncClient
 
-from app.models.gamestate import BastionFacility
+from app.models.gamestate import Bastion, BastionFacility
 from app.services.bastion_events import EventTools, item_ref
 from app.services.bastions import BastionError, BastionService, event_rows
 from app.store.gamestate import GameStateStore
-from tests.test_travel_downtime_shop import FixedDice
+from app.store.registry import StoreRegistry
+from tests.conftest import requires_corpus
+from tests.test_travel_downtime_shop import FixedDice, table
+
+__all__ = ["table"]
 
 ROWS = [
     ["01–10", "{@area Attack|78e|x}"],
@@ -139,3 +144,22 @@ def test_item_refs() -> None:
     assert item_ref("{@item Silver ewer|XDMG}") == "Silver ewer|XDMG"
     assert item_ref("{@item Gold bracelet}") == "Gold bracelet|XDMG"
     assert item_ref("plain") == ""
+
+
+@requires_corpus
+async def test_a_discovery_takes_only_a_potion_or_scroll(
+    table: tuple[AsyncClient, StoreRegistry, str],
+) -> None:
+    ac, registry, lyra = table
+    registry.gamestate.bastions.upsert(
+        Bastion(id=lyra, facilities=[BastionFacility(ref="Smithy|XDMG")], offer="discovery")
+    )
+    url = f"/characters/{lyra}/bastion"
+    before = len(registry.gamestate.characters.get(lyra).inventory)
+    await ac.post(url, data={"op": "offer", "accept": "1", "value": "Vorpal Sword|DMG"})
+    assert len(registry.gamestate.characters.get(lyra).inventory) == before
+    assert registry.bastions.of(lyra).offer == "discovery"  # still waiting
+    ref, _name = registry.discoveries(registry.gamestate.characters.get(lyra).world_id)[0]
+    await ac.post(url, data={"op": "offer", "accept": "1", "value": ref})
+    pc = registry.gamestate.characters.get(lyra)
+    assert any(i.item.reference == ref for i in pc.inventory)

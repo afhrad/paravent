@@ -765,6 +765,9 @@ class Combatant(GameStateModel):
     form: SpellForm | None = None
     # A creature a spell summoned, scaled to the spell's level.
     summon: Summoned | None = None
+    # A character's follower (app/services/followers.py): its hit points go back to the
+    # follower when the fight ends.
+    follower_id: str | None = None
 
     @model_validator(mode="after")
     def _one_identity(self) -> Combatant:
@@ -1174,6 +1177,9 @@ class WorldClock(Record):
     # The epoch counts leap days (Shieldmeet); one set before they were counted is
     # converted once when read.
     calendar_leaps: bool = False
+    # The last day whose lifestyle and wages were paid: a clock set back and moved on
+    # again does not charge those days twice.
+    charged_day: int | None = None
 
 
 class DowntimeProject(GameStateModel):

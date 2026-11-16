@@ -122,11 +122,15 @@ class SpellbookService:
             raise SpellbookError("spellbook.error.spell")
         return found
 
-    def _scroll(self, pc: PlayerCharacter, index: int) -> str:
+    def _scroll(self, pc: PlayerCharacter, index: int, expected: str = "") -> str:
+        """The spell of the scroll at ``index``; ``expected`` is the spell the button
+        named, refused when the pack has moved on since."""
         if not 0 <= index < len(pc.inventory):
             raise SpellbookError("spellbook.error.scroll")
         item = pc.inventory[index]
         if not item.item.name.lower().startswith("spell scroll") or not item.spell:
+            raise SpellbookError("spellbook.error.scroll")
+        if expected and item.spell != expected:
             raise SpellbookError("spellbook.error.scroll")
         return item.spell
 
@@ -139,9 +143,9 @@ class SpellbookService:
         offer = self._spell(pc, spell)
         self._act(pc.id, "inscribe", {"index": str(index), "spell": offer.reference})
 
-    def cast(self, pc: PlayerCharacter, index: int) -> Outcome:
+    def cast(self, pc: PlayerCharacter, index: int, expected: str = "") -> Outcome:
         """Cast the spell a scroll holds, if it is on one of the character's lists."""
-        offer = self._spell(pc, self._scroll(pc, index))
+        offer = self._spell(pc, self._scroll(pc, index, expected))
         catalogue = self._catalogue(pc)
         if not on_list(pc, catalogue, offer):
             raise SpellbookError("spellbook.error.not_on_list")
@@ -157,13 +161,15 @@ class SpellbookService:
         self._used(pc.id, index, "cast", ok, total, dc)
         return Outcome(offer.name, ok, total, dc)
 
-    def copy(self, pc: PlayerCharacter, spell: str, index: int | None = None) -> Outcome:
+    def copy(
+        self, pc: PlayerCharacter, spell: str, index: int | None = None, expected: str = ""
+    ) -> Outcome:
         """Copy a spell into the spellbook: from another book (``index`` None), or from
         the scroll at ``index`` after an Intelligence (Arcana) check."""
         sheet = self._sheet(pc)
         catalogue = self._catalogue(pc)
         if index is not None:
-            spell = self._scroll(pc, index)
+            spell = self._scroll(pc, index, expected)
         offer = self._spell(pc, spell)
         allowed = {o.name.lower() for o in copyable(pc, catalogue, sheet)}
         if offer.name.lower() not in allowed:

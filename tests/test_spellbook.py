@@ -27,7 +27,15 @@ async def test_scrolls_and_the_spellbook(table: tuple[AsyncClient, StoreRegistry
     index = next(n for n, i in enumerate(pc.inventory) if i.spell == "Fireball|PHB")
     sheet = html.unescape((await ac.get(f"/characters/{lyra}?tab=gear")).text)
     assert "Copy into the spellbook" in sheet and "Fireball" in sheet
-    cast = await ac.post(f"/characters/{lyra}/scroll", data={"op": "cast", "index": str(index)})
+    wrong = await ac.post(
+        f"/characters/{lyra}/scroll",
+        data={"op": "cast", "index": str(index), "held": "Lightning Bolt|PHB"},
+    )
+    assert "spellbook.error.scroll" in wrong.headers["location"]  # the pack moved on
+    cast = await ac.post(
+        f"/characters/{lyra}/scroll",
+        data={"op": "cast", "index": str(index), "held": "Fireball|PHB"},
+    )
     assert "spellbook.cast_ok" in cast.headers["location"]  # level 3: no check for her
     pc = registry.gamestate.characters.get(lyra)
     assert not any(i.spell == "Fireball|PHB" for i in pc.inventory)

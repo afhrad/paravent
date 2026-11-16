@@ -86,3 +86,21 @@ async def test_milestone_worlds_award_no_xp(
     assert (registry.gamestate.characters.get(lyra).experience or 0) == before
     form = (await ac.get(f"/gm/worlds/{world.id}/edit")).text
     assert "Level by milestones" in form
+
+
+@requires_corpus
+async def test_a_deleted_faction_leaves_the_quest_finishable(
+    table: tuple[AsyncClient, StoreRegistry, str],
+) -> None:
+    ac, registry, lyra = table
+    world = registry.gamestate.characters.get(lyra).world_id or ""
+    guild = registry.factions.create(world, "Guild")
+    quest = registry.quests.save(
+        world, {"name": "Errand", "xp": "100", "faction_id": guild.id, "renown": "1"}
+    )
+    registry.factions.delete(guild.id, world)
+    assert registry.quests.get(quest.id).faction_id is None
+    registry.gamestate.characters.update(lyra, experience=64000)
+    done = await ac.post(f"/gm/quests/{world}/finish", data={"quest": quest.id})
+    assert done.status_code == 303 and registry.quests.get(quest.id).status == "done"
+    assert registry.gamestate.characters.get(lyra).experience == 64100

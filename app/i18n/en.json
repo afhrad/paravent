@@ -2289,6 +2289,7 @@
   "combat.due_concentration": "{name} is concentrating on {spell}.",
   "combat.due_regeneration": "{name} regenerates {n} hit points, unless something stops it.",
   "combat.due_recharge": "{name}: {ability} recharges on {on}.",
+  "combat.error.follower_in": "That follower is already in this fight.",
   "combat.log.lair": "Lair: {subject}",
   "combat.log.lair_on": "Lair actions on",
   "combat.log.lair_off": "Lair actions off",

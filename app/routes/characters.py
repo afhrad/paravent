@@ -683,6 +683,15 @@ async def change_bastion(
                 option = f"{n}|{item}" if item else str(n)
             service.order(character_id, index, order, known.orders if known else (), option)
         elif op == "offer":
+            value = str(form.get("value", ""))
+            pending = service.of(character_id)
+            if (
+                pending.offer == "discovery"
+                and form.get("accept") == "1"
+                and value not in {ref for ref, _ in registry.discoveries(character.world_id)}
+            ):
+                # Only an uncommon potion or scroll of the world's books.
+                raise BastionError("bastion.error.order")
             user = identity.user
             service.answer(
                 character_id,
@@ -1106,6 +1115,8 @@ async def change_followers(
                 character.id, follower_id, int(delta) if delta.lstrip("+-").isdigit() else 0
             )
         elif op == "level":
+            if not identity.is_gamemaster:  # a sidekick levels when the gamemaster says
+                raise FollowerError("followers.error.level")
             service.level_up(character.id, follower_id)
         elif op == "dismiss":
             service.dismiss(character.id, follower_id)
@@ -1121,6 +1132,7 @@ async def change_followers(
                 follower.hp,
                 follower.hp_max,
                 identity.user.username,
+                follower_id=follower.id,
             )
             message = page.t("followers.joined", name=follower.name)
         else:
@@ -1372,6 +1384,9 @@ async def use_scroll(
     op = str(form.get("op", ""))
     index_text = str(form.get("index", ""))
     index = int(index_text) if index_text.isdigit() else -1
+    # The spell the button was drawn for: a repeated press finds the pack changed and
+    # must not use up another scroll at the same place.
+    expected = str(form.get("held", ""))
     user = identity.user
     service = registry.spellbook_for(
         Actor(user.display_name or user.username, username=user.username)
@@ -1381,10 +1396,10 @@ async def use_scroll(
         if op == "inscribe":
             service.inscribe(character, index, str(form.get("spell", "")))
         elif op == "cast":
-            done = service.cast(character, index)
+            done = service.cast(character, index, expected)
             flash = "spellbook.cast_ok" if done.ok else "spellbook.cast_failed"
         elif op == "copy":
-            done = service.copy(character, "", index)
+            done = service.copy(character, "", index, expected)
             flash = "spellbook.copied" if done.ok else "spellbook.copy_failed"
         elif op == "book":
             service.copy(character, str(form.get("spell", "")))

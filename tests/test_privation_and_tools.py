@@ -190,3 +190,19 @@ class TestContacts:
             service.edit("b", allies[2].id, "x", "")
         with pytest.raises(ContactError):
             service.add(pc, "lover", "x", "")
+
+
+def test_a_day_is_charged_once(tmp_path: Path) -> None:
+    from app.services.clock import DAY, ClockService
+
+    charged: list[int] = []
+    clock = ClockService(
+        GameStateStore(tmp_path),
+        None,
+        days_passed=lambda _w, days, _why, _by, _name: charged.append(days),
+    )
+    clock.advance("w", DAY, "dm", "DM")
+    clock.set("w", 8 * 60, "dm", "DM")  # set back: a mistake
+    clock.advance("w", DAY, "dm", "DM")  # the same day again: not charged twice
+    clock.advance("w", DAY, "dm", "DM")  # a new day
+    assert charged == [1, 1]

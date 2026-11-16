@@ -130,6 +130,8 @@ class FactionService:
         self._store.factions.delete(faction_id)
         for contact in self._store.contacts.list(lambda c: c.faction_id == faction_id):
             self._store.contacts.upsert(contact.model_copy(update={"faction_id": None}))
+        for quest in self._store.quests.list(lambda q: q.faction_id == faction_id):
+            self._store.quests.upsert(quest.model_copy(update={"faction_id": None}))
 
     def adjust(
         self, faction_id: str, world_id: str, pc: PlayerCharacter, delta: int, by: str, by_name: str

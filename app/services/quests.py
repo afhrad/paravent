@@ -158,25 +158,30 @@ class QuestService:
         if not party:
             raise QuestError("quests.error.no_one")
         reason = quest.name
-        for character_id in party:
-            if quest.xp:
-                handout.xp(character_id, quest.xp, reason)
-            if quest.renown and quest.faction_id:
-                handout.renown(quest.faction_id, character_id, quest.renown)
+        # A faction deleted since leaves the quest without renown, not unfinishable.
+        faction = self._store.factions.find(quest.faction_id) if quest.faction_id else None
+        renown = quest.renown if faction is not None and faction.world_id == world_id else 0
         items: dict[str, list[tuple[str, int]]] = {}
         for n, item in enumerate(quest.items):
             whom = given.get(n)
             items.setdefault(whom if whom in party else party[0], []).append((item.ref, item.count))
         shares = dict(zip(party, split_coins(quest.coins, len(party)), strict=True))
+        # Done first, then handed out: a failure partway leaves the rest unpaid rather
+        # than letting a second press pay everyone again.
+        done = quest.model_copy(update={"status": "done"})
+        done.touch()
+        saved = self._store.quests.upsert(done)
+        self._log(world_id, by, by_name, f"quest:done:{_safe(quest.name)}")
         for character_id in party:
+            if quest.xp:
+                handout.xp(character_id, quest.xp, reason)
+            if renown and faction is not None:
+                handout.renown(faction.id, character_id, renown)
             got = items.get(character_id, [])
             copper = shares.get(character_id, 0)
             if got or copper:
                 handout.receive(character_id, got, as_coins(copper))
-        done = quest.model_copy(update={"status": "done"})
-        done.touch()
-        self._log(world_id, by, by_name, f"quest:done:{_safe(quest.name)}")
-        return self._store.quests.upsert(done)
+        return saved
 
     def fail(self, quest_id: str, world_id: str, by: str, by_name: str) -> Quest:
         quest = self.get(quest_id, world_id)

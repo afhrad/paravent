@@ -935,6 +935,10 @@ async def end_combat(gm: GamemasterDep, registry: RegistryDep, combat_id: str) -
     with contextlib.suppress(CombatError):
         was_running = registry.combats.get(combat_id).running
         ended = registry.combats.end(combat_id, _by(gm))
+        if was_running:
+            # Companions, mounts and sidekicks leave with the wounds they took (once:
+            # ending an ended fight again must not undo a rest since).
+            registry.followers.after_fight(ended.combatants)
         if was_running and ended.world_id and ended.round:
             # Six seconds a round, on the world's clock, rounded up to the minute.
             registry.clock.advance(

@@ -1991,16 +1991,19 @@ class CombatService:
             raise CombatError("combat.error.awarded")
         if xp_each < 0:
             raise CombatError("combat.error.award_amount")
-        for combatant in combat.combatants:
-            if combatant.character_id:
-                self._characters.award_xp(combatant.character_id, xp_each, combat.name, by)
 
         def apply(record: Combat) -> None:
             record.awarded_xp = xp_each
             record.awarded_at = _now()
             self._log(record, "award", by, amount=xp_each)
 
-        return self._mutate(combat_id, apply, after_end=True)
+        # Stamped first, then paid: a failure partway leaves some unpaid rather than
+        # letting a second press pay everyone again.
+        stamped = self._mutate(combat_id, apply, after_end=True)
+        for combatant in combat.combatants:
+            if combatant.character_id:
+                self._characters.award_xp(combatant.character_id, xp_each, combat.name, by)
+        return stamped
 
     def delete(self, combat_id: str) -> None:
         """Remove a combat for good."""
@@ -2711,7 +2714,14 @@ class CombatService:
         return self._mutate(combat_id, apply)
 
     def add_follower(
-        self, combat_id: str, ref: str, label: str, hp: int, hp_max: int, by: str
+        self,
+        combat_id: str,
+        ref: str,
+        label: str,
+        hp: int,
+        hp_max: int,
+        by: str,
+        follower_id: str | None = None,
     ) -> Combat:
         """A character's companion, mount or sidekick joins on the party's side, under
         its own name and with the hit points it has (app/services/followers.py)."""
@@ -2721,11 +2731,14 @@ class CombatService:
             raise CombatError("combat.error.monster", ref=ref)
 
         def apply(combat: Combat) -> None:
+            if follower_id and any(c.follower_id == follower_id for c in combat.combatants):
+                raise CombatError("combat.error.follower_in")
             before = {c.id for c in combat.combatants}
             self._add_monsters(combat, monster, 1, ally=True)
             for member in combat.combatants:
                 if member.id not in before:
                     member.label = label[:120] or member.label
+                    member.follower_id = follower_id
                     member.hp_max = max(1, hp_max)
                     member.hp = max(0, min(hp, member.hp_max))
 

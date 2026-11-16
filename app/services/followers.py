@@ -20,7 +20,7 @@ import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 
-from app.models.gamestate import Follower
+from app.models.gamestate import Combatant, Follower
 from app.models.pc import PlayerCharacter
 from app.models.protocol import EntryKind, ProtocolEntry, Scope, Visibility
 from app.services.i18n import Translatable
@@ -166,7 +166,9 @@ class FollowerService:
         """A sidekick gains a level: its hit points rise by its die's average and CON."""
         follower = self.get(character_id, follower_id)
         found = self._statblock(follower.world_id, follower.monster)
-        if follower.kind != "sidekick" or found is None or follower.levels >= 20:
+        if (
+            follower.kind != "sidekick" or found is None or follower.levels >= 19
+        ):  # level 20 at most
             raise FollowerError("followers.error.level")
         more = level_hp(found.die, found.con)
         return self._put(
@@ -178,6 +180,13 @@ class FollowerService:
                 }
             )
         )
+
+    def after_fight(self, combatants: Sequence[Combatant]) -> None:
+        """A fight over: each follower that fought keeps the hit points it ended with."""
+        for member in combatants:
+            found = self._store.followers.find(member.follower_id) if member.follower_id else None
+            if found is not None and found.hp != min(member.hp, found.hp_max):
+                self._put(found.model_copy(update={"hp": min(member.hp, found.hp_max)}))
 
     def rest(self, character_id: str) -> None:
         """A long rest: every creature following the character back to full."""
