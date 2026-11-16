@@ -195,6 +195,71 @@ class TestReading:
         assert [r["name"] for r in chase["runners"]] == ["Goblin 1", "Goblin 2"]
         assert chase["runners"][0]["stealth"] == 6 and chase["unresolved"] == ["Nobody"]
 
+    async def test_quests_followers_and_renown(self, table: tuple[httpx.AsyncClient, Any]) -> None:
+        _raw, facts = table
+        registry = facts["app"].state.stores
+        world = facts["world"]
+        lyra = facts["ids"][0]
+        guild = registry.factions.create(world.id, "Lantern Guild")
+        registry.factions.adjust(
+            guild.id, world.id, registry.gamestate.characters.get(lyra), 2, "dm", "DM"
+        )
+        from app.models.gamestate import Follower
+
+        registry.gamestate.followers.create(
+            Follower(
+                character_id=lyra,
+                world_id=world.id,
+                kind="mount",
+                name="Ash",
+                monster="Riding Horse|MM",
+            )
+        )
+        async with session(table) as mcp:
+            draft = await call(
+                mcp,
+                "create_adventure",
+                world_id=world.id,
+                name="Bells",
+                summary="Fen bells.",
+                character_ids=[lyra],
+            )
+            quest = await call(
+                mcp,
+                "create_quest",
+                adventure_id=draft["id"],
+                name="The Drowned Bell",
+                text="Raise the bell.",
+                giver="Mother Ilse",
+                steps=["Find the bell", "Hire a boat"],
+                xp=300,
+                gold=50,
+                items=[{"name": "Potion of Healing", "count": 2}, {"name": "Nothing Here"}],
+                faction="Lantern Guild",
+                renown=1,
+            )
+            assert "300 XP each" in quest["reward"] and "Potion of Healing ×2" in quest["reward"]
+            assert quest["unresolved"] and "Nothing Here" in quest["unresolved"][0]
+            assert "No faction" in await refused(
+                mcp,
+                "create_quest",
+                adventure_id=draft["id"],
+                name="X",
+                text="",
+                faction="Nobody",
+            )
+            overview = await call(mcp, "world_overview", world_id=world.id)
+            party = await call(mcp, "party", world_id=world.id, character_ids=[lyra])
+            assert not registry.quests.get(quest["id"]).shown  # hidden until shown
+            await call(mcp, "delete", kind="adventure", id=draft["id"])
+        (shown,) = overview["quests"]
+        assert shown["name"] == "The Drowned Bell" and shown["adventure"] == "Bells"
+        assert shown["steps"] == 2 and shown["faction"] == "Lantern Guild"
+        (pc,) = party["characters"]
+        assert pc["followers"] == ["Ash (mount, Riding Horse)"]
+        assert pc["renown"] == {"Lantern Guild": 2}
+        assert registry.quests.of(world.id) == []
+
     async def test_party(self, table: tuple[httpx.AsyncClient, Any]) -> None:
         _raw, facts = table
         async with session(table) as mcp:

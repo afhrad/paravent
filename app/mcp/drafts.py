@@ -32,6 +32,7 @@ from app.mcp.models import (
     NpcInfo,
     PlaceInfo,
     Problem,
+    QuestInfo,
     RevisionChange,
     TreasureInfo,
     TreasureLine,
@@ -47,6 +48,8 @@ from app.models.gamestate import (
     LevelRange,
     Location,
     Npc,
+    QuestItem,
+    QuestStep,
     Scope,
     SourceSet,
     Treasure,
@@ -66,7 +69,7 @@ from app.ui.library_links import adventure_url, chapter_url
 if TYPE_CHECKING:
     from app.store.registry import StoreRegistry
 
-KINDS = ("chapter", "npc", "place", "encounter", "treasure", "adventure")
+KINDS = ("chapter", "npc", "place", "encounter", "treasure", "quest", "adventure")
 
 
 def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> None:
@@ -735,6 +738,69 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
         return found, unresolved
 
     @server.tool()
+    def create_quest(
+        adventure_id: str,
+        name: str,
+        text: Annotated[str, Field(description="What it asks of the party, plain text")],
+        giver: Annotated[str, Field(description="Who gives it: an NPC's name, anyone")] = "",
+        steps: Annotated[list[str], Field(description="The steps, in order")] = [],  # noqa: B006
+        xp: Annotated[int, Field(ge=0, le=1_000_000, description="XP for each character")] = 0,
+        gold: Annotated[int, Field(ge=0, le=1_000_000, description="Gold, shared out")] = 0,
+        items: list[ItemInput] = [],  # noqa: B006
+        faction: Annotated[
+            str, Field(description="A faction of the world (world_overview) it serves")
+        ] = "",
+        renown: Annotated[int, Field(ge=0, le=50, description="Renown with it, each")] = 0,
+    ) -> QuestInfo:
+        """A quest for a draft adventure: who gives it, its steps and its reward, from
+        the world's books. It stays hidden from the players until the gamemaster shows
+        it; marking it done on the quest page hands the reward out."""
+        registry = stores()
+        adventure = writable(adventure_id)
+        lines, unresolved = items_of(adventure, items)
+        found = next(
+            (
+                f
+                for f in registry.factions.of(adventure.world_id)
+                if f.name.lower() == faction.lower()
+            ),
+            None,
+        )
+        if faction and found is None:
+            names = ", ".join(f.name for f in registry.factions.of(adventure.world_id)) or "none"
+            raise ToolError(f"No faction “{faction}” in this world. Its factions: {names}.")
+        with tool_errors():
+            quest = registry.quests.save(
+                adventure.world_id,
+                {
+                    "name": name,
+                    "giver": giver,
+                    "text": text,
+                    "faction_id": found.id if found else "",
+                    "steps": [QuestStep(text=x[:500]) for x in steps if x.strip()],
+                    "shown": False,
+                    "xp": str(xp),
+                    "coins": str(gold * 100),
+                    "items": [QuestItem(ref=f"{i.name}|{i.source}", count=i.count) for i in lines],
+                    "renown": str(renown),
+                },
+            )
+            quest = registry.gamestate.quests.upsert(
+                quest.model_copy(update={"adventure_id": adventure.id})
+            )
+        reward = ", ".join(
+            x
+            for x in (
+                f"{quest.xp} XP each" if quest.xp else "",
+                f"{quest.coins // 100} gp" if quest.coins else "",
+                *(f"{i.ref.partition('|')[0]} ×{i.count}" for i in quest.items),
+                f"renown +{quest.renown} with {found.name}" if found and quest.renown else "",
+            )
+            if x
+        )
+        return QuestInfo(id=quest.id, name=quest.name, reward=reward, unresolved=unresolved)
+
+    @server.tool()
     def create_treasure(
         adventure_id: str,
         name: str,
@@ -839,6 +905,10 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
                 # Its NPCs, places, encounters and treasure go with it: a draft's contents
                 # must not land in the world.
                 registry.adventures.delete(adventure.id, contents=True)
+                for quest in registry.gamestate.quests.list(
+                    lambda q: q.adventure_id == adventure.id
+                ):
+                    registry.gamestate.quests.delete(quest.id)
                 return f"Deleted the draft “{adventure.name}” and everything in it."
             if kind == "chapter":
                 chapter = registry.adventures.get_chapter(id)
@@ -860,6 +930,11 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
                 owner(location.scope)
                 registry.locations.delete(location.id)
                 return f"Deleted the place “{location.name}”."
+            if kind == "quest":
+                quest = registry.quests.get(id)
+                writable(quest.adventure_id or "")
+                registry.quests.delete(quest.id, quest.world_id)
+                return f"Deleted the quest “{quest.name}”."
             if kind == "treasure":
                 treasure = registry.treasure.get(id)
                 owner(treasure.scope)

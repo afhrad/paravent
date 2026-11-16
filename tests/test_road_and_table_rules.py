@@ -105,6 +105,28 @@ class TestTheRoad:
         assert journey.miles == 96.0 and journey.vessel == "Sailing Ship"
         assert road["clock"].of("w").minute == start + 2 * DAY
 
+    def test_extreme_cold_heat_and_altitude(self, road: dict[str, Any]) -> None:
+        # Two hours in extreme cold: a DC 10 save each hour (+2). Ana rolls 7, 9 (fails
+        # once); Bo 8, 10 (passes both).
+        journey = self.go(
+            road, Plan(hours=2, climate="cold", checks=0), dice=FixedDice([7, 9, 8, 10])
+        )
+        assert road["tired"] == ["Ana"] and journey.exposed == ["Ana:1"]
+        assert journey.climate == "cold"
+        # High altitude: each hour counts as two, the day covers half the way.
+        journey = self.go(road, Plan(hours=6, altitude=True, checks=0))
+        assert journey.miles == 9.0 and journey.altitude
+
+    def test_extreme_heat(self, road: dict[str, Any]) -> None:
+        # Under the 2014 rules heat harms only without enough water.
+        self.go(road, Plan(hours=2, climate="heat", checks=0), dice=FixedDice([1, 1, 1, 1]))
+        assert road["tired"] == []
+        # Under the 2024 rules, a fresh day: DC 5, then 6. Ana rolls 2 (fails), 4 (6,
+        # saved); Bo 3 (5, saved), 3 (5 against 6, fails).
+        self.go(road, Plan(hours=6, checks=0))  # the rest of the first day
+        self.go(road, Plan(hours=2, climate="heat", checks=0), "one", dice=FixedDice([2, 4, 3, 3]))
+        assert road["tired"] == ["Ana", "Bo"]
+
     def test_a_day_left_partway_carries_on(self, road: dict[str, Any]) -> None:
         first = self.go(road, Plan(hours=4))
         assert first.rations == 0  # no supper yet: the day is half done

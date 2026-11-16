@@ -131,6 +131,7 @@ def _quest(
             h2[quest.name],
             span(class_=f"pill {STATUS_TONE[quest.status]}")[t(f"quests.status.{quest.status}")],
             span(class_="pill")[t("quests.hidden")] if not quest.shown else None,
+            span(class_="pill")[t("quests.from_draft")] if quest.adventure_id else None,
         ],
         small(class_="muted")[
             " · ".join(

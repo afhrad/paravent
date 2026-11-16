@@ -55,6 +55,28 @@ class CampaignObject(BaseModel):
     statblock: str | None = None
 
 
+class QuestSummary(BaseModel):
+    """A quest of the world, as `world_overview` gives it."""
+
+    id: str
+    name: str
+    status: str = Field(description="open, done or failed")
+    giver: str = ""
+    faction: str = ""
+    steps_done: int = 0
+    steps: int = 0
+    adventure: str = Field(default="", description="The draft adventure it was written for")
+
+
+class QuestInfo(BaseModel):
+    """A quest written into a draft, as the gamemaster's quest page shows it."""
+
+    id: str
+    name: str
+    reward: str
+    unresolved: list[str] = Field(default_factory=list)
+
+
 class FactionInfo(BaseModel):
     """A faction of the world and the characters' renown with it."""
 
@@ -90,6 +112,7 @@ class WorldOverview(BaseModel):
     calendar: str = Field(default="", description="The calendar the world dates by, if any")
     season: str = Field(default="", description="The season now, where the calendar has one")
     factions: list[FactionInfo] = Field(default_factory=list)
+    quests: list[QuestSummary] = Field(default_factory=list)
     instructions: dict[str, str] = Field(
         default_factory=dict,
         description="The gamemaster's instructions for this world — follow them: `setting` "
@@ -141,6 +164,13 @@ class PartyCharacter(BaseModel):
     appearance: str = ""
     backstory: str = ""
     notes: str = ""
+    followers: list[str] = Field(
+        default_factory=list,
+        description="Who follows them: hirelings, companions, mounts, sidekicks",
+    )
+    renown: dict[str, int] = Field(
+        default_factory=dict, description="Renown with the world's factions, by faction"
+    )
 
 
 class PartyAnswer(BaseModel):

@@ -1145,6 +1145,11 @@ class Journey(GameStateModel):
     vessel: str = ""
     # The encounter came in the night, not on the road.
     night: bool = False
+    # Extreme cold or heat the party travelled through, and high altitude
+    # (app/services/travel.py); who the exposure cost exhaustion, ``"<name>:<levels>"``.
+    climate: Literal["", "cold", "heat"] = ""
+    altitude: bool = False
+    exposed: list[str] = Field(default_factory=list)
 
 
 class WorldClock(Record):
@@ -1306,6 +1311,8 @@ class Follower(Record):
     hp: int = Field(default=0, ge=0)
     hp_max: int = Field(default=0, ge=0)
     levels: int = Field(default=0, ge=0, le=20)  # a sidekick's levels gained
+    # A sidekick's class of the books (Tasha's "Warrior Sidekick|TCE"), "" for none.
+    sidekick_class: str = ""
     wage: int = Field(default=0, ge=0)  # copper a day, for a hireling
 
 
@@ -1341,6 +1348,9 @@ class Quest(Record):
     coins: int = Field(default=0, ge=0, le=100_000_000)  # copper, shared out evenly
     items: list[QuestItem] = Field(default_factory=list)  # each to the first on it
     renown: int = Field(default=0, ge=0, le=50)  # with the faction, for each character
+    # The draft adventure Claude wrote it for (app/mcp/drafts.py); hidden from the
+    # players until the gamemaster shows it.
+    adventure_id: str | None = None
 
 
 class FactionRank(GameStateModel):

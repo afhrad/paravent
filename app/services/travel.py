@@ -26,6 +26,13 @@ level. A night between two travelling days is a long rest, when chosen. Exhausti
 from hunger or thirst stays through any rest until the character has eaten (or drunk
 its fill: a day with enough water). The weather may be rolled for each day on the
 books' table.
+
+The gamemaster may say the road runs through extreme cold or heat: each character
+then makes a Constitution save at the end of every travelling hour (cold DC 10; heat
+DC 5 for the first hour and one more for each hour after, under the 2014 rules only
+without enough water), a failure costing a level of exhaustion; resistance or
+immunity to cold or fire (or, against cold, cold weather gear) spares it. At high
+altitude each hour of travel counts as two: the day covers half the way.
 """
 
 from __future__ import annotations
@@ -57,6 +64,19 @@ ENCOUNTER_ON = 18
 MOST_HOURS = 30 * TRAVEL_DAY
 # The save against thirst on half water (2014 rules).
 THIRST_DC = 15
+# Extreme cold: a DC 10 Constitution save at the end of each hour. Extreme heat: DC 5
+# for the first hour, one more for each hour after.
+COLD_DC = 10
+HEAT_DC = 5
+CLIMATES = ("", "cold", "heat")
+# The books' hazards a journey may meet, by the English names they go by.
+ROAD_HAZARDS = (
+    "Extreme Cold",
+    "Extreme Heat",
+    "High Altitude",
+    "Strong Wind",
+    "Heavy Precipitation",
+)
 
 
 class TravelError(Translatable):
@@ -88,6 +108,8 @@ class Plan:
     vessel: Vessel | None = None
     night_check: bool = False
     weather: bool = False
+    climate: Literal["", "cold", "heat"] = ""
+    altitude: bool = False
 
 
 def hunger_limit(con_mod: int, rules: str) -> int:
@@ -110,6 +132,7 @@ class TravelService:
         rest: Callable[[str], None],
         con_save: Callable[[PlayerCharacter], int] | None = None,
         quench: Callable[[PlayerCharacter], None] | None = None,
+        sheltered: Callable[[PlayerCharacter, str], bool] | None = None,
         dice: Dice | None = None,
     ) -> None:
         """``party(world)`` the characters on the road; ``eat(pc)`` takes a day's
@@ -117,7 +140,9 @@ class TravelService:
         level of exhaustion from ``hunger`` or ``thirst``; ``quench(pc)`` marks a day
         with enough water, which ends thirst's hold; ``con_mod(pc)`` its Constitution
         modifier and ``con_save(pc)`` its Constitution saving throw bonus (the modifier
-        when not given); ``rest(world)`` a long rest for the party."""
+        when not given); ``rest(world)`` a long rest for the party;
+        ``sheltered(pc, climate)`` whether the character weathers extreme cold or heat
+        unharmed (resistance or immunity to it, or cold weather gear)."""
         self._clock = clock
         self._protocol = protocol
         self._party = party
@@ -127,6 +152,7 @@ class TravelService:
         self._con_save = con_save or con_mod
         self._rest = rest
         self._quench = quench
+        self._sheltered = sheltered or (lambda _pc, _climate: False)
         self._dice = dice or Dice()
 
     def travel(
@@ -147,6 +173,8 @@ class TravelService:
             raise TravelError("travel.error.bad")
         if plan.water not in WATER or (plan.vessel is not None and plan.vessel.mph <= 0):
             raise TravelError("travel.error.bad")
+        if plan.climate not in CLIMATES:
+            raise TravelError("travel.error.bad")
         party = [pc for pc in self._party(world_id) if not pc.in_wizard]
         levels = [max(1, pc.total_level) for pc in party] or [1]
         level = round(sum(levels) / len(levels))
@@ -154,6 +182,8 @@ class TravelService:
             mph = plan.vessel.mph
         else:
             mph = PACES[plan.pace] / (2 if plan.difficult else 1)
+            # High in the mountains each hour counts as two: half the way in a day.
+            mph /= 2 if plan.altitude else 1
         day_length = (
             DAY if plan.vessel is not None and plan.vessel.around_the_clock else TRAVEL_DAY * 60
         )
@@ -170,7 +200,10 @@ class TravelService:
             water=plan.water,
             mounted=plan.mounted and plan.vessel is None,
             vessel=plan.vessel.name if plan.vessel else "",
+            climate=plan.climate,
+            altitude=plan.altitude and plan.vessel is None,
         )
+        exposure: dict[str, int] = {}
         # The road already covered today, when the last stretch stopped partway.
         travelled = held.road if held.road_day == start // DAY and held.road < day_length else 0
         offset = travelled
@@ -198,6 +231,8 @@ class TravelService:
             miles += moved / 60 * mph
             if journey.mounted:
                 miles += max(0, min(60, into + moved) - into) / 60 * mph
+            for pc in self._expose(party, plan, into, moved, rules, exposure):
+                self._tire(pc, plan.climate)
             travelled += moved
             elapsed += moved
             left -= moved
@@ -225,6 +260,8 @@ class TravelService:
             for pc, cause in tired:
                 self._tire(pc, cause)
                 journey.exhausted.append(pc.name or "?")
+        names = {pc.id: pc.name or "?" for pc in party}
+        journey.exposed = [f"{names.get(cid, '?')}:{n}" for cid, n in exposure.items() if n]
         journey.hours = (travelled - offset) // 60
         journey.miles = round(miles, 1)
         if elapsed:
@@ -287,6 +324,38 @@ class TravelService:
             if days > hunger_limit(self._con_mod(pc), rules):
                 tired.append((pc, "hunger"))
         return tired
+
+    def _expose(
+        self,
+        party: Sequence[PlayerCharacter],
+        plan: Plan,
+        into: int,
+        moved: int,
+        rules: str,
+        exposure: dict[str, int],
+    ) -> list[PlayerCharacter]:
+        """The travelling hours just covered in extreme cold or heat: each character
+        makes a Constitution save at the end of each hour (cold DC 10; heat DC 5, one
+        more for each hour on the day's road), a failure a level of exhaustion. Under
+        the 2014 rules heat harms only a character without enough water. Who failed,
+        once for each level."""
+        if not plan.climate:
+            return []
+        first, last = into // 60 + 1, (into + moved) // 60
+        if last < first:
+            return []
+        out: list[PlayerCharacter] = []
+        for pc in party:
+            if self._sheltered(pc, plan.climate):
+                continue
+            if plan.climate == "heat" and rules != "one" and plan.water == "enough":
+                continue
+            for hour in range(first, last + 1):
+                dc = COLD_DC if plan.climate == "cold" else HEAT_DC + hour - 1
+                if self._dice.die(20) + self._con_save(pc) < dc:
+                    exposure[pc.id] = exposure.get(pc.id, 0) + 1
+                    out.append(pc)
+        return out
 
     def _drink(
         self,

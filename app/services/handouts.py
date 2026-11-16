@@ -158,6 +158,48 @@ class HandoutService:
         handout.image = self._copy(source, handout.id)
         return self._publish(view, handout, by)
 
+    def share_note(
+        self,
+        world_id: str,
+        title: str,
+        text: str,
+        character_ids: Sequence[str],
+        by: Identity,
+    ) -> Handout:
+        """Hand a session note to the world's characters: the "previously on" for the
+        players' journal, as it reads now."""
+        allowed = {pc_id for pc_id, _ in self.recipients(world_id)}
+        chosen = [c for c in dict.fromkeys(character_ids) if c in allowed]
+        if not chosen or not text.strip():
+            raise HandoutError("journal.error.nobody")
+        handout = Handout(
+            world_id=world_id,
+            kind="box",
+            callout="note",
+            title=title.strip()[:200],
+            text=text,
+            characters=chosen,
+            shared_by=by.user.username,
+        )
+        self.gamestate.handouts.create(handout)
+        names = dict(self.recipients(world_id))
+        self.protocol.append(
+            ProtocolEntry(
+                kind=EntryKind.HANDOUT,
+                actor=by.user.username,
+                actor_name=by.user.display_name or by.user.username,
+                subject=f"character:{character}",
+                subject_name=names.get(character, character),
+                what=handout.id,
+                note=handout.title,
+                visibility=Visibility.PRIVATE,
+                scope=Scope(world=world_id),
+                origin="table",
+            )
+            for character in handout.characters
+        )
+        return handout
+
     def _new(
         self,
         view: ChapterView,

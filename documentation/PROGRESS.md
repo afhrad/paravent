@@ -593,6 +593,19 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         from the sheet when on one of the character's lists, with the check above its
         level; a wizard copies a spell into the spellbook from a scroll (Arcana check)
         or another book (the prepare page), at 50 GP a level
+  - [x] **Climate on the road** (2026-11-16, `app/services/travel.py`): a stretch
+        through extreme cold or heat calls a Constitution save at the end of each
+        travelling hour (cold DC 10; heat DC 5 rising by the hour, under the 2014 rules
+        only without enough water), a failure a level of exhaustion, spared by
+        resistance or immunity (or cold weather gear); at high altitude a day covers half
+        the way; the journey links the books' hazards it met, the day's strong wind and
+        heavy precipitation among them
+  - [x] **The session note to the players** (2026-11-16): "Send to the players" puts the
+        note, as it reads, into every character's journal as a handout
+  - [x] **Sidekick classes** (2026-11-16): a sidekick may take one of the books' sidekick
+        classes (Tasha's Expert, Spellcaster, Warrior); its followers row shows its level,
+        proficiency bonus, the class features gained and the spellcaster's counts; its
+        choices are the table's
   - [x] **Image effects** (2026-11-04, ADVENTURES.md §5.5, `app/services/image_effects.py`):
         `torn`, `fade`, `oval`, `sepia`, `aged`, `mono`, `banner` written beside an image
         (`![[tavern.jpg|torn sepia]]`, `cover: media/x.jpg|fade`), rendered once with
@@ -815,7 +828,10 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       (2026-11-16): `world_overview` gives the date by the world's calendar, the season
       and the factions with the characters' renown; `plan_journey` the date on arrival;
       `find_traps` the traps of the world's books with their tags (Spring it in the
-      chapter) and `plan_chase` a chase's complication table and runners
+      chapter) and `plan_chase` a chase's complication table and runners. **Quests, followers
+      and renown** (2026-11-16): `create_quest` writes a quest for a draft (hidden until
+      shown, gone with the draft), `world_overview` lists the quests, `party` each
+      character's followers and renown
 - [x] Wizard state when going back a step — checked 2026-11-02 (CHARGEN-WIZARD.md §6): answers
       live in the draft's file, a step is a GET of them, and a changed answer marks later
       steps for review without dropping them. Typed text followed by a footer click now
@@ -1089,7 +1105,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2418 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2422 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the

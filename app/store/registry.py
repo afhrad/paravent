@@ -19,6 +19,7 @@ from functools import cached_property
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
+from urllib.parse import quote
 
 from app import __version__
 from app.config import Settings
@@ -716,9 +717,58 @@ class StoreRegistry:
             self.protocol,
             wages=self.wages,
             statblock=self.follower_statblock,
+            sidekick_classes=self.sidekick_classes,
             purse=purse,
             pay=pay,
         )
+
+    def sidekick_classes(self, world_id: str | None) -> list[tuple[str, str]]:
+        """The sidekick classes of the world's books, ``(ref, name)``."""
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        out = []
+        for cls in self.compendium.all("class"):
+            data = cls.model_dump(by_alias=True, exclude_none=True)
+            source = str(data.get("source", ""))
+            if not data.get("isSidekick"):
+                continue
+            if (
+                world is not None
+                and not world.source_set.is_unrestricted
+                and (source.lower() not in world.source_set.normalized)
+            ):
+                continue
+            out.append((f"{data['name']}|{source}", str(data["name"])))
+        return sorted(out, key=lambda x: x[1])
+
+    def sidekick_progress(
+        self, ref: str, level: int
+    ) -> tuple[list[tuple[int, str]], dict[str, int]]:
+        """A sidekick class's features up to ``level`` (``(level, name)``) and its table
+        at that level (cantrips and spells known, by column)."""
+        name, _, source = ref.partition("|")
+        try:
+            cls = self.compendium.find("class", name, source)
+        except EntryNotFound:
+            return [], {}
+        if cls is None:
+            return [], {}
+        data = cls.model_dump(by_alias=True, exclude_none=True)
+        features = []
+        for item in data.get("classFeatures") or []:
+            text = item.get("classFeature") if isinstance(item, dict) else item
+            parts = str(text).split("|")
+            at = int(parts[-1]) if parts[-1].isdigit() else 0
+            if parts and 0 < at <= level:
+                features.append((at, parts[0]))
+        table: dict[str, int] = {}
+        for group in data.get("classTableGroups") or []:
+            rows = group.get("rows") or group.get("rowsSpellProgression") or []
+            if not 0 < level <= len(rows):
+                continue
+            for label, value in zip(group.get("colLabels") or [], rows[level - 1], strict=False):
+                if isinstance(value, int):
+                    table[strip_tags(str(label))] = value
+        return features, table
 
     def wages(self, world_id: str | None) -> dict[str, int]:
         """Copper a day for a skilled and an untrained hireling, by the world's books:
@@ -987,6 +1037,15 @@ class StoreRegistry:
         def rest(world_id: str) -> None:
             characters.rest_party(world_id, "long", Actor("Paravent", username=""))
 
+        def sheltered(pc: PlayerCharacter, climate: str) -> bool:
+            sheet = characters.sheet(pc)
+            kind = "cold" if climate == "cold" else "fire"
+            if kind in sheet.defended("resist") or kind in sheet.defended("immune"):
+                return True
+            return climate == "cold" and any(
+                "cold weather" in i.item.name.lower() for i in pc.inventory
+            )
+
         return TravelService(
             self.clock,
             self.protocol,
@@ -997,7 +1056,27 @@ class StoreRegistry:
             con_save=con_save,
             rest=rest,
             quench=quench,
+            sheltered=sheltered,
         )
+
+    def hazard_links(self, world_id: str | None) -> dict[str, str]:
+        """The books' road hazards the world has, by English name → their page."""
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        books = world.source_set if world else None
+        resolver = self.references.resolver()
+        out = {}
+        for name in (
+            "Extreme Cold",
+            "Extreme Heat",
+            "High Altitude",
+            "Strong Wind",
+            "Heavy Precipitation",
+        ):
+            entry = resolver.resolve_parts("hazard", name, None, books).entry
+            if entry is not None:
+                query = f"?world={world_id}" if world_id else ""
+                out[name] = f"/ref/hazard/{getattr(entry, 'source', '')}/{quote(name)}{query}"
+        return out
 
     def book_table(self, world_id: str | None, caption: str, sources: Sequence[str]) -> Rows | None:
         """The rows of a table the books print (``caption``), from the first of

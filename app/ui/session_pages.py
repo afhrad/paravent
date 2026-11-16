@@ -187,6 +187,11 @@ def session_form_page(
                         a(href=back, class_="btn btn-ghost")[t("common.cancel")],
                     ],
                 ],
+                form(method="post", action=f"{note_url(note.id)}/share", class_="inline-form")[
+                    button(type="submit", class_="btn btn-sm", title=t("sessions.share_hint"))[
+                        icon("send", "sm"), span[t("sessions.share")]
+                    ]
+                ],
             ],
         ],
         world_id=world.id,

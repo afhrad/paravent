@@ -40,6 +40,7 @@ from app.mcp.models import (
     NamingStyleInfo,
     PartyAnswer,
     PartyCharacter,
+    QuestSummary,
     RatingAnswer,
     ReferenceAnswer,
     RolledEncounterAnswer,
@@ -54,7 +55,7 @@ from app.mcp.models import (
     WorldOverview,
     WorldSummary,
 )
-from app.models.gamestate import Location, Npc, SourceSet, Treasure, World
+from app.models.gamestate import Follower, Location, Npc, SourceSet, Treasure, World
 from app.models.naming import SUBJECTS, Subject
 from app.services.activities import RARITIES
 from app.services.calendar import date_words
@@ -231,6 +232,12 @@ def naming_request(
     return "\n".join(lines) + "\n\n"
 
 
+def follower_line(follower: Follower) -> str:
+    """A follower in a line: "Ash (mount, Riding Horse)"."""
+    kind = ", ".join(x for x in (follower.kind, follower.monster.partition("|")[0]) if x)
+    return f"{follower.name} ({kind})"
+
+
 def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
     """The server and its tools, reading the stores ``stores()`` returns at call time."""
     server = MCPServer(name="paravent", title="Paravent", instructions=INSTRUCTIONS)
@@ -328,6 +335,22 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
                 )
                 for f in registry.factions.of(world.id)
             ],
+            quests=[
+                QuestSummary(
+                    id=q.id,
+                    name=q.name,
+                    status=q.status,
+                    giver=q.giver,
+                    faction=next(
+                        (f.name for f in registry.factions.of(world.id) if f.id == q.faction_id),
+                        "",
+                    ),
+                    steps_done=sum(1 for s in q.steps if s.done),
+                    steps=len(q.steps),
+                    adventure=names.get(q.adventure_id or "", ""),
+                )
+                for q in registry.quests.of(world.id)
+            ],
         )
 
     @server.tool()
@@ -386,6 +409,12 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
                     appearance=pc.appearance[:STORY_LIMIT],
                     backstory=pc.backstory[:STORY_LIMIT],
                     notes=pc.notes[:STORY_LIMIT],
+                    followers=[follower_line(f) for f in registry.followers.of(pc.id)],
+                    renown={
+                        f.name: f.renown[pc.id]
+                        for f in registry.factions.of(pc.world_id or "")
+                        if f.renown.get(pc.id)
+                    },
                 )
             )
         return PartyAnswer(characters=out, missing=missing)

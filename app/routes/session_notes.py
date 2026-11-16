@@ -22,6 +22,7 @@ from app.routes.auth import html, redirect
 from app.routes.paravent_markdown import paravent_markdown
 from app.services import scope
 from app.services.adventures import EditConflict, text_version
+from app.services.handouts import HandoutError
 from app.services.recap import recap, session_combats
 from app.services.session_notes import SessionNoteError, SessionNoteNotFound
 from app.store.registry import StoreRegistry
@@ -224,6 +225,24 @@ async def save_note(
             status_code=409 if conflict is not None else 422,
         )
     return redirect(f"{sessions_url(note.world_id)}#note-{note.id}")
+
+
+@router.post(f"{SESSIONS_URL}/{{note_id}}/share")
+async def share_note(
+    gm: GamemasterDep, page: PageDep, registry: RegistryDep, note_id: str
+) -> Response:
+    """Send the note to the world's characters, in their journal."""
+    note = _note(registry, note_id)
+    handouts = registry.handouts
+    ids = [cid for cid, _ in handouts.recipients(note.world_id)]
+    title = page.t("sessions.handout_title", day=day_text(page, note.day))
+    try:
+        handouts.share_note(note.world_id, title, note.text, ids, gm)
+    except HandoutError as exc:
+        return _form(page, registry, note, error=page.t.error(exc), status_code=422)
+    return _sessions(
+        page, registry, note.world_id, notice_text=page.t.plural("sessions.shared", len(ids))
+    )
 
 
 @router.get(f"{SESSIONS_URL}/{{note_id}}/delete", response_class=HTMLResponse)

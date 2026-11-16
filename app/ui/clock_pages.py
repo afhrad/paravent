@@ -30,7 +30,7 @@ from htpy import input as input_el
 from app.models.gamestate import ClockTimer, Journey
 from app.services.calendar import Calendar
 from app.services.clock import DAY, day_of, part_of_day, time_of
-from app.services.travel import PACES, WATER
+from app.services.travel import CLIMATES, PACES, WATER
 from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
@@ -133,6 +133,7 @@ def clock_panel(
     calendar: str = "",
     era: str = "",
     mounted: bool = False,
+    hazards: Mapping[str, str] | None = None,
 ) -> Element:
     """The time, the moves, a party rest, the timers and what is due; the party's last
     journey and the forms to travel on and to grant downtime. ``vessels`` are the ships
@@ -205,7 +206,7 @@ def clock_panel(
         ]
         if due
         else None,
-        _journey(page, base, journey, world_id) if journey is not None else None,
+        _journey(page, base, journey, world_id, hazards) if journey is not None else None,
         details(class_="party-clock-more party-travel")[
             summary[icon("footprints", "sm"), span[t("travel.heading")]],
             _travel_form(page, post, environments, vessels, weather, mounted),
@@ -413,6 +414,12 @@ def _travel_form(
         label(class_="party-clock-label")[
             input_el(type="checkbox", name="difficult", value="1"), span[t("travel.difficult")]
         ],
+        select(name="climate", aria_label=t("travel.climate"))[
+            [option(value=c)[t(f"travel.climate.{c or 'mild'}")] for c in CLIMATES]
+        ],
+        label(class_="party-clock-label", title=t("travel.altitude_hint"))[
+            input_el(type="checkbox", name="altitude", value="1"), span[t("travel.altitude")]
+        ],
         label(class_="party-clock-label")[
             input_el(type="checkbox", name="rations", value="1", checked=True),
             span[t("travel.rations")],
@@ -443,8 +450,20 @@ def _travel_form(
     )
 
 
-def _journey(page: Page, base: str, journey: Journey, world_id: str | None = None) -> Element:
-    """The party's last stretch of road: how far, what was eaten, what stopped it."""
+def _part(weather: str, index: int) -> str:
+    """One part of a day's weather ("temperature|wind|precipitation"), lower case."""
+    return ([*weather.split("|"), "", "", ""][index]).lower()
+
+
+def _journey(
+    page: Page,
+    base: str,
+    journey: Journey,
+    world_id: str | None = None,
+    hazards: Mapping[str, str] | None = None,
+) -> Element:
+    """The party's last stretch of road: how far, what was eaten, what stopped it;
+    ``hazards`` link the books' hazards it met (their pages, by name)."""
     t = page.t
     spent = remaining(page, journey.hours * 60)
     lines: list[Node] = [
@@ -491,6 +510,59 @@ def _journey(page: Page, base: str, journey: Journey, world_id: str | None = Non
                     wind=wind,
                     rain=rain,
                 ),
+            ]
+        )
+    if journey.climate or journey.altitude:
+        lines.append(
+            p[
+                icon("snowflake" if journey.climate == "cold" else "flame", "sm"),
+                " ",
+                ", ".join(
+                    x
+                    for x in (
+                        t(f"travel.climate.{journey.climate}") if journey.climate else "",
+                        t("travel.altitude") if journey.altitude else "",
+                    )
+                    if x
+                ),
+                ": ",
+                ", ".join(
+                    t.plural(
+                        "travel.exposed_one",
+                        int(n.partition(":")[2] or 0),
+                        name=n.partition(":")[0],
+                        n=n.partition(":")[2],
+                    )
+                    for n in journey.exposed
+                )
+                or t("travel.exposed_none"),
+            ]
+        )
+    met = [
+        name
+        for name, hit in (
+            ("Extreme Cold", journey.climate == "cold"),
+            ("Extreme Heat", journey.climate == "heat"),
+            ("High Altitude", journey.altitude),
+            ("Strong Wind", any("strong" in _part(w, 1) for w in journey.weather)),
+            ("Heavy Precipitation", any("heavy" in _part(w, 2) for w in journey.weather)),
+        )
+        if hit and (hazards or {}).get(name)
+    ]
+    if met:
+        lines.append(
+            p(class_="muted")[
+                icon("triangle-alert", "sm"),
+                " ",
+                t("travel.hazards"),
+                " ",
+                [
+                    (
+                        ", " if n else "",
+                        a(href=(hazards or {})[name])[page.t.term("hazard", name) or name],
+                    )
+                    for n, name in enumerate(met)
+                ],
             ]
         )
     if journey.exhausted:

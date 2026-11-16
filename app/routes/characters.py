@@ -56,7 +56,7 @@ from app.services.crafting import craft_rules, tools_for
 from app.services.downtime import DowntimeError, crafting_days, materials, training_plan
 from app.services.events import revision_stream
 from app.services.factions import granted, title_of
-from app.services.followers import FollowerError
+from app.services.followers import FollowerError, sidekick_level
 from app.services.play import Actor, PlayError
 from app.services.sheet import Sheet
 from app.services.shop import ShopError, Ware, priced
@@ -1014,14 +1014,21 @@ def _followers(
     error: str | None = None,
     message: str | None = None,
 ) -> HTMLResponse:
+    held = registry.followers.of(character.id)
     return html(
         followers_page(
             page,
             character_id=character.id,
             character_name=character.name or "?",
             world_id=character.world_id,
-            followers=registry.followers.of(character.id),
+            followers=held,
             wages=registry.wages(character.world_id),
+            sidekick_classes=registry.sidekick_classes(character.world_id),
+            progress={
+                f.id: registry.sidekick_progress(f.sidekick_class, sidekick_level(f))
+                for f in held
+                if f.sidekick_class
+            },
             in_fight=bool(registry.combats.joined_by([character.id])),
             error=error,
             message=message,
@@ -1067,6 +1074,7 @@ async def change_followers(
                 str(form.get("kind", "")),
                 str(form.get("creature", "")),
                 str(form.get("name", "")),
+                sidekick_class=str(form.get("sidekick_class", "")),
             )
         elif op == "hp":
             delta = str(form.get("delta", "0"))

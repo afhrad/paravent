@@ -4,7 +4,8 @@ character's fight, and the forms that hire or add one."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
+from urllib.parse import quote
 
 from htpy import (
     Element,
@@ -29,7 +30,7 @@ from htpy import (
 from htpy import input as input_el
 
 from app.models.gamestate import Follower
-from app.services.followers import CREATURES, HIRELINGS
+from app.services.followers import CREATURES, HIRELINGS, proficiency, sidekick_level
 from app.ui.context import Page
 from app.ui.forms import alert, hidden, notice
 from app.ui.home_pages import page_head
@@ -51,6 +52,8 @@ def followers_page(
     followers: Sequence[Follower] = (),
     wages: dict[str, int],
     in_fight: bool,
+    sidekick_classes: Sequence[tuple[str, str]] = (),
+    progress: Mapping[str, tuple[Sequence[tuple[int, str]], Mapping[str, int]]] | None = None,
     error: str | None = None,
     message: str | None = None,
 ) -> Element:
@@ -73,7 +76,10 @@ def followers_page(
             notice(message),
             section(class_="panel")[
                 ul(class_="follower-list")[
-                    [_row(page, url, f, in_fight, world_id) for f in followers]
+                    [
+                        _row(page, url, f, in_fight, world_id, (progress or {}).get(f.id))
+                        for f in followers
+                    ]
                 ]
                 if followers
                 else p(class_="muted")[t("followers.none")],
@@ -108,6 +114,12 @@ def followers_page(
                     ],
                     _text("creature", t("followers.creature"), required=True),
                     _text("name", t("followers.name"), required=False),
+                    select(name="sidekick_class", aria_label=t("followers.sidekick_class"))[
+                        option(value="")[t("followers.no_sidekick_class")],
+                        [option(value=ref)[name] for ref, name in sidekick_classes],
+                    ]
+                    if sidekick_classes
+                    else None,
                     button(type="submit", class_="btn btn-sm")[
                         icon("plus", "sm"), span[t("followers.add_creature")]
                     ],
@@ -134,7 +146,12 @@ def _text(name: str, label: str, *, required: bool) -> Node:
 
 
 def _row(
-    page: Page, url: str, follower: Follower, in_fight: bool, world_id: str | None = None
+    page: Page,
+    url: str,
+    follower: Follower,
+    in_fight: bool,
+    world_id: str | None = None,
+    progress: tuple[Sequence[tuple[int, str]], Mapping[str, int]] | None = None,
 ) -> Element:
     t = page.t
     creature = follower.kind in CREATURES
@@ -190,6 +207,7 @@ def _row(
         ]
         if creature
         else None,
+        _sidekick(page, follower, progress, world_id) if follower.sidekick_class else None,
         p(class_="muted")[follower.note] if follower.note else None,
         details(class_="follower-more")[
             summary[t("followers.dismiss")],
@@ -203,6 +221,40 @@ def _row(
                 cls="inline-form",
             ),
         ],
+    ]
+
+
+def _sidekick(
+    page: Page,
+    follower: Follower,
+    progress: tuple[Sequence[tuple[int, str]], Mapping[str, int]] | None,
+    world_id: str | None,
+) -> Element:
+    """A sidekick's class: its level, proficiency bonus, features and spell counts."""
+    t = page.t
+    level = sidekick_level(follower)
+    name, _, source = follower.sidekick_class.partition("|")
+    features, table = progress or ((), {})
+    query = f"?world={world_id}" if world_id else ""
+    return div(class_="follower-sidekick")[
+        p[
+            a(href=f"/ref/class/{source}/{quote(name)}{query}")[name],
+            " · ",
+            t("followers.sidekick_line", level=level, bonus=f"+{proficiency(level)}"),
+        ],
+        ul(class_="follower-features")[
+            [
+                li[small(class_="mono muted")[str(at)], " ", span[feature]]
+                for at, feature in features
+            ]
+        ]
+        if features
+        else None,
+        small(class_="muted")[
+            " · ".join(f"{label} {value}" for label, value in table.items() if value)
+        ]
+        if table
+        else None,
     ]
 
 

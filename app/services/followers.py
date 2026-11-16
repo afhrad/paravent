@@ -7,8 +7,11 @@ companion, a mount or a sidekick is a creature of the world's books, with the hi
 points of its statblock, kept here between fights; it can join its character's running
 fight on the party's side. A sidekick gains levels when the gamemaster says: each adds
 its hit die's average and its Constitution modifier to its hit points (the sidekick
-rules' growth; its other gains are the table's). A character's mount lets the party
-ride when every traveller has one.
+rules' growth). A sidekick may take a sidekick class of the books (Tasha's Expert,
+Spellcaster or Warrior): its level is one more than the levels it has gained, its
+proficiency bonus follows that level, and the class's features and spell counts up to
+it are listed; its choices (roles, ability increases, spells) are the table's. A
+character's mount lets the party ride when every traveller has one.
 """
 
 from __future__ import annotations
@@ -50,6 +53,16 @@ def hit_die(formula: str) -> int:
     return int(found[2]) if found else 8
 
 
+def sidekick_level(follower: Follower) -> int:
+    """A sidekick's level: one, and each level it has gained."""
+    return 1 + follower.levels
+
+
+def proficiency(level: int) -> int:
+    """The proficiency bonus at a level: +2, one more every four levels."""
+    return 2 + (max(1, level) - 1) // 4
+
+
 def level_hp(die: int, con: int) -> int:
     """What a sidekick's level adds: the die's average (rounded up) and CON, at least 1."""
     return max(1, die // 2 + 1 + con)
@@ -65,6 +78,7 @@ class FollowerService:
         *,
         wages: Callable[[str | None], dict[str, int]],
         statblock: Callable[[str | None, str], Statblock | None],
+        sidekick_classes: Callable[[str | None], list[tuple[str, str]]] = lambda _w: [],
         purse: Callable[[str], int] = lambda _cid: 0,
         pay: Callable[[str, int], None] = lambda _cid, _copper: None,
     ) -> None:
@@ -75,6 +89,7 @@ class FollowerService:
         self._protocol = protocol
         self._wages = wages
         self._statblock = statblock
+        self._sidekick_classes = sidekick_classes
         self._purse = purse
         self._pay = pay
 
@@ -107,11 +122,23 @@ class FollowerService:
         )
 
     def add_creature(
-        self, pc: PlayerCharacter, kind: str, creature: str, name: str = "", note: str = ""
+        self,
+        pc: PlayerCharacter,
+        kind: str,
+        creature: str,
+        name: str = "",
+        note: str = "",
+        sidekick_class: str = "",
     ) -> Follower:
-        """A companion, mount or sidekick: a creature of the world's books."""
+        """A companion, mount or sidekick: a creature of the world's books; a sidekick
+        may take a sidekick class of them."""
         if kind not in CREATURES:
             raise FollowerError("followers.error.kind")
+        if sidekick_class and (
+            kind != "sidekick"
+            or sidekick_class not in {ref for ref, _ in self._sidekick_classes(pc.world_id)}
+        ):
+            raise FollowerError("followers.error.sidekick_class")
         found = self._statblock(pc.world_id, creature.strip())
         if found is None:
             raise FollowerError("followers.error.creature", name=creature.strip())
@@ -125,6 +152,7 @@ class FollowerService:
                 monster=found.reference,
                 hp=found.hp,
                 hp_max=found.hp,
+                sidekick_class=sidekick_class,
             )
         )
 
@@ -217,4 +245,6 @@ __all__ = [
     "Statblock",
     "hit_die",
     "level_hp",
+    "proficiency",
+    "sidekick_level",
 ]

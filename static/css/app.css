@@ -2619,3 +2619,10 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .play-news{ list-style:none; margin:0 0 16px; padding:0; display:flex; flex-wrap:wrap; gap:8px; }
 .play-news a{ display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border:1px solid var(--border); border-radius:999px; background:var(--surface); text-decoration:none; }
 .quest-box{ display:inline-block; width:.9em; height:.9em; border:1.5px solid currentColor; border-radius:3px; vertical-align:-1px; }
+.follower-sidekick{ display:grid; gap:4px; }
+.follower-sidekick p{ margin:0; }
+.follower-features{ list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:4px 14px; }
+/* Links of the session, follower, quest and faction pages in the theme's colour. */
+.session-list a, .follower-head a, .follower-sidekick a, .play-news a, .bastion-event a{ color:var(--accent-text); }
+/* Small step and hit point buttons stay in a row on a phone. */
+.follower-acts .inline-form, .faction-steps .inline-form, .quest-steps .inline-form{ flex-basis:auto; }

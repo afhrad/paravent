@@ -85,3 +85,43 @@ async def test_a_mount_joins_the_fight(table: tuple[AsyncClient, StoreRegistry, 
     assert "Ash joins the fight" in html.unescape(joined.text)
     ash = next(c for c in registry.combats.get(combat.id).combatants if c.label == "Ash")
     assert ash.hp == horse.hp - 3 and ash.hp_max == horse.hp_max
+
+
+@requires_corpus
+async def test_a_sidekick_with_its_class(table: tuple[AsyncClient, StoreRegistry, str]) -> None:
+    ac, registry, lyra = table
+    world = registry.gamestate.worlds.get(registry.gamestate.characters.get(lyra).world_id or "")
+    registry.gamestate.worlds.update(
+        world.id,
+        source_set=world.source_set.model_copy(
+            update={"sources": [*world.source_set.sources, "TCE"]}
+        ),
+    )
+    url = f"/characters/{lyra}/followers"
+    assert "Warrior Sidekick" in (await ac.get(url)).text
+    await ac.post(
+        url,
+        data={
+            "op": "creature",
+            "kind": "sidekick",
+            "creature": "Scout",
+            "name": "Pip",
+            "sidekick_class": "Warrior Sidekick|TCE",
+        },
+    )
+    (pip,) = registry.followers.of(lyra)
+    await ac.post(url, data={"op": "level", "follower": pip.id})
+    await ac.post(url, data={"op": "level", "follower": pip.id})
+    page = html.unescape((await ac.get(url)).text)
+    assert "level 3, proficiency +2" in page and "Second Wind" in page
+    assert "Improved Critical" in page
+    bad = await ac.post(
+        url,
+        data={
+            "op": "creature",
+            "kind": "mount",
+            "creature": "Riding Horse",
+            "sidekick_class": "Warrior Sidekick|TCE",
+        },
+    )
+    assert bad.status_code == 422

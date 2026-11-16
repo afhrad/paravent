@@ -48,8 +48,11 @@ A chase is run from the party view, not written as an object. Describe it in the
 chapter — who flees and who pursues, the head start, the streets or wilds it runs
 through — and check its pursuers with `plan_chase`.
 
-The world's date (`world_overview.today`, with its calendar and season) and its
-factions are there to write by: a festival on the right day, snow in winter, a
+A quest the party takes on goes in with `create_quest`, for the draft: its giver,
+steps and reward. Name its giver in the chapter where the party meets them.
+
+The world's date (`world_overview.today`, with its calendar and season), its factions
+and quests, and each character's followers and renown (`party`) are there to write by: a festival on the right day, snow in winter, a
 faction's agent who knows how the party stands with it.
 
 ## Callouts

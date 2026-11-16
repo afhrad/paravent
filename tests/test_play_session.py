@@ -71,6 +71,13 @@ async def test_a_session_from_brief_to_note(table: tuple[AsyncClient, StoreRegis
     # The debt was before this session ended: no longer listed.
     assert "owes" not in again
     assert "The session begins" in (await ac.get("/log")).text
+    # Sent to the players: the note lands in each character's journal.
+    shared = await ac.post(f"/gm/sessions/{note.id}/share")
+    assert "journal" in html.unescape(shared.text)
+    (handout,) = registry.gamestate.handouts.list()
+    assert handout.characters == [lyra] and "In the world" in handout.text
+    read = html.unescape((await ac.get(f"/journal/{handout.id}")).text)
+    assert "Sprung: Collapsing Roof" in read
 
 
 @requires_corpus

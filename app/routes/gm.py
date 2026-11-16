@@ -52,7 +52,7 @@ from app.services.player_view import player_choice, player_ticks
 from app.services.references import ReferenceNotFound
 from app.services.shop import ShopError
 from app.services.traps import Target, TrapEffect, read_trap
-from app.services.travel import PACES, TRAVEL_DAY, WATER, Plan, TravelError, Vessel
+from app.services.travel import CLIMATES, PACES, TRAVEL_DAY, WATER, Plan, TravelError, Vessel
 from app.services.units import feet_from
 from app.services.worlds import WorldInput
 from app.store.encounter_tables import Environment
@@ -128,6 +128,7 @@ def _clock(page: Page, registry: StoreRegistry, world_id: str | None) -> Element
         environments=[(e.key, f"{e.name} ({e.source})") for e in _environments(registry, shown)],
         vessels=[v.name for v in registry.vessels(shown)],
         mounted=registry.followers.mounted([pc.id for pc in members]),
+        hazards=registry.hazard_links(shown),
         weather=registry.weather(shown) is not None,
         calendars=registry.calendars(shown),
         calendar=clock.calendar,
@@ -169,6 +170,7 @@ def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_
     if vessel is not None and form.get("around") == "1":
         vessel = Vessel(vessel.name, vessel.mph, around_the_clock=True)
     water = str(form.get("water", "enough"))
+    climate = str(form.get("climate", ""))
     registry.travel.travel(
         world_id,
         Plan(
@@ -184,6 +186,8 @@ def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_
             vessel=vessel,
             night_check=form.get("night") == "1",
             weather=form.get("weather") == "1",
+            climate=climate if climate in CLIMATES else "",  # type: ignore[arg-type]
+            altitude=form.get("altitude") == "1",
         ),
         rules=registry.rules_of(world_id),
         resolve=resolve,

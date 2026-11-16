@@ -220,8 +220,15 @@ def _last(page: Page, brief: Brief, rendered: Rendered | None) -> Element:
         t("session.last_on", day=day_text(page, note.day)),
         "book-open",
         article(class_="prose session-note")[rendered.html if rendered is not None else None],
-        a(href=f"{note_url(note.id)}/edit", class_="btn btn-sm btn-ghost")[
-            icon("pencil", "sm"), span[t("session.edit_note")]
+        div(class_="party-tools")[
+            a(href=f"{note_url(note.id)}/edit", class_="btn btn-sm btn-ghost")[
+                icon("pencil", "sm"), span[t("session.edit_note")]
+            ],
+            form(method="post", action=f"{note_url(note.id)}/share", class_="inline-form")[
+                button(type="submit", class_="btn btn-sm", title=t("sessions.share_hint"))[
+                    icon("send", "sm"), span[t("sessions.share")]
+                ]
+            ],
         ],
     )
 

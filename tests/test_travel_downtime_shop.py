@@ -297,6 +297,15 @@ class TestAtTheTable:
         assert "The party travels 16 h" in (await ac.get("/log")).text
         await ac.post(f"/gm/clock/{world}/travel_clear")
         assert registry.clock.of(world).journey is None
+        # Through extreme cold: the books' hazard is linked from the journey.
+        await ac.post(
+            f"/gm/clock/{world}/travel",
+            data={"amount": "1", "unit": "hour", "checks": "0", "climate": "cold"},
+        )
+        journey = registry.clock.of(world).journey
+        assert journey is not None and journey.climate == "cold"
+        page = (await ac.get(f"/gm?world={world}")).text
+        assert "Extreme cold" in page and "/ref/hazard/XDMG/Extreme%20Cold" in page
 
     async def test_an_encounter_on_the_road_becomes_one(
         self, table: tuple[AsyncClient, StoreRegistry, str]
