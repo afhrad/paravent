@@ -36,7 +36,7 @@ from app.services.backup import BackupService
 from app.services.bastion_events import EventTools, item_ref
 from app.services.bastion_orders import OrderOption, OrderYields, options_of, tool_choice
 from app.services.bastions import BastionEvent, BastionService, event_rows
-from app.services.book_tables import Rows, copper, days, find_in, rolled, row_for, rows_of
+from app.services.book_tables import Rows, copper, days, rolled, row_for, rows_of
 from app.services.calendar import CALENDARS, Calendar, calendar_from
 from app.services.character import ability_modifier
 from app.services.characters import CharacterService
@@ -165,6 +165,8 @@ class StoreRegistry:
         self.gamestate.prose.subscribe(self._prose_changed)
         self._books: BookCatalog | None = None
         self._subclass_names: dict[tuple[str, str], str] | None = None
+        self._tables: dict[str, dict[str, Rows]] | None = None
+        self._vessels: dict[str, list[Vessel]] = {}
         self._summonings: tuple[int, dict[str, Summoning]] | None = None
         self._watcher: JsonWatcher | None = None
 
@@ -1089,7 +1091,27 @@ class StoreRegistry:
         )
         if not held:
             return None
-        return find_in(self.compendium.all("table"), caption, held)
+        found = self._table_index().get(caption.lower(), {})
+        return next((found[s.lower()] for s in held if s.lower() in found), None)
+
+    def _table_index(self) -> dict[str, dict[str, Rows]]:
+        """The books' tables by caption (and by each tail after a "<section>; "), then by
+        source, as ``find_in`` reads them: built once per corpus load, so a page asking
+        for a few small tables does not walk all of them each time."""
+        if self._tables is None:
+            index: dict[str, dict[str, Rows]] = {}
+            for table in self.compendium.all("table"):
+                name = str(getattr(table, "name", "")).lower()
+                source = str(getattr(table, "source", "")).lower()
+                rows = None
+                parts = name.split("; ")
+                for key in {"; ".join(parts[n:]) for n in range(len(parts))}:
+                    by_source = index.setdefault(key, {})
+                    if source not in by_source:
+                        rows = rows if rows is not None else rows_of(table)
+                        by_source[source] = rows
+            self._tables = index
+        return self._tables
 
     def weather(self, world_id: str | None) -> Callable[[], str] | None:
         """Rolls a day's weather on the world's guide ("temperature|wind|
@@ -1116,7 +1138,16 @@ class StoreRegistry:
         return roll_2014
 
     def vessels(self, world_id: str | None) -> list[Vessel]:
-        """The ships and airships of the world's books, with their speed."""
+        """The ships and airships of the world's books, with their speed; kept per set of
+        books until the corpus reloads (the party view asks on every refresh)."""
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        key = world.source_set.identity if world is not None else "*"
+        held = self._vessels.get(key)
+        if held is None:
+            held = self._vessels[key] = self._read_vessels(world_id)
+        return list(held)
+
+    def _read_vessels(self, world_id: str | None) -> list[Vessel]:
         seen: dict[str, Vessel] = {}
         for offer in self.catalogue(world_id).rows("baseitem") + self.catalogue(world_id).rows(
             "item"
@@ -2034,6 +2065,8 @@ class StoreRegistry:
             logger.info("Reloading compendium after %d change(s)", len(changed))
         self._books = None
         self._subclass_names = None
+        self._tables = None
+        self._vessels = {}
         if "published" in self.__dict__:
             self.published.clear()
         if "rulebooks" in self.__dict__:

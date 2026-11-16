@@ -83,6 +83,8 @@ geht's* im Tracker.
 
 ## 7. Schön zu haben
 
+- **Zwischen den Kämpfen:** Sitzungsseite, Reisen, Auszeit, Bastionen, Aufträge, Fraktionen
+  und Gefolge haben eine eigene Seite: [Zwischen den Kämpfen](/help/between).
 - **Klang:** Zahnrad → *Klangbibliothek* für Regen, Tavernen und Kampfmusik. Öffne die
   Seite **Lautsprecher** auf dem Gerät am Lautsprecher und spiel vom Klangpult in der
   oberen Leiste.

@@ -45,6 +45,8 @@ async def test_a_session_from_brief_to_note(table: tuple[AsyncClient, StoreRegis
     assert "Session" in (await ac.get(f"/gm?world={world}")).text
     brief = html.unescape((await ac.get(f"/gm/session?world={world}")).text)
     assert "Start the session" in brief
+    assert "/help/between" in brief
+    assert "Between the fights" in (await ac.get("/help/between")).text
     assert "Lyra Mooncaller owes 1 gp for their lifestyle" in brief
     assert "Lyra Mooncaller: 1 contact without a name" in brief
     assert "Lyra Mooncaller: 5 days of downtime to spend" in brief

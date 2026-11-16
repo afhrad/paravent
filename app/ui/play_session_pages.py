@@ -101,6 +101,10 @@ def session_page(
             a(href=factions_url(world.id), class_="btn btn-sm")[
                 icon("shield", "sm"), span[t("factions.eyebrow")]
             ],
+            a(
+                href=f"/help/between?back={quote(session_url(world.id))}",
+                class_="btn btn-sm btn-ghost",
+            )[icon("book-open", "sm"), span[t("help.between")]],
             a(href=sessions_url(world.id), class_="btn btn-sm btn-ghost")[
                 icon("pencil", "sm"), span[t("session.notes")]
             ],

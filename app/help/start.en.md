@@ -80,6 +80,8 @@ tracker.
 
 ## 7. Nice to have
 
+- **Between the fights:** the session page, travel, downtime, bastions, quests, factions
+  and followers have a page of their own: [Between the fights](/help/between).
 - **Sound:** settings gear → *Sound library* for your rain, taverns and battle music. Open
   the **Speaker** page on the device by the loudspeaker, then play from the desk in the
   top bar.

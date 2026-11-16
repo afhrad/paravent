@@ -209,7 +209,9 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       creatures), and a malformed file crashing the fluff and lookup loads
       **The library against a release** (2026-11-02, `app/services/library_check.py`,
       TECHSTACK.md §8 note): translations, glossary, declared books, records and every
-      campaign text's links, each finding linking to where it is mended. **Moving a
+      campaign text's links, each finding linking to where it is mended; since 2026-11-16
+      also quest rewards, followers and sidekick classes, factions' renown tables,
+      bastion facilities, shop shelves, the spells on scrolls and a clock's calendar. **Moving a
       translation** (2026-11-02): `/gm/translations` lists those whose entry is gone, the
       likely new one filled in, and Move re-points them, passages unchanged
 - [x] **Exclude `foundry-*.json`** from indexing — VTT payloads, not content; they are the sole
@@ -606,6 +608,10 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         classes (Tasha's Expert, Spellcaster, Warrior); its followers row shows its level,
         proficiency bonus, the class features gained and the spellcaster's counts; its
         choices are the table's
+  - [x] **Between the fights, in the app** (2026-11-16, `app/help/between.<lang>.md`,
+        `/help/between`): a gamemaster's walkthrough of the session page, the clock and
+        calendar, the road, downtime, the bastion, contacts, factions, quests, followers,
+        chases, traps and levelling, linked from the session page and the start guide
   - [x] **Image effects** (2026-11-04, ADVENTURES.md §5.5, `app/services/image_effects.py`):
         `torn`, `fade`, `oval`, `sepia`, `aged`, `mono`, `banner` written beside an image
         (`![[tavern.jpg|torn sepia]]`, `cover: media/x.jpg|fade`), rendered once with
@@ -1105,7 +1111,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2422 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2424 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the
@@ -1113,7 +1119,10 @@ MCP server's forty tools (now on first use, `tests/conftest.py`, the `mcp_server
 tests that talk to `/mcp`); passwords hashed at the app's bcrypt cost (cost 4 in tests).
 `pytest -n auto` (pytest-xdist) runs it on every core in about 2½ minutes. In the app, the
 tracker keeps each character's sheet per state (`CharacterService.sheet`): a click built up
-to 26 sheets for four characters, and took 60–134 ms; now 25–37 ms.
+to 26 sheets for four characters, and took 60–134 ms; now 25–37 ms. Measured again
+2026-11-16 (three characters, the real corpus): a tracker click 16 ms, the sheet 38 ms,
+the party view 23 ms (from 59: the world's ships are kept per set of books, and the
+books' small tables are indexed by caption once per load instead of walked on every page).
 
 ---
 
