@@ -28,7 +28,7 @@ from app.services.characters import CharacterService
 from app.services.i18n import Translatable
 from app.services.protocol import ProtocolService
 from app.store.gamestate import GameStateStore
-from app.ui.markdown import Callout, callouts
+from app.ui.markdown import Callout, callouts, without_secrets
 
 # ``![[name|…]]`` and ``![alt](path)``: the pictures a box shows.
 _WIKI_IMAGE = re.compile(r"(!\[\[)([^\]|\n]+)")
@@ -167,9 +167,11 @@ class HandoutService:
         by: Identity,
     ) -> Handout:
         """Hand a session note to the world's characters: the "previously on" for the
-        players' journal, as it reads now."""
+        players' journal, as it reads now, its secret boxes left out."""
         allowed = {pc_id for pc_id, _ in self.recipients(world_id)}
         chosen = [c for c in dict.fromkeys(character_ids) if c in allowed]
+        # The gamemaster's secrets stay behind the screen.
+        text = without_secrets(text)
         if not chosen or not text.strip():
             raise HandoutError("journal.error.nobody")
         handout = Handout(

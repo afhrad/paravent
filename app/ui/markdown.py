@@ -247,6 +247,19 @@ def callouts(text: str) -> list[Callout]:
     return found
 
 
+def without_secrets(text: str) -> str:
+    """``text`` with every ``[!secret]`` box taken out, nested ones too: what may be
+    handed to players whole (a session note sent to their journal)."""
+    source = protect_pipes(text or "")
+    lines = (text or "").split("\n")
+    drop: set[int] = set()
+    for token in _PARSER.parse(source, {}):
+        secret = (token.meta or {}).get("callout") == "secret"
+        if token.type == "blockquote_open" and secret and token.map:
+            drop.update(range(*token.map))
+    return "\n".join(line for n, line in enumerate(lines) if n not in drop)
+
+
 def share_link(url: str, label: str) -> Element:
     """The gamemaster's share button on a box or picture."""
     return a(href=url, class_="md-share", title=label, aria_label=label)[_icon("send")]
@@ -1000,4 +1013,5 @@ __all__ = [
     "render_tag",
     "split_anchors",
     "wikilink_parts",
+    "without_secrets",
 ]

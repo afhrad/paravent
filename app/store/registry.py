@@ -101,6 +101,7 @@ from app.services.sheet import CONDITIONS
 from app.services.shop import ShopService
 from app.services.sound import SoundDesk, SoundLibrary
 from app.services.spellbook import SpellbookService
+from app.services.story import StoryService
 from app.services.style_drafts import ApiAgent, StyleDrafts
 from app.services.summons import Summoning, summoning
 from app.services.text import strip_tags
@@ -1505,6 +1506,16 @@ class StoreRegistry:
             self.protocol,
             minute_of=lambda world_id: self.clock.of(world_id).minute,
             timers_of=self.clock.active,
+        )
+
+    @cached_property
+    def story(self) -> StoryService:
+        """Each character's story (app/services/story.py)."""
+        return StoryService(
+            self.gamestate,
+            quests=self.quests.shown_to,
+            standing=self.factions.standing,
+            log=self.protocol.since,
         )
 
     @cached_property

@@ -171,6 +171,12 @@ class PartyCharacter(BaseModel):
     renown: dict[str, int] = Field(
         default_factory=dict, description="Renown with the world's factions, by faction"
     )
+    quests: list[str] = Field(
+        default_factory=list, description="Quests they are on or have done: 'name (status)'"
+    )
+    contacts: list[str] = Field(
+        default_factory=list, description="Whom they know: 'name (ally, enemy, rival…)'"
+    )
 
 
 class PartyAnswer(BaseModel):

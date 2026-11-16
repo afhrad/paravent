@@ -3768,5 +3768,16 @@
   "spellbook.error.scroll": "Das ist keine Zauberschriftrolle mit eingetragenem Zauber.",
   "spellbook.error.spell": "Diesen Zauber gibt es in den Büchern der Welt nicht.",
   "spellbook.inscribe": "Eintragen",
-  "spellbook.which_spell": "Welcher Zauber?"
+  "spellbook.which_spell": "Welcher Zauber?",
+  "story.alone": "Noch keine Fraktionen, Kontakte oder Gefolge.",
+  "story.bastion": {"one": "{facilities} Einrichtung, {turns} Züge", "other": "{facilities} Einrichtungen, {turns} Züge"},
+  "story.eyebrow": "Geschichte",
+  "story.lede": "Stufe {level} · {xp}",
+  "story.moments": "Momente",
+  "story.no_moments": "Noch nichts im Protokoll.",
+  "story.no_quests": "Noch keine Aufträge.",
+  "story.people": "Wen sie kennen",
+  "story.short": "Geschichte",
+  "story.title": "Die Geschichte von {name}",
+  "story.xp": "{xp} EP"
 }

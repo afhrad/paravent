@@ -410,6 +410,12 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
                     backstory=pc.backstory[:STORY_LIMIT],
                     notes=pc.notes[:STORY_LIMIT],
                     followers=[follower_line(f) for f in registry.followers.of(pc.id)],
+                    quests=[
+                        f"{q.name} ({q.status})"
+                        for q in registry.quests.of(pc.world_id or "")
+                        if not q.characters or pc.id in q.characters
+                    ],
+                    contacts=[f"{c.name or '?'} ({c.kind})" for c in registry.contacts.of(pc.id)],
                     renown={
                         f.name: f.renown[pc.id]
                         for f in registry.factions.of(pc.world_id or "")

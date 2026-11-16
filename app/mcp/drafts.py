@@ -44,10 +44,12 @@ from app.models.gamestate import (
     Coins,
     Encounter,
     EncounterMonster,
+    Faction,
     GivenName,
     LevelRange,
     Location,
     Npc,
+    Quest,
     QuestItem,
     QuestStep,
     Scope,
@@ -788,17 +790,71 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
             quest = registry.gamestate.quests.upsert(
                 quest.model_copy(update={"adventure_id": adventure.id})
             )
-        reward = ", ".join(
-            x
-            for x in (
-                f"{quest.xp} XP each" if quest.xp else "",
-                f"{quest.coins // 100} gp" if quest.coins else "",
-                *(f"{i.ref.partition('|')[0]} ×{i.count}" for i in quest.items),
-                f"renown +{quest.renown} with {found.name}" if found and quest.renown else "",
-            )
-            if x
+        return QuestInfo(
+            id=quest.id,
+            name=quest.name,
+            reward=quest_reward(quest, registry.factions.of(adventure.world_id)),
+            unresolved=unresolved,
         )
-        return QuestInfo(id=quest.id, name=quest.name, reward=reward, unresolved=unresolved)
+
+    @server.tool()
+    def update_quest(
+        quest_id: str,
+        name: str | None = None,
+        text: str | None = None,
+        giver: str | None = None,
+        steps: list[str] | None = None,
+        xp: Annotated[int | None, Field(ge=0, le=1_000_000)] = None,
+        gold: Annotated[int | None, Field(ge=0, le=1_000_000)] = None,
+        items: list[ItemInput] | None = None,
+        faction: str | None = None,
+        renown: Annotated[int | None, Field(ge=0, le=50)] = None,
+    ) -> QuestInfo:
+        """Change a quest of a draft; what you leave out stays as it is. ``items``
+        replaces the reward's items; ``faction`` "" clears it."""
+        registry = stores()
+        with tool_errors():
+            quest = registry.quests.get(quest_id)
+        adventure = writable(quest.adventure_id or "")
+        factions = registry.factions.of(adventure.world_id)
+        faction_id = quest.faction_id or ""
+        if faction is not None:
+            found = next((f for f in factions if f.name.lower() == faction.lower()), None)
+            if faction and found is None:
+                names = ", ".join(f.name for f in factions) or "none"
+                raise ToolError(f"No faction “{faction}” in this world. Its factions: {names}.")
+            faction_id = found.id if found else ""
+        unresolved: list[str] = []
+        reward_items = list(quest.items)
+        if items is not None:
+            lines, unresolved = items_of(adventure, items)
+            reward_items = [QuestItem(ref=f"{i.name}|{i.source}", count=i.count) for i in lines]
+        with tool_errors():
+            saved = registry.quests.save(
+                adventure.world_id,
+                {
+                    "name": quest.name if name is None else name,
+                    "giver": quest.giver if giver is None else giver,
+                    "text": quest.text if text is None else text,
+                    "faction_id": faction_id,
+                    "steps": quest.steps
+                    if steps is None
+                    else [QuestStep(text=x[:500]) for x in steps if x.strip()],
+                    "characters": quest.characters,
+                    "shown": quest.shown,
+                    "xp": str(quest.xp if xp is None else xp),
+                    "coins": str(quest.coins if gold is None else gold * 100),
+                    "items": reward_items,
+                    "renown": str(quest.renown if renown is None else renown),
+                },
+                quest.id,
+            )
+        return QuestInfo(
+            id=saved.id,
+            name=saved.name,
+            reward=quest_reward(saved, factions),
+            unresolved=unresolved,
+        )
 
     @server.tool()
     def create_treasure(
@@ -941,6 +997,21 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
                 registry.treasure.delete(treasure.id)
                 return f"Deleted the treasure “{treasure.name}”."
         raise ToolError(f"Unknown kind {kind!r}; one of: {', '.join(KINDS)}.")
+
+
+def quest_reward(quest: Quest, factions: Sequence[Faction]) -> str:
+    """A quest's reward in a line, for Claude: "300 XP each, 50 gp, Potion of Healing ×2"."""
+    faction = next((f for f in factions if f.id == quest.faction_id), None)
+    return ", ".join(
+        x
+        for x in (
+            f"{quest.xp} XP each" if quest.xp else "",
+            f"{quest.coins // 100} gp" if quest.coins else "",
+            *(f"{i.ref.partition('|')[0]} ×{i.count}" for i in quest.items),
+            f"renown +{quest.renown} with {faction.name}" if faction and quest.renown else "",
+        )
+        if x
+    )
 
 
 def bearer_of(ctx: Context) -> str:

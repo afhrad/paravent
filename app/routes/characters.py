@@ -55,6 +55,7 @@ from app.services.contacts import ContactError
 from app.services.crafting import craft_rules, tools_for
 from app.services.downtime import DowntimeError, crafting_days, materials, training_plan
 from app.services.events import revision_stream
+from app.services.experience import progress
 from app.services.factions import granted, title_of
 from app.services.followers import FollowerError, sidekick_level
 from app.services.play import Actor, PlayError
@@ -70,6 +71,7 @@ from app.ui.follower_pages import followers_page
 from app.ui.names import name_text
 from app.ui.sheet_pages import sheet_fragment, sheet_page
 from app.ui.shop_pages import shop_page
+from app.ui.story_pages import story_page
 from app.ui.tags import localized_context, render_entries
 
 router = APIRouter(tags=["characters"])
@@ -1034,6 +1036,28 @@ def _followers(
             message=message,
         ),
         status_code=200 if error is None else 422,
+    )
+
+
+@router.get("/characters/{character_id}/story", response_class=HTMLResponse)
+async def story(
+    identity: IdentityDep,
+    page: PageDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+) -> HTMLResponse:
+    """What the character has done and whom it knows."""
+    character = characters.get_for(identity, character_id)
+    world = registry.gamestate.worlds.find(character.world_id) if character.world_id else None
+    return html(
+        story_page(
+            page,
+            character,
+            registry.story.of(character, gamemaster=identity.is_gamemaster),
+            progress=progress(character),
+            milestone=world is not None and world.milestone,
+        )
     )
 
 

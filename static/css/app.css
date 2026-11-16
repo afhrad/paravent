@@ -2626,3 +2626,6 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .session-list a, .follower-head a, .follower-sidekick a, .play-news a, .bastion-event a{ color:var(--accent-text); }
 /* Small step and hit point buttons stay in a row on a phone. */
 .follower-acts .inline-form, .faction-steps .inline-form, .quest-steps .inline-form{ flex-basis:auto; }
+.story-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; align-items:start; }
+.story-panel{ display:grid; gap:10px; }
+.story-list li{ align-items:baseline; }

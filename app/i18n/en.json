@@ -3768,5 +3768,16 @@
   "spellbook.error.scroll": "That is not a spell scroll with a spell written in.",
   "spellbook.error.spell": "That spell is not in the world's books.",
   "spellbook.inscribe": "Write in",
-  "spellbook.which_spell": "Which spell?"
+  "spellbook.which_spell": "Which spell?",
+  "story.alone": "No factions, contacts or followers yet.",
+  "story.bastion": {"one": "{facilities} facility, {turns} turns", "other": "{facilities} facilities, {turns} turns"},
+  "story.eyebrow": "Story",
+  "story.lede": "Level {level} · {xp}",
+  "story.moments": "Moments",
+  "story.no_moments": "Nothing in the log yet.",
+  "story.no_quests": "No quests yet.",
+  "story.people": "Whom they know",
+  "story.short": "Story",
+  "story.title": "{name}'s story",
+  "story.xp": "{xp} XP"
 }

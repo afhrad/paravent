@@ -258,12 +258,17 @@ def _sidekick(
     ]
 
 
-def sheet_followers_link(page: Page, character_id: str, count: int) -> Element:
-    """The sheet's way to its followers, with how many there are."""
-    return a(href=followers_url(character_id), class_="btn btn-sm")[
-        icon("users", "sm"),
-        span[page.t("followers.short")],
-        span(class_="pill")[str(count)] if count else None,
+def sheet_followers_link(page: Page, character_id: str, count: int) -> Node:
+    """The sheet's ways to its followers (with how many there are) and its story."""
+    return [
+        a(href=followers_url(character_id), class_="btn btn-sm")[
+            icon("users", "sm"),
+            span[page.t("followers.short")],
+            span(class_="pill")[str(count)] if count else None,
+        ],
+        a(href=f"/characters/{character_id}/story", class_="btn btn-sm")[
+            icon("scroll", "sm"), span[page.t("story.short")]
+        ],
     ]
 
 

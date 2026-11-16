@@ -248,16 +248,22 @@ class TestReading:
                 text="",
                 faction="Nobody",
             )
+            changed = await call(
+                mcp, "update_quest", quest_id=quest["id"], gold=80, steps=["Find the bell"]
+            )
+            assert "80 gp" in changed["reward"] and "300 XP each" in changed["reward"]
+            assert registry.quests.get(quest["id"]).steps[0].text == "Find the bell"
             overview = await call(mcp, "world_overview", world_id=world.id)
             party = await call(mcp, "party", world_id=world.id, character_ids=[lyra])
             assert not registry.quests.get(quest["id"]).shown  # hidden until shown
             await call(mcp, "delete", kind="adventure", id=draft["id"])
         (shown,) = overview["quests"]
         assert shown["name"] == "The Drowned Bell" and shown["adventure"] == "Bells"
-        assert shown["steps"] == 2 and shown["faction"] == "Lantern Guild"
+        assert shown["steps"] == 1 and shown["faction"] == "Lantern Guild"
         (pc,) = party["characters"]
         assert pc["followers"] == ["Ash (mount, Riding Horse)"]
         assert pc["renown"] == {"Lantern Guild": 2}
+        assert pc["quests"] == ["The Drowned Bell (open)"]
         assert registry.quests.of(world.id) == []
 
     async def test_party(self, table: tuple[httpx.AsyncClient, Any]) -> None:

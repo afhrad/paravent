@@ -612,6 +612,12 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         `/help/between`): a gamemaster's walkthrough of the session page, the clock and
         calendar, the road, downtime, the bastion, contacts, factions, quests, followers,
         chases, traps and levelling, linked from the session page and the start guide
+  - [x] **A character's story** (2026-11-16, `app/services/story.py`, a Story button on
+        the sheet): its quests, its factions with renown and title, contacts, followers
+        and bastion, and the log's moments that changed it (experience, levels, renown,
+        contacts, spells copied); a player sees only the quests shown to it
+  - [x] **Secrets stay behind the screen** (2026-11-16): a session note sent to the
+        players leaves out its `[!secret]` boxes
   - [x] **Image effects** (2026-11-04, ADVENTURES.md §5.5, `app/services/image_effects.py`):
         `torn`, `fade`, `oval`, `sepia`, `aged`, `mono`, `banner` written beside an image
         (`![[tavern.jpg|torn sepia]]`, `cover: media/x.jpg|fade`), rendered once with
@@ -836,8 +842,8 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       `find_traps` the traps of the world's books with their tags (Spring it in the
       chapter) and `plan_chase` a chase's complication table and runners. **Quests, followers
       and renown** (2026-11-16): `create_quest` writes a quest for a draft (hidden until
-      shown, gone with the draft), `world_overview` lists the quests, `party` each
-      character's followers and renown
+      shown, gone with the draft), `update_quest` changes one, `world_overview` lists
+      the quests, `party` each character's followers, renown, quests and contacts
 - [x] Wizard state when going back a step — checked 2026-11-02 (CHARGEN-WIZARD.md §6): answers
       live in the draft's file, a step is a GET of them, and a changed answer marks later
       steps for review without dropping them. Typed text followed by a footer click now
@@ -1111,7 +1117,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2424 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2425 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the
