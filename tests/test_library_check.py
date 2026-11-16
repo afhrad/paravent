@@ -248,6 +248,42 @@ class TestLibrary:
             "treasure: Hoard — Test Sword|ZZ",
         ]
 
+    def test_what_play_keeps_between_sessions(
+        self, old: StoreRegistry, world: World, tmp_path: Path
+    ) -> None:
+        from app.models.gamestate import Faction, Follower, Quest, QuestItem, WorldClock
+
+        state = old.gamestate
+        state.quests.create(
+            Quest(world_id=world.id, name="Bell", items=[QuestItem(ref="Test Sword|ZZ")])
+        )
+        state.followers.create(
+            Follower(
+                character_id="kim",
+                world_id=world.id,
+                kind="mount",
+                name="Ash",
+                monster="Test Goblin|ZZ",
+            )
+        )
+        state.factions.create(Faction(world_id=world.id, name="Guild", table="Gone Renown|ZZ"))
+        state.clocks.upsert(WorldClock(id=world.id, calendar="Calendar of Nowhere"))
+        pc = PlayerCharacter.model_validate(
+            {
+                "name": "Kim",
+                "inventory": [{"item": "A scroll", "spell": "Gone Spell|ZZ"}],
+            }
+        )
+        state.characters.create(pc)
+        report = run(_rewrite(tmp_path, spells=[BOLT], monsters=False))
+        assert sorted(found(report, Kind.LIBRARY_REFERENCE)) == [
+            "calendar of a world's clock: Calendar of Nowhere — Calendar of Nowhere",
+            "character: Kim — Gone Spell|ZZ",
+            "faction: Guild — Gone Renown|ZZ",
+            "follower: Ash (?) — Test Goblin|ZZ",
+            "quest: Bell — Test Sword|ZZ",
+        ]
+
     def test_a_character_names_its_subclass_short_and_free_gear_is_no_entry(
         self, old: StoreRegistry
     ) -> None:

@@ -547,8 +547,15 @@ class TestNames:
 
 class TestCraft:
     async def test_budget_random_encounters_and_treasure(
-        self, table: tuple[httpx.AsyncClient, Any]
+        self, table: tuple[httpx.AsyncClient, Any], monkeypatch: pytest.MonkeyPatch
     ) -> None:
+        # The built fight is the best of random tries: seeded, so its difficulty is fixed.
+        import random
+
+        from app.services import encounter_gen
+
+        seeded = random.Random(7)
+        monkeypatch.setattr(encounter_gen.random, "Random", lambda: seeded)
         _raw, facts = table
         world_id = facts["world"].id
         lyra, brunhild = facts["ids"]

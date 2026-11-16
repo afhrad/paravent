@@ -190,7 +190,55 @@ class LibraryCheck:
                     self._missing(f"fight: {combat.name}", "", ("monster",), ref)
         for character in self._stores.gamestate.characters.list():
             self._character(character)
+        self._table()
         self._anchors()
+
+    def _table(self) -> None:
+        """What play keeps between sessions: quest rewards, followers and sidekick
+        classes, factions' renown tables, bastion facilities, shop shelves and the
+        calendars the worlds' clocks date by."""
+        from app.ui.faction_pages import factions_url
+        from app.ui.follower_pages import followers_url
+        from app.ui.quest_pages import quests_url
+
+        state = self._stores.gamestate
+        for quest in state.quests.list():
+            for item in quest.items:
+                self._missing(f"quest: {quest.name}", quests_url(quest.world_id), ITEMS, item.ref)
+        names = {pc.id: pc.name or "?" for pc in state.characters.list()}
+        for follower in state.followers.list():
+            subject = f"follower: {follower.name} ({names.get(follower.character_id, '?')})"
+            href = followers_url(follower.character_id)
+            self._missing(subject, href, ("monster",), follower.monster or None)
+            self._missing(subject, href, ("class",), follower.sidekick_class or None)
+        for faction in state.factions.list():
+            self._missing(
+                f"faction: {faction.name}",
+                factions_url(faction.world_id),
+                ("table",),
+                faction.table or None,
+            )
+        for bastion in state.bastions.list():
+            for facility in bastion.facilities:
+                self._missing(
+                    f"bastion: {names.get(bastion.id, '?')}",
+                    f"/characters/{bastion.id}/bastion",
+                    ("facility",),
+                    facility.ref,
+                )
+        for shop in state.shops.list():
+            for ware in shop.stock:
+                self._missing(f"shop: {shop.name}", f"/gm?world={shop.id}", ITEMS, ware.ref)
+        for clock in state.clocks.list():
+            if clock.calendar and clock.calendar not in {
+                c.key for c in self._stores.calendars(clock.id)
+            }:
+                self._found.add(
+                    Kind.LIBRARY_REFERENCE,
+                    subject=f"calendar of a world's clock: {clock.calendar}",
+                    detail=clock.calendar,
+                    href=f"/gm?world={clock.id}",
+                )
 
     def _character(self, pc: Any) -> None:
         """Only what names its book: a bare skill or free-text gear means no entry."""
@@ -221,6 +269,8 @@ class LibraryCheck:
             check(("spell",), spell)
         for carried in pc.inventory:
             check(ITEMS, carried.item)
+            if carried.spell:  # the spell a scroll holds
+                self._missing(subject, href, ("spell",), carried.spell)
 
     def _missing_named(self, subject: str, href: str, reference: str) -> None:
         self._found.add(Kind.LIBRARY_REFERENCE, subject=subject, detail=reference, href=href)
