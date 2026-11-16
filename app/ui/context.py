@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from app.services.auth import Identity
+from app.services.calendar import Calendar
 from app.services.i18n import Translator
 from app.services.player_view import Reader
 from app.services.themes import Theme
@@ -38,6 +39,9 @@ class Page:
     tokens: Callable[[str, str | None, str], Token] | None = None
     # Where an element's picture sits in its token's frame: ``(world, kind, id)``.
     token_placement: Callable[[str | None, str, str], Placement] | None = None
+    # The calendar a world dates its days by: ``world`` → (calendar, the calendar's day
+    # of the clock's first day, era), None for plain day numbers (app/services/calendar.py).
+    calendars: Callable[[str | None], tuple[Calendar, int, str] | None] | None = None
 
     def token_of(self, kind: str, world_id: str | None, ident: str) -> Token:
         """An NPC's, character's, place's, encounter's or treasure's token."""

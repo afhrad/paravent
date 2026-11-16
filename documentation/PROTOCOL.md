@@ -206,6 +206,17 @@ What just happened, without stopping play.
   `shop:close:<name>`, `buy:` and `sell:<item>*<count>:<coins>`, `spend:<coins>:<for>`
   (materials, a day of training) and `learn:<language|tool>:<ref>`. The bastion adds
   `bastion_defenders:<change>:<count>` and `bastion_event:<name>:<defenders lost>`.
+  `lifestyle:<level>:<days>:<paid>:<owed>` (copper) for the days a character's lifestyle
+  cost (app/services/lifestyle.py); `contact:new:<kind>:<count>` and
+  `contact:called:<kind>:<name>` for its allies, enemies, rivals and favours
+  (app/services/contacts.py). A tool check is a `check` entry with
+  `what` `tool:<ability>:<tool>`, its proficiency among the roll's sources. A chase
+  (app/services/chase.py) writes `chase:start:<environment>:<feet>`,
+  `chase:dash:<name>:<n>[:<total>:<kept>[:out]]`,
+  `chase:complication:<name>:<roll>:<text>`, `chase:escape:<name>:<total|->:<dc>:<escaped>`
+  and `chase:end:<outcome>`; a trap (app/services/traps.py) `trap:sprung:<name>`, then
+  `trap:<save|attack>:<character>:<roll>:<against>:<failed>:<damage>:<type>:<conditions>`
+  for each it caught, its saves rolled on the sheets as `save` entries.
 - The device that rolled hears the dice (`sound.js`) as today; a toast never plays a sound
   of its own.
 

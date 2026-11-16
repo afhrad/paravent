@@ -65,7 +65,10 @@ def redirect(url: str) -> RedirectResponse:
 
 
 def html(page: object, status_code: int = 200) -> HTMLResponse:
-    """Render an htpy element as a response."""
+    """Render an htpy element as a response; a list renders its elements in turn (an
+    alert above the panel it is about)."""
+    if isinstance(page, list | tuple):
+        return HTMLResponse("".join(str(x) for x in page if x is not None), status_code)
     return HTMLResponse(str(page), status_code=status_code)
 
 

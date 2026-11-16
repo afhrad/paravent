@@ -1030,6 +1030,9 @@ class BastionFacility(GameStateModel):
     # The option the order carries out (app/services/bastion_orders.py): its index
     # among the order's options, and for crafting by a tool ``"<n>|<item>"``.
     option: str = ""
+    # The tools it was equipped with when added (a Workshop's six Artisan's Tools,
+    # ``"Carpenter's Tools|XPHB"``): what its hirelings craft with.
+    tools: list[str] = Field(default_factory=list)
 
 
 class BasicFacility(GameStateModel):
@@ -1145,6 +1148,12 @@ class WorldClock(Record):
     # the last stretch stopped partway through it.
     road: int = Field(default=0, ge=0)
     road_day: int | None = None
+    # The setting's calendar its days are dated by (app/services/calendar.py): the
+    # caption of the books' table ("" for plain day numbers), the calendar's day index
+    # of the clock's first day, and the era written after the year ("DR").
+    calendar: str = ""
+    calendar_epoch: int = 0
+    calendar_era: str = Field(default="", max_length=12)
 
 
 class DowntimeProject(GameStateModel):
@@ -1214,6 +1223,55 @@ class Shop(Record):
     markup: int = Field(default=100, ge=10, le=1000)
     buys: int = Field(default=50, ge=0, le=100)
     stock: list[ShopItem] = Field(default_factory=list)
+
+
+class Contact(Record):
+    """Someone a character knows (app/services/contacts.py): an ally or enemy made
+    carousing, a rival behind a complication, a favour a temple owes, or anyone the
+    player writes down. ``spent`` once called on (a favour used, an ally asked)."""
+
+    character_id: str
+    world_id: str | None = None
+    kind: Literal["ally", "enemy", "rival", "favour", "contact"] = "contact"
+    name: str = Field(default="", max_length=120)
+    note: str = Field(default="", max_length=2000)
+    source: str = ""  # the downtime activity it came from ("carouse", "service")
+    spent: bool = False
+
+
+class ChaseRunner(GameStateModel):
+    """One participant of a chase (app/services/chase.py): a character of the world or
+    a creature, on one side, in initiative order, with what the chase needs to know of
+    it and what the chase has cost it."""
+
+    name: str
+    side: Literal["quarry", "pursuer"]
+    character_id: str | None = None
+    monster: str = ""  # a creature's reference, ``"Thug|MM"``
+    initiative: int = 0
+    con_mod: int = 0
+    stealth: int = 0
+    passive: int = 10
+    dashes: int = Field(default=0, ge=0)
+    free_dashes: int = Field(default=3, ge=0)
+    exhaustion: int = Field(default=0, ge=0, le=6)  # levels gained during the chase
+    out: bool = False  # dropped out (five levels of exhaustion, or by the gamemaster)
+    escaped: bool = False
+    complication: str = ""  # what hit it on the last turn before its own
+
+
+class Chase(Record):
+    """A chase in a world (the guide's chase rules), run from the party view; the id is
+    the world's. ``turn`` indexes the runner whose turn it is; ``over`` is "" while it
+    runs, else how it ended (``escaped``, ``caught``, ``stopped``)."""
+
+    environment: Literal["urban", "wilderness"] = "urban"
+    rules: Literal["classic", "one"] = "classic"
+    distance: int = Field(default=30, ge=0, le=10_000)
+    round: int = Field(default=1, ge=1)
+    turn: int = Field(default=0, ge=0)
+    runners: list[ChaseRunner] = Field(default_factory=list)
+    over: str = ""
 
 
 class PartyNotes(Record):

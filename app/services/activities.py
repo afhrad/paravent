@@ -251,10 +251,9 @@ class Activities:
         third = options.get("third", "investigation")
         if third not in CRIME_THIRD:
             raise DowntimeError("downtime.error.option")
-        tools = self._proficiency(pc) if _knows(pc, "thieves' tools") else 0
         totals = [
             ("stealth", self._check(pc, "skill", "stealth")),
-            ("thieves_tools", self._check(pc, "check", "dex") + tools),
+            ("thieves_tools", self._check(pc, "tool", "dex|Thieves' Tools")),
             (third, self._check(pc, "skill", third)),
         ]
         out = Outcome([f"check:{name}:{total}:{dc}:{int(total >= dc)}" for name, total in totals])
@@ -350,7 +349,15 @@ class Activities:
         if how not in JOBS:
             raise DowntimeError("downtime.error.option")
         if how == "tools":
-            total = self._check(pc, "check", "int") + self._proficiency(pc)
+            # An Intelligence check with a tool the character knows (the one asked for,
+            # else the first): its proficiency is part of the roll.
+            known = [o.name for o in pc.tools]
+            wanted = str(options.get("tool", ""))
+            tool = next((k for k in known if k.lower() == wanted.lower()), None)
+            tool = tool or next(iter(known), "")
+            if not tool:
+                raise DowntimeError("downtime.error.no_tool")
+            total = self._check(pc, "tool", f"int|{tool}")
         else:
             total = self._check(pc, "skill", how)
         out = Outcome([f"check:{how}:{total}"])
@@ -444,17 +451,16 @@ class Activities:
             out.lines.append("complication:")
             return
         row = rows[self._dice.die(len(rows)) - 1]
-        out.lines.append(f"complication:{rolled(row[-1], self._dice).rstrip('*')}")
+        text = rolled(row[-1], self._dice)
+        out.lines.append(f"complication:{text.rstrip('*')}")
+        if text.rstrip().endswith("*"):
+            out.lines.append("rival:")  # the book marks those a rival is behind
 
 
 def _bounded(raw: str | None, low: int, high: int) -> int:
     text = str(raw or "").strip()
     value = int(text) if text.isdigit() else low
     return max(low, min(high, value))
-
-
-def _knows(pc: PlayerCharacter, tool: str) -> bool:
-    return any(o.name.lower() == tool for o in pc.tools)
 
 
 def _dice_of(text: str) -> str:

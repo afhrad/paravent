@@ -19,6 +19,7 @@ from urllib.parse import urlencode
 from htpy import Element, Node, a, b, button, dialog, div, form, li, ol, p, span
 
 from app.models.protocol import Die, EntryKind, ProtocolEntry, RollRecord, Visibility
+from app.services import coins
 from app.services.protocol_view import Filter, LogPage, Shown
 from app.services.travel import PACES
 from app.ui.clock_pages import clock_label, remaining
@@ -345,6 +346,13 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             amount=entry.roll.total if entry.roll is not None else "",
             condition=_word(page, f"condition.{condition}", condition),
         )
+    if kind is EntryKind.CHECK and head == "tool":
+        ability, _, tool = rest.partition(":")
+        return t(
+            "log.tool",
+            tool=name_text(page, ("item", "baseitem"), tool),
+            ability=_word(page, f"ability.{ability}", ability),
+        )
     if kind in (EntryKind.CHECK, EntryKind.SAVE):
         ability = rest
         if head in ("check", "save") and ability:
@@ -449,7 +457,7 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
         if head == "clock":
             span_text, _, after = rest.partition(":")
             now, _, why = after.partition(":")
-            when = clock_label(page, int(now)) if now.isdigit() else now
+            when = clock_label(page, int(now), entry.scope.world) if now.isdigit() else now
             if span_text == "set":
                 return t("protocol.clock_set", when=when)
             spent = remaining(page, int(span_text)) if span_text.isdigit() else span_text
@@ -492,6 +500,34 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
         if head == "spend":
             purse, _, reason = rest.partition(":")
             return t("protocol.spend", coins=_purse_words(page, purse))
+        if head == "chase":
+            return _chase_words(page, rest.split(":"))
+        if head == "trap":
+            return _trap_words(page, rest.split(":"))
+        if head == "contact":
+            step, sort, more = ([*rest.split(":", 2), "", ""])[:3]
+            kind_text = t(f"contacts.kind.{sort}")
+            if step == "new":
+                return t("protocol.contact_new", n=more, kind=kind_text)
+            return t("protocol.contact_called", kind=kind_text, name=more).strip()
+        if head == "lifestyle":
+            level, days, paid, owed = (rest.split(":") + ["", "", "", ""])[:4]
+            level_text = t(f"lifestyle.{level}").lower()
+            day_count = int(days) if days.isdigit() else 0
+            paid_text = _purse_words(page, coins.text(int(paid) if paid.isdigit() else 0))
+            if owed.isdigit() and int(owed):
+                owed_text = _purse_words(page, coins.text(int(owed)))
+                return t.plural(
+                    "protocol.lifestyle_owed",
+                    day_count,
+                    level=level_text,
+                    days=days,
+                    coins=paid_text,
+                    owed=owed_text,
+                )
+            return t.plural(
+                "protocol.lifestyle", day_count, level=level_text, days=days, coins=paid_text
+            )
         if head == "learn":
             learned, _, ref = rest.partition(":")
             categories = "language" if learned == "language" else ("item", "baseitem")
@@ -574,6 +610,60 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
 
 # The reasons the clock is moved for that have words of their own.
 CLOCK_REASONS = ("short_rest", "long_rest", "fight", "travel", "downtime")
+
+
+def _chase_words(page: Page, fields: list[str]) -> str:
+    """A step of a chase (app/services/chase.py) in the reader's words."""
+    t = page.t
+    step, *rest = fields + [""]
+    rest = rest + [""] * 5
+    if step == "start":
+        feet = int(rest[1]) if rest[1].isdigit() else 0
+        return t(
+            "protocol.chase_start",
+            where=t(f"chase.where.{rest[0]}"),
+            distance=page.u.distance(feet),
+        )
+    if step == "dash":
+        name, n, total, kept, out = rest[:5]
+        if not total:
+            return t("protocol.chase_dash", name=name, n=n)
+        if out:
+            return t("protocol.chase_dash_out", name=name, n=n, total=total)
+        key = "protocol.chase_dash_roll" if kept == "1" else "protocol.chase_dash_tired"
+        return t(key, name=name, n=n, total=total)
+    if step == "complication":
+        return t("protocol.chase_complication", name=rest[0], text=rest[2])
+    if step == "escape":
+        name, total, dc, escaped = rest[:4]
+        if total == "-":
+            return t("protocol.chase_seen", name=name)
+        key = "protocol.chase_escape" if escaped == "1" else "protocol.chase_stays"
+        return t(key, name=name, total=total, dc=dc)
+    if step == "end":
+        return t("protocol.chase_end", outcome=t(f"chase.over.{rest[0] or 'stopped'}"))
+    return ":".join(fields)
+
+
+def _trap_words(page: Page, fields: list[str]) -> str:
+    """A trap sprung (app/services/traps.py), and what it did to each character."""
+    t = page.t
+    step, *rest = fields + [""] * 9
+    if step == "sprung":
+        return t("protocol.trap_sprung", name=rest[0])
+    name, roll, against, failed, damage, kind, conditions = rest[:7]
+    result = t(
+        "trap.result_hit" if failed == "1" else "trap.result_safe",
+        roll=roll if roll not in ("", "None") else "—",
+        against=against if against not in ("", "None") else "—",
+    )
+    if damage.isdigit() and int(damage):
+        word = t(f"rules.damage.{kind}") if kind else ""
+        word = kind if word == f"rules.damage.{kind}" else word
+        result += f" · {t('trap.result_damage', amount=damage, type=word)}"
+    if conditions:
+        result += " · " + ", ".join(t(f"condition.{c}") for c in conditions.split(","))
+    return t("protocol.trap_target", name=name, result=result)
 
 
 def _purse_words(page: Page, purse: str) -> str:

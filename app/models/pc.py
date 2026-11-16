@@ -411,6 +411,10 @@ class PlayState(GameStateModel):
     resources_used: dict[str, int] = Field(default_factory=dict)
     conditions: list[str] = Field(default_factory=list)
     exhaustion: int = Field(default=0, ge=0, le=6)
+    # The levels of that exhaustion hunger and thirst brought: no rest takes them away
+    # until the character has eaten (hunger) or drunk its fill (thirst).
+    hunger_levels: int = Field(default=0, ge=0, le=6)
+    thirst_levels: int = Field(default=0, ge=0, le=6)
     concentration: ChosenOption | None = None
     inspiration: bool = False
     # A barbarian's Rage: resistance to bludgeoning, piercing and slashing while it lasts.
@@ -607,6 +611,11 @@ class PlayerCharacter(Record):
 
     inventory: list[InventoryItem] = Field(default_factory=list)
     currency: Currency = Field(default_factory=Currency)
+    # How the character lives between adventures (app/services/lifestyle.py): each day
+    # the world's clock passes off the road costs that from the purse. "" for none kept.
+    lifestyle: Literal[
+        "", "wretched", "squalid", "poor", "modest", "comfortable", "wealthy", "aristocratic"
+    ] = ""
     resources: list[Resource] = Field(default_factory=list)
 
     # Prerequisites that are free prose and cannot be machine-checked, confirmed by

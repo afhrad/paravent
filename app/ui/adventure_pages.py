@@ -107,6 +107,7 @@ from app.ui.prose_check import Problem
 from app.ui.ref_pages import CATEGORY_KEY, statblock
 from app.ui.sound_panel import SOUNDS_URL
 from app.ui.tags import ENTITY_CATEGORY, RenderContext, localized_context, ref_url
+from app.ui.trap_pages import spring_button
 
 STATUS_TONE = {"draft": "magic", "planned": "neutral", "running": "accent", "finished": "heal"}
 
@@ -192,6 +193,7 @@ def _fold(
             )[icon("book-open", "sm")],
         ],
         statblock(page, entry, ctx),
+        spring_button(page, world_id, entry.category, entry.name, entry.source),
     ]
 
 

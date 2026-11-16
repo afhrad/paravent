@@ -41,6 +41,7 @@ from htpy import (
     legend,
     li,
     nav,
+    noscript,
     option,
     p,
     section,
@@ -57,6 +58,7 @@ from app.models.gamestate import SourceSet
 from app.models.pc import DraftStatus
 from app.services.condition_rolls import affected
 from app.services.experience import Progress, progress
+from app.services.lifestyle import LIFESTYLES
 from app.services.protocol_view import Filter
 from app.services.references import ReferenceEntry
 from app.services.sheet import (
@@ -89,7 +91,7 @@ from app.ui.names import summary as summary_line
 from app.ui.protocol_pages import log_embed_slot
 from app.ui.ref_pages import statblock
 from app.ui.safety_pages import xcard_button
-from app.ui.shop_pages import sheet_shop_link
+from app.ui.shop_pages import coin_text, sheet_shop_link
 from app.ui.tags import RenderContext, localized_context, plain, ref_url, render_entries
 from app.ui.tokens import token, token_panel
 from app.ui.translate_pages import translate_url
@@ -1291,9 +1293,40 @@ def _gear_pane(page: Page, sheet: Sheet) -> Element:
             ]
         ],
         _load_line(page, sheet),
+        _lifestyle(page, sheet) if sheet.lifestyle_costs else None,
         div(class_="cs-list")[[_item_row(page, sheet, i) for i in sheet.inventory]]
         if sheet.inventory
         else p(class_="cs-empty")[t("sheet.no_items")],
+    ]
+
+
+def _lifestyle(page: Page, sheet: Sheet) -> Element:
+    """How the character lives, and what a day of it costs (app/services/lifestyle.py)."""
+    t = page.t
+    url = _url(sheet, "/act/lifestyle")
+    held = sheet.character.lifestyle
+    costs = sheet.lifestyle_costs
+    return form(method="post", action=url, hx_post=url, hx_trigger="change", class_="cs-lifestyle")[
+        label[
+            span(class_="eyebrow")[t("sheet.lifestyle")],
+            select(name="level")[
+                option(value="", selected=not held)[t("sheet.lifestyle_none")],
+                [
+                    option(value=level, selected=level == held)[
+                        f"{t(f'lifestyle.{level}')} · "
+                        + (
+                            t("sheet.lifestyle_day", cost=coin_text(page, costs[level]))
+                            if costs.get(level)
+                            else t("sheet.lifestyle_free")
+                        )
+                    ]
+                    for level in LIFESTYLES
+                    if level in costs
+                ],
+            ],
+        ],
+        noscript[button(type="submit", class_="btn btn-sm")[t("sheet.lifestyle_set")]],
+        small(class_="muted")[t("sheet.lifestyle_hint")],
     ]
 
 
@@ -1562,6 +1595,18 @@ def _right(page: Page, sheet: Sheet) -> Element:
                 label=t("sheet.exhaustion_up"),
             ),
         ],
+        div(class_="cs-privation muted")[
+            span[
+                t(
+                    "sheet.privation",
+                    hunger=state.hunger_levels,
+                    thirst=state.thirst_levels,
+                )
+            ],
+            act(sheet, "fed", {"what": "both"}, t("sheet.fed"), cls="btn btn-sm"),
+        ]
+        if state.hunger_levels or state.thirst_levels
+        else None,
     ]
     # A slice of the log (documentation/PROTOCOL.md §8): this character's entries, as
     # this reader may read them; "Clear" starts it afresh without deleting anything.
@@ -1590,7 +1635,9 @@ def _head(page: Page, sheet: Sheet, *, file_label: str | None) -> Element:
             ],
         ],
         div(class_="cs-head-meta")[
-            sheet_time(page, sheet.clock) if sheet.clock is not None else None,
+            sheet_time(page, sheet.clock, sheet.character.world_id)
+            if sheet.clock is not None
+            else None,
             span(class_="pill neutral", title=_value_title(page, sheet.passive_perception))[
                 t("sheet.passive_short", n=sheet.passive_perception.text)
             ],

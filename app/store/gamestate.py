@@ -230,8 +230,10 @@ class GameStateStore:
             Adventure,
             Bastion,
             Chapter,
+            Chase,
             CheckCall,
             Combat,
+            Contact,
             CreatureDesign,
             Downtime,
             Encounter,
@@ -303,6 +305,10 @@ class GameStateStore:
         self.downtime: Collection[Downtime] = Collection(root / "downtime.json", Downtime)
         # The shop each world's gamemaster opens for its characters.
         self.shops: Collection[Shop] = Collection(root / "shops.json", Shop)
+        # Whom each character knows: allies, enemies, rivals, favours owed.
+        self.contacts: Collection[Contact] = Collection(root / "contacts.json", Contact)
+        # The chase each world's gamemaster runs (app/services/chase.py).
+        self.chases: Collection[Chase] = Collection(root / "chases.json", Chase)
         self.npcs: Collection[Npc] = Collection(root / "npcs.json", Npc)
         # The campaign's places, ``{@place}`` (documentation/ADVENTURES.md §4).
         self.locations: Collection[Location] = Collection(root / "locations.json", Location)

@@ -28,7 +28,8 @@ from htpy import (
 from htpy import input as input_el
 
 from app.models.gamestate import ClockTimer, Journey
-from app.services.clock import day_of, part_of_day, time_of
+from app.services.calendar import Calendar
+from app.services.clock import DAY, day_of, part_of_day, time_of
 from app.services.travel import PACES, WATER
 from app.ui.context import Page
 from app.ui.forms import hidden
@@ -47,9 +48,52 @@ _UNITS = ("minute", "hour", "day")
 _ICONS = {"light": "flame", "spell": "sparkles", "custom": "bell"}
 
 
-def clock_label(page: Page, minute: int) -> str:
-    """ "Day 3 · 14:20"."""
-    return page.t("clock.when", day=day_of(minute), time=time_of(minute))
+def clock_label(page: Page, minute: int, world_id: str | None = None) -> str:
+    """ "Day 3 · 14:20", or the date by the world's calendar: "14 Mirtul 1492 DR ·
+    14:20" (app/services/calendar.py)."""
+    dated = page.calendars(world_id) if page.calendars is not None and world_id else None
+    if dated is None:
+        return page.t("clock.when", day=day_of(minute), time=time_of(minute))
+    calendar, epoch, era = dated
+    date = calendar.date(epoch + minute // DAY)
+    year = f"{date.year} {era}".strip()
+    if date.month.holiday:
+        return page.t("clock.dated_holiday", name=date.month.name, year=year, time=time_of(minute))
+    return page.t(
+        "clock.dated", day=date.day, month=date.month.name, year=year, time=time_of(minute)
+    )
+
+
+def _season_key(page: Page, minute: int, world_id: str | None) -> str:
+    dated = page.calendars(world_id) if page.calendars is not None and world_id else None
+    if dated is None:
+        return ""
+    calendar, epoch, _era = dated
+    return calendar.date(epoch + minute // DAY).month.season
+
+
+def by_season(text: str, season: str) -> str:
+    """The books' "light rain or light snowfall" as the season has it: the snow in
+    winter, the rain otherwise; unchanged without a season."""
+    parts = text.split(" or ")
+    if not season or len(parts) != 2:
+        return text
+    snow = next((x for x in parts if "snow" in x.lower()), None)
+    if snow is None:
+        return text
+    chosen = snow if season == "winter" else next(x for x in parts if x is not snow)
+    return chosen[:1].upper() + chosen[1:] if text[:1].isupper() else chosen
+
+
+def season_of(page: Page, minute: int, world_id: str | None) -> str:
+    """The season of the day by the world's calendar, in the reader's words; ""
+    without a calendar or a season."""
+    dated = page.calendars(world_id) if page.calendars is not None and world_id else None
+    if dated is None:
+        return ""
+    calendar, epoch, _era = dated
+    season = calendar.date(epoch + minute // DAY).month.season
+    return page.t(f"clock.season.{season}") if season else ""
 
 
 def remaining(page: Page, minutes: int) -> str:
@@ -85,10 +129,15 @@ def clock_panel(
     environments: Sequence[tuple[str, str]] = (),
     vessels: Sequence[str] = (),
     weather: bool = False,
+    calendars: Sequence[Calendar] = (),
+    calendar: str = "",
+    era: str = "",
 ) -> Element:
     """The time, the moves, a party rest, the timers and what is due; the party's last
     journey and the forms to travel on and to grant downtime. ``vessels`` are the ships
-    of the world's books; ``weather`` whether they print a weather table."""
+    of the world's books; ``weather`` whether they print a weather table; ``calendars``
+    the setting calendars they print, ``calendar`` the one in use (its key) and
+    ``era`` what follows its year."""
     t = page.t
     base = f"{CLOCK_URL}/{quote(world_id)}"
 
@@ -109,8 +158,17 @@ def clock_panel(
     )[
         div(class_="party-clock-head")[
             icon("clock"),
-            b(class_="party-clock-now mono")[clock_label(page, minute)],
-            span(class_="muted")[t(f"clock.part.{part_of_day(minute)}")],
+            b(class_="party-clock-now mono")[clock_label(page, minute, world_id)],
+            span(class_="muted")[
+                " · ".join(
+                    x
+                    for x in (
+                        t(f"clock.part.{part_of_day(minute)}"),
+                        season_of(page, minute, world_id),
+                    )
+                    if x
+                )
+            ],
             div(class_="party-clock-steps")[
                 [
                     post(
@@ -136,7 +194,9 @@ def clock_panel(
                 ),
             ],
         ],
-        ul(class_="party-clock-timers")[[_timer(page, base, x, names, minute) for x in timers]]
+        ul(class_="party-clock-timers")[
+            [_timer(page, base, x, names, minute, world_id) for x in timers]
+        ]
         if timers
         else None,
         div(class_="notice party-clock-due")[
@@ -144,7 +204,7 @@ def clock_panel(
         ]
         if due
         else None,
-        _journey(page, base, journey) if journey is not None else None,
+        _journey(page, base, journey, world_id) if journey is not None else None,
         details(class_="party-clock-more party-travel")[
             summary[icon("footprints", "sm"), span[t("travel.heading")]],
             _travel_form(page, post, environments, vessels, weather),
@@ -219,8 +279,82 @@ def clock_panel(
                 ],
                 cls="party-clock-form",
             ),
+            _calendar_form(page, post, minute, world_id, calendars, calendar, era)
+            if calendars
+            else None,
         ],
     ]
+
+
+def _calendar_form(
+    page: Page,
+    post: Callable[..., Element],
+    minute: int,
+    world_id: str,
+    calendars: Sequence[Calendar],
+    chosen: str,
+    era: str,
+) -> Element:
+    """Which of the books' calendars dates the days, and what date today is."""
+    t = page.t
+    dated = page.calendars(world_id) if page.calendars is not None else None
+    today = dated[0].date(dated[1] + minute // DAY) if dated else None
+    months = dated[0].months if dated else calendars[0].months
+    return post(
+        "calendar",
+        label(class_="party-clock-label")[
+            span[t("clock.calendar")],
+            select(name="calendar")[
+                option(value="")[t("clock.calendar_none")],
+                [
+                    option(value=c.key, selected=c.key == chosen)[f"{c.key} ({c.source})"]
+                    for c in calendars
+                ],
+            ],
+        ],
+        label(class_="party-clock-label")[
+            span[t("clock.calendar_day")],
+            input_el(
+                type="number",
+                name="cday",
+                min="1",
+                max="31",
+                value=str(today.day if today else 1),
+                inputmode="numeric",
+                class_="mono party-clock-amount",
+            ),
+        ],
+        select(name="cmonth", aria_label=t("clock.calendar_month"))[
+            [
+                option(value=str(n), selected=today is not None and today.month == m)[m.name]
+                for n, m in enumerate(months)
+            ]
+        ],
+        label(class_="party-clock-label")[
+            span[t("clock.calendar_year")],
+            input_el(
+                type="number",
+                name="cyear",
+                min="0",
+                max="99999",
+                value=str(today.year if today else 1),
+                inputmode="numeric",
+                class_="mono",
+            ),
+        ],
+        input_el(
+            type="text",
+            name="era",
+            value=era,
+            maxlength="12",
+            placeholder=t("clock.calendar_era"),
+            aria_label=t("clock.calendar_era"),
+            class_="party-clock-amount",
+        ),
+        button(type="submit", class_="btn btn-sm")[t("clock.set")],
+        small(class_="muted")[t("clock.calendar_hint")],
+        cls="party-clock-form",
+    )
 
 
 def _travel_form(
@@ -306,7 +440,7 @@ def _travel_form(
     )
 
 
-def _journey(page: Page, base: str, journey: Journey) -> Element:
+def _journey(page: Page, base: str, journey: Journey, world_id: str | None = None) -> Element:
     """The party's last stretch of road: how far, what was eaten, what stopped it."""
     t = page.t
     spent = remaining(page, journey.hours * 60)
@@ -340,9 +474,13 @@ def _journey(page: Page, base: str, journey: Journey) -> Element:
         )
     for day, weather in enumerate(journey.weather, start=1):
         temperature, wind, rain = [*weather.split("|"), "", ""][:3]
+        # The weather follows the season of the day it fell on, by the world's calendar.
+        season_key = _season_key(page, journey.started + (day - 1) * DAY, world_id)
+        rain = by_season(rain, season_key)
         lines.append(
             p(class_="muted party-travel-weather")[
                 icon("sun", "sm"),
+                span(class_="pill")[page.t(f"clock.season.{season_key}")] if season_key else None,
                 t(
                     "travel.weather_line",
                     day=day,
@@ -368,7 +506,7 @@ def _journey(page: Page, base: str, journey: Journey) -> Element:
                     b[
                         t(
                             "travel.encounter_night" if journey.night else "travel.encounter",
-                            when=clock_label(page, journey.ended),
+                            when=clock_label(page, journey.ended, world_id),
                         )
                     ],
                     span(class_="muted")[f" · d20 {journey.check}"],
@@ -448,7 +586,12 @@ def _amount(page: Page) -> list[Node]:
 
 
 def _timer(
-    page: Page, base: str, timer: ClockTimer, names: Mapping[str, str], minute: int
+    page: Page,
+    base: str,
+    timer: ClockTimer,
+    names: Mapping[str, str],
+    minute: int,
+    world_id: str | None = None,
 ) -> Element:
     t = page.t
     who = names.get(timer.character_id or "")
@@ -456,7 +599,7 @@ def _timer(
         icon(_ICONS[timer.kind], "sm"),
         span[timer_label(page, timer)],
         small(class_="muted")[who] if who else None,
-        span(class_="pill neutral mono", title=clock_label(page, timer.ends))[
+        span(class_="pill neutral mono", title=clock_label(page, timer.ends, world_id))[
             remaining(page, timer.ends - minute)
         ],
         form(
@@ -477,11 +620,16 @@ def _timer(
     ]
 
 
-def sheet_time(page: Page, minute: int) -> Element:
+def sheet_time(page: Page, minute: int, world_id: str | None = None) -> Element:
     """The world's time in the sheet's head."""
-    return span(
-        class_="pill neutral mono cs-clock", title=page.t(f"clock.part.{part_of_day(minute)}")
-    )[icon("clock", "sm"), clock_label(page, minute)]
+    title = " · ".join(
+        x
+        for x in (page.t(f"clock.part.{part_of_day(minute)}"), season_of(page, minute, world_id))
+        if x
+    )
+    return span(class_="pill neutral mono cs-clock", title=title)[
+        icon("clock", "sm"), clock_label(page, minute, world_id)
+    ]
 
 
 def sheet_timers(

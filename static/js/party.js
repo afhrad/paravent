@@ -38,6 +38,13 @@
     htmx.ajax('GET', c.dataset.url, { target: '#party-clock', swap: 'outerHTML' });
   }
 
+  function refreshChase() {
+    var c = document.getElementById('party-chase'); if (!c || !window.htmx) return;
+    var more = c.querySelector('details.party-clock-more');
+    if (more && more.open && more.contains(document.activeElement)) return;
+    htmx.ajax('GET', c.dataset.url, { target: '#party-chase', swap: 'outerHTML' });
+  }
+
   function refreshGrid() {
     var g = grid(); if (!g || !window.htmx) return;
     htmx.ajax('GET', g.dataset.url, { target: '#party', swap: 'outerHTML' });
@@ -103,6 +110,7 @@
       if (parts[0] === '*combats') { refreshCombats(); return; }
       if (parts[0] === '*checks') { refreshChecks(); return; }
       if (parts[0] === '*clock') { refreshClock(); return; }
+      if (parts[0] === '*chase') { refreshChase(); return; }
       var id = parts[0], rev = parts[1] || '';
       var card = document.getElementById('pc-' + id);
       if (!rev || !card) { if (grid()) refreshGrid(); return; } // deleted, or new / elsewhere

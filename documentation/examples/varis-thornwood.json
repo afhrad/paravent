@@ -50,6 +50,7 @@
     {"item": "Owlbear claw on a leather cord", "quantity": 1, "equipped": false, "attuned": false, "notes": "Trophy of his first hunt"}
   ],
   "currency": {"cp": 30, "sp": 15, "ep": 0, "gp": 145, "pp": 0},
+  "lifestyle": "modest",
   "resources": [
     {"name": "Second Wind", "max": 1, "recharge": "short"},
     {"name": "Action Surge", "max": 1, "recharge": "short"}
@@ -70,6 +71,8 @@
     "resources_used": {},
     "conditions": [],
     "exhaustion": 0,
+    "hunger_levels": 0,
+    "thirst_levels": 0,
     "concentration": null,
     "inspiration": false,
     "raging": false,

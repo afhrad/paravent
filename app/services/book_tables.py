@@ -51,7 +51,13 @@ _WORDS = {
 def rows_of(table: Any) -> Rows:
     """A corpus table's rows as text cells."""
     rows = getattr(table, "rows", None) or []
-    return [[_cell(c) for c in row] for row in rows if isinstance(row, list)]
+    out = []
+    for row in rows:
+        if isinstance(row, dict) and isinstance(row.get("row"), list):
+            row = row["row"]  # an indented row ("row-indent-first")
+        if isinstance(row, list):
+            out.append([_cell(c) for c in row])
+    return out
 
 
 def _cell(cell: Any) -> str:

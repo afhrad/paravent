@@ -13,6 +13,8 @@
 * ``/gm/clock…``                       — a world's time in the game: move it, rest the
   party, timers, travel, downtime
 * ``/gm/shop…``                        — open a shop for a world's characters, and close it
+* ``/gm/chase…``                       — run a chase: start it, Dash, turns, escapes, end
+* ``/gm/traps…``                       — spring a trap or hazard on the world's characters
 """
 
 from __future__ import annotations
@@ -23,7 +25,7 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, Response, StreamingResponse
-from htpy import Element
+from htpy import Element, Node
 from starlette.datastructures import FormData
 
 from app.dependencies import (
@@ -39,18 +41,24 @@ from app.routes.rolls import announce_roll, new_roll
 from app.services.activities import RARITIES
 from app.services.auth import AuthError
 from app.services.characters import CharacterService
+from app.services.chase import ChaseError, Runner
 from app.services.checks import CheckError
 from app.services.clock import DAY, ClockError, bastions_due
+from app.services.dice import Advantage
 from app.services.downtime import DowntimeError
 from app.services.events import PARTY, revision_stream
 from app.services.play import Actor, PlayError
 from app.services.player_view import player_choice, player_ticks
+from app.services.references import ReferenceNotFound
 from app.services.shop import ShopError
+from app.services.traps import Target, TrapEffect, read_trap
 from app.services.travel import PACES, TRAVEL_DAY, WATER, Plan, TravelError, Vessel
+from app.services.units import feet_from
 from app.services.worlds import WorldInput
 from app.store.encounter_tables import Environment
 from app.store.registry import StoreRegistry
 from app.ui.adventure_pages import images_panel
+from app.ui.chase_pages import CHASE_URL, chase_panel
 from app.ui.check_pages import CHECKS_URL, checks_panel
 from app.ui.clock_pages import CLOCK_URL, clock_label, clock_panel
 from app.ui.combat_pages import party_combats
@@ -66,6 +74,7 @@ from app.ui.gm_pages import (
     worlds_page,
 )
 from app.ui.shop_pages import SHOP_URL, shop_panel
+from app.ui.trap_pages import TRAP_CATEGORIES, TRAPS_URL, spring_form, spring_result
 
 router = APIRouter(tags=["gamemaster"])
 
@@ -119,6 +128,9 @@ def _clock(page: Page, registry: StoreRegistry, world_id: str | None) -> Element
         environments=[(e.key, f"{e.name} ({e.source})") for e in _environments(registry, shown)],
         vessels=[v.name for v in registry.vessels(shown)],
         weather=registry.weather(shown) is not None,
+        calendars=registry.calendars(shown),
+        calendar=clock.calendar,
+        era=clock.calendar_era,
     )
 
 
@@ -180,6 +192,26 @@ def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_
     )
 
 
+def _calendar(registry: StoreRegistry, world_id: str, form: FormData) -> None:
+    """Date the clock's days by one of the books' calendars from today's date, or by
+    plain day numbers again."""
+    key = str(form.get("calendar", ""))
+    held = registry.clock.of(world_id)
+    if not key:
+        registry.clock.dated(world_id, "", 0, "")
+        return
+    found = next((c for c in registry.calendars(world_id) if c.key == key), None)
+    values = [str(form.get(f, "")) for f in ("cday", "cmonth", "cyear")]
+    if found is None or not all(v.isdigit() for v in values):
+        raise ClockError("clock.error.bad_date")
+    day, month, year = (int(v) for v in values)
+    if not 0 <= month < len(found.months) or not 1 <= day <= found.months[month].days:
+        raise ClockError("clock.error.bad_date")
+    today = found.index(year, month, day)
+    era = " ".join(str(form.get("era", "")).split())[:12]
+    registry.clock.dated(world_id, key, today - held.minute // DAY, era)
+
+
 _UNIT_MINUTES = {"minute": 1, "hour": 60, "day": DAY}
 
 
@@ -201,6 +233,18 @@ def _shop(page: Page, registry: StoreRegistry, world_id: str | None) -> Element 
     ]
     treasures = [(t.id, t.name) for t in registry.treasure.list(shown) if t.items]
     return shop_panel(page, shown, registry.shops.of(shown), members, treasures=treasures)
+
+
+def _chase(page: Page, registry: StoreRegistry, world_id: str | None) -> Element | None:
+    shown = _clock_world(registry, world_id)
+    if shown is None:
+        return None
+    members = [
+        (pc.id, pc.name or "?")
+        for pc in registry.gamestate.characters.list()
+        if pc.world_id == shown and not pc.in_wizard
+    ]
+    return chase_panel(page, shown, registry.chases.of(shown), members)
 
 
 def _cards(page: Page, characters: CharacterService, world_id: str | None) -> list[Element]:
@@ -241,6 +285,7 @@ async def party(
             checks=_checks(page, registry, characters, world_id),
             clock=_clock(page, registry, world_id),
             shop=_shop(page, registry, world_id),
+            chase=_chase(page, registry, world_id),
         )
     )
 
@@ -302,6 +347,8 @@ async def change_clock(
             clock.start(world_id, "custom", str(form.get("label", "")), _minutes(form))
         elif op == "travel":
             _travel(registry, world_id, form, user.username, name)
+        elif op == "calendar":
+            _calendar(registry, world_id, form)
         elif op == "travel_clear":
             clock.keep(world_id, None)
         elif op == "travel_encounter":
@@ -312,7 +359,9 @@ async def change_clock(
                 where = journey.environment.partition("|")[0] or page.t("travel.road")
                 made = registry.encounters.create(
                     page.t(
-                        "travel.encounter_name", where=where, when=clock_label(page, journey.ended)
+                        "travel.encounter_name",
+                        where=where,
+                        when=clock_label(page, journey.ended, world_id),
                     ),
                     world_id,
                 )
@@ -367,6 +416,220 @@ async def stop_timer(
     if request.headers.get("HX-Request") != "true":
         return redirect(f"/gm?{urlencode({'world': world_id})}")
     return html(_clock(page, registry, world_id))
+
+
+# -- the chase --------------------------------------------------------------------------
+
+
+@router.get(f"{CHASE_URL}/panel", response_class=HTMLResponse)
+async def chase_fragment(
+    _gm: GamemasterDep, page: PageDep, registry: RegistryDep, world: str = ""
+) -> HTMLResponse:
+    """The chase panel, refetched when the chase changes."""
+    return html(_chase(page, registry, world or None))
+
+
+@router.post(f"{CHASE_URL}/{{world_id}}/{{op}}", response_class=HTMLResponse)
+async def run_chase(
+    request: Request,
+    gm: GamemasterDep,
+    page: PageDep,
+    worlds: WorldsDep,
+    registry: RegistryDep,
+    world_id: str,
+    op: str,
+) -> Response:
+    """Start a chase (``start``), Dash (``dash``), end a turn (``turn``), the escape
+    checks (``round``), the distance (``distance``), drop out (``drop``), or end it."""
+    if worlds.find(world_id) is None:
+        return redirect("/gm")
+    form = await request.form()
+    user = gm.user
+    name = user.display_name or user.username
+    chases = registry.chases
+    flash: str | None = None
+    index_text = str(form.get("index", ""))
+    index = int(index_text) if index_text.isdigit() else -1
+    try:
+        if op == "start":
+            runners = _chase_runners(registry, world_id, form)
+            feet = feet_from(str(form.get("distance", "30")), page.u.metric)
+            chases.start(
+                world_id,
+                runners,
+                environment=str(form.get("environment", "urban")),
+                distance=feet if feet is not None else -1,
+                rules=registry.rules_of(world_id),
+                by=user.username,
+                by_name=name,
+            )
+        elif op == "dash":
+            chases.dash(world_id, index, user.username, name)
+        elif op == "turn":
+            held = chases.of(world_id)
+            rows, die = registry.chase_complications(
+                world_id, held.environment if held else "urban"
+            )
+            chases.end_turn(world_id, rows, die, user.username, name)
+        elif op == "round":
+            sight = [int(str(v)) for v in form.getlist("sight") if str(v).isdigit()]
+            edges = {
+                int(key[4:]): Advantage.parse(str(value))
+                for key, value in form.items()
+                if key.startswith("adv_") and key[4:].isdigit()
+            }
+            chases.round_end(world_id, sight, edges, user.username, name)
+        elif op == "distance":
+            feet = feet_from(str(form.get("distance", "")), page.u.metric)
+            chases.distance(world_id, feet if feet is not None else -1)
+        elif op == "drop":
+            chases.drop(world_id, index)
+        elif op == "end":
+            chases.end(world_id, "stopped", user.username, name)
+        else:
+            raise ChaseError("chase.error.bad")
+    except (ChaseError, PlayError) as exc:
+        flash = page.t.error(exc)
+    if request.headers.get("HX-Request") != "true":
+        return redirect(f"/gm?{urlencode({'world': world_id})}")
+    panel = _chase(page, registry, world_id)
+    return html(panel if flash is None else [alert(flash), panel])
+
+
+def _chase_runners(registry: StoreRegistry, world_id: str, form: FormData) -> list[Runner]:
+    """Who runs, from the start form: the characters given a side, with their sheet's
+    numbers, and the creatures named on each side."""
+    runners: list[Runner] = []
+    characters = registry.characters
+    for pc in registry.gamestate.characters.list():
+        side = str(form.get(f"side_{pc.id}", ""))
+        if pc.world_id != world_id or pc.in_wizard or side not in ("quarry", "pursuer"):
+            continue
+        sheet = characters.sheet(pc)
+        stealth = next((s.value.value for s in sheet.skills if s.key == "stealth"), None)
+        runners.append(
+            Runner(
+                name=pc.name or "?",
+                side=side,
+                character_id=pc.id,
+                initiative_bonus=sheet.initiative.value or 0,
+                con_mod=sheet.ability("con").modifier,
+                stealth=stealth or 0,
+                passive=sheet.passive_perception.value or 10,
+            )
+        )
+    for side in ("quarry", "pursuer"):
+        for line in str(form.get(side, "")).splitlines()[:20]:
+            runners.extend(registry.chase_runner(world_id, line, side))
+    return runners
+
+
+# -- traps and hazards ------------------------------------------------------------------
+
+
+def _trap(
+    registry: StoreRegistry, world_id: str, category: str, name: str, source: str
+) -> tuple[str, TrapEffect, list[tuple[str, str]], int] | None:
+    """A trap of the world's books: its name, effect, the world's characters and their
+    average level; None when the books lack it."""
+    if category not in TRAP_CATEGORIES:
+        return None
+    try:
+        entry = registry.references.get(category, source or "-", name, world_id)
+    except ReferenceNotFound:
+        return None
+    party = [
+        pc
+        for pc in registry.gamestate.characters.list()
+        if pc.world_id == world_id and not pc.in_wizard
+    ]
+    levels = [max(1, pc.total_level) for pc in party] or [1]
+    return (
+        str(entry.data.get("name", name)),
+        read_trap(entry.data),
+        [(pc.id, pc.name or "?") for pc in party],
+        round(sum(levels) / len(levels)),
+    )
+
+
+@router.get(f"{TRAPS_URL}/form", response_class=HTMLResponse)
+async def trap_form(
+    _gm: GamemasterDep,
+    page: PageDep,
+    worlds: WorldsDep,
+    registry: RegistryDep,
+    world: str = "",
+    category: str = "trap",
+    name: str = "",
+    source: str = "",
+) -> HTMLResponse:
+    """Whom a trap catches and what it does, to spring it."""
+    found = _trap(registry, world, category, name, source) if worlds.find(world) else None
+    if found is None:
+        return html(alert(page.t("trap.error.unknown")))
+    shown, effect, members, level = found
+    return html(spring_form(page, world, category, shown, source, effect, members, level))
+
+
+@router.post(f"{TRAPS_URL}/spring", response_class=HTMLResponse)
+async def spring_trap(
+    request: Request, gm: GamemasterDep, page: PageDep, worlds: WorldsDep, registry: RegistryDep
+) -> Response:
+    """Spring the trap on the ticked characters (``op=spring``), or call for one of its
+    checks from them (``op=call:<skill>:<dc>``)."""
+    form = await request.form()
+    world_id = str(form.get("world", ""))
+    category, name = str(form.get("category", "")), str(form.get("name", ""))
+    source = str(form.get("source", ""))
+    found = _trap(registry, world_id, category, name, source) if worlds.find(world_id) else None
+    if found is None:
+        return html(alert(page.t("trap.error.unknown")))
+    shown, effect, members, level = found
+    known = {cid for cid, _ in members}
+    chosen = [str(c) for c in form.getlist("character") if str(c) in known]
+    user = gm.user
+    by_name = user.display_name or user.username
+    op = str(form.get("op", "spring"))
+    result: Node
+    if not chosen:
+        result = alert(page.t("trap.error.no_one"))
+    elif op.startswith("call:"):
+        _call, skill, dc = op.split(":", 2)
+        try:
+            registry.checks.call(
+                world_id,
+                "skill",
+                skill,
+                chosen,
+                user.username,
+                dc=int(dc) if dc.isdigit() else None,
+            )
+            result = notice(page.t("trap.called", skill=page.t(f"skill.{skill}")))
+        except CheckError as exc:
+            result = alert(page.t.error(exc))
+    else:
+        characters = registry.characters
+        targets = []
+        for cid in chosen:
+            pc = registry.gamestate.characters.get(cid)
+            sheet = characters.sheet(pc)
+            targets.append(
+                Target(
+                    cid,
+                    pc.name or "?",
+                    ac=sheet.armor_class.value or 10,
+                    resist=tuple(sheet.defended("resist")),
+                    immune=tuple(sheet.defended("immune")),
+                    vulnerable=tuple(sheet.defended("vulnerable")),
+                )
+            )
+        caught = registry.traps.spring(
+            world_id, shown, effect.at_level(level), targets, user.username, by_name
+        )
+        result = spring_result(page, shown, caught)
+    return html(
+        spring_form(page, world_id, category, shown, source, effect, members, level, result=result)
+    )
 
 
 # -- the shop ---------------------------------------------------------------------------

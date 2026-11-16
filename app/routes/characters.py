@@ -35,7 +35,7 @@ from app.dependencies import (
     RegistryDep,
     WorldsDep,
 )
-from app.models.gamestate import Combat, Shop
+from app.models.gamestate import BastionFacility, Combat, Shop
 from app.models.pc import PlayerCharacter
 from app.routes.auth import html, redirect
 from app.routes.play_combat import strip
@@ -49,6 +49,7 @@ from app.services.chargen.catalogue import SHELVES, TOOL_TYPES, Offer
 from app.services.chargen.plan import price
 from app.services.clock import BASTION_TURN, day_of
 from app.services.combat import CombatError
+from app.services.contacts import ContactError
 from app.services.crafting import craft_rules, tools_for
 from app.services.downtime import DowntimeError, crafting_days, materials, training_plan
 from app.services.events import revision_stream
@@ -86,6 +87,7 @@ def _sheet(characters: CharactersDep, registry: RegistryDep, character: PlayerCh
         sheet.timers = registry.clock.of_character(character.world_id, character.id)
         shop = registry.shops.serves(character.world_id, character.id)
         sheet.shop = shop.name if shop is not None else None
+        sheet.lifestyle_costs = registry.lifestyle_costs(character.world_id)
     spare = registry.downtime.of(character.id)
     if spare.days or any(not x.finished for x in spare.projects):
         sheet.downtime = spare.days
@@ -440,7 +442,19 @@ def _bastion(
             if bastion.last_turn is not None and character.world_id
             else None,
             options=options,
-            tool_items=_tool_items(page, registry, character, options),
+            tool_items=_tool_items(
+                page, registry, character, options, _workshop_tools(bastion.facilities)
+            ),
+            equipment=[
+                (
+                    most,
+                    [
+                        (r, str(name_text(page, ("item", "baseitem"), r.partition("|")[0])))
+                        for r in refs
+                    ],
+                )
+                for most, refs in (registry.facility_tools(f.ref) for f in bastion.facilities)
+            ],
             costs=registry.basic_costs(character.world_id),
             day_of={m: str(day_of(m)) for m in readies},
             error=error,
@@ -454,9 +468,12 @@ def _tool_items(
     registry: RegistryDep,
     character: PlayerCharacter,
     options: Sequence[Mapping[str, Sequence[OrderOption]]],
+    workshop: Sequence[str] = (),
 ) -> dict[str, list[tuple[str, str]]]:
     """What each tool a facility crafts with makes, from the world's gear: ``"*"`` (the
-    Workshop) any artisan's tools."""
+    Workshop) the tools it was equipped with (``workshop``), any artisan's tools while
+    none are chosen."""
+    equipped = {w.partition("|")[0].lower() for w in workshop}
     wanted = {o.tool for found in options for order in found.values() for o in order if o.tool}
     if not wanted:
         return {}
@@ -465,7 +482,12 @@ def _tool_items(
     gear = catalogue.shop(registry.rules_of(character.world_id))
     out: dict[str, list[tuple[str, str]]] = {}
     for tool in wanted:
-        chosen = [r for r in rules if tool == "*" or r.tool.lower() == tool.lower()]
+        chosen = [
+            r
+            for r in rules
+            if (tool == "*" and (not equipped or r.tool.lower() in equipped))
+            or r.tool.lower() == tool.lower()
+        ]
         out[tool] = sorted(
             (
                 (o.reference, str(name_text(page, ("item", "baseitem"), o.name)))
@@ -475,6 +497,11 @@ def _tool_items(
             key=lambda pair: pair[1].lower(),
         )
     return out
+
+
+def _workshop_tools(held: Sequence[BastionFacility]) -> list[str]:
+    """The tools the bastion's facilities were equipped with (its Workshop's)."""
+    return [tool for f in held for tool in f.tools]
 
 
 def _event_text(
@@ -606,6 +633,13 @@ async def change_bastion(
                 user.display_name or user.username,
                 character.world_id,
             )
+        elif op == "tools":
+            held = service.of(character_id).facilities
+            ref = held[index].ref if 0 <= index < len(held) else ""
+            most, allowed = registry.facility_tools(ref)
+            service.equip(
+                character_id, index, [str(v) for v in form.getlist("tool")], allowed, most
+            )
         elif op == "maintain":
             service.maintain(character_id, form.get("on") == "1")
         elif op == "order":
@@ -623,7 +657,9 @@ async def change_bastion(
             option = str(n) if found else ""
             if found and found[n].tool:
                 item = str(form.get("item", ""))
-                tool_items = _tool_items(page, registry, character, [{order: [found[n]]}])
+                tool_items = _tool_items(
+                    page, registry, character, [{order: [found[n]]}], _workshop_tools(held)
+                )
                 if item and item not in {r for r, _ in tool_items.get(found[n].tool, [])}:
                     raise BastionError("bastion.error.order")
                 option = f"{n}|{item}" if item else str(n)
@@ -838,6 +874,7 @@ def _downtime(
             character_name=character.name or "?",
             downtime=registry.downtime.of(character.id),
             start=start,
+            contacts=registry.contacts.of(character.id),
             error=error,
             message=message,
         )
@@ -1028,7 +1065,7 @@ async def change_downtime(
                     raise DowntimeError("downtime.error.item")
                 options |= {"item": ref, "rarity": rarity}
             world = character.world_id
-            registry.activities.run(
+            project = registry.activities.run(
                 character,
                 kind,
                 options,
@@ -1036,7 +1073,30 @@ async def change_downtime(
                 by=user.username,
                 by_name=name,
             )
+            registry.contacts.from_activity(character, kind, project.result, user.username, name)
             message = page.t("downtime.done")
+        elif op == "contact_add":
+            registry.contacts.add(
+                character,
+                str(form.get("kind", "contact")),
+                str(form.get("name", "")),
+                str(form.get("note", "")),
+            )
+            message = None
+        elif op == "contact_edit":
+            registry.contacts.edit(
+                character.id,
+                str(form.get("contact", "")),
+                str(form.get("name", "")),
+                str(form.get("note", "")),
+            )
+            message = None
+        elif op == "contact_call":
+            registry.contacts.call_on(character, str(form.get("contact", "")), user.username, name)
+            message = None
+        elif op == "contact_remove":
+            registry.contacts.remove(character.id, str(form.get("contact", "")))
+            message = None
         elif op in ("take", "refuse"):
             raw = str(form.get("offer", ""))
             index = int(raw) if raw.isdigit() else -1
@@ -1062,7 +1122,7 @@ async def change_downtime(
             message = None
         else:
             raise DowntimeError("downtime.error.project")
-    except (DowntimeError, PlayError) as exc:
+    except (DowntimeError, PlayError, ContactError) as exc:
         fresh = characters.get_for(identity, character_id)
         return _downtime(page, registry, fresh, error=page.t.error(exc))
     registry.events.publish(character.id, f"downtime-{datetime.now(UTC).isoformat()}")

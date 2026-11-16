@@ -22,8 +22,9 @@ the fifth day without food brings one, and each day after another. A day of eati
 ends the count. Water is enough, half or none for the day: under the 2014 rules half
 calls for a DC 15 Constitution save, failed or with none a level of exhaustion (two
 for a character already exhausted); under the 2024 rules only less than half costs a
-level. A night between two travelling days is a long rest, when chosen, and takes no
-exhaustion from hunger or thirst away. The weather may be rolled for each day on the
+level. A night between two travelling days is a long rest, when chosen. Exhaustion
+from hunger or thirst stays through any rest until the character has eaten (or drunk
+its fill: a day with enough water). The weather may be rolled for each day on the
 books' table.
 """
 
@@ -104,17 +105,19 @@ class TravelService:
         *,
         party: Callable[[str], Sequence[PlayerCharacter]],
         eat: Callable[[PlayerCharacter], bool],
-        tire: Callable[[PlayerCharacter], None],
+        tire: Callable[[PlayerCharacter, str], None],
         con_mod: Callable[[PlayerCharacter], int],
         rest: Callable[[str], None],
         con_save: Callable[[PlayerCharacter], int] | None = None,
+        quench: Callable[[PlayerCharacter], None] | None = None,
         dice: Dice | None = None,
     ) -> None:
         """``party(world)`` the characters on the road; ``eat(pc)`` takes a day's
-        rations from the pack (False: there were none); ``tire(pc)`` adds a level of
-        exhaustion; ``con_mod(pc)`` its Constitution modifier and ``con_save(pc)`` its
-        Constitution saving throw bonus (the modifier when not given); ``rest(world)``
-        a long rest for the party."""
+        rations from the pack (False: there were none); ``tire(pc, cause)`` adds a
+        level of exhaustion from ``hunger`` or ``thirst``; ``quench(pc)`` marks a day
+        with enough water, which ends thirst's hold; ``con_mod(pc)`` its Constitution
+        modifier and ``con_save(pc)`` its Constitution saving throw bonus (the modifier
+        when not given); ``rest(world)`` a long rest for the party."""
         self._clock = clock
         self._protocol = protocol
         self._party = party
@@ -123,6 +126,7 @@ class TravelService:
         self._con_mod = con_mod
         self._con_save = con_save or con_mod
         self._rest = rest
+        self._quench = quench
         self._dice = dice or Dice()
 
     def travel(
@@ -218,8 +222,8 @@ class TravelService:
                     elapsed += night
                     if plan.weather and weather is not None:
                         journey.weather.append(weather())
-            for pc in tired:
-                self._tire(pc)
+            for pc, cause in tired:
+                self._tire(pc, cause)
                 journey.exhausted.append(pc.name or "?")
         journey.hours = (travelled - offset) // 60
         journey.miles = round(miles, 1)
@@ -265,10 +269,10 @@ class TravelService:
         hungry: dict[str, int],
         rations: bool,
         rules: str,
-    ) -> list[PlayerCharacter]:
+    ) -> list[tuple[PlayerCharacter, str]]:
         """Everyone eats or goes hungry; those whose hunger now costs them a level of
         exhaustion (applied after the night's rest, which cannot take it away)."""
-        tired: list[PlayerCharacter] = []
+        tired: list[tuple[PlayerCharacter, str]] = []
         if not rations:
             return tired
         for pc in party:
@@ -281,7 +285,7 @@ class TravelService:
             if (pc.name or "?") not in journey.hungry:
                 journey.hungry.append(pc.name or "?")
             if days > hunger_limit(self._con_mod(pc), rules):
-                tired.append(pc)
+                tired.append((pc, "hunger"))
         return tired
 
     def _drink(
@@ -290,11 +294,14 @@ class TravelService:
         party: Sequence[PlayerCharacter],
         water: str,
         rules: str,
-    ) -> list[PlayerCharacter]:
+    ) -> list[tuple[PlayerCharacter, str]]:
         """Each character short of water at the day's end: those it costs a level of
         exhaustion, once for each level (applied after the night's rest)."""
-        tired: list[PlayerCharacter] = []
+        tired: list[tuple[PlayerCharacter, str]] = []
         if water == "enough":
+            for pc in party:
+                if self._quench is not None:
+                    self._quench(pc)
             return tired
         for pc in party:
             if rules == "one":
@@ -304,7 +311,7 @@ class TravelService:
                 levels = (2 if pc.state.exhaustion > 0 else 1) if failed else 0
             if levels and (pc.name or "?") not in journey.thirsty:
                 journey.thirsty.append(pc.name or "?")
-            tired.extend([pc] * levels)
+            tired.extend([(pc, "thirst")] * levels)
         return tired
 
     def _log(self, world_id: str, journey: Journey, by: str, by_name: str) -> None:

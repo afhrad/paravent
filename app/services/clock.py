@@ -102,15 +102,18 @@ class ClockService:
         concentrating: Callable[[str], str | None] = lambda _c: None,
         end_concentration: Callable[[str, str, str], None] | None = None,
         changed: Callable[[WorldClock], None] | None = None,
+        days_passed: Callable[[str, int, str, str, str], None] | None = None,
     ) -> None:
         """``concentrating(character)`` names the spell a character holds now (its
         reference, or None); ``end_concentration(character, spell, by)`` ends it when its
-        timer runs out; ``changed(clock)`` tells open screens."""
+        timer runs out; ``changed(clock)`` tells open screens; ``days_passed(world,
+        days, why, by, by_name)`` hears of each move past midnight (lifestyle costs)."""
         self._store = store
         self._protocol = protocol
         self._concentrating = concentrating
         self._end_concentration = end_concentration
         self._changed = changed
+        self._days_passed = days_passed
 
     def of(self, world_id: str) -> WorldClock:
         """A world's clock: Day 1, 08:00 until it is first moved."""
@@ -153,7 +156,11 @@ class ClockService:
         self._log(world_id, by, by_name, f"clock:{minutes}:{now}:{why}")
         for timer in done:
             self._run_out(world_id, timer, by, by_name)
-        return self._save(clock.model_copy(update={"minute": now, "timers": kept}))
+        saved = self._save(clock.model_copy(update={"minute": now, "timers": kept}))
+        days = now // DAY - clock.minute // DAY
+        if days > 0 and self._days_passed is not None:
+            self._days_passed(world_id, days, why, by, by_name)
+        return saved
 
     def start(
         self,
@@ -218,6 +225,12 @@ class ClockService:
             update["hungry"] = hungry
         if road is not None:
             update["road"], update["road_day"] = road
+        return self._save(self.of(world_id).model_copy(update=update))
+
+    def dated(self, world_id: str, calendar: str, epoch: int, era: str) -> WorldClock:
+        """Date the days by a calendar (its key; "" for plain day numbers): ``epoch`` is
+        the calendar's day of the clock's first day (app/services/calendar.py)."""
+        update = {"calendar": calendar, "calendar_epoch": epoch, "calendar_era": era}
         return self._save(self.of(world_id).model_copy(update=update))
 
     def _stale(self, timer: ClockTimer) -> bool:

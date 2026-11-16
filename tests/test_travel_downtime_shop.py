@@ -120,7 +120,7 @@ class TestTravel:
             None,
             party=lambda _w: party,
             eat=eat,
-            tire=lambda pc: state["tired"].append(pc.name),
+            tire=lambda pc, cause: state["tired"].append(pc.name),
             con_mod=lambda _pc: -3,
             rest=rest,
             dice=dice,

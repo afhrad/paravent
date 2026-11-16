@@ -159,6 +159,32 @@ def _walk(node: Any) -> Iterable[dict[str, Any]]:
             yield from _walk(child)
 
 
+_EQUIPPED = re.compile(r"equipped with (\w+) different kinds of", re.IGNORECASE)
+
+
+def tool_choice(data: dict[str, Any]) -> tuple[int, tuple[str, ...]]:
+    """The tools a facility is equipped with when added, chosen from a list ("six
+    different kinds of Artisan's Tools, chosen from the following"): how many, and the
+    item references to choose from; ``(0, ())`` for a facility without the choice."""
+    for node in _walk(data.get("entries")):
+        strings = [e for e in node.get("entries", []) if isinstance(e, str)]
+        found = next((m for m in map(_EQUIPPED.search, strings) if m), None)
+        if found is None:
+            continue
+        lists = [e for e in node.get("entries", []) if isinstance(e, dict) and e.get("items")]
+        refs = [
+            f"{m[1]}|{m[2]}" if m[2] else m[1]
+            for entry in lists
+            for item in entry["items"]
+            if isinstance(item, str)
+            for m in [_ITEM.search(item)]
+            if m
+        ]
+        if refs:
+            return count_word(found[1]) or len(refs), tuple(refs)
+    return 0, ()
+
+
 def options_of(data: dict[str, Any]) -> dict[str, list[OrderOption]]:
     """A facility's options per order, read from its text (empty for a facility whose
     text names none)."""
@@ -366,4 +392,4 @@ class OrderYields:
         return done, waiting
 
 
-__all__ = ["OrderOption", "OrderYields", "Yield", "options_of"]
+__all__ = ["OrderOption", "OrderYields", "Yield", "options_of", "tool_choice"]

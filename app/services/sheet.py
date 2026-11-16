@@ -610,6 +610,9 @@ class Sheet:
     # when none), and its free downtime days (None while it has no downtime at all).
     shop: str | None = None
     downtime: int | None = None
+    # Set by the page: copper a day by lifestyle in the character's world (empty in
+    # none, or when its books price none: app/services/lifestyle.py).
+    lifestyle_costs: dict[str, int] = field(default_factory=dict)
     wild_shape: WildShapeView | None = None
     spell_form: SpellFormView | None = None
 

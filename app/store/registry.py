@@ -14,12 +14,14 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Callable, Sequence
+from dataclasses import replace
 from functools import cached_property
 from pathlib import Path
 from typing import Any
 
 from app import __version__
 from app.config import Settings
+from app.models.compendium import score_of
 from app.models.gamestate import CheckCall, Combat, Combatant, WorldClock
 from app.models.pc import PlayerCharacter
 from app.models.protocol import EntryKind, ProtocolEntry
@@ -29,18 +31,22 @@ from app.services.adventures import AdventureService
 from app.services.auth import AuthService, Identity
 from app.services.backlinks import BacklinkIndex
 from app.services.backup import BackupService
-from app.services.bastion_orders import OrderOption, OrderYields, options_of
+from app.services.bastion_orders import OrderOption, OrderYields, options_of, tool_choice
 from app.services.bastions import BastionEvent, BastionService, event_rows
 from app.services.book_tables import Rows, copper, days, find_in, rolled, row_for
+from app.services.calendar import CALENDARS, Calendar, calendar_from
+from app.services.character import ability_modifier
 from app.services.characters import CharacterService
 from app.services.chargen.catalogue import Catalogue, Edition
 from app.services.chargen.drafts import Drafts
 from app.services.chargen.levelup import LevelUps
 from app.services.chargen.prepare import Preparations
+from app.services.chase import ChaseService, Runner
 from app.services.checks import CheckService
 from app.services.clock import ClockService
 from app.services.coins import coins_for, worth
 from app.services.combat import CombatService, SheetCharacters
+from app.services.contacts import ContactService
 from app.services.corpus_check import CorpusHealth, corpus_version
 from app.services.corpus_import import CorpusImport, CorpusImports
 from app.services.creature_builder import (
@@ -51,7 +57,7 @@ from app.services.creature_builder import (
 )
 from app.services.creature_pictures import CreaturePictures, design_ref, slug
 from app.services.creature_sight import Sight, fluff_image, sight
-from app.services.dice import Dice
+from app.services.dice import Advantage, Dice
 from app.services.difficulty import DifficultyRules
 from app.services.downtime import DowntimeService
 from app.services.encounters import EncounterService
@@ -62,6 +68,7 @@ from app.services.i18n import FALLBACK, UiCatalogue
 from app.services.image_effects import ImageEffects
 from app.services.item_names import ItemNames
 from app.services.knowledge import KnowledgeService
+from app.services.lifestyle import LifestyleService, costs_2014, costs_2024
 from app.services.locations import LocationService
 from app.services.machine_translation import MachineTranslator
 from app.services.mcp_tokens import McpTokenService
@@ -94,6 +101,7 @@ from app.services.tokens import Token, Tokens
 from app.services.translation_coverage import TranslationCoverage, TranslationJobs
 from app.services.translation_targets import FLUFF_OF, TranslationTargets, fluff_category
 from app.services.translations import TranslationStore, record_key
+from app.services.traps import TrapService
 from app.services.travel import TravelService, Vessel
 from app.services.treasure_roll import roller_for
 from app.services.world_instructions import WorldInstructionService
@@ -605,7 +613,71 @@ class StoreRegistry:
             concentrating=self._concentrating,
             end_concentration=self._end_concentration,
             changed=self._clock_changed,
+            days_passed=self._days_passed,
         )
+
+    def _days_passed(self, world_id: str, days: int, why: str, by: str, by_name: str) -> None:
+        """Days passed off the road cost each character its lifestyle; on the road the
+        party eats its rations instead (app/services/lifestyle.py)."""
+        if why != "travel":
+            self.lifestyle.charge(world_id, days, self.lifestyle_costs(world_id), by, by_name)
+
+    def calendars(self, world_id: str | None) -> list[Calendar]:
+        """The setting calendars the world's books print, each once."""
+        out: list[Calendar] = []
+        for caption, books, month_days in CALENDARS:
+            for book in books:
+                rows = self.book_table(world_id, caption, [book])
+                if not rows:
+                    continue
+                found = calendar_from(caption, book, rows, month_days)
+                names = [m.name for m in found.months]
+                if found.months and all([m.name for m in c.months] != names for c in out):
+                    out.append(found)
+                break
+        return out
+
+    def calendar_of(self, world_id: str | None) -> tuple[Calendar, int, str] | None:
+        """The calendar a world's clock dates its days by, with the calendar's day of
+        the clock's first day and the era; None for plain day numbers."""
+        if not world_id:
+            return None
+        clock = self.gamestate.clocks.find(world_id)
+        if clock is None or not clock.calendar:
+            return None
+        found = next((c for c in self.calendars(world_id) if c.key == clock.calendar), None)
+        return (found, clock.calendar_epoch, clock.calendar_era) if found else None
+
+    def lifestyle_costs(self, world_id: str | None) -> dict[str, int]:
+        """Copper a day by lifestyle, by the world's books: the 2014 handbook's table,
+        or the 2024 handbook's inn stay and meals; empty without either."""
+        old = costs_2014(self.book_table(world_id, "Lifestyle Expenses", ["PHB"]))
+        new = costs_2024(self.book_table(world_id, "Food, Drink, and Lodging", ["XPHB"]))
+        first, second = (new, old) if self.rules_of(world_id) == "one" else (old, new)
+        return first or second
+
+    @cached_property
+    def lifestyle(self) -> LifestyleService:
+        """What living costs the characters each day (app/services/lifestyle.py)."""
+        characters = self.characters
+        by = Actor("Paravent", username="")
+
+        def party(world_id: str) -> list[PlayerCharacter]:
+            return [pc for pc in self.gamestate.characters.list() if pc.world_id == world_id]
+
+        def purse(character_id: str) -> int:
+            pc = self.gamestate.characters.find(character_id)
+            return worth(pc.currency) if pc is not None else 0
+
+        def pay(character_id: str, amount: int) -> None:
+            characters.act_for(
+                character_id,
+                "spend",
+                {"amount": str(amount), "for": "lifestyle", "quiet": "1"},
+                by,
+            )
+
+        return LifestyleService(self.protocol, party=party, purse=purse, pay=pay)
 
     def _concentrating(self, character_id: str) -> str | None:
         pc = self.gamestate.characters.find(character_id)
@@ -678,6 +750,18 @@ class StoreRegistry:
             return {}
         return options_of(found.model_dump(by_alias=True, exclude_none=True))
 
+    def facility_tools(self, ref: str) -> tuple[int, tuple[str, ...]]:
+        """The tools a special facility is equipped with when added: how many to choose,
+        and from which (app/services/bastion_orders.py)."""
+        name, _, source = ref.partition("|")
+        try:
+            found = self.compendium.find("facility", name, source)
+        except EntryNotFound:
+            return 0, ()
+        if found is None:
+            return 0, ()
+        return tool_choice(found.model_dump(by_alias=True, exclude_none=True))
+
     def basic_costs(self, world_id: str | None) -> tuple[dict[str, tuple[int, int]], ...]:
         """Adding and enlarging a basic facility, by space: (copper, days) — from the
         guide's two tables, empty without them."""
@@ -726,8 +810,15 @@ class StoreRegistry:
                 return False
             return True
 
-        def tire(pc: PlayerCharacter) -> None:
-            characters.act_for(pc.id, "exhaustion", {"delta": "1"}, Actor("Paravent", username=""))
+        def tire(pc: PlayerCharacter, cause: str) -> None:
+            characters.act_for(
+                pc.id, "exhaustion", {"delta": "1", "cause": cause}, Actor("Paravent", username="")
+            )
+
+        def quench(pc: PlayerCharacter) -> None:
+            fresh = self.gamestate.characters.find(pc.id)
+            if fresh is not None and fresh.state.thirst_levels:
+                characters.act_for(pc.id, "fed", {"what": "thirst"}, Actor("Paravent", username=""))
 
         def con_mod(pc: PlayerCharacter) -> int:
             return characters.sheet(pc).ability("con").modifier
@@ -747,6 +838,7 @@ class StoreRegistry:
             con_mod=con_mod,
             con_save=con_save,
             rest=rest,
+            quench=quench,
         )
 
     def book_table(self, world_id: str | None, caption: str, sources: Sequence[str]) -> Rows | None:
@@ -1020,6 +1112,103 @@ class StoreRegistry:
     def shops(self) -> ShopService:
         """The shop each world's gamemaster opens (app/services/shop.py)."""
         return ShopService(self.gamestate, self.protocol)
+
+    @cached_property
+    def chases(self) -> ChaseService:
+        """The chase each world's gamemaster runs (app/services/chase.py)."""
+        characters = self.characters
+        by = Actor("Paravent", username="")
+
+        def sheet_roll(character_id: str, kind: str, subject: str, edge: Advantage) -> int:
+            advantage = {Advantage.ADVANTAGE: 1, Advantage.DISADVANTAGE: -1}.get(edge, 0)
+            total = characters.roll_for(
+                character_id, kind, subject, by, private=False, advantage=advantage
+            )
+            return total or 0
+
+        def tire(character_id: str) -> None:
+            characters.act_for(character_id, "exhaustion", {"delta": "1"}, by)
+
+        def changed(world_id: str) -> None:
+            self.events.publish(PARTY, f"*chase {world_id}")
+
+        return ChaseService(
+            self.gamestate, self.protocol, sheet_roll=sheet_roll, tire=tire, changed=changed
+        )
+
+    def chase_complications(self, world_id: str | None, environment: str) -> tuple[Rows, int]:
+        """The world's chase complications for an environment and the die they are
+        rolled with: the 2024 guide's (d12) or the 2014 guide's (d20), the world's own
+        rules first; no rows without either."""
+        caption = f"{environment.title()} Chase Complications"
+        books = [("XDMG", 12), ("DMG", 20)]
+        if self.rules_of(world_id) != "one":
+            books.reverse()
+        for book, die in books:
+            rows = self.book_table(world_id, caption, [book])
+            if rows:
+                return rows, die
+        return [], 20
+
+    def chase_runner(self, world_id: str | None, line: str, side: str) -> list[Runner]:
+        """The creatures a line of the chase form names ("2 Thug", "Thug|MM"), from the
+        world's books, with what a chase needs of their statblock; unknown names run with
+        plain numbers."""
+        count_text, _, rest = line.strip().partition(" ")
+        count = int(count_text) if count_text.isdigit() and rest else 1
+        name, _, source = (rest if count_text.isdigit() and rest else line).strip().partition("|")
+        if not name:
+            return []
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        found = (
+            self.references.resolver()
+            .resolve_parts("monster", name, source or None, world.source_set if world else None)
+            .entry
+        )
+        stats = Runner(name=name, side=side)
+        if found is not None:
+            data = found.model_dump(by_alias=True, exclude_none=True)
+            dex = ability_modifier(score_of(data.get("dex")))
+            wis = ability_modifier(score_of(data.get("wis")))
+            stealth = str((data.get("skill") or {}).get("stealth", "")).strip()
+            passive = data.get("passive")
+            stats = Runner(
+                name=str(found.name),
+                side=side,
+                monster=f"{found.name}|{found.source}",
+                initiative_bonus=dex,
+                con_mod=ability_modifier(score_of(data.get("con"))),
+                stealth=int(stealth) if stealth.lstrip("+-").isdigit() else dex,
+                passive=passive if isinstance(passive, int) else 10 + wis,
+            )
+        count = max(1, min(count, 20))
+        if count == 1:
+            return [stats]
+        return [replace(stats, name=f"{stats.name} {n}") for n in range(1, count + 1)]
+
+    @cached_property
+    def contacts(self) -> ContactService:
+        """Whom each character knows (app/services/contacts.py)."""
+        return ContactService(self.gamestate, self.protocol)
+
+    @cached_property
+    def traps(self) -> TrapService:
+        """Traps and hazards sprung on characters (app/services/traps.py)."""
+        characters = self.characters
+        by = Actor("Paravent", username="")
+
+        def save(character_id: str, ability: str) -> int:
+            return characters.roll_for(character_id, "save", ability, by, private=False) or 0
+
+        def hurt(character_id: str, amount: int) -> None:
+            characters.act_for(character_id, "hp", {"mode": "damage", "amount": str(amount)}, by)
+
+        def afflict(character_id: str, condition: str) -> None:
+            pc = self.gamestate.characters.find(character_id)
+            if pc is not None and condition in CONDITIONS and condition not in pc.state.conditions:
+                characters.act_for(character_id, "condition", {"key": condition}, by)
+
+        return TrapService(self.protocol, save=save, hurt=hurt, afflict=afflict)
 
     @cached_property
     def safety(self) -> SafetyService:

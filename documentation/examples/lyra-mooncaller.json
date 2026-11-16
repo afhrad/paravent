@@ -61,6 +61,7 @@
     {"item": "Letter from a dead colleague", "quantity": 1, "equipped": false, "attuned": false, "notes": "Unanswered question about where spent magic goes"}
   ],
   "currency": {"cp": 0, "sp": 14, "ep": 0, "gp": 230, "pp": 2},
+  "lifestyle": "modest",
   "resources": [
     {"name": "Arcane Recovery", "max": 1, "recharge": "long"}
   ],
@@ -80,6 +81,8 @@
     "resources_used": {},
     "conditions": [],
     "exhaustion": 0,
+    "hunger_levels": 0,
+    "thirst_levels": 0,
     "concentration": "Haste|PHB",
     "inspiration": false,
     "raging": false,

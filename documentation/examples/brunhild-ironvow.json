@@ -58,6 +58,7 @@
     {"item": "Trophy: a drow hand crossbow, broken", "quantity": 1, "equipped": false, "attuned": false, "notes": "Taken in the Underdark skirmish that cost her company its captain"}
   ],
   "currency": {"cp": 12, "sp": 40, "ep": 0, "gp": 186, "pp": 3},
+  "lifestyle": "modest",
   "resources": [
     {"name": "Divine Sense", "max": 5, "recharge": "long"},
     {"name": "Lay on Hands", "max": 40, "recharge": "long"},
@@ -79,6 +80,8 @@
     "resources_used": {},
     "conditions": [],
     "exhaustion": 0,
+    "hunger_levels": 0,
+    "thirst_levels": 0,
     "concentration": null,
     "inspiration": true,
     "raging": false,

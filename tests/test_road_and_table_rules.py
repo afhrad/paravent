@@ -64,7 +64,7 @@ class TestTheRoad:
             None,
             party=lambda _w: party,
             eat=eat,
-            tire=lambda pc: state["tired"].append(pc.name),
+            tire=lambda pc, cause: state["tired"].append(pc.name),
             con_mod=lambda _pc: 0,
             con_save=lambda _pc: 2,
             rest=rest,
@@ -229,7 +229,13 @@ class TestActivities:
         week["totals"] = [12]
         # d100 for a complication: 5 comes up; the d2 picks the pickpocket.
         done = self.run(week, "carouse", {"class": "lower"}, FixedDice([5, 1]))
-        assert done.result == ["check:persuasion:12", "row:one ally", "complication:A pickpocket."]
+        # The book marks the pickpocket with an asterisk: a rival is behind it.
+        assert done.result == [
+            "check:persuasion:12",
+            "row:one ally",
+            "complication:A pickpocket.",
+            "rival:",
+        ]
         assert week["paid"] == [1000] and done.finished and done.needed == 5
         assert week["downtime"].of("a").days == 15
 

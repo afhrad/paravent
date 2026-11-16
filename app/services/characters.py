@@ -296,14 +296,17 @@ class CharacterService:
         by: str | Actor,
         *,
         private: bool = True,
+        advantage: int = 0,
     ) -> int | None:
         """A check rolled on a character's sheet for it: by the gamemaster privately (a
-        secret check), or in the open for downtime and travel. The total, None when the
-        character is gone."""
+        secret check), or in the open for downtime and travel, with ``advantage`` (1) or
+        disadvantage (-1). The total, None when the character is gone."""
         pc = self._store.characters.find(character_id)
         if pc is None:
             return None
         params = {"kind": kind, "subject": subject} | ({"private": "1"} if private else {})
+        if advantage:
+            params["adv"] = str(advantage)
         changed = self.play.act(
             character_id,
             "roll",

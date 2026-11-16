@@ -29,7 +29,7 @@ from htpy import (
 )
 from htpy import input as input_el
 
-from app.models.gamestate import Downtime, DowntimeProject
+from app.models.gamestate import Contact, Downtime, DowntimeProject
 from app.services.activities import (
     CAROUSING,
     CRIME_DCS,
@@ -38,6 +38,7 @@ from app.services.activities import (
     SERVICE,
     offers_of,
 )
+from app.services.contacts import KINDS as CONTACT_KINDS
 from app.services.downtime import DAILY, RECUPERATING_DAYS
 from app.ui.context import Page
 from app.ui.forms import alert, hidden, notice
@@ -46,6 +47,9 @@ from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.names import name_text
 from app.ui.shop_pages import coin_text
+
+# How each kind of contact is coloured.
+CONTACT_TONE = {"ally": "heal", "favour": "accent", "enemy": "dmg", "rival": "dmg"}
 
 
 def downtime_url(character_id: str) -> str:
@@ -101,11 +105,13 @@ def downtime_page(
     character_name: str,
     downtime: Downtime,
     start: StartOptions,
+    contacts: Sequence[Contact] = (),
     error: str | None = None,
     message: str | None = None,
 ) -> Element:
     """The free days, each project with its progress and a way to spend days on it, the
-    new projects, the book's activities, and what finished (with any offers)."""
+    new projects, the book's activities, whom the character knows, and what finished
+    (with any offers)."""
     t = page.t
     url = downtime_url(character_id)
     running = [x for x in downtime.projects if not x.finished]
@@ -145,6 +151,7 @@ def downtime_page(
             ]
             if start.activities
             else None,
+            _contacts(page, url, contacts),
             section(class_="panel downtime-done")[
                 div(class_="panel-head")[h2[t("downtime.finished")]],
                 ul(class_="downtime-list")[[_project(page, url, x, 0) for x in reversed(finished)]],
@@ -153,6 +160,93 @@ def downtime_page(
             else None,
         ],
     )
+
+
+def _contacts(page: Page, url: str, contacts: Sequence[Contact]) -> Element:
+    """Whom the character knows: allies, enemies, rivals and favours owed, each named
+    and noted, called on once; and a way to write one down."""
+    t = page.t
+
+    def row(contact: Contact) -> Element:
+        return li(class_="contact-row" + (" is-spent" if contact.spent else ""))[
+            span(class_=f"pill {CONTACT_TONE.get(contact.kind, '')}".strip())[
+                t(f"contacts.kind.{contact.kind}")
+            ],
+            form(method="post", action=url, class_="contact-edit")[
+                hidden("op", "contact_edit"),
+                hidden("contact", contact.id),
+                input_el(
+                    type="text",
+                    name="name",
+                    value=contact.name,
+                    maxlength="120",
+                    placeholder=t("contacts.name"),
+                    aria_label=t("contacts.name"),
+                ),
+                input_el(
+                    type="text",
+                    name="note",
+                    value=contact.note,
+                    maxlength="2000",
+                    placeholder=t("contacts.note"),
+                    aria_label=t("contacts.note"),
+                ),
+                button(type="submit", class_="btn btn-sm")[t("contacts.save")],
+            ],
+            small(class_="muted")[t(f"contacts.from.{contact.source}")] if contact.source else None,
+            form(method="post", action=url, class_="inline-form")[
+                hidden("op", "contact_call"),
+                hidden("contact", contact.id),
+                button(
+                    type="submit",
+                    class_="btn btn-sm" + (" is-on" if contact.spent else ""),
+                    aria_pressed="true" if contact.spent else "false",
+                )[t("contacts.called" if contact.spent else "contacts.call")],
+            ]
+            if contact.kind in ("ally", "favour", "contact")
+            else None,
+            form(method="post", action=url, class_="inline-form")[
+                hidden("op", "contact_remove"),
+                hidden("contact", contact.id),
+                button(type="submit", class_="btn btn-sm btn-ghost", title=t("contacts.remove"))[
+                    icon("x", "sm")
+                ],
+            ],
+        ]
+
+    return section(class_="panel downtime-contacts")[
+        div(class_="panel-head")[h2[t("contacts.heading")]],
+        ul(class_="contact-list")[[row(c) for c in contacts]]
+        if contacts
+        else p(class_="muted")[t("contacts.none")],
+        details(class_="contact-new")[
+            summary[t("contacts.add")],
+            form(method="post", action=url, class_="contact-edit")[
+                hidden("op", "contact_add"),
+                select(name="kind", aria_label=t("contacts.kind_label"))[
+                    [option(value=k)[t(f"contacts.kind.{k}")] for k in CONTACT_KINDS]
+                ],
+                input_el(
+                    type="text",
+                    name="name",
+                    maxlength="120",
+                    required=True,
+                    placeholder=t("contacts.name"),
+                    aria_label=t("contacts.name"),
+                ),
+                input_el(
+                    type="text",
+                    name="note",
+                    maxlength="2000",
+                    placeholder=t("contacts.note"),
+                    aria_label=t("contacts.note"),
+                ),
+                button(type="submit", class_="btn btn-sm")[
+                    icon("user-plus", "sm"), span[t("contacts.add")]
+                ],
+            ],
+        ],
+    ]
 
 
 def _project(page: Page, url: str, project: DowntimeProject, free: int) -> Element:

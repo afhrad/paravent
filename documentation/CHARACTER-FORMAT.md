@@ -104,6 +104,7 @@ is meant: `{"item": "Letter from a dead colleague"}`.
 | `spells` | `{"cantrips": […], "known": […], "prepared": […]}` | see below |
 | `inventory` | `[{"item": "Quarterstaff|PHB", "quantity": 1, "equipped": true, "attuned": false, "notes": ""}]` | equipped armour, shields and protective items set AC; equipped weapons become attacks |
 | `currency` | `{"cp": 0, "sp": 14, "ep": 0, "gp": 230, "pp": 2}` | |
+| `lifestyle` | `"modest"`, `""` | how the character lives: `wretched` … `aristocratic`; each day the world's clock passes off the road costs that from `currency` (app/services/lifestyle.py); `""` keeps none |
 | `resources` | `[{"name": "Arcane Recovery", "max": 1, "recharge": "long"}]` | limited-use features; `recharge` is `short`, `long` or `none` |
 | `pronouns`, `appearance`, `backstory`, `notes` | text | `notes` is the player's own, written on the sheet (Features); only the player and the gamemaster read it |
 
@@ -160,6 +161,7 @@ the rest.
 | `resources_used` | `{"Arcane Recovery": 1}` | by resource name |
 | `conditions` | `["prone"]` | any of the 14 conditions, lowercase |
 | `exhaustion` | `0`–`6` | |
+| `hunger_levels`, `thirst_levels` | `0`–`6` | the levels of that exhaustion hunger and thirst brought: no rest removes them until the character has eaten (eating clears `hunger_levels`) or drunk its fill (a day with enough water, or "Ate and drank" on the sheet) |
 | `concentration` | `"Haste|PHB"` or `null` | |
 | `inspiration` | `true` / `false` | |
 | `raging` | `true` / `false` | a barbarian's Rage: resistance to bludgeoning, piercing and slashing while on; a rest ends it |
@@ -233,7 +235,7 @@ Rules applied by the sheet's buttons (`app/services/play.py`): temporary HP abso
 and never stacks; damage while concentrating rolls the Constitution save (DC 10 or half the
 damage) and ends concentration on a failure; damage at 0 HP is a failed death save; healing from
 0 resets death saves; a long rest sets `hp` back to the maximum; a short rest restores short-rest resources and pact slots; a long rest
-restores HP, slots, all resources, half the hit dice and one level of exhaustion.
+restores HP, slots, all resources, half the hit dice and one level of exhaustion (never one hunger or thirst brought).
 
 **Carrying** (2026-11-12, `Sheet.load`): the inventory's weights from the books times their
 quantity, plus the coins (50 to the pound), against the carrying capacity — Strength × 15 lb.,

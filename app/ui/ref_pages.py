@@ -60,6 +60,7 @@ from app.ui.tags import RenderContext, card_anchor, plain, ref_url, render, rend
 from app.ui.tokens import token
 from app.ui.translate_pages import translate_url
 from app.ui.translated import coverage_note, localized, table_written
+from app.ui.trap_pages import spring_button
 
 SIZES = {"T": "Tiny", "S": "Small", "M": "Medium", "L": "Large", "H": "Huge", "G": "Gargantuan"}
 ABILITIES = ("str", "dex", "con", "int", "wis", "cha")
@@ -1220,12 +1221,14 @@ def reference_page(
             ],
             _printings(page, entry, printings),
             statblock(page, entry, ctx),
+            spring_button(page, entry.world_id, entry.category, entry.name, entry.source),
             _description(page, entry, ctx, description),
             _backlinks(page, backlinks, entry.world_id) if backlinks else None,
             _names_form(page, entry),
             p(class_="ref-roll-result", aria_live="polite", hidden=True),
         ],
-        extra_scripts=("/static/js/roll.js",),
+        # htmx loads a trap's "Spring it" form in place (app/ui/trap_pages.py).
+        extra_scripts=("/static/js/roll.js", "/static/js/htmx.min.js"),
         world_id=entry.world_id,
     )
 

@@ -451,6 +451,20 @@
           "title": "Exhaustion",
           "type": "integer"
         },
+        "hunger_levels": {
+          "default": 0,
+          "maximum": 6,
+          "minimum": 0,
+          "title": "Hunger Levels",
+          "type": "integer"
+        },
+        "thirst_levels": {
+          "default": 0,
+          "maximum": 6,
+          "minimum": 0,
+          "title": "Thirst Levels",
+          "type": "integer"
+        },
         "concentration": {
           "anyOf": [
             {
@@ -911,6 +925,21 @@
     },
     "currency": {
       "$ref": "#/$defs/Currency"
+    },
+    "lifestyle": {
+      "default": "",
+      "enum": [
+        "",
+        "wretched",
+        "squalid",
+        "poor",
+        "modest",
+        "comfortable",
+        "wealthy",
+        "aristocratic"
+      ],
+      "title": "Lifestyle",
+      "type": "string"
     },
     "resources": {
       "items": {

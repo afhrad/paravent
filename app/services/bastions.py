@@ -16,7 +16,7 @@ next turn. What the other events yield is the books' own text, left to the table
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -279,6 +279,22 @@ class BastionService:
             f.model_copy(update={"order": order, "option": option if order else ""})
             if n == index
             else f
+            for n, f in enumerate(bastion.facilities)
+        ]
+        return self._save(bastion.model_copy(update={"facilities": changed}))
+
+    def equip(
+        self, character_id: str, index: int, tools: Sequence[str], allowed: Sequence[str], most: int
+    ) -> Bastion:
+        """The tools a facility is equipped with (a Workshop's six kinds of Artisan's
+        Tools), each from ``allowed``, different, and at most ``most``."""
+        bastion = self.of(character_id)
+        known = {a.lower(): a for a in allowed}
+        chosen = list(dict.fromkeys(known.get(t.lower(), "") for t in tools))
+        if not 0 <= index < len(bastion.facilities) or "" in chosen or len(chosen) > most:
+            raise BastionError("bastion.error.tools")
+        changed = [
+            f.model_copy(update={"tools": chosen}) if n == index else f
             for n, f in enumerate(bastion.facilities)
         ]
         return self._save(bastion.model_copy(update={"facilities": changed}))

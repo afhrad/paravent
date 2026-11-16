@@ -516,7 +516,38 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         turn) — and carried out on the turn; what the text leaves to the table is shown
         as such. Basic facilities past the first two are paid and built in the guide's
         time, and enlarged a step the same way. What other events yield stays with the
-        table
+        table. **A Workshop's tools** (2026-11-16): the six kinds of Artisan's Tools it
+        is equipped with, chosen from its text's list, decide what it crafts
+  - [x] **Lifestyle, hunger's hold and tool checks** (2026-11-16): each character keeps a
+        lifestyle on its sheet's gear (`app/services/lifestyle.py`), and every day the
+        world's clock passes off the road charges it from the purse (the 2014 handbook's
+        table, or under the 2024 rules an inn stay and three meals of that quality),
+        what the purse lacks logged as owed. Exhaustion from hunger or thirst stays
+        through rests until the character has eaten or drunk its fill
+        (`hunger_levels`, `thirst_levels`). A tool check (`kind=tool`) rolls with the
+        tool's proficiency in the roll: crime's thieves' tools, work with a tool
+  - [x] **Chases** (2026-11-16, `app/services/chase.py`): from the party view, the
+        world's characters and creatures of its books as quarry and pursuers, initiative,
+        the distance, free Dashes (3 + CON) and the DC 10 Constitution roll past them,
+        the complication die on the guide's urban or wilderness table falling on the
+        next participant, and the quarry's Stealth against the pursuers' passive
+        Perception at the end of each round
+  - [x] **Traps and hazards in play** (2026-11-16, `app/services/traps.py`): "Spring it"
+        beside a trap or hazard in a chapter or on its page reads its save or attack,
+        damage, half on a save and conditions from the text (a 2024 trap scaled by its
+        *At Higher Levels* table to the party's level), rolls the saves on the ticked
+        characters' sheets and applies the damage with their defences; its Perception
+        or Investigation checks are called for in one press. 55 of the corpus's 110
+        traps and hazards spring by themselves; the rest are the table's
+  - [x] **A calendar per world** (2026-11-16, `app/services/calendar.py`): the setting
+        calendars the world's books print (Harptos, Eberron, Exandria, Theros, Ravnica)
+        on the clock panel; with one chosen and today's date set, every clock label
+        reads a date ("14 Mirtul 1492 DR"), holidays by name, with the season, which
+        also turns the weather's rain or snow
+  - [x] **Contacts and favours** (2026-11-16, `app/services/contacts.py`): carousing's
+        allies and enemies, religious service's favours and the rivals behind the book's
+        starred complications become a character's contacts on its downtime page, named,
+        noted and called on there; anyone else written down by hand
   - [x] **Image effects** (2026-11-04, ADVENTURES.md §5.5, `app/services/image_effects.py`):
         `torn`, `fade`, `oval`, `sepia`, `aged`, `mono`, `banner` written beside an image
         (`![[tavern.jpg|torn sepia]]`, `cover: media/x.jpg|fade`), rendered once with
@@ -1009,7 +1040,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2374 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2394 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the

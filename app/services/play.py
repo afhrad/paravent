@@ -32,13 +32,21 @@ from dataclasses import dataclass, replace
 from typing import Any
 
 from app.models.gamestate import SpellForm
-from app.models.pc import ChosenOption, InventoryItem, LogKind, PlayerCharacter, Recharge
+from app.models.pc import (
+    ChosenOption,
+    InventoryItem,
+    LogKind,
+    PlayerCharacter,
+    PlayState,
+    Recharge,
+)
 from app.models.protocol import EntryKind, ProtocolEntry, RollRecord, Scope, Visibility
 from app.services import coins, polymorph, wild_shape
 from app.services.clock import OIL, OIL_LIGHTS, light_minutes
 from app.services.condition_rolls import bend
 from app.services.dice import Advantage, Dice, DiceError, Roll, is_expression
 from app.services.i18n import Translatable
+from app.services.lifestyle import LIFESTYLES
 from app.services.protocol import ProtocolService, outcome_of, roll_record
 from app.services.sheet import CONDITIONS, Sheet, SpellView, Value, damage_at
 from app.store.characters import CharacterStore
@@ -60,6 +68,12 @@ INCAPACITATING = frozenset({"incapacitated", "paralyzed", "petrified", "stunned"
 
 class PlayError(Translatable):
     """An action the rules do not allow right now: no slot left, no hit die to spend."""
+
+
+def _fit_privation(state: PlayState) -> None:
+    """Hunger's and thirst's levels never more than the exhaustion there is."""
+    state.hunger_levels = min(state.hunger_levels, state.exhaustion)
+    state.thirst_levels = min(state.thirst_levels, state.exhaustion - state.hunger_levels)
 
 
 def _take_one(pc: PlayerCharacter, index: int) -> None:
@@ -164,6 +178,8 @@ class PlayService:
             "spend": self._spend,
             "learn": self._learn,
             "eat": self._eat,
+            "fed": self._fed,
+            "lifestyle": self._lifestyle,
             "use": self._use,
             "light": self._light,
             "notes": self._notes,
@@ -514,7 +530,37 @@ class PlayService:
     def _exhaustion(
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
     ) -> None:
-        pc.state.exhaustion = max(0, min(6, pc.state.exhaustion + _int(params, "delta")))
+        state = pc.state
+        delta = _int(params, "delta")
+        state.exhaustion = max(0, min(6, state.exhaustion + delta))
+        cause = params.get("cause", "")
+        if delta > 0 and cause == "hunger":
+            state.hunger_levels += delta
+        elif delta > 0 and cause == "thirst":
+            state.thirst_levels += delta
+        _fit_privation(state)
+
+    def _lifestyle(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """How the character lives from now on (``level``; "" for none kept)."""
+        level = params.get("level", "")
+        if level and level not in LIFESTYLES:
+            raise PlayError("play.error.bad_input")
+        pc.lifestyle = level  # type: ignore[assignment]
+
+    def _fed(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """The character has eaten (``what=hunger``), drunk its fill (``thirst``) or
+        both: the exhaustion they brought may now go with rests."""
+        what = params.get("what", "both")
+        if what not in ("hunger", "thirst", "both"):
+            raise PlayError("play.error.bad_input")
+        if what in ("hunger", "both"):
+            pc.state.hunger_levels = 0
+        if what in ("thirst", "both"):
+            pc.state.thirst_levels = 0
 
     def _resource(
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
@@ -561,7 +607,9 @@ class PlayService:
             state.temp_hp = 0
             state.slots_used = {}
             state.death_saves.successes = state.death_saves.failures = 0
-            state.exhaustion = max(0, state.exhaustion - 1)
+            # Exhaustion from hunger or thirst stays until the character is fed.
+            held = state.hunger_levels + state.thirst_levels
+            state.exhaustion = max(min(held, state.exhaustion), state.exhaustion - 1)
             state.mastery_set = False  # Weapon Master may choose its kind again
             if state.wild_shape is not None:  # no form lasts through a long rest
                 self._leave_form(pc, actor)
@@ -637,7 +685,13 @@ class PlayService:
         chosen = Advantage.parse(params.get("adv"))
         # The character's own conditions bend the roll (Poisoned: disadvantage on attacks
         # and checks); the reasons go into the log line as "[poisoned]".
-        roll_kind = {"check": "check", "skill": "check", "initiative": "check", "attack": "attack"}
+        roll_kind = {
+            "check": "check",
+            "skill": "check",
+            "tool": "check",
+            "initiative": "check",
+            "attack": "attack",
+        }
         conditions = list(pc.state.conditions)
         if sheet.load is not None and sheet.load.burden == 2 and _physical(sheet, kind, subject):
             conditions.append("encumbered")  # variant encumbrance, heavily
@@ -677,6 +731,28 @@ class PlayService:
             else:
                 rolled = test(ability.save)
             self._log(pc, actor, LogKind(kind), subject, rolled, record=made[-1])
+        elif kind == "tool":
+            # An ability check with a tool ("dex|Thieves' Tools"): the proficiency bonus
+            # is part of the roll when the character has the tool's proficiency.
+            key, _, tool = subject.partition("|")
+            ability = next((a for a in sheet.abilities if a.key == key), None)
+            if ability is None or not tool:
+                raise PlayError("play.error.bad_input")
+            known = any(t.lower() == tool.lower() for t in sheet.tools)
+            bonus = (sheet.proficiency.value or 0) if known else 0
+            sources = ((f"ability:{key}", ability.modifier),) + (
+                ((f"tool:{tool}", bonus),) if bonus else ()
+            )
+            rolled = d20(ability.modifier + bonus, sources)
+            self._log(
+                pc,
+                actor,
+                LogKind.CHECK,
+                key,
+                rolled,
+                record=made[-1],
+                what=f"tool:{key}:{tool.replace(':', ' ')}",
+            )
         elif kind == "skill":
             skill = next((s for s in sheet.skills if s.key == subject), None)
             if skill is None:
@@ -1008,13 +1084,14 @@ class PlayService:
     def _spend(
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
     ) -> None:
-        """Pay ``amount`` copper for something (``for``: what, for the log)."""
+        """Pay ``amount`` copper for something (``for``: what, for the log; ``quiet``:
+        the caller logs it in its own words)."""
         cost = max(0, _int(params, "amount", 0))
         purse = coins.pay(pc.currency, cost)
         if purse is None:
             raise PlayError("play.error.no_money")
         pc.currency = purse
-        if cost:
+        if cost and not params.get("quiet"):
             reason = params.get("for", "").replace(":", " ")
             self._stage(pc, actor, EntryKind.CUSTOM, what=f"spend:{coins.text(cost)}:{reason}")
 
@@ -1047,6 +1124,7 @@ class PlayService:
         if found is None:
             raise PlayError("play.error.no_rations")
         _take_one(pc, found)
+        pc.state.hunger_levels = 0
 
     @staticmethod
     def _add_items(pc: PlayerCharacter, option: ChosenOption, count: int) -> None:

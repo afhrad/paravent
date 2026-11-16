@@ -11,6 +11,7 @@ from htpy import (
     a,
     b,
     button,
+    details,
     div,
     form,
     h2,
@@ -22,6 +23,7 @@ from htpy import (
     select,
     small,
     span,
+    summary,
     ul,
 )
 from htpy import input as input_el
@@ -61,6 +63,7 @@ def bastion_page(
     next_turn: int | None = None,
     options: Sequence[Mapping[str, Sequence[OrderOption]]] = (),
     tool_items: Mapping[str, Sequence[tuple[str, str]]] | None = None,
+    equipment: Sequence[tuple[int, Sequence[tuple[str, str]]]] = (),
     costs: tuple[Mapping[str, tuple[int, int]], ...] = ({}, {}),
     day_of: Mapping[int, str] | None = None,
     error: str | None = None,
@@ -71,7 +74,9 @@ def bastion_page(
     room, what the last turn yielded, its basic facilities (with what building and
     enlarging cost) and defenders, the event the last turn rolled, and (for the
     gamemaster) the turn. ``options`` go with the facilities, ``tool_items`` are what
-    each tool crafts (``(reference, name)``), ``day_of`` names a clock minute."""
+    each tool crafts (``(reference, name)``), ``equipment`` per facility how many tools
+    it is equipped with and from which (``(reference, name)``), ``day_of`` names a
+    clock minute."""
     t = page.t
     url = bastion_url(character_id)
     slots = special_slots(level)
@@ -90,6 +95,8 @@ def bastion_page(
             options=options[n] if n < len(options) else {},
             chosen=held.option,
             tool_items=tool_items or {},
+            equipment=equipment[n] if n < len(equipment) else (0, ()),
+            tools=held.tools,
         )
         for n, (held, facility) in enumerate(zip(bastion.facilities, built, strict=True))
     ]
@@ -383,14 +390,16 @@ def _facility(
     options: Mapping[str, Sequence[OrderOption]] | None = None,
     chosen: str = "",
     tool_items: Mapping[str, Sequence[tuple[str, str]]] | None = None,
+    equipment: tuple[int, Sequence[tuple[str, str]]] = (0, ()),
+    tools: Sequence[str] = (),
 ) -> Element:
     t = page.t
     name, _, source = ref.partition("|")
     shown = page.t.term("facility", name) or name
     orders = facility.orders if facility is not None else ()
     options = options or {}
-    tools = {o.tool for found in options.values() for o in found if o.tool}
-    craftable = [item for tool in sorted(tools) for item in (tool_items or {}).get(tool, ())]
+    crafting = {o.tool for found in options.values() for o in found if o.tool}
+    craftable = [item for tool in sorted(crafting) for item in (tool_items or {}).get(tool, ())]
 
     def choices(order: str) -> Node:
         found = options.get(order) or []
@@ -442,12 +451,46 @@ def _facility(
         ]
         if order and not maintain
         else None,
+        _equipment(page, url, index, equipment, tools) if equipment[0] else None,
         form(method="post", action=url, class_="inline-form")[
             hidden("op", "remove"),
             hidden("index", str(index)),
             button(type="submit", class_="btn btn-sm btn-ghost", title=t("bastion.remove"))[
                 icon("x", "sm")
             ],
+        ],
+    ]
+
+
+def _equipment(
+    page: Page,
+    url: str,
+    index: int,
+    equipment: tuple[int, Sequence[tuple[str, str]]],
+    tools: Sequence[str],
+) -> Element:
+    """The tools a facility was equipped with (a Workshop's six), chosen by ticking."""
+    t = page.t
+    most, offered = equipment
+    held = {x.lower() for x in tools}
+    return details(class_="bastion-tools", open=not tools)[
+        summary[t("bastion.tools", count=len(tools), most=most)],
+        form(method="post", action=url, class_="bastion-tools-form")[
+            hidden("op", "tools"),
+            hidden("index", str(index)),
+            div(class_="bastion-tool-grid")[
+                [
+                    label(class_="check")[
+                        input_el(
+                            type="checkbox", name="tool", value=ref, checked=ref.lower() in held
+                        ),
+                        span[shown],
+                    ]
+                    for ref, shown in offered
+                ]
+            ],
+            small(class_="muted")[t("bastion.tools_hint", most=most)],
+            button(type="submit", class_="btn btn-sm")[t("bastion.save")],
         ],
     ]
 
