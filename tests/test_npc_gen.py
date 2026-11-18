@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import html
 import re
 from collections.abc import AsyncIterator
 from pathlib import Path
@@ -122,8 +123,10 @@ async def client(tmp_path: Path, corpus: Path) -> AsyncIterator[tuple[AsyncClien
 
 
 def _carried(page: str) -> dict[str, str]:
-    """The hidden ``v_*`` fields of the generator form."""
-    return dict(re.findall(r'name="(v_\w+)" value="([^"]*)"', page))
+    """The hidden ``v_*`` fields of the generator form, as a browser sends them (a
+    rolled talent may hold an apostrophe, written ``&#x27;`` in the page)."""
+    found = re.findall(r'name="(v_\w+)" value="([^"]*)"', page)
+    return {key: html.unescape(value) for key, value in found}
 
 
 class TestPages:
