@@ -271,6 +271,51 @@ class TestParty:
         assert ' class="pc-card nohp" ' in card.split(">", 1)[0]  # not crit, not down
         assert 'class="pc-hp-now mono ">—<' in card  # not a false "0"
 
+    async def test_what_is_in_play_is_one_tap_away(
+        self, gm: AsyncClient, registry: StoreRegistry
+    ) -> None:
+        from app.services.worlds import WorldInput
+
+        world = registry.worlds.create(WorldInput(name="Grey Reed"))
+        assert "No adventure or chapter is set to Running" in (await gm.get("/gm")).text
+        adventures = registry.adventures
+        quiet = adventures.create(world.id, "Later")
+        adventures.create_chapter(quiet.id, "Not yet")
+        played = adventures.create(world.id, "The Drowned Bell")
+        ferry = adventures.create_chapter(played.id, "The Ferry")
+        adventures.create_chapter(played.id, "The Bell Tower")
+        adventures.update_chapter(ferry.id, title="The Ferry", status="running", body="")
+        text = (await gm.get("/gm")).text
+        assert f'href="/gm/adventures/{played.id}"' in text and "The Ferry" in text
+        assert "The Bell Tower" not in text and "Later" not in text
+
+    async def test_starting_and_ending_from_the_table(
+        self, gm: AsyncClient, registry: StoreRegistry
+    ) -> None:
+        from app.services.worlds import WorldInput
+
+        world = registry.worlds.create(WorldInput(name="Grey Reed"))
+        adventures = registry.adventures
+        bell = adventures.create(world.id, "The Drowned Bell")
+        ferry = adventures.create_chapter(bell.id, "The Ferry")
+        chapel = adventures.create_chapter(bell.id, "The Chapel")
+        # Starting a chapter starts its adventure, and goes back where it was pressed.
+        started = await gm.post(f"/gm/chapters/{ferry.id}/start", data={"back": "/gm"})
+        assert started.status_code == 303 and started.headers["location"] == "/gm"
+        assert adventures.get(bell.id).status == "running"
+        assert adventures.get_chapter(ferry.id).status == "running"
+        await gm.post(f"/gm/chapters/{ferry.id}/end", data={"back": "https://evil.example"})
+        assert adventures.get_chapter(ferry.id).status == "finished"
+        # No chapter runs: the next planned one is offered to start.
+        table = (await gm.get("/gm")).text
+        assert f'action="/gm/chapters/{chapel.id}/start"' in table
+        await gm.post(f"/gm/chapters/{chapel.id}/start")
+        await gm.post(f"/gm/adventures/{bell.id}/end")
+        assert adventures.get(bell.id).status == "finished"
+        assert adventures.get_chapter(chapel.id).status == "finished"
+        page = (await gm.get(f"/gm/adventures/{bell.id}")).text
+        assert "Resume" in page
+
     async def test_unknown_card_is_404(self, gm: AsyncClient) -> None:
         assert (await gm.get("/gm/party/nope/card")).status_code == 404
 

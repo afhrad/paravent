@@ -1265,6 +1265,21 @@ button.pill.cb-side-switch:hover{ border-color:currentColor; }
 .party-check-row.bad{ background:var(--dmg-weak); border-color:var(--dmg); color:var(--dmg-text); }
 .party-check-row.waiting{ border-style:dashed; }
 .party-checks-clear{ margin-left:auto; }
+/* In play: the running adventures and chapters, one tap away */
+.party-playing-list, .party-playing-chapters{ list-style:none; margin:0; padding:0; }
+.party-playing-list{ display:grid; gap:10px; }
+.party-playing-link{ font-family:var(--font-display); font-size:15.5px; color:var(--accent-text); text-decoration:none; }
+.party-playing-link:hover{ text-decoration:underline; text-underline-offset:3px; }
+.party-playing-chapters{ display:grid; gap:6px; margin-top:6px; }
+.party-playing-row{ display:flex; align-items:center; gap:6px 8px; flex-wrap:wrap; }
+.party-playing-row .play-form{ margin-left:auto; flex-basis:auto; }
+.party-playing-chapter{ flex:0 1 auto; min-width:0; }
+/* Start / End beside a chapter in its adventure's list, and in a chapter's head */
+.chapter-row .play-form, .chapter-head .play-form, .head-actions .play-form{ flex-basis:auto; }
+.party-playing-chapter{ min-height:36px; max-width:100%; }
+.party-playing-chapter span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.party-playing-none{ margin:0; font-size:13.5px; }
+.party-playing-none a{ color:var(--accent-text); }
 .party-clock{ display:grid; gap:10px; margin:0 0 16px; }
 .party-clock-head{ display:flex; align-items:center; gap:8px 12px; flex-wrap:wrap; }
 .party-clock-now{ font-size:1.15rem; }

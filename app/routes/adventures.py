@@ -953,6 +953,28 @@ async def delete_chapter(
     return redirect(_with(adventure_url(chapter.adventure_id), deleted="1"))
 
 
+@router.post(f"{ADVENTURES_URL}/{{adventure_id}}/start")
+@router.post(f"{ADVENTURES_URL}/{{adventure_id}}/end")
+@router.post(f"{CHAPTERS_URL}/{{chapter_id}}/start")
+@router.post(f"{CHAPTERS_URL}/{{chapter_id}}/end")
+async def start_or_end(
+    request: Request,
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    adventure_id: str = "",
+    chapter_id: str = "",
+    back: Annotated[str, Form()] = "",
+) -> Response:
+    """Start or end an adventure or chapter (the path's last part), then back where it
+    was pressed: the table, the adventure, or the record's own page."""
+    op = request.url.path.rsplit("/", 1)[-1]
+    kind, record_id = ("chapter", chapter_id) if chapter_id else ("adventure", adventure_id)
+    service = registry.adventures
+    (service.start if op == "start" else service.end)(kind, record_id)
+    own = chapter_url(record_id) if kind == "chapter" else adventure_url(record_id)
+    return redirect(safe_next(back) or own)
+
+
 @router.post(f"{CHAPTERS_URL}/{{chapter_id}}/move")
 async def move_chapter(
     _gm: GamemasterDep,

@@ -3855,5 +3855,11 @@
   "checks.clear": "Leeren",
   "checks.clear_confirm": "Einige Proben warten noch auf Würfe. Trotzdem alle leeren?",
   "checks.passed": "geschafft",
-  "checks.failed": "verfehlt"
+  "checks.failed": "verfehlt",
+  "party.playing": "Im Spiel",
+  "party.playing_none": "Kein Abenteuer und kein Kapitel steht auf „Läuft“.",
+  "party.playing_where": "In der Welt festlegen",
+  "adventures.start": "Starten",
+  "adventures.end": "Beenden",
+  "adventures.resume": "Fortsetzen"
 }

@@ -104,6 +104,7 @@ from app.ui.library_links import (
 from app.ui.location_pages import location_card
 from app.ui.markdown import Heading, LibraryLink, MarkdownContext, Rendered, render_markdown
 from app.ui.palette import CATEGORY_ICON
+from app.ui.play_buttons import play_button
 from app.ui.prose_check import Problem
 from app.ui.ref_pages import CATEGORY_KEY, statblock
 from app.ui.sound_panel import SOUNDS_URL
@@ -844,6 +845,13 @@ def adventure_page(
                 a(href=chapter_url(ch.id), class_="list-title list-link")[ch.title],
                 span(class_="list-meta")[status_pill(page, ch.status)],
             ],
+            play_button(
+                page,
+                chapter_url(ch.id),
+                ch.status if adv.status != "draft" else "draft",
+                back=adventure_url(adv.id),
+                small_=True,
+            ),
             a(href=f"{chapter_url(ch.id)}/edit", class_="btn btn-sm btn-ghost")[
                 icon("pencil"), span(class_="list-action-label")[t("players.edit")]
             ],
@@ -875,6 +883,7 @@ def adventure_page(
                 adv.name,
                 adv.summary,
                 div(class_="head-actions")[
+                    play_button(page, adventure_url(adv.id), adv.status),
                     a(href=f"{adventure_url(adv.id)}/edit", class_="btn")[
                         icon("pencil"), span[t("players.edit")]
                     ],
@@ -1148,6 +1157,9 @@ def chapter_page(
             div(class_="chapter-head")[
                 h1[ch.title],
                 status_pill(page, ch.status),
+                play_button(
+                    page, chapter_url(ch.id), ch.status if adv.status != "draft" else "draft"
+                ),
                 a(href=f"{chapter_url(ch.id)}/edit", class_="btn")[
                     icon("pencil"), span[t("players.edit")]
                 ],

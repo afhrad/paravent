@@ -21,6 +21,7 @@ from htpy import (
     p,
     section,
     select,
+    small,
     span,
     summary,
     textarea,
@@ -28,7 +29,7 @@ from htpy import (
 )
 from htpy import input as input_el
 
-from app.models.gamestate import World
+from app.models.gamestate import Adventure, Chapter, World
 from app.services.experience import progress
 from app.services.sheet import Sheet
 from app.services.worlds import Book, BookCatalog
@@ -39,7 +40,9 @@ from app.ui.forms import alert, checkbox_field, notice, select_field, text_field
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
+from app.ui.library_links import adventure_url, chapter_url, world_url
 from app.ui.names import class_line
+from app.ui.play_buttons import play_button
 from app.ui.play_session_pages import session_url
 from app.ui.protocol_pages import headline
 from app.ui.sheet_pages import form_pill, speed_text
@@ -284,6 +287,67 @@ def _world_filter(page: Page, worlds: Sequence[World], selected: str | None) -> 
     ]
 
 
+def playing_panel(
+    page: Page,
+    playing: Sequence[tuple[str, Adventure, Sequence[Chapter], Chapter | None]],
+    *,
+    world_id: str | None,
+) -> Element:
+    """What is being played, one tap away: each running adventure with its running
+    chapters, or a chapter set running in an adventure that is not (``(world name,
+    adventure, chapters, next)``), each with its End; ``next`` is the chapter to start
+    when none runs. The world is named where the table shows several."""
+    t = page.t
+    worlds = {name for name, _a, _c, _n in playing}
+    return div(class_="panel party-playing")[
+        div(class_="party-clock-head")[icon("book-open"), b[t("party.playing")]],
+        ul(class_="party-playing-list")[
+            [
+                li(class_="party-playing-adventure")[
+                    div(class_="party-playing-row")[
+                        a(href=adventure_url(adventure.id), class_="party-playing-link")[
+                            adventure.name
+                        ],
+                        small(class_="muted")[world] if len(worlds) > 1 else None,
+                        play_button(
+                            page,
+                            adventure_url(adventure.id),
+                            adventure.status,
+                            back=PARTY_URL,
+                            small_=True,
+                        )
+                        if adventure.status == "running"
+                        else None,
+                    ],
+                    ul(class_="party-playing-chapters")[
+                        [
+                            li(class_="party-playing-row")[
+                                a(
+                                    href=chapter_url(c.id),
+                                    class_="btn btn-sm party-playing-chapter",
+                                )[icon("scroll", "sm"), span[c.title]],
+                                play_button(
+                                    page, chapter_url(c.id), c.status, back=PARTY_URL, small_=True
+                                ),
+                            ]
+                            for c in [*chapters, *([upcoming] if upcoming else [])]
+                        ]
+                    ]
+                    if chapters or upcoming
+                    else None,
+                ]
+                for world, adventure, chapters, upcoming in playing
+            ]
+        ]
+        if playing
+        else p(class_="muted party-playing-none")[
+            t("party.playing_none"),
+            " ",
+            a(href=world_url(world_id) if world_id else WORLDS_URL)[t("party.playing_where")],
+        ],
+    ]
+
+
 def _more_menu(page: Page, world: World | None) -> Element:
     """What the table needs now and then: everyone up a level, the start guide."""
     t = page.t
@@ -327,6 +391,7 @@ def party_page(
     clock: Node = None,
     shop: Node = None,
     chase: Node = None,
+    playing: Node = None,
 ) -> Element:
     """The gamemaster's landing screen: every character at the table, live.
 
@@ -369,7 +434,7 @@ def party_page(
             _layout(
                 page,
                 [combats, party_grid(page, cards, world_id=world.id if world else None)],
-                [clock, checks, shop, chase] if clock is not None else [checks],
+                [playing, clock, checks, shop, chase] if clock is not None else [playing, checks],
             ),
         ],
         extra_scripts=("/static/js/htmx.min.js", "/static/js/party.js"),

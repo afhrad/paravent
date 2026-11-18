@@ -96,6 +96,14 @@ drafted_by: 1f2e3d4c5b6a   # set when Claude drafted it through MCP (MCP.md §6)
 ---
 ```
 
+**Start and End** (2026-11-18, `AdventureService.start`/`end`, `app/ui/play_buttons.py`):
+a planned adventure or chapter has Start, a running one End, a finished one Resume — on
+its page, beside each chapter of its adventure and in the table's *In play* panel, which
+lists the running adventures and chapters and, when a running adventure has no chapter
+running, offers the next planned one. Starting a chapter starts its adventure if that was
+planned; ending an adventure ends its running chapters. A draft has neither: it is taken
+over in its review.
+
 `draft` is an adventure Claude wrote through the MCP server and the gamemaster has not
 reviewed yet; giving it any other status ends Claude's write access (MCP.md §6). `party`
 is chosen in the adventure's form ("nobody ticked" is the whole world): the encounters

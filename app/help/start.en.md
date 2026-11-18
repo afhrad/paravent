@@ -49,7 +49,8 @@ to fill in by hand; a value the rules cannot work out (a homebrew ring) goes in 
 override.
 
 *Table* is your view of the party: hit points, armor class, conditions, the last roll,
-live as the players play, with the world's clock, checks, shop and chase beside it.
+live as the players play, with what is in play (the running adventures and chapters, one
+tap away), the world's clock, checks, shop and chase beside it.
 **Everyone up a level**, under ⋯, grants a level; each player then answers only what the
 new level brings.
 

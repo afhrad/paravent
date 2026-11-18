@@ -3855,5 +3855,11 @@
   "checks.clear": "Clear",
   "checks.clear_confirm": "Some calls are still waiting for rolls. Clear them all?",
   "checks.passed": "made it",
-  "checks.failed": "missed"
+  "checks.failed": "missed",
+  "party.playing": "In play",
+  "party.playing_none": "No adventure or chapter is set to Running.",
+  "party.playing_where": "Set one in the world",
+  "adventures.start": "Start",
+  "adventures.end": "End",
+  "adventures.resume": "Resume"
 }

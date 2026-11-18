@@ -69,6 +69,7 @@ from app.ui.gm_pages import (
     party_card,
     party_grid,
     party_page,
+    playing_panel,
     world_delete_page,
     world_form_page,
     worlds_page,
@@ -252,6 +253,27 @@ def _chase(page: Page, registry: StoreRegistry, world_id: str | None) -> Element
     return chase_panel(page, shown, registry.chases.of(shown), members)
 
 
+def _playing(page: Page, registry: StoreRegistry, world_id: str | None) -> Element:
+    """The adventures and chapters set running, in the world shown (or every world)."""
+    adventures = registry.adventures
+    shown = _clock_world(registry, world_id)
+    worlds = [w for w in registry.gamestate.worlds.list() if shown is None or w.id == shown]
+    playing = []
+    for world in worlds:
+        for adventure in adventures.adventures(world.id):
+            every = adventures.chapters(adventure.id)
+            chapters = [c for c in every if c.status == "running"]
+            if adventure.status == "running" or chapters:
+                # With no chapter running, the next one still planned, ready to start.
+                upcoming = (
+                    next((c for c in every if c.status == "planned"), None)
+                    if not chapters
+                    else None
+                )
+                playing.append((world.name, adventure, chapters, upcoming))
+    return playing_panel(page, playing, world_id=shown)
+
+
 def _card_world(registry: StoreRegistry, name: str | None, world_filter: str) -> str | None:
     """The world a card names: only on the overview of every world, and only where the
     table's characters are in more than one."""
@@ -303,6 +325,7 @@ async def party(
             clock=_clock(page, registry, world_id),
             shop=_shop(page, registry, world_id),
             chase=_chase(page, registry, world_id),
+            playing=_playing(page, registry, world_id),
         )
     )
 

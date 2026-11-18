@@ -403,6 +403,35 @@ class AdventureService:
             )
         return saved
 
+    def start(self, kind: str, record_id: str) -> None:
+        """An adventure or chapter is now being played. A chapter started starts its
+        adventure too, if that was still planned. A draft is taken over in its review,
+        never started."""
+        if kind == "chapter":
+            chapter = self.get_chapter(record_id)
+            adventure = self.get(chapter.adventure_id)
+            if adventure.status == "draft":
+                return
+            self._store.chapters.update(record_id, status="running")
+            if adventure.status == "planned":
+                self._store.adventures.update(adventure.id, status="running")
+        elif self.get(record_id).status != "draft":
+            self._store.adventures.update(record_id, status="running")
+
+    def end(self, kind: str, record_id: str) -> None:
+        """An adventure or chapter is finished; an adventure ends its running chapters
+        with it."""
+        if kind == "chapter":
+            if self.get(self.get_chapter(record_id).adventure_id).status != "draft":
+                self._store.chapters.update(record_id, status="finished")
+            return
+        if self.get(record_id).status == "draft":
+            return
+        self._store.adventures.update(record_id, status="finished")
+        for chapter in self.chapters(record_id):
+            if chapter.status == "running":
+                self._store.chapters.update(chapter.id, status="finished")
+
     def delete_chapter(self, chapter_id: str, *, contents: bool = False) -> Chapter:
         """Move a chapter's file to the trash; returns what it was. What is placed in it
         moves up to the adventure, or with ``contents`` is deleted with it."""
