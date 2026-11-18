@@ -611,8 +611,9 @@ class PlayService:
             state.temp_hp = 0
             state.slots_used = {}
             state.death_saves.successes = state.death_saves.failures = 0
-            # Exhaustion from hunger or thirst stays until the character is fed.
-            held = state.hunger_levels + state.thirst_levels
+            # Exhaustion from hunger or thirst stays until the character is fed;
+            # so does what a disease holds (app/services/afflictions.py).
+            held = state.hunger_levels + state.thirst_levels + state.held_by_afflictions
             state.exhaustion = max(min(held, state.exhaustion), state.exhaustion - 1)
             state.mastery_set = False  # Weapon Master may choose its kind again
             if state.wild_shape is not None:  # no form lasts through a long rest

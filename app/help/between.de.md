@@ -96,6 +96,15 @@ Entscheidung des Spielers.
 - **Eine Falle** in einem Kapitel oder auf ihrer Seite hat **Auslösen**: hake an, wen sie
   erwischt. Sie würfelt die Rettungswürfe auf deren Bögen oder lässt die Spieler würfeln
   (*Spieler würfeln die Rettungswürfe*) und verteilt ihren Schaden mit den Resistenzen.
+- **Eine Krankheit oder ein Gift** in einem Kapitel oder auf seiner Seite hat
+  **Anstecken**: hake an, wen es trifft, und würfle ihre Rettungswürfe oder lass sie sich
+  ohne anstecken. Ein Gift verteilt seinen Schaden und seine Zustände, so lange der Text
+  sagt. Eine Krankheit bleibt unbemerkt, bis ihre Symptome nach der Uhr der Welt
+  ausbrechen, bringt dann ihre Erschöpfung und Zustände, und jede lange Rast oder jedes
+  Morgengrauen würfelt den Rettungswurf, den ihr Text verlangt — drei Erfolge, eine Stufe
+  Erschöpfung mehr oder weniger oder ein sinkender SG, wie es im Buch steht. **Endet** auf
+  dem Bogen heilt sie. Ein **Fluch** ist deiner: *Einen Fluch auferlegen* in der
+  Ansicht *Verbrauch* des Bogens, mit Namen und Wirkung.
 
 ## 8. Stufenaufstieg
 

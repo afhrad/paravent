@@ -647,6 +647,22 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         fights: the clock's buttons in rows, form fields in the page's face, German spell
         components (V, G, M), level chips and the Unarmed Strike; the session, quests and
         factions pages open a table's only world when none is named
+  - [x] **Diseases, poisons and curses** (2026-11-18, `app/services/afflictions.py`):
+        **Afflict** beside a disease or a poison of the world's books (its page, or folded
+        open in a chapter) puts it on the ticked characters, their saves rolled on their
+        sheets or caught outright. What its text says in numbers is read as the trap
+        reader reads it: the save that catches it, a poison's damage (half on a save where
+        it says so, resistances counted) and conditions for their time ("poisoned for 24
+        hours", "4d6 hours"); a disease's incubation, its symptoms (a level of exhaustion,
+        conditions) and its course — a save at the end of each long rest or at each dawn,
+        cured after three successes, by exhaustion down to none, or by a DC that falls by
+        a roll. Kept on the character (`state.afflictions`) and run by the world's clock and
+        rests: symptoms show at their hour (until then only the gamemaster sees it), a
+        poison wears off, each save is rolled on the sheet and logged; the exhaustion it
+        holds stays through rests. The sheet's Track view lists them, the party card shows
+        them, the gamemaster ends one (cured) or puts a curse of their own on, with a name
+        and what it does. All 29 diseases and 40 poisons of the corpus read; whatever else
+        a text says (disadvantage, a fit of laughter, an herb's cure) stays the table's
   - [x] **Tutorial videos** (2026-11-16, `website/film/`, website/README.md "Videos"): six
         episodes recorded in real browsers from scripts, in English and German — a fight on two
         screens, a player's evening on the phone, writing an adventure, between the fights, the
@@ -1155,7 +1171,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2443 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2448 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the

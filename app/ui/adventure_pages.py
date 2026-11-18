@@ -72,6 +72,7 @@ from app.services.revisions import Change
 from app.services.sound import SoundLibrary
 from app.store.published import PublishedAdventure
 from app.store.reference import parse_reference
+from app.ui.affliction_pages import afflict_button
 from app.ui.auth_pages import message_panel
 from app.ui.cast_pages import npc_card, treasure_card
 from app.ui.combat_pages import combat_url
@@ -194,6 +195,7 @@ def _fold(
         ],
         statblock(page, entry, ctx),
         spring_button(page, world_id, entry.category, entry.name, entry.source),
+        afflict_button(page, world_id, entry.category, entry.name, entry.source, entry.data),
     ]
 
 

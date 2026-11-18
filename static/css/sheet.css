@@ -298,6 +298,15 @@ a.fchip{ text-decoration:none; }
 .cs-lifestyle label{ display:flex; align-items:center; gap:8px; }
 .cs-lifestyle small{ flex-basis:100%; }
 .cs-privation{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin-top:6px; font-size:12px; }
+.cs-aff-list{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; }
+.cs-aff{ border-left:3px solid var(--cond); padding-left:10px; }
+.cs-aff.is-hidden{ border-left-style:dashed; opacity:.8; }
+.cs-aff-head{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:13px; }
+.cs-aff-head .inline-form{ margin-left:auto; }
+.cs-afflictions small.cs-aff-line{ display:block; font-size:12px; line-height:1.4; margin-top:2px; }
+.cs-aff-note{ font-size:12.5px; margin:4px 0 0; white-space:pre-line; }
+.cs-aff-curse{ margin-top:10px; }
+.cs-aff-curse form{ display:flex; flex-direction:column; gap:6px; margin-top:6px; }
 .cs-restrow{ display:flex; gap:6px; flex-wrap:wrap; }
 
 .cs-log{ list-style:none; margin:0; padding:0; max-height:340px; overflow-y:auto; border:1px solid var(--border); border-radius:var(--r); background:var(--surface-2); }

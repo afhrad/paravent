@@ -31,6 +31,7 @@ from app.models.gamestate import World
 from app.services.experience import progress
 from app.services.sheet import Sheet
 from app.services.worlds import Book, BookCatalog
+from app.ui.affliction_pages import party_chips
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
 from app.ui.forms import alert, checkbox_field, notice, select_field, text_field
@@ -166,6 +167,8 @@ def party_card(
     chips: list[Node] = [span(class_="pill cond")[t(f"condition.{c.key}")] for c in active]
     if pc.state.exhaustion:
         chips.append(span(class_="pill cond")[f"{t('sheet.exhaustion')} {pc.state.exhaustion}"])
+    if pc.state.afflictions:
+        chips.append(party_chips(page, pc))
     if (wild := sheet.wild_shape) is not None and wild.form is not None:
         chips.append(form_pill(page, wild.form.name, wild.form_hp_now))
     if sheet.concentration is not None:

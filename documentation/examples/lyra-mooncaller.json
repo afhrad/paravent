@@ -91,7 +91,8 @@
     "wild_shape": null,
     "wild_shape_hp": null,
     "polymorph": null,
-    "death_saves": {"successes": 0, "failures": 0}
+    "death_saves": {"successes": 0, "failures": 0},
+    "afflictions": []
   },
   "overrides": {}
 }

@@ -30,6 +30,7 @@ from app.models.protocol import EntryKind, ProtocolEntry
 from app.services import media, polymorph
 from app.services.activities import Activities, Offered, rarity_of
 from app.services.adventures import AdventureService
+from app.services.afflictions import AfflictionService
 from app.services.auth import AuthService, Identity
 from app.services.backlinks import BacklinkIndex
 from app.services.backup import BackupService
@@ -598,6 +599,9 @@ class StoreRegistry:
                 character, kind, subject, total
             ),
             on_timed=self._timed,
+            on_rested=lambda character, by: self.afflictions.rested(
+                character, by.username, by.name
+            ),
         )
 
     def _timed(
@@ -625,6 +629,9 @@ class StoreRegistry:
             end_concentration=self._end_concentration,
             changed=self._clock_changed,
             days_passed=self._days_passed,
+            moved=lambda world, before, now, by, by_name: self.afflictions.passed(
+                world, before, now, by, by_name
+            ),
         )
 
     def _days_passed(self, world_id: str, days: int, why: str, by: str, by_name: str) -> None:
@@ -1618,6 +1625,30 @@ class StoreRegistry:
                 characters.act_for(character_id, "condition", {"key": condition}, by)
 
         return TrapService(self.protocol, save=save, hurt=hurt, afflict=afflict, check=check)
+
+    @cached_property
+    def afflictions(self) -> AfflictionService:
+        """Diseases, poisons and curses on characters (app/services/afflictions.py)."""
+        characters = self.characters
+        by = Actor("Paravent", username="")
+
+        def save(character_id: str, ability: str) -> int:
+            return characters.roll_for(character_id, "save", ability, by, private=False) or 0
+
+        def hurt(character_id: str, amount: int) -> None:
+            characters.act_for(character_id, "hp", {"mode": "damage", "amount": str(amount)}, by)
+
+        def now(world_id: str) -> int:
+            return self.clock.of(world_id).minute
+
+        return AfflictionService(
+            self.gamestate,
+            self.protocol,
+            now=now,
+            save=save,
+            hurt=hurt,
+            conditions=frozenset(CONDITIONS),
+        )
 
     @cached_property
     def safety(self) -> SafetyService:

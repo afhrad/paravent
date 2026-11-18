@@ -91,6 +91,174 @@
       "title": "AbilityMethod",
       "type": "string"
     },
+    "Affliction": {
+      "additionalProperties": false,
+      "description": "A disease, poison or curse a character carries (app/services/afflictions.py).\n\nWhat its text says is read once, when it is caught, and kept here: ``onset`` is the\nworld clock's minute its symptoms show (None once they have, or for one that shows at\nonce), when ``pending_exhaustion`` and ``pending_conditions`` are put on; ``ends`` the\nminute it wears off by itself (a poison's hour). ``conditions`` are those it put on,\ntaken off with it; ``exhaustion`` the levels it holds through rests until it ends.\n``course`` is when the character saves against it (``long_rest`` or ``dawn``), at\n``dc`` with ``ability``, and ``rule`` what the saves do: ``exhaustion`` (a failure adds\na level, a success takes one, cured at none), ``three`` (cured after three successes)\nor ``dc_drop`` (a success lowers the DC by ``drop``, cured at 0); none leaves it to\nthe table. A curse is the gamemaster's: its name and ``note``.",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "disease",
+            "poison",
+            "curse"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 200,
+          "title": "Name",
+          "type": "string"
+        },
+        "ref": {
+          "default": "",
+          "maxLength": 300,
+          "title": "Ref",
+          "type": "string"
+        },
+        "note": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Note",
+          "type": "string"
+        },
+        "since": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Since",
+          "type": "integer"
+        },
+        "onset": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Onset"
+        },
+        "ends": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ends"
+        },
+        "conditions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Conditions",
+          "type": "array"
+        },
+        "pending_conditions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Pending Conditions",
+          "type": "array"
+        },
+        "exhaustion": {
+          "default": 0,
+          "maximum": 6,
+          "minimum": 0,
+          "title": "Exhaustion",
+          "type": "integer"
+        },
+        "pending_exhaustion": {
+          "default": 0,
+          "maximum": 6,
+          "minimum": 0,
+          "title": "Pending Exhaustion",
+          "type": "integer"
+        },
+        "course": {
+          "default": "",
+          "enum": [
+            "",
+            "long_rest",
+            "dawn"
+          ],
+          "title": "Course",
+          "type": "string"
+        },
+        "dc": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Dc"
+        },
+        "ability": {
+          "default": "",
+          "enum": [
+            "",
+            "str",
+            "dex",
+            "con",
+            "int",
+            "wis",
+            "cha"
+          ],
+          "title": "Ability",
+          "type": "string"
+        },
+        "rule": {
+          "default": "",
+          "enum": [
+            "",
+            "exhaustion",
+            "three",
+            "dc_drop"
+          ],
+          "title": "Rule",
+          "type": "string"
+        },
+        "drop": {
+          "default": "",
+          "maxLength": 40,
+          "title": "Drop",
+          "type": "string"
+        },
+        "successes": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Successes",
+          "type": "integer"
+        },
+        "failures": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Failures",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "name"
+      ],
+      "title": "Affliction",
+      "type": "object"
+    },
     "ChosenOption": {
       "description": "A reference: 'Name|SOURCE', or 'Name' alone.",
       "examples": [
@@ -538,6 +706,13 @@
         },
         "death_saves": {
           "$ref": "#/$defs/DeathSaves"
+        },
+        "afflictions": {
+          "items": {
+            "$ref": "#/$defs/Affliction"
+          },
+          "title": "Afflictions",
+          "type": "array"
         }
       },
       "title": "PlayState",

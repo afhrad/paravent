@@ -103,17 +103,20 @@ class ClockService:
         end_concentration: Callable[[str, str, str], None] | None = None,
         changed: Callable[[WorldClock], None] | None = None,
         days_passed: Callable[[str, int, str, str, str], None] | None = None,
+        moved: Callable[[str, int, int, str, str], None] | None = None,
     ) -> None:
         """``concentrating(character)`` names the spell a character holds now (its
         reference, or None); ``end_concentration(character, spell, by)`` ends it when its
         timer runs out; ``changed(clock)`` tells open screens; ``days_passed(world,
-        days, why, by, by_name)`` hears of each move past midnight (lifestyle costs)."""
+        days, why, by, by_name)`` hears of each move past midnight (lifestyle costs);
+        ``moved(world, before, now, by, by_name)`` of every move on (afflictions)."""
         self._store = store
         self._protocol = protocol
         self._concentrating = concentrating
         self._end_concentration = end_concentration
         self._changed = changed
         self._days_passed = days_passed
+        self._moved = moved
 
     def of(self, world_id: str) -> WorldClock:
         """A world's clock: Day 1, 08:00 until it is first moved."""
@@ -166,6 +169,8 @@ class ClockService:
         saved = self._save(clock.model_copy(update=update))
         if days > 0 and self._days_passed is not None:
             self._days_passed(world_id, days, why, by, by_name)
+        if self._moved is not None:
+            self._moved(world_id, clock.minute, now, by, by_name)
         return saved
 
     def start(

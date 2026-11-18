@@ -28,6 +28,7 @@ from app.logs import configure_logging
 from app.mcp.auth import BearerGuard
 from app.mcp.server import build_server
 from app.routes import adventures as adventure_routes
+from app.routes import afflictions as affliction_routes
 from app.routes import auth as auth_routes
 from app.routes import backups as backup_routes
 from app.routes import books as books_routes
@@ -350,6 +351,7 @@ def create_app() -> FastAPI:
     app.include_router(library_preview_routes.router)
     app.include_router(token_routes.router)
     app.include_router(safety_routes.router)
+    app.include_router(affliction_routes.router)
     app.include_router(npc_gen_routes.router)
     app.include_router(creature_routes.router)
     app.include_router(sound_routes.router)

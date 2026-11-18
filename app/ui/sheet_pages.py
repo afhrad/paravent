@@ -86,6 +86,7 @@ from app.services.translations import COMPOSITE
 from app.services.wild_shape import RESOURCE as WILD_SHAPE
 from app.services.wild_shape import Form
 from app.ui import rules_text
+from app.ui.affliction_pages import sheet_afflictions
 from app.ui.chase_pages import chase_banner
 from app.ui.check_pages import check_banner
 from app.ui.clock_pages import remaining, sheet_time, sheet_timers
@@ -1714,7 +1715,10 @@ def _right(page: Page, sheet: Sheet) -> Element:
         ],
         log_embed_slot(Filter("character", character=sheet.character.id)),
     ]
-    return aside(class_="cs-right")[concentration, slots, resources, conditions, rest, log]
+    afflictions = sheet_afflictions(page, sheet.character, sheet.clock)
+    return aside(class_="cs-right")[
+        concentration, slots, resources, conditions, afflictions, rest, log
+    ]
 
 
 # -- the whole sheet -------------------------------------------------------------------

@@ -48,6 +48,7 @@ from app.services.translation_targets import fluff_category
 from app.services.translations import record_key
 from app.store.projections import ITEM_KIND_NAMES as ITEM_TYPES
 from app.ui import rules_text
+from app.ui.affliction_pages import afflict_button
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
 from app.ui.encounter_pages import encounter_url
@@ -1242,6 +1243,9 @@ def reference_page(
             _printings(page, entry, printings),
             statblock(page, entry, ctx),
             spring_button(page, entry.world_id, entry.category, entry.name, entry.source),
+            afflict_button(
+                page, entry.world_id, entry.category, entry.name, entry.source, entry.data
+            ),
             _description(page, entry, ctx, description),
             _backlinks(page, backlinks, entry.world_id) if backlinks else None,
             _names_form(page, entry),

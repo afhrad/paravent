@@ -17,7 +17,6 @@ milestone levelling, the reference screens, safety tools.
 | Idea | Guides | What it would do | Today | Size |
 | --- | --- | --- | --- | --- |
 | Magic item tracker | both | Three attuned items at most, charges, recharge at dawn by the world's clock | an attuned flag changes numbers; no limit, no charges | M |
-| Diseases, poisons, curses | both | Applied to a character with their save, effects and course over days | browsable; Poisoned exists as a condition | M |
 | More of the road | both | Foraging, getting lost and navigation each travelling day; encounter distance and surprise when one comes up | travel has none of these | M |
 | Settlement generator | both | Size, government, trait, calamity and buildings rolled into a place, named by the world's styles | places get names only | M |
 | Unidentified and cursed items | both | An item handed out unidentified, revealed later; a curse that binds its wearer | not covered | M |

@@ -88,6 +88,14 @@ player's decision.
 - **A trap** in a chapter or on its page has **Spring it**: tick who is caught. It
   rolls the saves on their sheets, or lets the players roll them (*Players roll the
   saves*), and deals its damage with their resistances counted.
+- **A disease or a poison** in a chapter or on its page has **Afflict**: tick who meets
+  it, and roll their saves or let them catch it outright. A poison deals its damage and
+  puts its conditions on for as long as its text says. A disease keeps quiet until its
+  symptoms show on the clock, then brings its exhaustion and conditions, and each long
+  rest or dawn rolls the save its text calls for — three successes, a level of exhaustion
+  more or less, or a falling DC, as the books say. **Ends** on the sheet cures it. A
+  **curse** is your own: *Put a curse on* in the sheet's Track view, with a name and what
+  it does.
 
 ## 8. Levelling
 

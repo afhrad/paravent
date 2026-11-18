@@ -396,6 +396,46 @@ class DeathSaves(GameStateModel):
     failures: int = Field(default=0, ge=0, le=3)
 
 
+class Affliction(GameStateModel):
+    """A disease, poison or curse a character carries (app/services/afflictions.py).
+
+    What its text says is read once, when it is caught, and kept here: ``onset`` is the
+    world clock's minute its symptoms show (None once they have, or for one that shows at
+    once), when ``pending_exhaustion`` and ``pending_conditions`` are put on; ``ends`` the
+    minute it wears off by itself (a poison's hour). ``conditions`` are those it put on,
+    taken off with it; ``exhaustion`` the levels it holds through rests until it ends.
+    ``course`` is when the character saves against it (``long_rest`` or ``dawn``), at
+    ``dc`` with ``ability``, and ``rule`` what the saves do: ``exhaustion`` (a failure adds
+    a level, a success takes one, cured at none), ``three`` (cured after three successes)
+    or ``dc_drop`` (a success lowers the DC by ``drop``, cured at 0); none leaves it to
+    the table. A curse is the gamemaster's: its name and ``note``."""
+
+    id: str
+    kind: Literal["disease", "poison", "curse"]
+    name: str = Field(max_length=200)
+    ref: str = Field(default="", max_length=300)
+    note: str = Field(default="", max_length=2000)
+    since: int = Field(default=0, ge=0)
+    onset: int | None = Field(default=None, ge=0)
+    ends: int | None = Field(default=None, ge=0)
+    conditions: list[str] = Field(default_factory=list)
+    pending_conditions: list[str] = Field(default_factory=list)
+    exhaustion: int = Field(default=0, ge=0, le=6)
+    pending_exhaustion: int = Field(default=0, ge=0, le=6)
+    course: Literal["", "long_rest", "dawn"] = ""
+    dc: int | None = None
+    ability: Literal["", "str", "dex", "con", "int", "wis", "cha"] = ""
+    rule: Literal["", "exhaustion", "three", "dc_drop"] = ""
+    drop: str = Field(default="", max_length=40)
+    successes: int = Field(default=0, ge=0)
+    failures: int = Field(default=0, ge=0)
+
+    @property
+    def showing(self) -> bool:
+        """Its symptoms have shown: before, only the gamemaster knows of it."""
+        return self.onset is None
+
+
 _HIT_DIE = re.compile(r"^d(4|6|8|10|12|20)$")
 _SLOT_LEVEL = re.compile(r"^[1-9]$")
 
@@ -440,6 +480,13 @@ class PlayState(GameStateModel):
     # "spell": "Polymorph|PHB", "caster": "character:<id>", "hp": 157}``.
     polymorph: SpellForm | None = None
     death_saves: DeathSaves = Field(default_factory=DeathSaves)
+    # Diseases, poisons and curses the character carries (app/services/afflictions.py).
+    afflictions: list[Affliction] = Field(default_factory=list)
+
+    @property
+    def held_by_afflictions(self) -> int:
+        """The exhaustion levels its afflictions hold through rests."""
+        return min(self.exhaustion, sum(a.exhaustion for a in self.afflictions))
 
     @field_validator("hit_dice_used")
     @classmethod

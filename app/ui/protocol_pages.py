@@ -504,6 +504,8 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             return _chase_words(page, rest.split(":"))
         if head == "trap":
             return _trap_words(page, rest.split(":"))
+        if head == "affliction":
+            return _affliction_words(page, rest.split(":"))
         if head == "scroll":
             used, spell_ref, kept, *check = [*rest.split(":"), ""][:5]
             spell_name = name_text(page, "spell", spell_ref.partition("|")[0])
@@ -701,6 +703,45 @@ def _trap_words(page: Page, fields: list[str]) -> str:
     if conditions:
         result += " · " + ", ".join(t(f"condition.{c}") for c in conditions.split(","))
     return t("protocol.trap_target", name=name, result=result)
+
+
+def _affliction_words(page: Page, fields: list[str]) -> str:
+    """A disease, poison or curse caught, showing, saved against or ended
+    (app/services/afflictions.py)."""
+    t = page.t
+    step, *rest = fields + [""] * 7
+    if step == "caught":
+        kind, name, roll, dc, caught, damage = rest[:6]
+        key = "protocol.affliction_caught" if caught == "1" else "protocol.affliction_resisted"
+        line = t(key, kind=t(f"affliction.kind.{kind}"), name=name)
+        if roll:
+            key = "affliction.failed_roll" if caught == "1" else "affliction.saved_roll"
+            line += " · " + t(key, roll=roll, dc=dc)
+        if damage.isdigit() and int(damage):
+            line += " · " + t("trap.result_damage", amount=damage, type="")
+        return line.strip()
+    if step == "onset":
+        return t("protocol.affliction_onset", kind=t(f"affliction.kind.{rest[0]}"), name=rest[1])
+    if step == "save":
+        name, roll, dc, ok, outcome = rest[:5]
+        line = t(
+            "protocol.affliction_save",
+            name=name,
+            result=t(
+                "affliction.saved_roll" if ok == "1" else "affliction.failed_roll", roll=roll, dc=dc
+            ),
+        )
+        return f"{line} · {t(f'affliction.outcome.{outcome}')}" if outcome else line
+    if step == "ended":
+        kind, name, why = rest[:3]
+        return t(
+            f"protocol.affliction_ended_{why or 'cured'}",
+            kind=t(f"affliction.kind.{kind}"),
+            name=name,
+        )
+    if step == "curse":
+        return t("protocol.affliction_curse", name=rest[0])
+    return ":".join(fields)
 
 
 def _purse_words(page: Page, purse: str) -> str:

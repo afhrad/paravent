@@ -77,6 +77,7 @@ class CharacterService:
         on_shape_ended: Callable[[str, str, str], None] | None = None,
         on_roll: Callable[[str, str, str, int], None] | None = None,
         on_timed: Callable[[PlayerCharacter, str, str, int, bool], None] | None = None,
+        on_rested: Callable[[str, Actor], None] | None = None,
     ) -> None:
         """Bind to the library, the loaded compendium, the library root and the log;
         ``fight_of(character_id)`` names the running fight a character is in;
@@ -86,7 +87,8 @@ class CharacterService:
         ``on_roll(character, kind, subject, total)`` hears every check, skill or save
         rolled on a sheet (the gamemaster's called checks take their answers from it);
         ``on_timed(character, kind, reference, minutes, concentration)`` hears a light lit
-        or a spell cast with a duration (the world's clock times them)."""
+        or a spell cast with a duration (the world's clock times them);
+        ``on_rested(character, by)`` hears a long rest finished (a disease's save)."""
         self._store = store
         self._compendium = compendium
         self._library_dir = library_dir
@@ -98,6 +100,7 @@ class CharacterService:
         self._on_shape_ended = on_shape_ended
         self._on_roll = on_roll
         self._on_timed = on_timed
+        self._on_rested = on_rested
         # Sheets made lately, by everything a sheet is made from (see :meth:`sheet`).
         self._sheets: OrderedDict[tuple[Any, ...], Sheet] = OrderedDict()
         self._sheets_lock = threading.Lock()
@@ -248,6 +251,8 @@ class CharacterService:
             timed = spell_minutes(spell.duration_data) if spell is not None else None
             if spell is not None and timed is not None:
                 self._on_timed(changed, "spell", spell.reference, *timed)
+        if action == "rest" and params.get("kind") == "long" and self._on_rested is not None:
+            self._on_rested(character_id, actor)
         return changed
 
     def rest_party(self, world_id: str, kind: str, by: Actor) -> list[str]:
@@ -258,6 +263,8 @@ class CharacterService:
             if pc.world_id != world_id or pc.in_wizard:
                 continue
             self.play.act(pc.id, "rest", {"kind": kind}, self.sheet(pc), by)
+            if kind == "long" and self._on_rested is not None:
+                self._on_rested(pc.id, by)
             rested.append(pc.name or "?")
         return rested
 
