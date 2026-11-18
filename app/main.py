@@ -73,6 +73,7 @@ from app.services.backup import BackupError
 from app.services.characters import CharacterNotFound
 from app.services.combat import CombatNotFound
 from app.services.creature_builder import CreatureNotFound
+from app.services.dice import seed_all
 from app.services.encounters import EncounterNotFound
 from app.services.events import close_on_shutdown_signals
 from app.services.npcs import ObjectNotFound
@@ -152,6 +153,8 @@ def _warn_if_library_readonly(library_dir: Path) -> None:
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Load the stores, watch for changes, and clean up on shutdown."""
     settings = get_settings()
+    # Before any service makes its dice: a recording's seed reaches all of them.
+    seed_all(settings.dice_seed)
     registry = StoreRegistry(settings)
     if not settings.reference_configured:
         # Paravent ships no 5e content (documentation/TECHSTACK.md section 8), so this

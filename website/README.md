@@ -19,6 +19,8 @@ nothing outside it is needed.
 | `assets/js/site.js` | Theme switch, reading progress, the folding screen (closed on arrival, springing open, opening fully with the scroll), the headline's rotating words, screenshots enlarged on a click (a click outside, the × or Esc closes), reveals, active section, phone menu |
 | `assets/img/` | The logo (copied from the app), the flags, `screens/<lang>/` (light) and `screens/<lang>/dark/` with the screenshots `shots.py` takes, and `share-<lang>.jpg`, the picture a shared link shows |
 | `notice.txt` | The licences of what the site carries from others (Lucide icons, fonts, SRD material): the repository's `NOTICE.md`, **copied by `build.py`** and linked from the legal page; never edit here |
+| `film/` | The tutorial videos' recorder and scripts ("Videos" below); not shipped |
+| `assets/video/<lang>/` | The videos `film/make.py` writes (MP4, captions, poster, GIF loops); not committed, shipped to the server with the site |
 | `build.py` | Write, sync, update and pack (below); not shipped, nor are `content/`, `templates/` and `shots.py` |
 
 ## Building
@@ -182,6 +184,37 @@ shows SRD material and our own words, nothing else from a rulebook.
 
 To show other screens, add an entry to `screens.items` in both content files
 (`title`, `kind`, `file`, `icon`, `alt`, `text`) and a `snap(...)` line in `shots.py`.
+
+## Videos
+
+`website/film/` records tutorial videos of Paravent in real browsers and cuts them, in every
+language the site has. Nothing is filmed from the screen: a script plays the game master's
+laptop and the players' phones, each a browser window logged in as its user, and Chrome
+streams each window's frames as they change.
+
+```sh
+uv run --with playwright --with fonttools --with brotli python website/film/make.py
+# an episode by name (make.py fight), --lang de for one language,
+# --keep to keep the frames in film/takes/, --recut to cut a kept take again
+```
+
+| File | What it is |
+| --- | --- |
+| `film/make.py` | The command: stage, record, cut, for each episode and language |
+| `film/stage.py` | The demo tables, built like the screenshots' (`shots.py`): the same world, the three example characters, only SRD creatures, a throwaway library per take |
+| `film/episodes.py` | The scripts. They find what they press by the app's forms and ids, never by a button's words, so one script records every language |
+| `film/texts.py` | Every word a video shows — titles, captions, labels — per language, the same keys in each |
+| `film/engine.py` | The recorder (a pointer and click rings drawn into the pages, since a recording has no system pointer) and the cut: Pillow composes each frame — windows at 1:1 so text stays sharp, a phone in its frame, the caption, title cards in the Tome theme's fonts — and ffmpeg encodes it |
+
+For each episode and language it writes `assets/video/<lang>/<episode>.mp4` (H.264,
+1080p, 30 fps), its captions as `.vtt`, a poster `.jpg` and a GIF for each loop the
+script marks (`<episode>-<loop>.gif`). The server it records against rolls from a fixed
+seed (`PARAVENT_DICE_SEED`), so a take comes out the same each time. The videos are not
+committed (`website/.gitignore`): the zip carries them, so `build.py --deploy` takes them
+to the server with the site. As with the screenshots, a video shows SRD material and our
+own words only.
+
+Needs ffmpeg on the path (any build: no text filter is used) and Chrome.
 
 ## Keeping it current
 

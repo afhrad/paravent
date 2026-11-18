@@ -1,1 +1,5 @@
 dist/
+# The videos go to the server with the site (build.py --deploy), not into git.
+assets/video/
+# Recorded frames kept with film/make.py --keep.
+film/takes/

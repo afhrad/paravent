@@ -189,3 +189,16 @@ class TestShutdownSignals:
             assert queue.qsize() == 1  # restored: no second close
         finally:
             signal.signal(signal.SIGTERM, original)
+
+
+def test_a_recording_seeds_every_roll() -> None:
+    from app.services.dice import Dice, seed_all
+
+    try:
+        seed_all(7)
+        first = [Dice().die(20) for _ in range(5)]
+        seed_all(7)
+        assert [Dice().die(20) for _ in range(5)] == first
+    finally:
+        seed_all(None)
+    assert Dice()._rng.__class__.__name__ == "SystemRandom"

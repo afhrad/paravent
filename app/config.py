@@ -103,6 +103,11 @@ class Settings(BaseSettings):
     # Translating needs little reasoning; "low" keeps the cost per passage down.
     translate_effort: str = "low"
 
+    # --- Recordings (website/film) -----------------------------------------------
+    # Seeds every roll from one generator, so a scripted recording rolls the same on
+    # every take. Unset at any real table: rolls come from the system's randomness.
+    dice_seed: int | None = None
+
     @model_validator(mode="after")
     def _find_corpus_in_release(self) -> Self:
         """A 5eTools release is the whole site, its corpus in ``data/``: pointed at the

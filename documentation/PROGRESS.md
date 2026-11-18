@@ -647,6 +647,15 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         fights: the clock's buttons in rows, form fields in the page's face, German spell
         components (V, G, M), level chips and the Unarmed Strike; the session, quests and
         factions pages open a table's only world when none is named
+  - [x] **Tutorial videos** (2026-11-16, `website/film/`, website/README.md "Videos"): six
+        episodes recorded in real browsers from scripts, in English and German — a fight on two
+        screens, a player's evening on the phone, writing an adventure, between the fights, the
+        first evening, and a short session of an adventure of our own (SRD creatures only)
+        played by a game master and two phones. Chrome streams each window's frames; Pillow
+        composes them at 1:1 with captions and title cards in the Tome theme's fonts, ffmpeg
+        encodes MP4 with WebVTT captions, a poster and GIF loops. The server rolls from a fixed
+        seed (`PARAVENT_DICE_SEED`, `Settings.dice_seed`), so a take repeats. The videos go to
+        the server with the site, not into git
   - [x] **Image effects** (2026-11-04, ADVENTURES.md §5.5, `app/services/image_effects.py`):
         `torn`, `fade`, `oval`, `sepia`, `aged`, `mono`, `banner` written beside an image
         (`![[tavern.jpg|torn sepia]]`, `cover: media/x.jpg|fade`), rendered once with
@@ -1146,7 +1155,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2436 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2443 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the

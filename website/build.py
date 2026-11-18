@@ -82,6 +82,7 @@ MONTHS_DE = (
 NOT_SHIPPED = {
     "build.py",
     "shots.py",
+    "film",
     "README.md",
     "content",
     "templates",
@@ -428,7 +429,15 @@ VOID = {
 # Elements a browser closes by itself where the next one starts.
 SELF_CLOSING = {"p", "li", "dt", "dd", "option", "tr", "td", "th"}
 # Larger than this, a picture or file is worth a second look before it goes up.
-HEAVY = {".webp": 400_000, ".jpg": 400_000, ".png": 400_000, ".svg": 200_000}
+HEAVY = {
+    ".webp": 400_000,
+    ".jpg": 400_000,
+    ".png": 400_000,
+    ".svg": 200_000,
+    # The videos (film/make.py) are large by nature; a loop should stay a loop.
+    ".mp4": 120_000_000,
+    ".gif": 12_000_000,
+}
 HEAVY_ANY = 1_500_000
 CSS_URL = re.compile(r"url\(\s*['\"]?([^'\")]+)['\"]?\s*\)")
 

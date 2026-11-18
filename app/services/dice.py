@@ -72,12 +72,24 @@ def is_expression(text: str) -> bool:
     return bool(_EXPRESSION.match(text or ""))
 
 
+# One generator for every Dice made without its own, when a recording asks for the
+# same rolls on every take (``Settings.dice_seed``); None at a real table.
+_shared: random.Random | None = None
+
+
+def seed_all(seed: int | None) -> None:
+    """Seed every Dice made from now on without a generator of its own; None undoes it."""
+    global _shared
+    _shared = random.Random(seed) if seed is not None else None
+
+
 class Dice:
     """Rolls dice from an injectable random source."""
 
     def __init__(self, rng: random.Random | None = None) -> None:
-        """``rng`` defaults to a system-seeded generator."""
-        self._rng = rng or random.SystemRandom()
+        """``rng`` defaults to the shared seeded generator, if a recording set one, else
+        a system-seeded one."""
+        self._rng = rng or _shared or random.SystemRandom()
 
     def die(self, faces: int) -> int:
         """One die."""
@@ -138,4 +150,4 @@ class Dice:
         )
 
 
-__all__ = ["Advantage", "Dice", "DiceError", "Roll", "is_expression"]
+__all__ = ["seed_all", "Advantage", "Dice", "DiceError", "Roll", "is_expression"]
