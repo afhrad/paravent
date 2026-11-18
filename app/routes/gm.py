@@ -252,16 +252,28 @@ def _chase(page: Page, registry: StoreRegistry, world_id: str | None) -> Element
     return chase_panel(page, shown, registry.chases.of(shown), members)
 
 
+def _card_world(registry: StoreRegistry, name: str | None, world_filter: str) -> str | None:
+    """The world a card names: only on the overview of every world, and only where the
+    table's characters are in more than one."""
+    if world_filter:
+        return None
+    worlds = {pc.world_id for pc in registry.gamestate.characters.list() if not pc.in_wizard}
+    return name if len(worlds) > 1 else None
+
+
 def _cards(page: Page, characters: CharacterService, world_id: str | None) -> list[Element]:
+    party = characters.party(world_id)
+    # A card names its world only where the table shows more than one.
+    several = len({m.world for m in party}) > 1
     return [
         party_card(
             page,
             m.sheet,
             owner=m.owner,
-            world=None if world_id else m.world,
+            world=m.world if several and not world_id else None,
             world_filter=world_id or "",
         )
-        for m in characters.party(world_id)
+        for m in party
     ]
 
 
@@ -905,6 +917,25 @@ async def close_check(
     return html(_checks(page, registry, characters, world_id))
 
 
+@router.post(f"{CHECKS_URL}/clear", response_class=HTMLResponse)
+async def clear_checks(
+    request: Request,
+    _gm: GamemasterDep,
+    page: PageDep,
+    characters: CharactersDep,
+    worlds: WorldsDep,
+    registry: RegistryDep,
+    world: str = "",
+) -> Response:
+    """The list of calls starts afresh."""
+    chosen = worlds.find(world)
+    world_id = chosen.id if chosen else None
+    registry.checks.clear(world_id)
+    if request.headers.get("HX-Request") != "true":
+        return redirect(f"/gm?{urlencode({'world': world_id})}" if world_id else "/gm")
+    return html(_checks(page, registry, characters, world_id))
+
+
 @router.get("/gm/party/combats", response_class=HTMLResponse)
 async def party_combats_fragment(
     _gm: GamemasterDep,
@@ -937,6 +968,7 @@ async def party_card_fragment(
     _gm: GamemasterDep,
     page: PageDep,
     characters: CharactersDep,
+    registry: RegistryDep,
     character_id: str,
     world: str = "",
 ) -> HTMLResponse:
@@ -947,7 +979,7 @@ async def party_card_fragment(
             page,
             member.sheet,
             owner=member.owner,
-            world=None if world else member.world,
+            world=_card_world(registry, member.world, world),
             world_filter=world,
         )
     )
@@ -959,6 +991,7 @@ async def party_action(
     gm: GamemasterDep,
     page: PageDep,
     characters: CharactersDep,
+    registry: RegistryDep,
     character_id: str,
     action: str,
 ) -> Response:
@@ -984,7 +1017,7 @@ async def party_action(
             page,
             member.sheet,
             owner=member.owner,
-            world=None if world else member.world,
+            world=_card_world(registry, member.world, world),
             world_filter=world,
             flash=flash,
         )

@@ -135,6 +135,16 @@ class CheckService:
         self._tell(closed)
         return closed
 
+    def clear(self, world_id: str | None = None) -> int:
+        """Forget the calls (of a world, if given), open ones too: the list starts afresh
+        and an asked sheet stops asking. How many went."""
+        gone = self._store.checks.list(lambda c: world_id is None or c.world_id == world_id)
+        for call in gone:
+            self._store.checks.delete(call.id)
+        if gone:
+            self._tell(gone[-1])
+        return len(gone)
+
     def open_for(self, character_id: str) -> list[CheckCall]:
         """The open calls asking a character, oldest first."""
         calls = self._store.checks.list(lambda c: c.open and character_id in c.characters)

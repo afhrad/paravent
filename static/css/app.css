@@ -320,7 +320,7 @@ a.btn{ text-decoration:none; }
   display:grid; gap:12px; grid-template-columns:repeat(auto-fill, minmax(290px, 1fr));
 }
 .pc-card{
-  display:grid; gap:10px; padding:14px; align-content:start;
+  display:flex; flex-direction:column; gap:10px; padding:14px; min-width:0;
   background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg);
   border-left:3px solid var(--heal);
 }
@@ -341,14 +341,14 @@ a.btn{ text-decoration:none; }
 .pc-hp-now.hurt{ color:var(--cond-text); }
 .pc-hp-now.crit, .pc-hp-now.down{ color:var(--dmg-text); }
 .pc-hp-max{ font-size:13px; color:var(--text-3); }
-.pc-card .hpbar{ height:6px; border-radius:999px; background:var(--surface-3); overflow:hidden; }
+.pc-card .hpbar{ height:6px; border-radius:999px; background:var(--surface-3); overflow:hidden; max-width:none; margin-top:0; }
 .pc-death{ display:flex; gap:12px; align-items:center; font-size:12.5px; font-weight:600; color:var(--dmg-text); }
 .pc-death .ok{ color:var(--heal-text); }
 .pc-death .bad{ color:var(--dmg-text); }
-.pc-stats{ display:grid; grid-template-columns:repeat(auto-fit, minmax(54px, 1fr)); gap:6px; }
-.pc-stat{ display:grid; justify-items:center; padding:5px 2px; border:1px solid var(--border); border-radius:var(--r-sm); }
+.pc-stats{ display:grid; grid-auto-flow:column; grid-auto-columns:minmax(0, 1fr); gap:5px; }
+.pc-stat{ display:grid; justify-items:center; padding:5px 2px; border:1px solid var(--border); border-radius:var(--r-sm); min-width:0; }
 .pc-stat .k{ font-size:9.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-3); font-family:var(--font-ui); font-weight:600; }
-.pc-stat .v{ font-weight:700; font-size:15px; font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
+.pc-stat .v{ font-weight:700; font-size:14px; white-space:nowrap; font-family:var(--font-mono); font-variant-numeric:tabular-nums; }
 .pc-chips{ display:flex; flex-wrap:wrap; gap:5px; }
 .pc-chips .pill svg{ font-size:12px; }
 .pc-slots{ display:flex; flex-wrap:wrap; gap:5px; }
@@ -409,18 +409,19 @@ a.btn{ text-decoration:none; }
 .book-players input{ width:15px; height:15px; margin:0; accent-color:var(--accent-solid); }
 
 /* ---------------------------------------------------------- party card actions */
-.pc-actions{ display:grid; gap:8px; padding-top:10px; border-top:1px solid var(--border); }
-.pc-amount{ display:grid; grid-template-columns:minmax(48px, 1fr) auto auto auto; gap:5px; margin:0; }
+.pc-actions{ display:grid; gap:8px; padding-top:10px; border-top:1px solid var(--border); margin-top:auto; }
+.pc-amount{ display:grid; grid-template-columns:minmax(64px, 1.2fr) repeat(3, minmax(0, 1fr)); gap:5px; margin:0; }
 .pc-amount input{
   min-width:0; min-height:36px; padding:0 9px; font-size:15px; color:var(--text);
   background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-sm);
 }
 .pc-amount input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
-.pc-amount .btn{ min-height:36px; padding:0 9px; }
-.pc-conds > summary{ list-style:none; justify-self:start; width:max-content; }
+.pc-amount .btn{ min-height:36px; padding:0 6px; justify-content:center; }
+.pc-conds > summary{ list-style:none; justify-self:start; width:max-content; display:inline-flex; align-items:center; gap:6px; }
+.pc-conds[open] > summary svg{ transform:rotate(180deg); }
 .pc-conds > summary::-webkit-details-marker{ display:none; }
 .pc-conds[open] > summary{ background:var(--surface-3); color:var(--text); }
-.pc-conds-n{ color:var(--cond-text); font-weight:700; }
+.pc-conds-n{ color:var(--cond-text); font-weight:700; background:var(--cond-weak); border-radius:999px; padding:0 6px; font-size:11.5px; }
 .pc-conds-list{ display:flex; flex-wrap:wrap; gap:5px; margin-top:8px; }
 .pc-conds-list .cs-act{ display:contents; }
 .pc-card .cbtn{
@@ -1195,6 +1196,26 @@ button.pill.cb-side-switch:hover{ border-color:currentColor; }
 
 /* Running fights on the party overview */
 .party-combats{ list-style:none; margin:0 0 16px; padding:0; display:grid; gap:8px; }
+.party-combats:empty{ display:none; }
+
+/* The table: the party first, the world's tools beside it (app/ui/gm_pages.py) */
+.table-layout{ display:grid; gap:16px; grid-template-columns:minmax(0, 1fr); align-items:start; }
+.table-tools{ display:grid; gap:10px; align-content:start; min-width:0; }
+.table-tools:empty{ display:none; }
+.table-tools > *{ margin:0; }
+.table-tools .panel{ padding:12px 14px; gap:8px; }
+.table-tools .party-clock-head b{ font-family:var(--font-display); font-size:16px; }
+.table-tools .party-clock-head b.party-clock-now{ font-family:var(--font-mono); font-size:15px; }
+/* The clock's moves in one row, the two rests in the next, each row filled. */
+.table-tools .party-clock-steps{ margin-left:0; flex-basis:100%; gap:5px; }
+.table-tools .party-clock-steps > .inline-form{ flex:1 1 18%; }
+.table-tools .party-clock-steps > .inline-form:has(input[name=kind]){ flex:1 1 40%; }
+.table-tools .party-clock-steps .btn{ width:100%; justify-content:center; padding:0 6px; }
+.table-tools .party-clock-more > summary{ font-size:14px; }
+@media (min-width: 1000px){
+  .table-layout:has(.table-tools > *){ grid-template-columns:minmax(0, 1fr) minmax(320px, 380px); }
+  .table-layout .party-grid{ grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); }
+}
 
 /* Bastions (app/ui/bastion_pages.py) */
 .bastion-facilities, .bastion-meta{ display:grid; gap:12px; margin-bottom:16px; }
@@ -1222,20 +1243,28 @@ button.pill.cb-side-switch:hover{ border-color:currentColor; }
 
 /* Checks called outside a fight (app/ui/check_pages.py) */
 .party-checks{ display:grid; gap:8px; margin:0 0 16px; }
-.party-checks-call > summary{ cursor:pointer; display:flex; align-items:center; gap:8px; font-weight:600; list-style:none; }
-.party-checks-call > summary::-webkit-details-marker{ display:none; }
 .party-checks-form{ display:grid; gap:10px; margin-top:12px; }
 .party-checks-form .field{ display:grid; gap:4px; max-width:360px; }
-.party-checks-dc input{ max-width:90px; }
+.party-checks-form .field > span{ font-family:var(--font-ui); font-size:13px; font-weight:600; color:var(--text); }
+.party-checks-dc .stepper{ display:flex; align-items:stretch; gap:5px; }
+.party-checks-dc input{ width:64px; min-height:44px; padding:0 4px; text-align:center; font-size:18px; font-weight:700; }
+.stepper-btn{ min-width:46px; min-height:44px; justify-content:center; font-family:var(--font-mono); font-size:15px; }
 .party-checks-who{ display:flex; flex-wrap:wrap; gap:4px 14px; }
 .party-checks-list{ list-style:none; margin:0; padding:0; display:grid; gap:8px; }
 .party-check.closed{ opacity:.75; }
 .party-check-head{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .party-check-close{ margin-left:auto; }
-.party-check-rows{ list-style:none; margin:8px 0 0; padding:0; display:flex; flex-wrap:wrap; gap:6px 18px; }
-.party-check-row{ display:inline-flex; gap:8px; align-items:baseline; }
-.party-check-row.ok b{ color:var(--heal-text); }
-.party-check-row.bad b{ color:var(--dmg-text); }
+.party-check-rows{ list-style:none; margin:8px 0 0; padding:0; display:flex; flex-wrap:wrap; gap:6px; }
+/* Each answer as a chip: green when it made the DC, red when it missed, plain until rolled. */
+.party-check-row{
+  display:inline-flex; gap:6px; align-items:center; padding:3px 10px; border-radius:999px;
+  border:1px solid var(--border); background:var(--surface-2); font-size:13.5px;
+}
+.party-check-row b{ font-size:15px; }
+.party-check-row.ok{ background:var(--heal-weak); border-color:var(--heal); color:var(--heal-text); }
+.party-check-row.bad{ background:var(--dmg-weak); border-color:var(--dmg); color:var(--dmg-text); }
+.party-check-row.waiting{ border-style:dashed; }
+.party-checks-clear{ margin-left:auto; }
 .party-clock{ display:grid; gap:10px; margin:0 0 16px; }
 .party-clock-head{ display:flex; align-items:center; gap:8px 12px; flex-wrap:wrap; }
 .party-clock-now{ font-size:1.15rem; }
@@ -1256,6 +1285,16 @@ button.pill.cb-side-switch:hover{ border-color:currentColor; }
 .party-combat-link{ display:inline-flex; align-items:center; gap:6px; color:var(--accent-text);
   text-decoration:none; }
 .party-combat .cb-waiting{ flex-basis:100%; margin:0; }
+.party-combat-open{ margin-left:auto; }
+.party-more{ margin-left:auto; }
+.party-more > summary{ font-size:18px; line-height:1; min-width:36px; justify-content:center; }
+.party-more-menu{ width:auto; min-width:220px; gap:4px; padding:8px; }
+.party-more-menu .btn{ width:100%; justify-content:flex-start; }
+@media (max-width: 640px){
+  /* On a phone the table starts with the table: the long sentence goes. */
+  .party-page .page-lede{ display:none; }
+  .party-page .party-tools{ gap:8px; }
+}
 
 /* The fight as players see it: the strip above the sheet and /play/combat */
 #combat-strip{ display:grid; gap:8px; margin-bottom:12px; }

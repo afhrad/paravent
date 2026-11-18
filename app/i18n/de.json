@@ -543,7 +543,7 @@
   "checks.waiting": "wartet …",
   "checks.group_passed": "Gruppe schafft es",
   "checks.group_failed": "Gruppe scheitert",
-  "checks.close": "Schließen",
+  "checks.close": "Fertig",
   "checks.asked": "Die Spielleitung verlangt: {what}",
   "checks.you_rolled": "Du hast {total} gewürfelt",
   "checks.roll": "Würfeln",
@@ -3845,5 +3845,15 @@
   "protocol.affliction_save": "Rettungswurf gegen {name}: {result}",
   "protocol.affliction_ended_cured": "Beendet: {kind} {name}",
   "protocol.affliction_ended_worn_off": "Abgeklungen: {kind} {name}",
-  "protocol.affliction_curse": "Verflucht: {name}"
+  "protocol.affliction_curse": "Verflucht: {name}",
+  "checks.heading": "Proben",
+  "party.tools": "Werkzeuge der Welt",
+  "party.amount_hint": "TP",
+  "party.more": "Mehr für den Spieltisch",
+  "party.open_tracker": "Zum Kampf",
+  "checks.dc_step": "SG {n}",
+  "checks.clear": "Leeren",
+  "checks.clear_confirm": "Einige Proben warten noch auf Würfe. Trotzdem alle leeren?",
+  "checks.passed": "geschafft",
+  "checks.failed": "verfehlt"
 }

@@ -2431,6 +2431,9 @@ def party_combats(page: Page, views: Sequence[CombatView], *, world_id: str | No
             a(href=combat_url(combat.id), class_="party-combat-link")[icon("zap"), b[combat.name]],
             state,
             turn,
+            a(href=combat_url(combat.id), class_="btn btn-sm btn-primary party-combat-open")[
+                t("party.open_tracker")
+            ],
             _waiting(page, view),
         ]
 

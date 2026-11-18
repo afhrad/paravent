@@ -51,8 +51,9 @@ Datei an, die du von Hand füllst; was die Regeln nicht ausrechnen können (ein 
 erfundener Ring), kommt als Überschreibung hinein.
 
 *Spieltisch* ist deine Sicht auf die Gruppe: Trefferpunkte, Rüstungsklasse, Zustände, der
-letzte Wurf, live, während gespielt wird. **Alle eine Stufe höher** vergibt eine Stufe;
-jede Person beantwortet dann nur, was die neue Stufe mitbringt.
+letzte Wurf, live, während gespielt wird, daneben Uhr, Proben, Laden und Verfolgung der
+Welt. **Alle eine Stufe höher** unter ⋯ vergibt eine Stufe; jede Person beantwortet dann
+nur, was die neue Stufe mitbringt.
 
 ## 5. Das erste Kapitel
 

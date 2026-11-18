@@ -66,6 +66,14 @@ class TestTheService:
         checks.close(call.id)
         assert checks.open_for("a") == [] and not checks.recent()[0].open
 
+    def test_clearing_one_worlds_list(self, checks: CheckService) -> None:
+        checks.call("w", "check", "str", ["a"], "dm")
+        closed = checks.call("w", "check", "dex", ["a"], "dm")
+        checks.close(closed.id)
+        other = checks.call("v", "check", "con", ["b"], "dm")
+        assert checks.clear("w") == 2
+        assert [c.id for c in checks.recent()] == [other.id] and checks.open_for("a") == []
+
 
 @pytest.fixture
 async def table(
@@ -111,6 +119,9 @@ class TestAtTheTable:
         panel = (await ac.get("/gm/checks/panel")).text
         assert f"{call.results[lyra]}" in panel and "waiting" not in panel
         assert "You rolled" in (await ac.get(f"/characters/{lyra}")).text
+        assert 'class="party-check-row ok"' in panel or 'class="party-check-row bad"' in panel
+        cleared = (await ac.post("/gm/checks/clear", headers={"HX-Request": "true"})).text
+        assert registry.checks.recent() == [] and "party-check-row" not in cleared
 
     async def test_a_secret_check_stays_behind_the_screen(
         self, table: tuple[AsyncClient, StoreRegistry, str]

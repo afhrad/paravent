@@ -543,7 +543,7 @@
   "checks.waiting": "waiting…",
   "checks.group_passed": "Group succeeds",
   "checks.group_failed": "Group fails",
-  "checks.close": "Close",
+  "checks.close": "Done",
   "checks.asked": "The gamemaster asks for {what}",
   "checks.you_rolled": "You rolled {total}",
   "checks.roll": "Roll",
@@ -3845,5 +3845,15 @@
   "protocol.affliction_save": "Save against {name}: {result}",
   "protocol.affliction_ended_cured": "Ended: {kind} {name}",
   "protocol.affliction_ended_worn_off": "Worn off: {kind} {name}",
-  "protocol.affliction_curse": "Cursed: {name}"
+  "protocol.affliction_curse": "Cursed: {name}",
+  "checks.heading": "Checks",
+  "party.tools": "The world's tools",
+  "party.amount_hint": "HP",
+  "party.more": "More for the table",
+  "party.open_tracker": "Open tracker",
+  "checks.dc_step": "DC {n}",
+  "checks.clear": "Clear",
+  "checks.clear_confirm": "Some calls are still waiting for rolls. Clear them all?",
+  "checks.passed": "made it",
+  "checks.failed": "missed"
 }

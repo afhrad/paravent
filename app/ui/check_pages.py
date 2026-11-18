@@ -55,15 +55,49 @@ def checks_panel(
     t = page.t
     query = f"?{urlencode({'world': world_id})}" if world_id else ""
     names = dict(characters)
-    return div(id="party-checks", class_="party-checks", data_url=f"{CHECKS_URL}/panel{query}")[
-        details(class_="panel party-checks-call")[
-            summary(class_="party-checks-head")[icon("dices", "sm"), span[t("checks.call")]],
+    return div(
+        id="party-checks", class_="panel party-checks", data_url=f"{CHECKS_URL}/panel{query}"
+    )[
+        div(class_="party-clock-head")[
+            icon("dices"),
+            b[t("checks.heading")],
+            form(
+                method="post",
+                action=f"{CHECKS_URL}/clear{query}",
+                hx_post=f"{CHECKS_URL}/clear{query}",
+                hx_target="#party-checks",
+                hx_swap="outerHTML",
+                # Asked only while a player still has to roll.
+                hx_confirm=t("checks.clear_confirm")
+                if any(c.open and len(c.results) < len(c.characters) for c in calls)
+                else None,
+                class_="party-checks-clear",
+            )[
+                button(type="submit", class_="btn btn-sm btn-ghost")[
+                    icon("trash-2", "sm"), span[t("checks.clear")]
+                ]
+            ]
+            if calls
+            else None,
+        ],
+        details(class_="party-clock-more party-checks-call")[
+            summary[t("checks.call")],
             _call_form(page, characters, world_id) if characters else small[t("checks.no_one")],
         ],
         ul(class_="party-checks-list")[[_call(page, c, names, world_id) for c in calls]]
         if calls
         else None,
     ]
+
+
+def _step(page: Page, n: int) -> Element:
+    """A button that moves the number beside it by ``n``."""
+    return button(
+        type="button",
+        class_=f"btn btn-sm stepper-btn {'btn-dmg' if n < 0 else 'btn-heal'}",
+        data_step=str(n),
+        aria_label=page.t("checks.dc_step", n=f"{n:+d}"),
+    )[f"{n:+d}".replace("-", "−")]
 
 
 def _call_form(page: Page, characters: Sequence[tuple[str, str]], world_id: str | None) -> Element:
@@ -99,17 +133,24 @@ def _call_form(page: Page, characters: Sequence[tuple[str, str]], world_id: str 
                 ],
             ],
         ],
-        label(class_="field party-checks-dc")[
-            span[t("checks.dc")],
-            input_el(
-                type="number",
-                name="dc",
-                min="1",
-                max="40",
-                inputmode="numeric",
-                placeholder="–",
-                class_="mono",
-            ),
+        div(class_="field party-checks-dc")[
+            label(for_="party-checks-dc")[t("checks.dc")],
+            # 10 to start; steps of 3 and 5 either way, big enough for a finger
+            # (ui.js, ``data-step``). Typed in as ever without JavaScript.
+            div(class_="stepper")[
+                [_step(page, n) for n in (-5, -3)],
+                input_el(
+                    id="party-checks-dc",
+                    type="number",
+                    name="dc",
+                    min="1",
+                    max="40",
+                    value="10",
+                    inputmode="numeric",
+                    class_="mono",
+                ),
+                [_step(page, n) for n in (3, 5)],
+            ],
         ],
         div(class_="party-checks-who")[
             [
@@ -144,13 +185,17 @@ def _call(page: Page, call: CheckCall, names: Mapping[str, str], world_id: str |
     for character_id in call.characters:
         total = call.results.get(character_id)
         passed = call.passed(character_id)
-        mark = "" if passed is None else ("✓" if passed else "✗")
+        state = "waiting" if total is None else "ok" if passed else "bad" if passed is False else ""
         rows.append(
-            li(class_=f"party-check-row {'ok' if passed else 'bad' if passed is False else ''}")[
+            li(class_=f"party-check-row {state}".strip())[
+                icon("circle-check" if passed else "x", "sm") if passed is not None else None,
                 span[names.get(character_id, "?")],
-                b(class_="mono")[f"{total} {mark}".strip()]
+                b(class_="mono")[str(total)]
                 if total is not None
                 else small(class_="muted")[t("checks.waiting")],
+                span(class_="sr-only")[t("checks.passed" if passed else "checks.failed")]
+                if passed is not None
+                else None,
             ]
         )
     outcome: Node = None

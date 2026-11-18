@@ -198,3 +198,21 @@
     if (s) s.focus();
   });
 })();
+
+// A number moved by buttons beside it (``.stepper``, ``data-step="-5"``): a DC chosen
+// with a finger instead of a keyboard. Kept within the field's min and max.
+(function () {
+  'use strict';
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('.stepper [data-step]');
+    if (!btn) return;
+    var field = btn.closest('.stepper').querySelector('input[type=number]');
+    if (!field) return;
+    var now = parseInt(field.value, 10);
+    var next = (isNaN(now) ? 10 : now) + parseInt(btn.dataset.step, 10);
+    if (field.min !== '') next = Math.max(parseInt(field.min, 10), next);
+    if (field.max !== '') next = Math.min(parseInt(field.max, 10), next);
+    field.value = String(next);
+    field.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+})();

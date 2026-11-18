@@ -268,7 +268,7 @@ class TestParty:
         pc = registry.gamestate.characters.create(PlayerCharacter(name="Blank"))
         card = (await gm.get(f"/gm/party/{pc.id}/card")).text
         assert card.startswith(f'<li id="pc-{pc.id}" class="pc-card nohp"')
-        assert "crit" not in card and "down" not in card
+        assert ' class="pc-card nohp" ' in card.split(">", 1)[0]  # not crit, not down
         assert 'class="pc-hp-now mono ">—<' in card  # not a false "0"
 
     async def test_unknown_card_is_404(self, gm: AsyncClient) -> None:
@@ -282,7 +282,9 @@ class TestParty:
         registry.auth.set_language(dm.id, "de")
         _character(registry, "Torvald", state={"conditions": ["prone"]})
         text = (await gm.get("/gm")).text
-        assert "Liegend" in text and "RK" in text and "Alle Welten" in text
+        assert "Liegend" in text and "RK" in text and "Zustände" in text
+        # One world: no choice of worlds to make.
+        assert "Alle Welten" not in text
 
 
 class TestLive:

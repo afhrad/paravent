@@ -8,6 +8,7 @@ from htpy import (
     Element,
     Node,
     a,
+    aside,
     b,
     button,
     details,
@@ -105,7 +106,7 @@ def _card_actions(page: Page, sheet: Sheet, world_filter: str) -> Element:
             min="1",
             max="999",
             inputmode="numeric",
-            placeholder="0",
+            placeholder=t("party.amount_hint"),
             aria_label=t("sheet.amount"),
             class_="mono",
         ),
@@ -119,9 +120,10 @@ def _card_actions(page: Page, sheet: Sheet, world_filter: str) -> Element:
         cls="pc-amount",
     )
     conditions = details(class_="pc-conds")[
-        summary(class_="btn btn-sm btn-ghost")[
-            t("sheet.conditions"),
-            span(class_="mono pc-conds-n")[f" {len(active)}"] if active else None,
+        summary(class_="btn btn-sm")[
+            span[t("sheet.conditions")],
+            span(class_="mono pc-conds-n")[str(len(active))] if active else None,
+            icon("chevron-down", "sm"),
         ],
         div(class_="pc-conds-list")[
             [
@@ -175,6 +177,9 @@ def party_card(
         chips.append(span(class_="pill magic")[icon("hourglass"), sheet.concentration.name])
     if pc.state.inspiration:
         chips.append(span(class_="pill accent")[icon("sparkles"), t("sheet.inspiration")])
+    meta = " · ".join(
+        x for x in (class_line(page, sheet.character), owner or t("chars.unassigned")) if x
+    )
     death = None
     if sheet.is_dying:
         saves = pc.state.death_saves
@@ -195,13 +200,7 @@ def party_card(
             token(page.token_of("character", pc.world_id, pc.id)),
             div(class_="pc-who")[
                 a(href=f"/characters/{pc.id}", class_="pc-name")[pc.name or t("play.unnamed")],
-                span(class_="pc-meta")[
-                    " · ".join(
-                        x
-                        for x in (class_line(page, sheet.character), owner or t("chars.unassigned"))
-                        if x
-                    )
-                ],
+                span(class_="pc-meta", title=meta)[meta],
             ],
             span(class_="pill neutral pc-world")[world] if world else None,
             span(class_="pill accent", title=t.plural("levelup.pending", pc.pending_levels))[
@@ -285,6 +284,38 @@ def _world_filter(page: Page, worlds: Sequence[World], selected: str | None) -> 
     ]
 
 
+def _more_menu(page: Page, world: World | None) -> Element:
+    """What the table needs now and then: everyone up a level, the start guide."""
+    t = page.t
+    return details(class_="create-menu party-more")[
+        summary(class_="btn btn-sm btn-ghost", title=t("party.more"))[
+            span(aria_hidden="true")["⋯"], span(class_="sr-only")[t("party.more")]
+        ],
+        div(class_="create-form party-more-menu")[
+            form(method="post", action="/gm/party/grant-level", class_="inline-form")[
+                input_el(type="hidden", name="world", value=world.id if world else ""),
+                button(
+                    type="submit",
+                    class_="btn btn-sm btn-ghost",
+                    title=t("levelup.grant_all_hint"),
+                )[icon("sparkles", "sm"), span[t("levelup.grant_all")]],
+            ],
+            a(href=f"/help/start?back={PARTY_URL}", class_="btn btn-sm btn-ghost")[
+                icon("book-open", "sm"), span[t("help.start")]
+            ],
+        ],
+    ]
+
+
+def _layout(page: Page, main: Sequence[Node], tools: Sequence[Node]) -> Element:
+    """The party and the running fights first; the world's tools (the clock, checks, the
+    shop, a chase) in a column beside them on a wide screen, below them on a narrow one."""
+    return div(class_="table-layout")[
+        div(class_="table-main")[main],
+        aside(class_="table-tools", aria_label=page.t("party.tools"))[tools],
+    ]
+
+
 def party_page(
     page: Page,
     cards: Sequence[Element],
@@ -304,6 +335,8 @@ def party_page(
     calls for a check outside a fight.
     """
     t = page.t
+    # The world the table plays in: the one chosen, or the only one there is.
+    only = world or (worlds[0] if len(worlds) == 1 else None)
     if world is not None:
         books = ", ".join(world.source_set.sources) or t("worlds.all_books")
         lede = t("party.lede_world", world=world.name, books=books)
@@ -318,37 +351,29 @@ def party_page(
                 t("gm.heading"),
                 lede,
                 div(class_="party-tools")[
-                    _world_filter(page, worlds, world.id if world else None),
-                    form(method="post", action="/gm/party/grant-level", class_="inline-form")[
-                        input_el(type="hidden", name="world", value=world.id if world else ""),
-                        button(
-                            type="submit",
-                            class_="btn btn-sm",
-                            title=t("levelup.grant_all_hint"),
-                        )[icon("sparkles", "sm"), span[t("levelup.grant_all")]],
-                    ],
-                    a(href=session_url(world.id), class_="btn btn-sm")[
+                    # A table of one world needs no choice of world.
+                    _world_filter(page, worlds, world.id if world else None)
+                    if len(worlds) > 1
+                    else None,
+                    a(href=session_url(only.id), class_="btn btn-sm")[
                         icon("clipboard-list", "sm"), span[t("session.open")]
                     ]
-                    if world is not None
+                    if only is not None
                     else None,
-                    a(href=f"/help/start?back={PARTY_URL}", class_="btn btn-sm btn-ghost")[
-                        icon("book-open", "sm"), span[t("help.start")]
-                    ],
                     span(class_="cs-live", data_live_indicator="1", title=t("party.live_title"))[
                         span(class_="dot"), span[t("sheet.live")]
                     ],
+                    _more_menu(page, world),
                 ],
             ),
-            combats,
-            clock,
-            shop,
-            chase,
-            checks,
-            party_grid(page, cards, world_id=world.id if world else None),
+            _layout(
+                page,
+                [combats, party_grid(page, cards, world_id=world.id if world else None)],
+                [clock, checks, shop, chase] if clock is not None else [checks],
+            ),
         ],
         extra_scripts=("/static/js/htmx.min.js", "/static/js/party.js"),
-        main_class="shell-main shell-wide",
+        main_class="shell-main shell-wide party-page",
         world_id=world.id if world else None,
     )
 
