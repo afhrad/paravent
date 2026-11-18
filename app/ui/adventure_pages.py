@@ -1259,14 +1259,17 @@ def chapter_form_page(
             a(href=url, class_="backlink")[icon("arrow-left"), span[ch.title]],
             notice(notice_text),
             alert(error),
-            form(method="post", action=f"{url}/edit", class_="stack-form editor-form")[
-                div(class_="field-row")[
-                    text_field("title", t("chapters.title"), value=title, autocomplete="off"),
-                    select_field(
-                        "status", t("adventures.status"), _status_choices(page), selected=status
-                    ),
-                ],
-                div(class_="editor-panes")[
+            # The preview stands beside the form, never in it: a chapter's text draws
+            # forms of its own (an encounter's Run, a box's Send), and a form inside a
+            # form ends the outer one early, leaving Save outside it.
+            div(class_="editor-panes")[
+                form(method="post", action=f"{url}/edit", class_="stack-form editor-form")[
+                    div(class_="field-row")[
+                        text_field("title", t("chapters.title"), value=title, autocomplete="off"),
+                        select_field(
+                            "status", t("adventures.status"), _status_choices(page), selected=status
+                        ),
+                    ],
                     div(class_="field editor-pane")[
                         label(for_="f-body")[t("chapters.body")],
                         textarea(
@@ -1283,24 +1286,24 @@ def chapter_form_page(
                         p(class_="field-hint", id="f-body-hint")[t("prose.hint")],
                         hidden("base", base),
                     ],
-                    section(class_="editor-pane preview-pane", aria_label=t("chapters.preview"))[
-                        div(id="check", data_check=f"{url}/check")[check_panel(page, problems)],
-                        span(class_="eyebrow")[t("chapters.preview")],
-                        div(id="preview", class_="md-body", aria_live="polite")[preview.html],
+                    saved_version(page, conflict),
+                    div(class_="form-actions")[
+                        button(type="submit", class_="btn btn-primary")[
+                            icon("check"), span[t("worlds.save")]
+                        ],
+                        button(
+                            type="submit",
+                            name="action",
+                            value="preview",
+                            class_="btn js-hide",
+                        )[icon("eye"), span[t("chapters.preview_button")]],
+                        a(href=url, class_="btn btn-ghost")[t("common.cancel")],
                     ],
                 ],
-                saved_version(page, conflict),
-                div(class_="form-actions")[
-                    button(type="submit", class_="btn btn-primary")[
-                        icon("check"), span[t("worlds.save")]
-                    ],
-                    button(
-                        type="submit",
-                        name="action",
-                        value="preview",
-                        class_="btn js-hide",
-                    )[icon("eye"), span[t("chapters.preview_button")]],
-                    a(href=url, class_="btn btn-ghost")[t("common.cancel")],
+                section(class_="editor-pane preview-pane", aria_label=t("chapters.preview"))[
+                    div(id="check", data_check=f"{url}/check")[check_panel(page, problems)],
+                    span(class_="eyebrow")[t("chapters.preview")],
+                    div(id="preview", class_="md-body", aria_live="polite")[preview.html],
                 ],
             ],
             details(class_="panel places-panel")[

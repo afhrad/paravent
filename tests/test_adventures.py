@@ -212,6 +212,25 @@ class TestPages:
         assert no_js.status_code == 200 and '<h2 id="typed">Typed</h2>' in no_js.text
         assert registry.adventures.get_chapter(chapter.id).body == ""
 
+    async def test_save_stays_in_its_form_beside_a_preview_with_forms(
+        self, client: tuple[AsyncClient, StoreRegistry]
+    ) -> None:
+        """An encounter in the preview draws its own Run form; inside the editor's form it
+        would end that form early and leave Save outside it, doing nothing."""
+        ac, registry = client
+        world = registry.gamestate.worlds.create(World(name="W"))
+        adventure = registry.adventures.create(world.id, "A")
+        chapter = registry.adventures.create_chapter(adventure.id, "C")
+        registry.encounters.create("Ambush", world.id)
+        registry.adventures.update_chapter(
+            chapter.id, title="C", status="planned", body="{@encounter Ambush}"
+        )
+        page = (await ac.get(f"/gm/chapters/{chapter.id}/edit")).text
+        start = page.index(f'action="/gm/chapters/{chapter.id}/edit"')
+        save = page.index("Save changes", start)
+        assert "<form" not in page[start:save] and "</form>" not in page[start:save]
+        assert "<form" in page[save:]  # the preview's own forms follow, outside
+
     async def test_a_save_from_an_older_text_is_refused(
         self, client: tuple[AsyncClient, StoreRegistry]
     ) -> None:
