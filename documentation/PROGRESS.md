@@ -677,6 +677,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         (`![[tavern.jpg|torn sepia]]`, `cover: media/x.jpg|fade`), rendered once with
         Pillow into the cache as WebP with transparency, so it fits every theme; the cover's
         effects ticked in the images panel
+  - [x] **Title images** (2026-11-18, TOKENS.md §6, `app/services/title_images.py`): tokens
+        of the table's own only for NPCs, creatures, characters and treasure; places,
+        encounters, quests and factions take a title image, dropped or chosen on their page,
+        drawn at its head (a banner on a quest's or faction's panel) and as a small square
+        in lists and chapter cards
   - [x] **Tokens** (2026-11-12, documentation/TOKENS.md, `app/services/tokens.py`): a round
         token for every element — the table's own upload (an NPC, character, builder
         creature, place, encounter or treasure; any picture, cropped round), else a

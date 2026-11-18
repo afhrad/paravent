@@ -38,6 +38,7 @@ from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.names import name_text
 from app.ui.shop_pages import coin_text
+from app.ui.title_images import title_image, title_image_panel
 
 QUESTS_URL = "/gm/quests"
 STATUS_TONE = {"open": "accent", "done": "heal", "failed": "dmg"}
@@ -126,7 +127,9 @@ def _quest(
     faction = dict(factions).get(quest.faction_id or "")
     reward = reward_text(page, quest, milestone)
     is_open = quest.status == "open"
+    found = (quest.world_id, quest.cover) if quest.cover else None
     return section(class_=f"panel quest-panel is-{quest.status}")[
+        title_image(found, quest.name),
         div(class_="quest-head")[
             h2[quest.name],
             span(class_=f"pill {STATUS_TONE[quest.status]}")[t(f"quests.status.{quest.status}")],
@@ -222,6 +225,7 @@ def _quest(
         details(class_="quest-edit")[
             summary[t("quests.edit")],
             _fields(page, base, quest, members, factions, milestone),
+            title_image_panel(page, "quest", quest.id, found, heading=False),
         ]
         if is_open
         else None,

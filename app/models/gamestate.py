@@ -359,7 +359,8 @@ class Location(Record):
     scope: Scope
     name: str
     tags: list[str] = Field(default_factory=list)
-    # A path relative to the scope's record folder, e.g. ``media/grey-reed.webp``.
+    # Its title image, a path relative to the scope's record folder, e.g.
+    # ``media/grey-reed.webp`` (app/services/title_images.py).
     picture: str | None = None
     notes: str = ""
 
@@ -583,6 +584,8 @@ class Encounter(Record):
     sound: str = ""
     # The random-encounter table last rolled on, chosen again for the next roll.
     roll_table: str = ""
+    # Its title image, in its world's ``media/`` folder (app/services/title_images.py).
+    cover: str | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -1357,6 +1360,8 @@ class Quest(Record):
     # The draft adventure Claude wrote it for (app/mcp/drafts.py); hidden from the
     # players until the gamemaster shows it.
     adventure_id: str | None = None
+    # Its title image, in its world's ``media/`` folder (app/services/title_images.py).
+    cover: str | None = None
 
 
 class FactionRank(GameStateModel):
@@ -1377,6 +1382,8 @@ class Faction(Record):
     table: str = ""
     ranks: list[FactionRank] = Field(default_factory=list)
     renown: dict[str, int] = Field(default_factory=dict)  # by character id
+    # Its title image, an emblem or banner, in its world's ``media/`` folder.
+    cover: str | None = None
 
 
 class PlaySession(Record):

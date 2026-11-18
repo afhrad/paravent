@@ -78,7 +78,7 @@ from app.ui.cast_pages import npc_card, treasure_card
 from app.ui.combat_pages import combat_url
 from app.ui.context import Page
 from app.ui.creature_pages import creature_url
-from app.ui.encounter_pages import encounter_url, level_pill
+from app.ui.encounter_pages import encounter_title, encounter_url, level_pill
 from app.ui.forms import alert, hidden, notice, select_field, text_field
 from app.ui.gm_pages import party_card
 from app.ui.home_pages import empty_state, page_head
@@ -109,6 +109,7 @@ from app.ui.prose_check import Problem
 from app.ui.ref_pages import CATEGORY_KEY, statblock
 from app.ui.sound_panel import SOUNDS_URL
 from app.ui.tags import ENTITY_CATEGORY, RenderContext, localized_context, ref_url
+from app.ui.title_images import title_thumb
 from app.ui.trap_pages import spring_button
 
 STATUS_TONE = {"draft": "magic", "planned": "neutral", "running": "accent", "finished": "heal"}
@@ -281,6 +282,7 @@ def prose_context(
                 f"{ln.planned.count}× {ln.planned.label or ln.planned.name}" for ln in view.lines
             )
             return div(class_="md-embed-head enc-embed")[
+                title_thumb(encounter_title(encounter), encounter.name),
                 span(class_="md-embed-kind")[page.t("md.embed.encounter")],
                 a(href=encounter_url(encounter.id), class_="enc-embed-name")[encounter.name],
                 level_pill(page, view.rating),

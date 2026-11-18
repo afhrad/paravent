@@ -216,3 +216,27 @@
     field.dispatchEvent(new Event('change', { bubbles: true }));
   });
 })();
+
+// A title image dropped on or chosen in its panel (app/ui/title_images.py) is sent at once.
+(function () {
+  'use strict';
+  document.querySelectorAll('.title-drop').forEach(function (drop) {
+    var input = drop.querySelector('input[type=file]');
+    if (!input || !input.form) return;
+    var form = input.form;
+    form.classList.add('is-live');
+    input.addEventListener('change', function () { if (input.files.length) form.requestSubmit(); });
+    ['dragenter', 'dragover'].forEach(function (type) {
+      drop.addEventListener(type, function (e) { e.preventDefault(); drop.classList.add('is-over'); });
+    });
+    ['dragleave', 'drop'].forEach(function (type) {
+      drop.addEventListener(type, function () { drop.classList.remove('is-over'); });
+    });
+    drop.addEventListener('drop', function (e) {
+      e.preventDefault();
+      if (!e.dataTransfer || !e.dataTransfer.files.length) return;
+      input.files = e.dataTransfer.files;
+      form.requestSubmit();
+    });
+  });
+})();

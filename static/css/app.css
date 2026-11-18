@@ -2500,6 +2500,17 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .tok-zoom-row{ display:flex; align-items:center; gap:10px; }
 .tok-zoom{ flex:1; }
 .token-panel[data-ready] .tok-plain{ display:none; }
+/* Title images (app/ui/title_images.py) */
+.title-panel-body{ display:flex; gap:14px; align-items:flex-start; flex-wrap:wrap; }
+.title-panel-forms{ display:grid; gap:8px; flex:1 1 200px; min-width:0; }
+.title-drop{ flex-wrap:wrap; min-width:0; }
+.title-drop > span{ flex:1 1 140px; min-width:0; }
+.title-drop input[type="file"]{ max-width:100%; min-width:0; }
+.title-upload.is-live .title-plain{ display:none; }
+.quest-edit .title-panel, .faction-edit .title-panel{ margin-top:10px; padding-top:10px; border-top:1px solid var(--border); }
+.title-thumb{ width:44px; height:44px; object-fit:cover; border-radius:var(--r-sm); border:1px solid var(--border); flex-shrink:0; }
+.title-panel-body > .title-thumb{ width:120px; height:80px; }
+.quest-panel > .cover, .faction-panel > .cover{ margin:-4px 0 4px; max-height:200px; }
 
 /* Tokens in the players' fight view, the strip, the recap and the journal (TOKENS.md §2). */
 .pv-seen-head{ display:flex; gap:12px; align-items:flex-start; }

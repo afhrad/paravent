@@ -67,7 +67,8 @@ from app.ui.name_roller import name_roller
 from app.ui.names import name_text
 from app.ui.palette import SearchTarget, search_form
 from app.ui.tags import ref_url
-from app.ui.tokens import token, token_panel
+from app.ui.title_images import title_image, title_image_panel, title_thumb
+from app.ui.tokens import token
 
 ENCOUNTERS_URL = "/gm/encounters"
 
@@ -84,6 +85,13 @@ LEVEL_TONE = {
     "beyond": "dmg",
 }
 
+
+
+def encounter_title(encounter: Encounter) -> tuple[str, str] | None:
+    """Where an encounter's title image is, for ``media_url``; None without one."""
+    if encounter.world_id and encounter.cover:
+        return encounter.world_id, encounter.cover
+    return None
 
 def encounter_url(encounter_id: str) -> str:
     """The builder for one encounter."""
@@ -148,7 +156,8 @@ def encounters_page(
     t = page.t
     rows = [
         li(class_="list-row")[
-            token(page.token_of("encounter", v.encounter.world_id, v.encounter.id)),
+            title_thumb(encounter_title(v.encounter), v.encounter.name)
+            or token(page.token_of("encounter", v.encounter.world_id, v.encounter.id)),
             div(class_="list-main")[
                 a(href=encounter_url(v.encounter.id), class_="list-title list-link")[
                     v.encounter.name
@@ -657,6 +666,7 @@ def encounter_page(
             a(href=ENCOUNTERS_URL, class_="backlink")[
                 icon("arrow-left"), span[t("encounters.back")]
             ],
+            title_image(encounter_title(enc), enc.name),
             div(class_="enc-head")[
                 span(class_="eyebrow")[" › ".join(place) or t("encounters.no_world")],
                 div(class_="enc-title")[
@@ -685,12 +695,11 @@ def encounter_page(
                     _roll_table(page, view, environments),
                     _fought(page, fought),
                     _settings(page, view, scopes),
-                    token_panel(
-                        page,
-                        page.token_of("encounter", enc.world_id, enc.id),
-                        "encounter",
-                        enc.id,
-                    ),
+                    # A title image lives in the world's folder: none for an encounter
+                    # planned ahead of any world.
+                    title_image_panel(page, "encounter", enc.id, encounter_title(enc))
+                    if enc.world_id
+                    else None,
                 ],
             ],
         ],

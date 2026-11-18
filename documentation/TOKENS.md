@@ -5,6 +5,11 @@ character, an item, a place, an encounter, a treasure, any reference entry — s
 seen at a glance at the table. A token is an **extension**: an element's picture (a
 creature's, a place's, a cover) stays what it is and where it is.
 
+**Decided 2026-11-18 by the user:** a token of the table's own is only for what stands on a
+table — an NPC, a creature, a player character — and treasure. Places, encounters, quests
+and factions take a **title image** instead (§6), as worlds, adventures and chapters have
+their cover; in lists they show their kind's disc, or a small square of their title image.
+
 **Decided 2026-11-12 by the user:** the table's own upload first, then a 5eTools token,
 then Paravent's default disc for the kind; own tokens are uploaded as any picture and cropped
 round; tokens show in the combat tracker and the players' fight view, the encounter builder,
@@ -14,12 +19,11 @@ the lists and cards, and on reference pages and their previews.
 
 In this order, the first that exists:
 
-1. **The table's own token** — for an NPC, a place or a creature, **made from its own
-   picture** (one picture for both, the user's decision of 2026-11-12): the NPC's portrait,
-   the place's picture, a builder creature's picture, or the picture the table gave a book
-   creature in the tracker. Made again whenever the picture changes, placed where it was
-   last set. A player character, an encounter or a treasure has no picture of its own and
-   takes an uploaded token (§3).
+1. **The table's own token** — for an NPC or a creature, **made from its own picture**
+   (one picture for both, the user's decision of 2026-11-12): the NPC's portrait, a builder
+   creature's picture, or the picture the table gave a book creature in the tracker. Made
+   again whenever the picture changes, placed where it was last set. A player character or
+   a treasure has no picture of its own and takes an uploaded token (§3).
 2. **A 5eTools token** — for a creature, a vehicle or an object, from the 5eTools image
    folder (`PARAVENT_IMAGE_DIR`, read in place, never copied): `bestiary/tokens/<SOURCE>/
    <Name>.webp`, `vehicles/tokens/…`, `objects/tokens/…`, the name as 5eTools writes it
@@ -67,18 +71,18 @@ point at the centre, cut round to the opening, the ring on top — and saved so,
   the players' fight view (its token beside what is seen), the strip above the sheet
   (whose turn it is, the character's target), the recap's fighters, and the journal (the
   recipients when sharing, and on the gamemaster's list who each handout went to).
-- **In place of the picture itself** (2026-11-12, the user's request): an NPC's portrait,
-  a place's picture and a builder creature's picture are shown as their token wherever
+- **In place of the picture itself** (2026-11-12, the user's request): an NPC's portrait
+  and a builder creature's picture are shown as their token wherever
   Paravent shows them — the head of its page (large), its card in a chapter, its edit
   form. The full picture is what the token is made from, and what players see of a
   creature in a fight's Details.
 
 ## 3. The table's own tokens
 
-Set on the element's page (the NPC's, place's, encounter's, treasure's, character's
-sheet, a builder creature's), as any image the world's media accepts: dropped on the panel
-or chosen. For an NPC, a place or a builder creature the picture chosen **becomes its
-picture too** (portrait, place picture, creature picture), and **Adjust** reopens the
+Set on the element's page (the NPC's, treasure's, character's sheet, a builder
+creature's), as any image the world's media accepts: dropped on the panel or chosen. For
+an NPC or a builder creature the picture chosen **becomes its picture too** (portrait,
+creature picture), and **Adjust** reopens the
 dialog with the picture it has, where it sits, to place it anew without uploading
 (`GET /tokens/<world>/<kind>/<id>/picture` serves it to the dialog). Where it sits is kept
 in `<id>.json` beside the token, with the picture it was made from. **The dialog** (`static/js/token_editor.js`) shows it under the kind's frame,
@@ -114,3 +118,20 @@ Nothing is stored; pieces are drawn when asked for.
 `app/services/tokens.py` resolves a token (`Tokens.of_*`), crops uploads and finds files;
 `app/ui/tokens.py` draws one (`token(page, tok, size)`): an `<img>` or the default disc,
 with an optional badge.
+
+## 6. Title images (2026-11-18)
+
+Places, encounters, quests and factions are not set on a table, so they carry no token of
+their own: they have a **title image**, drawn as worlds, adventures and chapters draw their
+cover — at the head of a place's page and of an encounter's builder, as a banner at the top
+of a quest's and a faction's panel — and as a small square beside them in lists and in a
+chapter's place and encounter cards; without one their kind's disc stands there.
+
+**The panel** (`app/ui/title_images.py`): a picture dropped on it or chosen is sent at once
+(`ui.js`; without the script, Upload), and *Remove the title image* takes it away. On a
+place's page and edit form, an encounter's builder, and in a quest's and a faction's Edit
+fold. `POST /gm/title-image/<kind>/<id>` (`app/services/title_images.py`) stores it: a
+place's picture beside its scope's record as before (`Location.picture`), an encounter's,
+quest's or faction's in its world's `media/` folder (`cover`); an encounter of no world
+has none. The file is never deleted. Tokens once uploaded for a place or an encounter stay
+on disk and are no longer shown.

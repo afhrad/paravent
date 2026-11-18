@@ -107,6 +107,7 @@ from app.services.style_drafts import ApiAgent, StyleDrafts
 from app.services.summons import Summoning, summoning
 from app.services.text import strip_tags
 from app.services.themes import ThemeLibrary, ThemeService
+from app.services.title_images import TitleImages
 from app.services.tokens import Token, Tokens
 from app.services.translation_coverage import TranslationCoverage, TranslationJobs
 from app.services.translation_targets import FLUFF_OF, TranslationTargets, fluff_category
@@ -307,16 +308,12 @@ class StoreRegistry:
 
     def _own_picture(self, kind: str, ident: str) -> Path | None:
         """An element's own picture, which its token is made from (documentation/TOKENS.md):
-        an NPC's portrait, a place's picture, a builder creature's picture."""
+        an NPC's portrait, a builder creature's picture."""
         store = self.gamestate
         if kind == "npc":
             npc = store.npcs.find(ident)
             if npc is not None and npc.portrait:
                 return media.resolve(store.prose, npc.scope.record_id, npc.portrait)
-        elif kind == "place":
-            place = store.locations.find(ident)
-            if place is not None and place.picture:
-                return media.resolve(store.prose, place.scope.record_id, place.picture)
         elif kind == "creature":
             design = store.creatures.find(ident)
             if design is not None:
@@ -328,8 +325,6 @@ class StoreRegistry:
         without one. Raises :class:`~app.services.media.MediaError`."""
         if kind == "npc":
             self.npcs.upload_portrait(ident, filename, data)
-        elif kind == "place":
-            self.locations.upload_picture(ident, filename, data)
         elif kind == "creature":
             design = self.creatures.get(ident)
             self.creature_pictures.set(design.world_id, design_ref(design.name), filename, data)
@@ -1649,6 +1644,11 @@ class StoreRegistry:
             hurt=hurt,
             conditions=frozenset(CONDITIONS),
         )
+
+    @cached_property
+    def title_images(self) -> TitleImages:
+        """Title images of places, encounters, quests and factions."""
+        return TitleImages(self.gamestate, self.locations)
 
     @cached_property
     def safety(self) -> SafetyService:

@@ -3861,5 +3861,11 @@
   "party.playing_where": "Set one in the world",
   "adventures.start": "Start",
   "adventures.end": "End",
-  "adventures.resume": "Resume"
+  "adventures.resume": "Resume",
+  "title_image.heading": "Title image",
+  "title_image.drop": "Drop a picture here, or choose one",
+  "title_image.remove": "Remove the title image",
+  "title_image.error.none": "Choose a picture first.",
+  "title_image.error.image": "That file is not a picture Paravent can show (PNG, JPEG, WebP, GIF or AVIF).",
+  "title_image.error.owner": "This one cannot take a title image: it belongs to no world."
 }

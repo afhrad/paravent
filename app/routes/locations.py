@@ -3,16 +3,14 @@
 * ``GET/POST /gm/worlds/{world_id}/places`` — a world's places; add one
 * ``GET /gm/places/{id}`` — one place: its notes and what they name
 * ``GET/POST /gm/places/{id}/edit`` — name, where, tags, notes (version-checked)
-* ``POST /gm/places/{id}/picture``, ``…/picture/clear`` — its picture
 * ``GET/POST /gm/places/{id}/delete`` — remove it, after asking
 """
 
 from __future__ import annotations
 
 from typing import Annotated
-from urllib.parse import urlencode
 
-from fastapi import APIRouter, File, Form, Request, UploadFile
+from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, Response
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
@@ -23,7 +21,7 @@ from app.services import scope
 from app.services.adventures import EditConflict, text_version
 from app.services.i18n import Translatable
 from app.services.locations import named_in
-from app.services.media import MAX_BYTES, MediaError
+from app.services.media import MAX_BYTES
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
 from app.ui.encounter_pages import encounter_url
@@ -279,30 +277,6 @@ async def roll_location_name(
         error=None if rolled else page.t("naming.error.roll"),
         status_code=200 if rolled else 422,
     )
-
-
-@router.post(f"{LOCATIONS_URL}/{{location_id}}/picture")
-async def upload_picture(
-    _gm: GamemasterDep,
-    registry: RegistryDep,
-    location_id: str,
-    file: Annotated[UploadFile, File()],
-) -> Response:
-    """Store and use a picture."""
-    data = await file.read(MAX_BYTES + 1)
-    back = f"{location_url(location_id)}/edit"
-    try:
-        relative = registry.locations.upload_picture(location_id, file.filename or "place", data)
-    except MediaError as exc:
-        return redirect(f"{back}?{urlencode({'error': exc.key})}")
-    return redirect(f"{back}?{urlencode({'uploaded': relative})}")
-
-
-@router.post(f"{LOCATIONS_URL}/{{location_id}}/picture/clear")
-async def clear_picture(_gm: GamemasterDep, registry: RegistryDep, location_id: str) -> Response:
-    """Show the place without a picture."""
-    registry.locations.clear_picture(location_id)
-    return redirect(f"{location_url(location_id)}/edit")
 
 
 @router.get(f"{LOCATIONS_URL}/{{location_id}}/delete", response_class=HTMLResponse)

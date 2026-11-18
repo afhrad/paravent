@@ -42,9 +42,12 @@ FRAME_COLOURS = {
     "object": "#6B7280",
     "entry": "#6B7280",
 }
-OWN_KINDS = frozenset({"npc", "character", "creature", "place", "encounter", "treasure"})
+# Who may carry a token of the table's own (decided 2026-11-18): those that stand on a
+# table — NPCs, creatures, characters — and treasure. Places, encounters, quests and
+# factions have a title image instead (app/services/title_images.py).
+OWN_KINDS = frozenset({"npc", "character", "creature", "treasure"})
 # Kinds whose own picture is their token's too: one picture for both.
-PICTURE_KINDS = frozenset({"npc", "place", "creature"})
+PICTURE_KINDS = frozenset({"npc", "creature"})
 # Where 5eTools keeps the tokens of a category, under its image folder.
 CORPUS_DIRS = {"monster": "bestiary", "vehicle": "vehicles", "object": "objects"}
 # The kind a reference category's token is drawn as.

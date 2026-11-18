@@ -15,7 +15,7 @@ from fastapi.responses import FileResponse, Response
 from starlette.datastructures import UploadFile
 
 from app.dependencies import IdentityDep, RegistryDep
-from app.models.gamestate import Location, Npc, Treasure
+from app.models.gamestate import Npc, Treasure
 from app.routes.auth import redirect, safe_next
 from app.services.auth import Identity
 from app.services.media import MediaError
@@ -32,17 +32,12 @@ def owner(registry: StoreRegistry, kind: str, ident: str) -> tuple[str | None, s
     if kind == "character":
         pc = store.characters.find(ident)
         return (pc.world_id, pc.player) if pc is not None else None
-    if kind == "encounter":
-        encounter = store.encounters.find(ident)
-        return (encounter.world_id, None) if encounter is not None else None
     if kind == "creature":
         design = store.creatures.find(ident)
         return (design.world_id, None) if design is not None else None
-    record: Npc | Location | Treasure | None = None
+    record: Npc | Treasure | None = None
     if kind == "npc":
         record = store.npcs.find(ident)
-    elif kind == "place":
-        record = store.locations.find(ident)
     elif kind == "treasure":
         record = store.treasures.find(ident)
     return (record.scope.world_id, None) if record is not None else None

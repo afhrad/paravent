@@ -3861,5 +3861,11 @@
   "party.playing_where": "In der Welt festlegen",
   "adventures.start": "Starten",
   "adventures.end": "Beenden",
-  "adventures.resume": "Fortsetzen"
+  "adventures.resume": "Fortsetzen",
+  "title_image.heading": "Titelbild",
+  "title_image.drop": "Bild hierher ziehen oder auswählen",
+  "title_image.remove": "Titelbild entfernen",
+  "title_image.error.none": "Bitte zuerst ein Bild auswählen.",
+  "title_image.error.image": "Diese Datei ist kein Bild, das Paravent zeigen kann (PNG, JPEG, WebP, GIF oder AVIF).",
+  "title_image.error.owner": "Dieses Element kann kein Titelbild haben: Es gehört zu keiner Welt."
 }

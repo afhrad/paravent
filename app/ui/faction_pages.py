@@ -36,6 +36,7 @@ from app.ui.forms import alert, hidden
 from app.ui.home_pages import page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
+from app.ui.title_images import title_image, title_image_panel
 
 FACTIONS_URL = "/gm/factions"
 
@@ -87,7 +88,9 @@ def _faction(
 ) -> Element:
     t = page.t
     source = faction.table.partition("|")
+    found = (faction.world_id, faction.cover) if faction.cover else None
     return section(class_="panel faction-panel")[
+        title_image(found, faction.name),
         div(class_="faction-head")[
             h2[faction.name],
             small(class_="muted")[t("factions.from_table", table=source[0], source=source[2])]
@@ -144,6 +147,7 @@ def _faction(
                 button(type="submit", class_="btn btn-sm")[t("factions.save")],
                 cls="faction-form",
             ),
+            title_image_panel(page, "faction", faction.id, found, heading=False),
             _post(
                 base,
                 "delete",

@@ -66,6 +66,7 @@ from app.routes import search as search_routes
 from app.routes import session_notes as session_routes
 from app.routes import sound as sound_routes
 from app.routes import themes as theme_routes
+from app.routes import title_images as title_image_routes
 from app.routes import tokens as token_routes
 from app.routes import translate as translate_routes
 from app.routes import world_instructions as instruction_routes
@@ -352,6 +353,7 @@ def create_app() -> FastAPI:
     app.include_router(token_routes.router)
     app.include_router(safety_routes.router)
     app.include_router(affliction_routes.router)
+    app.include_router(title_image_routes.router)
     app.include_router(npc_gen_routes.router)
     app.include_router(creature_routes.router)
     app.include_router(sound_routes.router)

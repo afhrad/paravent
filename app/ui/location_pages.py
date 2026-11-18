@@ -50,7 +50,8 @@ from app.ui.library_links import (
 )
 from app.ui.markdown import Rendered
 from app.ui.name_roller import name_roller
-from app.ui.tokens import token, token_panel
+from app.ui.title_images import title_image, title_image_panel, title_thumb
+from app.ui.tokens import token
 
 
 @dataclass(frozen=True)
@@ -69,10 +70,17 @@ def world_locations_url(world_id: str) -> str:
     return f"{world_url(world_id)}/places"
 
 
-def _picture(page: Page, location: Location, size: str = "thumb") -> Node:
-    """The picture as its round token: one picture, one look (documentation/TOKENS.md)."""
-    tok = page.token_of("place", location.scope.world_id, location.id)
-    return token(tok, "xxl" if size == "large" else "lg", title=location.name)
+def _title(location: Location) -> tuple[str, str] | None:
+    """Where the place's title image is, for ``media_url``; None without one."""
+    return (location.scope.record_id, location.picture) if location.picture else None
+
+
+def _picture(page: Page, location: Location) -> Node:
+    """A small square of the place's title image, else its kind's disc: a place carries
+    no token of its own (documentation/TOKENS.md)."""
+    return title_thumb(_title(location), location.name) or token(
+        page.token_of("place", location.scope.world_id, location.id), "lg"
+    )
 
 
 def _where(names: Sequence[str]) -> str:
@@ -115,8 +123,7 @@ def locations_page(
     t = page.t
     items = [
         li(class_="list-row")[
-            # The token is made from the picture: one picture, shown once.
-            token(page.token_of("place", location.scope.world_id, location.id)),
+            _picture(page, location),
             div(class_="list-main")[
                 a(href=location_url(location.id), class_="list-title list-link")[location.name],
                 span(class_="list-meta")[role_pills(page, location.tags), " ", _where(names)],
@@ -185,8 +192,8 @@ def location_page(
                 (location.name, None),
             ),
             notice(notice_text),
+            title_image(_title(location), location.name),
             div(class_="npc-head")[
-                _picture(page, location, "large"),
                 div(class_="npc-head-main")[
                     span(class_="eyebrow")[_where(where)],
                     h1[location.name],
@@ -224,14 +231,7 @@ def location_page(
             ]
             if here
             else None,
-            token_panel(
-                page,
-                page.token_of("place", location.scope.world_id, location.id),
-                "place",
-                location.id,
-                world_id=location.scope.world_id,
-                has_picture=bool(location.picture),
-            ),
+            title_image_panel(page, "place", location.id, _title(location)),
         ],
         world_id=world.id,
     )
@@ -334,37 +334,7 @@ def location_form_page(
                     ],
                 ],
             ],
-            section(class_="panel images-panel")[
-                div(class_="panel-head")[b[t("places.picture")]],
-                div(class_="image-row")[
-                    _picture(page, location),
-                    form(
-                        method="post",
-                        action=f"{url}/picture",
-                        enctype="multipart/form-data",
-                        class_="upload-form",
-                    )[
-                        label(for_="f-picture", class_="sr-only")[t("adventures.image_file")],
-                        input_el(
-                            id="f-picture",
-                            type="file",
-                            name="file",
-                            accept="image/png,image/jpeg,image/webp,image/gif,image/avif",
-                            required=True,
-                        ),
-                        button(type="submit", class_="btn")[
-                            icon("upload"), span[t("adventures.upload")]
-                        ],
-                    ],
-                    form(method="post", action=f"{url}/picture/clear")[
-                        button(type="submit", class_="btn btn-sm btn-ghost")[
-                            t("places.clear_picture")
-                        ]
-                    ]
-                    if location.picture
-                    else None,
-                ],
-            ],
+            title_image_panel(page, "place", location.id, _title(location)),
         ],
         world_id=world.id,
         insert_layer=True,
