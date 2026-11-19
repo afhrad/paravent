@@ -25,7 +25,7 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response, StreamingResponse
-from htpy import Element, Node, a, p, span
+from htpy import Element, Node
 from starlette.datastructures import FormData
 
 from app.dependencies import (
@@ -75,9 +75,7 @@ from app.ui.gm_pages import (
     world_delete_page,
     world_form,
     world_form_page,
-    worlds_page,
 )
-from app.ui.icons import icon
 from app.ui.nav import WORLD_SECTIONS, world_section_of
 from app.ui.shop_pages import SHOP_URL, shop_panel
 from app.ui.trap_pages import TRAP_CATEGORIES, TRAPS_URL, spring_form, spring_result
@@ -1069,27 +1067,11 @@ async def party_events(
 # -- worlds ------------------------------------------------------------------------------
 
 
-@router.get(WORLDS_URL, response_class=HTMLResponse)
-async def list_worlds(
-    _gm: GamemasterDep,
-    page: PageDep,
-    worlds: WorldsDep,
-    created: str = "",
-    updated: str = "",
-    deleted: int | None = None,
-) -> HTMLResponse:
-    """Every world."""
-    t = page.t
-    notice_text = None
-    for world_id, key in ((created, "worlds.created"), (updated, "worlds.updated")):
-        found = worlds.find(world_id) if world_id else None
-        if found is not None:
-            notice_text = t(key, name=found.name)
-    if deleted is not None:
-        notice_text = t("worlds.deleted")
-    all_worlds = worlds.list()
-    counts = {w.id: worlds.character_count(w.id) for w in all_worlds}
-    return html(worlds_page(page, all_worlds, counts, notice_text=notice_text))
+@router.get(WORLDS_URL)
+async def list_worlds(_gm: GamemasterDep) -> Response:
+    """The worlds are the world menu's (documentation/CURRENT-WORLD.md §3): their old list
+    leads to the table's world, its adventures."""
+    return redirect("/gm/adventures")
 
 
 def _languages(registry: StoreRegistry) -> list[tuple[str, str]]:
@@ -1309,6 +1291,12 @@ async def select_world(
     return redirect(back)
 
 
+def _settings_again(url: str) -> str:
+    """``url`` with the world's settings dialog open (``settings=1``)."""
+    path, _, anchor = url.partition("#")
+    return f"{path}{'&' if '?' in path else '?'}settings=1" + (f"#{anchor}" if anchor else "")
+
+
 @router.get("/gm/world/settings", response_class=HTMLResponse)
 async def world_settings(
     _gm: GamemasterDep,
@@ -1316,8 +1304,8 @@ async def world_settings(
     registry: RegistryDep,
     next: str = "",  # noqa: A002 — the query parameter's name
 ) -> HTMLResponse:
-    """The current world's form, for the settings dialog the world menu opens; its
-    pictures stay on the world's own form page, linked from here."""
+    """The current world's form and its cover and pictures, for the settings dialog the
+    world menu opens."""
     world = registry.table.world()
     if world is None:
         raise HTTPException(status_code=404)
@@ -1340,11 +1328,15 @@ async def world_settings(
                 next_url=back,
                 in_dialog=True,
             ),
-            p(class_="world-settings-more")[
-                a(href=f"{WORLDS_URL}/{world.id}/edit")[
-                    icon("images", "sm"), span[page.t("world.pictures")]
-                ]
-            ],
+            # Its cover and pictures; their forms come back to the page the dialog was
+            # opened on, the dialog open again.
+            images_panel(
+                page,
+                world.id,
+                world.cover,
+                registry.adventures.images(world.id),
+                _settings_again(back or "/gm/adventures"),
+            ),
         ]
     )
 
@@ -1365,13 +1357,13 @@ async def delete_world(
     """Delete a world; its characters stay, without one."""
     world = worlds.get(world_id)
     try:
-        moved = worlds.delete(world_id)
+        worlds.delete(world_id)
     except AuthError as exc:
         view = world_delete_page(
             page, world, worlds.character_count(world_id), error=page.t.error(exc)
         )
         return html(view, status_code=409)
-    return redirect(f"{WORLDS_URL}?deleted={moved}")
+    return redirect("/gm/adventures")  # the table plays in the next world, if any
 
 
 __all__ = ["router"]

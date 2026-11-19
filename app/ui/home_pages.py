@@ -98,6 +98,11 @@ def player_home(
         t("play.page_title"),
         div(class_="play-home")[
             page_head(t("play.eyebrow"), t("play.heading"), t("play.lede"), new),
+            # The world the table plays in, chosen by the gamemaster: every character plays
+            # in it (documentation/CURRENT-WORLD.md).
+            p(class_="play-world")[icon("globe", "sm"), span[t("play.world", world=page.world[1])]]
+            if page.world is not None
+            else None,
             ul(class_="play-news")[
                 [li[a(href=href)[icon(ic, "sm"), span[text]]] for ic, text, href in news]
             ]

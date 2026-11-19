@@ -61,7 +61,8 @@ async def test_the_page_in_the_readers_language(client: AsyncClient) -> None:
 
 
 async def test_a_new_gamemaster_finds_the_getting_started_guide(client: AsyncClient) -> None:
-    for where in ("/gm", "/gm/worlds"):  # the table, and worlds while there are none
+    # The table, and the world's pages while there is no world.
+    for where in ("/gm", "/gm/adventures"):
         assert 'href="/help/start?back=' in (await client.get(where)).text, where
     guide = await client.get("/help/start", params={"back": "/gm"})
     assert guide.status_code == 200 and "Getting started" in guide.text

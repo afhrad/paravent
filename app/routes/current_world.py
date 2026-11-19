@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter
 from fastapi.responses import HTMLResponse
+from htpy import a, div, span
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.routes import adventures, cast, locations, session_notes
@@ -16,6 +17,7 @@ from app.routes.auth import html
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
 from app.ui.home_pages import empty_state
+from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.world_menu import no_world_button
 
@@ -23,14 +25,22 @@ router = APIRouter(tags=["current world"])
 
 
 def _no_world(page: Page) -> HTMLResponse:
-    """What a world's page says before there is a world."""
+    """What a world's page says before there is a world: make one, or read the guide."""
     t = page.t
     return html(
         app_shell(
             page,
             t("world.missing_heading"),
             empty_state(
-                "globe", t("world.missing_heading"), t("world.missing_text"), no_world_button(page)
+                "globe",
+                t("world.missing_heading"),
+                t("world.missing_text"),
+                div(class_="empty-actions")[
+                    no_world_button(page),
+                    a(href=f"/help/start?back={page.path}", class_="btn")[
+                        icon("circle-help", "sm"), span[t("help.start")]
+                    ],
+                ],
             ),
         )
     )

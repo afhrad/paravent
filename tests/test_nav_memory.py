@@ -187,7 +187,7 @@ class TestPageChangedInPlace:
     ) -> None:
         world = registry.worlds.create(WorldInput(name="Mirefall"))
         shown = f"http://test/gm/worlds/{world.id}?sel=abc"
-        await gm.get("/gm/worlds", headers={"HX-Request": "true", "HX-Current-URL": shown})
+        await gm.get("/gm/party", headers={"HX-Request": "true", "HX-Current-URL": shown})
         assert read_memory(gm.cookies.get(NAV_COOKIE)) == {
             "/gm/adventures": f"/gm/worlds/{world.id}?sel=abc"
         }

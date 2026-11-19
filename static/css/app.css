@@ -2798,6 +2798,8 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .bastion-event-yields{ margin:0; padding-left:18px; }
 .bastion-offer{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
 .bastion-offer p{ flex-basis:100%; margin:0; }
+.play-world{ display:flex; align-items:center; gap:6px; margin:0 0 12px; font-family:var(--font-ui); font-size:14px; color:var(--text-2); }
+.play-world svg{ color:var(--accent); }
 .play-news{ list-style:none; margin:0 0 16px; padding:0; display:flex; flex-wrap:wrap; gap:8px; }
 .play-news a{ display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border:1px solid var(--border); border-radius:999px; background:var(--surface); text-decoration:none; }
 .quest-box{ display:inline-block; width:.9em; height:.9em; border:1.5px solid currentColor; border-radius:3px; vertical-align:-1px; }
@@ -3028,6 +3030,7 @@ dialog.img-zoom img{ max-width:100%; max-height:100%; object-fit:contain; border
 /* The settings dialog holds the whole world form */
 .place-dialog.world-settings{ width:min(94vw, 860px); max-height:92vh; overflow:auto; }
 .world-settings .panel{ border:0; box-shadow:none; padding:0; background:none; }
+.world-settings .panel.images-panel{ margin-top:24px; padding-top:18px; border-top:1px solid var(--border); border-radius:0; }
 .world-settings-more{ margin:12px 0 0; font-size:14px; }
 .world-settings-more a{ display:inline-flex; align-items:center; gap:6px; }
 @media (max-width: 760px){
@@ -3050,3 +3053,4 @@ dialog.img-zoom img{ max-width:100%; max-height:100%; object-fit:contain; border
 .world-banner > svg{ color:var(--accent); }
 .world-banner > span{ flex:1 1 220px; }
 .world-banner .inline-form{ flex-basis:auto; }
+.empty-actions{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:4px; }

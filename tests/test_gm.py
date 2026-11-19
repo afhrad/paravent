@@ -118,7 +118,7 @@ class TestWorlds:
         assert "World Mirefall created." in listing.text and "3 books" in listing.text
         await gm.post(f"/gm/worlds/{world.id}", data={"name": "Mirefall", "sources": []})
         assert registry.worlds.get(world.id).source_set.is_unrestricted
-        assert "all imported books" in (await gm.get("/gm/worlds")).text
+        assert "all imported books" in (await gm.get("/gm/adventures")).text
 
     async def test_the_form_buttons_say_what_they_do(
         self, gm: AsyncClient, registry: StoreRegistry

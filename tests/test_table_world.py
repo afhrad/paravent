@@ -239,3 +239,26 @@ def test_a_character_plays_in_the_tables_world(registry: StoreRegistry) -> None:
     store.update(lyra.id, name="Lyra Mooncaller")
     assert "world_id" not in json.loads(path.read_text(encoding="utf-8"))
     assert store.get(lyra.id).world_id == salt.id
+
+
+async def test_the_settings_hold_the_pictures_and_the_list_is_the_menus(
+    gm: AsyncClient, registry: StoreRegistry
+) -> None:
+    grey = registry.worlds.create(WorldInput(name="Grey Reed"))
+    form = (await gm.get("/gm/world/settings", params={"next": "/gm/npcs"})).text
+    # Its cover and pictures, coming back to the page with the dialog open again.
+    assert 'class="panel images-panel"' in form and "data-image-editor" in form
+    assert 'name="next" value="/gm/npcs?settings=1"' in form
+    # The old list of worlds leads to the table's world; deleting one too.
+    assert (await gm.get("/gm/worlds")).headers["location"] == "/gm/adventures"
+    gone = await gm.post(f"/gm/worlds/{grey.id}/delete")
+    assert gone.headers["location"] == "/gm/adventures"
+
+
+async def test_a_player_sees_the_world_the_table_plays_in(registry: StoreRegistry) -> None:
+    registry.worlds.create(WorldInput(name="Grey Reed"))
+    client = await _client(registry, "pia")
+    try:
+        assert "You are playing in Grey Reed" in (await client.get("/play")).text
+    finally:
+        await client.aclose()

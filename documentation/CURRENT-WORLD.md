@@ -149,3 +149,15 @@ Players: unchanged (Characters, Books, Journal), all of it the current world's.
    the server's instructions say so. The start, between-sessions, combat and Claude guides
    describe the world menu and the top bar; ADVENTURES, JOURNAL, NAMES, SETUP, MCP, PROGRESS and
    CHARACTER-FORMAT follow.
+
+## 8. Rounded off (2026-11-19)
+
+- **The settings dialog holds the cover and pictures** too (`images_panel`), its forms coming
+  back to the page it was opened on with the dialog open again (`?settings=1`). Scripts in the
+  dialog's fetched content do not run by themselves: `ui.js` loads each one the page lacks and
+  then announces the new content (`htmx:load`), which starts the picture tool.
+- **Players see the world** the table plays in on their home page ("You are playing in …").
+- **The worlds' list is gone**: `/gm/worlds` leads to the table's world's Adventures, as does
+  deleting a world; with no world, those pages offer *Create a world* and the getting-started
+  guide. The translation keys only that list, the pickers and the character chooser used went.
+

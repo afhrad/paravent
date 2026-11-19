@@ -265,6 +265,17 @@
         .then(function (html) {
           var body = target.querySelector('.dialog-body') || target;
           body.innerHTML = html;
+          // Scripts in fetched markup do not run: load each the page lacks, then tell
+          // those it has that there is new content (as htmx does), e.g. the picture tool.
+          body.querySelectorAll('script[src]').forEach(function (old) {
+            var src = old.getAttribute('src');
+            old.remove();
+            if (document.querySelector('script[src="' + src + '"]')) return;
+            var s = document.createElement('script');
+            s.src = src;
+            document.body.appendChild(s);
+          });
+          document.dispatchEvent(new CustomEvent('htmx:load'));
           focusFirst(target);
         })
         .catch(function () {

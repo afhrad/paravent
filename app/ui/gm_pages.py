@@ -34,7 +34,7 @@ from app.services.worlds import Book, BookCatalog
 from app.ui.affliction_pages import party_chips
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
-from app.ui.forms import alert, checkbox_field, hidden, notice, select_field, text_field
+from app.ui.forms import alert, checkbox_field, hidden, select_field, text_field
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
@@ -446,67 +446,6 @@ def party_page(
 # -- worlds ----------------------------------------------------------------------------
 
 
-def worlds_page(
-    page: Page,
-    worlds: Sequence[World],
-    counts: dict[str, int],
-    *,
-    notice_text: str | None = None,
-) -> Element:
-    """Every world, with how many books and characters it has."""
-    t = page.t
-    rows = [
-        li(class_="list-row")[
-            span(class_="avatar", aria_hidden="true")[icon("globe")],
-            div(class_="list-main")[
-                a(href=f"{WORLDS_URL}/{w.id}", class_="list-title list-link")[w.name],
-                span(class_="list-meta")[
-                    " · ".join(
-                        [
-                            t("worlds.books_n", n=len(w.source_set))
-                            if len(w.source_set)
-                            else t("worlds.all_books"),
-                            t.plural("players.characters", counts.get(w.id, 0)),
-                        ]
-                    )
-                ],
-            ],
-            a(href=f"{PARTY_URL}?world={w.id}", class_="btn btn-sm")[
-                icon("users-round"), span(class_="list-action-label")[t("worlds.party")]
-            ],
-            a(href=f"{WORLDS_URL}/{w.id}/edit", class_="btn btn-sm")[
-                icon("pencil"), span(class_="list-action-label")[t("players.edit")]
-            ],
-        ]
-        for w in worlds
-    ]
-    return app_shell(
-        page,
-        t("worlds.page_title"),
-        [
-            page_head(
-                t("gm.eyebrow"),
-                t("worlds.heading"),
-                t("worlds.lede"),
-                a(href=f"{WORLDS_URL}/new", class_="btn btn-primary")[
-                    icon("plus"), span[t("worlds.new")]
-                ],
-            ),
-            notice(notice_text),
-            ul(class_="list")[rows]
-            if rows
-            else empty_state(
-                "globe",
-                t("worlds.empty_heading"),
-                t("worlds.empty_text"),
-                a(href=f"/help/start?back={WORLDS_URL}", class_="btn")[
-                    icon("book-open"), span[t("help.start")]
-                ],
-            ),
-        ],
-    )
-
-
 def _book_choice(page: Page, book: Book, checked: bool, players: bool) -> Element:
     """A book to declare, and whether players may read it (PLAYER-VIEW.md); never an
     adventure."""
@@ -762,5 +701,4 @@ __all__ = [
     "world_form",
     "world_form_page",
     "world_not_found_page",
-    "worlds_page",
 ]
