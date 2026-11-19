@@ -195,6 +195,22 @@ class TestReading:
         assert [r["name"] for r in chase["runners"]] == ["Goblin 1", "Goblin 2"]
         assert chase["runners"][0]["stealth"] == 6 and chase["unresolved"] == ["Nobody"]
 
+    async def test_diseases_and_poisons_to_place(
+        self, table: tuple[httpx.AsyncClient, Any]
+    ) -> None:
+        _raw, facts = table
+        world = facts["world"]
+        async with session(table) as mcp:
+            diseases = await call(mcp, "find_afflictions", world_id=world.id, kind="disease")
+            poisons = await call(mcp, "find_afflictions", world_id=world.id, query="assassin")
+        plague = next(d for d in diseases if d["name"] == "Sewer Plague")
+        assert plague["tag"] == "{@disease Sewer Plague|DMG}" and plague["kind"] == "disease"
+        assert any("DC 11 CON save" in line for line in plague["effect"])
+        assert {d["source"] for d in diseases} <= {"PHB", "MM", "DMG"}  # the world's books
+        (blood,) = poisons
+        assert blood["kind"] == "poison" and blood["tag"] == "{@item Assassin's Blood|DMG}"
+        assert any("1d12 poison" in line for line in blood["effect"])
+
     async def test_quests_followers_and_renown(self, table: tuple[httpx.AsyncClient, Any]) -> None:
         _raw, facts = table
         registry = facts["app"].state.stores

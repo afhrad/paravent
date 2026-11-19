@@ -3886,5 +3886,6 @@
   "travel.wx.colder": "{degrees} kälter als normal",
   "travel.wx.hotter": "{degrees} wärmer als normal",
   "glossary.search_named": "Vergebene Namen durchsuchen",
-  "glossary.nothing_found": "Kein Name passt."
+  "glossary.nothing_found": "Kein Name passt.",
+  "affliction.apply": "Jetzt zufügen"
 }

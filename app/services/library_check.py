@@ -271,6 +271,10 @@ class LibraryCheck:
             check(ITEMS, carried.item)
             if carried.spell:  # the spell a scroll holds
                 self._missing(subject, href, ("spell",), carried.spell)
+        for held in pc.state.afflictions:  # a curse names no book
+            if held.ref:
+                kinds = ("disease",) if held.kind == "disease" else ITEMS
+                self._missing(subject, href, kinds, held.ref)
 
     def _missing_named(self, subject: str, href: str, reference: str) -> None:
         self._found.add(Kind.LIBRARY_REFERENCE, subject=subject, detail=reference, href=href)

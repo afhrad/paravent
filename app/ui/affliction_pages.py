@@ -31,6 +31,7 @@ from htpy import (
 )
 from htpy import input as input_el
 
+from app.models.gamestate import CheckCall
 from app.models.pc import Affliction, PlayerCharacter
 from app.services.afflictions import DAY, AfflictionEffect, Outcome
 from app.ui.clock_pages import clock_label
@@ -84,11 +85,63 @@ def afflict_form(
     members: Sequence[tuple[str, str]],
     *,
     result: Node = None,
+    waiting: CheckCall | None = None,
 ) -> Element:
-    """Whom it is put on, what the books say it does, and whether they save."""
+    """Whom it is put on, what the books say it does, and whether they save.
+    ``waiting`` is the call for the catching save while the players roll it on their
+    sheets, which the form shows as the totals come in."""
     t = page.t
     url = f"{AFFLICTIONS_URL}/afflict"
     catch = effect.catch
+    if waiting is not None:
+        names = dict(members)
+        return form(
+            method="post",
+            action=url,
+            hx_post=url,
+            hx_target="closest .affliction-afflict",
+            hx_swap="innerHTML",
+            class_="trap-form",
+        )[
+            hidden("world", world_id),
+            hidden("category", category),
+            hidden("name", name),
+            hidden("source", source),
+            hidden("call", waiting.id),
+            div(class_="trap-waiting notice")[
+                b[t("trap.waiting")],
+                ul[
+                    [
+                        li[
+                            span[names.get(cid, "?")],
+                            ": ",
+                            b(class_="mono")[str(waiting.results[cid])]
+                            if cid in waiting.results
+                            else small(class_="muted")[t("checks.waiting")],
+                        ]
+                        for cid in waiting.characters
+                    ]
+                ],
+            ],
+            # Asks again every few seconds while saves are still to come.
+            div(
+                hx_post=url,
+                hx_trigger="every 3s",
+                hx_vals='{"op": "wait"}',
+                hx_target="closest .affliction-afflict",
+                hx_swap="innerHTML",
+            )
+            if len(waiting.results) < len(waiting.characters)
+            else None,
+            div(class_="trap-buttons")[
+                button(type="submit", name="op", value="apply", class_="btn btn-sm btn-primary")[
+                    icon("zap", "sm"), span[t("affliction.apply")]
+                ],
+                button(type="submit", name="op", value="cancel", class_="btn btn-sm btn-ghost")[
+                    t("trap.cancel")
+                ],
+            ],
+        ]
     return form(
         method="post",
         action=url,
@@ -118,6 +171,15 @@ def afflict_form(
                 icon("dices", "sm"),
                 span[t("affliction.roll_save", save=_save(page, catch.ability, catch.dc))],
             ]
+            if catch is not None and members
+            else None,
+            button(
+                type="submit",
+                name="op",
+                value="ask",
+                class_="btn btn-sm",
+                title=t("trap.ask_hint"),
+            )[icon("users", "sm"), span[t("trap.ask")]]
             if catch is not None and members
             else None,
             button(type="submit", name="op", value="caught", class_="btn btn-sm")[

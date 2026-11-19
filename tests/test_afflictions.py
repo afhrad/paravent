@@ -226,6 +226,44 @@ async def test_at_the_table(table: tuple[AsyncClient, StoreRegistry, str]) -> No
     assert "Roll the Constitution save DC 10" in form.text and held.kind == "disease"
 
 
+@requires_corpus
+async def test_the_players_roll_the_catching_save(
+    table: tuple[AsyncClient, StoreRegistry, str],
+) -> None:
+    ac, registry, lyra = table
+    world = registry.gamestate.characters.get(lyra).world_id
+    disease = {"world": world, "category": "disease", "name": "Sewer Plague", "source": "XDMG"}
+    form = (await ac.get("/gm/afflictions/form", params=disease)).text
+    assert "Players roll the saves" in form
+    asked = await ac.post(
+        "/gm/afflictions/afflict", data={**disease, "character": lyra, "op": "ask"}
+    )
+    assert "The players are rolling their saves" in asked.text
+    (call,) = [c for c in registry.gamestate.checks.list() if c.open]
+    assert (call.kind, call.subject, call.dc, call.characters) == ("save", "con", 11, [lyra])
+    assert call.purpose == "Sewer Plague"
+    # Lyra rolls a 4 on her sheet; the form shows it, and applying uses it.
+    registry.checks.answer(lyra, "save", "con", 4)
+    waiting = await ac.post(
+        "/gm/afflictions/afflict", data={**disease, "call": call.id, "op": "wait"}
+    )
+    assert '<b class="mono">4</b>' in waiting.text
+    done = await ac.post(
+        "/gm/afflictions/afflict", data={**disease, "call": call.id, "op": "apply"}
+    )
+    assert "carries it" in done.text
+    assert [a.name for a in registry.gamestate.characters.get(lyra).state.afflictions] == [
+        "Sewer Plague"
+    ]
+    assert not registry.gamestate.checks.get(call.id).open
+    # A closed call afflicts no one again.
+    again = await ac.post(
+        "/gm/afflictions/afflict", data={**disease, "call": call.id, "op": "apply"}
+    )
+    assert "Players roll the saves" in again.text
+    assert len(registry.gamestate.characters.get(lyra).state.afflictions) == 1
+
+
 def _dm():  # noqa: ANN202 - the play rules' actor
     from app.services.play import Actor
 

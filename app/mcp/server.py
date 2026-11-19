@@ -24,6 +24,7 @@ from app.mcp.drafts import register_drafts
 from app.mcp.history import register_history
 from app.mcp.models import (
     AdventureSummary,
+    AfflictionInfo,
     Attack,
     BookInfo,
     BudgetAnswer,
@@ -58,6 +59,7 @@ from app.mcp.models import (
 from app.models.gamestate import Follower, Location, Npc, SourceSet, Treasure, World
 from app.models.naming import SUBJECTS, Subject
 from app.services.activities import RARITIES
+from app.services.afflictions import read_affliction
 from app.services.calendar import date_words
 from app.services.clock import DAY
 from app.services.difficulty import rules_for
@@ -69,6 +71,7 @@ from app.services.npc_gen import edition_for
 from app.services.search import GROUP_KEYS, Row
 from app.services.traps import read_trap
 from app.services.travel import ENCOUNTER_ON, PACES, TRAVEL_DAY
+from app.ui.affliction_pages import afflicts
 from app.ui.insert import tag_maker
 from app.ui.tags import ENTITY_CATEGORY
 
@@ -801,6 +804,77 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
                         automatic=effect.automatic,
                         effect=lines,
                         checks=[f"{c.skill.title()} DC {c.dc}" for c in effect.checks],
+                    )
+                )
+                if len(out) >= 60:
+                    return out
+        return out
+
+    @server.tool()
+    def find_afflictions(
+        world_id: str,
+        query: Annotated[str, Field(description="Part of a name; empty for all")] = "",
+        kind: Annotated[str, Field(description="disease, poison, or empty for both")] = "",
+    ) -> list[AfflictionInfo]:
+        """The diseases and poisons of the world's books. Write one's `tag` alone on a
+        line in a chapter: the gamemaster gets its text and an "Afflict" button there,
+        which puts it on the ticked characters (their catching save rolled, or rolled by
+        the players), and the world's clock and rests run its course."""
+        registry = stores()
+        world = world_of(world_id)
+        wanted = query.strip().lower()
+        out: list[AfflictionInfo] = []
+        for category in ("disease", "item"):
+            for entry in registry.compendium.all(category):
+                data = entry.model_dump(by_alias=True, exclude_none=True)
+                found = afflicts(category, data)
+                if found is None or (kind and found != kind):
+                    continue
+                name, source = str(data.get("name", "")), str(data.get("source", ""))
+                if wanted and wanted not in name.lower():
+                    continue
+                if not world.source_set.is_unrestricted and (
+                    source.lower() not in world.source_set.normalized
+                ):
+                    continue
+                effect = read_affliction(data, found)
+                lines: list[str] = []
+                catch = effect.catch
+                if catch is not None:
+                    lines.append(
+                        f"DC {catch.dc} {catch.ability.upper()} save to avoid it"
+                        + (f", {catch.damage} {catch.damage_type}".rstrip() if catch.damage else "")
+                        + (" (half on a success)" if catch.half else "")
+                        + (f", {', '.join(catch.conditions)}" if catch.conditions else "")
+                    )
+                units = {1: "minutes", 60: "hours", 1440: "days"}
+                if effect.lasts:
+                    lines.append(f"lasts {effect.lasts} {units.get(effect.lasts_unit, 'minutes')}")
+                if effect.onset:
+                    lines.append(
+                        f"symptoms after {effect.onset} {units.get(effect.onset_unit, 'minutes')}"
+                    )
+                if effect.exhaustion or effect.conditions:
+                    lines.append(
+                        "symptoms: "
+                        + ", ".join(
+                            ([f"{effect.exhaustion} exhaustion"] if effect.exhaustion else [])
+                            + list(effect.conditions)
+                        )
+                    )
+                if effect.course and effect.dc is not None:
+                    when = "each dawn" if effect.course == "dawn" else "each long rest"
+                    lines.append(
+                        f"DC {effect.dc} {str(effect.ability).upper()} save {when} ({effect.rule})"
+                    )
+                tag_kind = "disease" if found == "disease" else "item"
+                out.append(
+                    AfflictionInfo(
+                        tag=f"{{@{tag_kind} {name}|{source}}}",
+                        name=name,
+                        source=source,
+                        kind=found,
+                        effect=lines,
                     )
                 )
                 if len(out) >= 60:

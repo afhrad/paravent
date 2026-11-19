@@ -297,6 +297,19 @@ class TestLibrary:
         old.gamestate.characters.create(pc)
         assert found(run(old), Kind.LIBRARY_REFERENCE) == ["character: Kim — Lost Ring|ZZ"]
 
+    def test_a_disease_or_poison_carried_that_is_gone(self, old: StoreRegistry) -> None:
+        held = [
+            {"id": "a1", "kind": "disease", "name": "Gone Pox", "ref": "Gone Pox|ZZ"},
+            {"id": "a2", "kind": "poison", "name": "Gone Venom", "ref": "Gone Venom|ZZ"},
+            {"id": "a3", "kind": "curse", "name": "Hag's Mark"},  # names no book
+        ]
+        pc = PlayerCharacter.model_validate({"name": "Kim", "state": {"afflictions": held}})
+        old.gamestate.characters.create(pc)
+        assert sorted(found(run(old), Kind.LIBRARY_REFERENCE)) == [
+            "character: Kim — Gone Pox|ZZ",
+            "character: Kim — Gone Venom|ZZ",
+        ]
+
     def test_links_in_a_chapter_and_nothing_about_the_writing(
         self, old: StoreRegistry, world: World
     ) -> None:

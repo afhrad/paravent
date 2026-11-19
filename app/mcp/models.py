@@ -339,6 +339,20 @@ class JourneyPlan(BaseModel):
     advice: str
 
 
+class AfflictionInfo(BaseModel):
+    """A disease or poison of the world's books, as Paravent puts it on characters."""
+
+    tag: str = Field(description="The tag to write alone on a line in a chapter")
+    name: str
+    source: str
+    kind: str = Field(description="disease or poison")
+    effect: list[str] = Field(
+        default_factory=list,
+        description="What Paravent reads from its text: the catching save, damage, "
+        "conditions, onset, symptoms and the saves that fight it",
+    )
+
+
 class TrapInfo(BaseModel):
     """A trap or hazard of the world's books, as Paravent springs it."""
 

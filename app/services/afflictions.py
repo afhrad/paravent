@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import re
 import uuid
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -280,10 +280,12 @@ class AfflictionService:
         with_save: bool,
         by: str,
         by_name: str,
+        totals: Mapping[str, int] | None = None,
     ) -> list[Outcome]:
         """Expose ``victims`` to it: each rolls the catching save on its sheet (with
         ``with_save`` and a save to roll), and on a failure — or at once without one —
-        takes its damage and conditions, and carries it on if it lasts."""
+        takes its damage and conditions, and carries it on if it lasts. ``totals`` are
+        saves the players rolled themselves, by character; the rest are rolled here."""
         out: list[Outcome] = []
         now = self._now(world_id)
         catch = effect.catch if with_save else None
@@ -291,7 +293,10 @@ class AfflictionService:
         for victim in victims:
             outcome = Outcome(victim.character_id, victim.name)
             if catch is not None:
-                outcome.roll = self._save(victim.character_id, catch.ability)
+                rolled = (totals or {}).get(victim.character_id)
+                outcome.roll = (
+                    rolled if rolled is not None else self._save(victim.character_id, catch.ability)
+                )
                 outcome.dc = catch.dc
                 outcome.caught = outcome.roll < catch.dc
             harm = effect.catch.damage_type if effect.catch else ""

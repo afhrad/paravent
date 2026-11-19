@@ -68,7 +68,9 @@ async def afflict(
     request: Request, gm: GamemasterDep, page: PageDep, worlds: WorldsDep, registry: RegistryDep
 ) -> HTMLResponse:
     """Put it on the ticked characters: each rolls its save on the sheet (``op=save``),
-    or has caught it without one (``op=caught``)."""
+    or has caught it without one (``op=caught``). ``op=ask`` lets the players roll the
+    save on their sheets, as for a trap: ``wait`` shows the totals coming in, ``apply``
+    puts it on with them (rolling for whoever has not), ``cancel`` takes the call back."""
     form = await request.form()
     world_id = str(form.get("world", ""))
     category, name = str(form.get("category", "")), str(form.get("name", ""))
@@ -79,6 +81,41 @@ async def afflict(
     kind, shown, ref, effect, members = found
     known = dict(members)
     chosen = list(dict.fromkeys(str(c) for c in form.getlist("character") if str(c) in known))
+    op = str(form.get("op", ""))
+    user = gm.user
+    # Only an open call of this world: a closed one (applied or taken back) never
+    # afflicts anyone again.
+    call = registry.gamestate.checks.find(str(form.get("call", "")))
+    if call is not None and (not call.open or call.world_id != world_id):
+        call = None
+    totals: dict[str, int] = {}
+    if op in ("wait", "apply", "cancel") and call is None:
+        return html(afflict_form(page, world_id, category, shown, source, effect, members))
+    if op == "wait" and call is not None:
+        return html(
+            afflict_form(page, world_id, category, shown, source, effect, members, waiting=call)
+        )
+    if op == "cancel" and call is not None:
+        registry.checks.close(call.id)
+        return html(afflict_form(page, world_id, category, shown, source, effect, members))
+    if op == "apply" and call is not None:
+        chosen = [cid for cid in call.characters if cid in known]
+        totals = dict(call.results)
+        registry.checks.close(call.id)
+        op = "save"
+    if op == "ask" and chosen and effect.catch is not None:
+        asked = registry.checks.call(
+            world_id,
+            "save",
+            effect.catch.ability,
+            chosen,
+            user.username,
+            dc=effect.catch.dc,
+            purpose=shown,
+        )
+        return html(
+            afflict_form(page, world_id, category, shown, source, effect, members, waiting=asked)
+        )
     if not chosen:
         result = alert(page.t("trap.error.no_one"))
     else:
@@ -97,7 +134,6 @@ async def afflict(
                     vulnerable=tuple(sheet.defended("vulnerable")),
                 )
             )
-        user = gm.user
         outcomes = registry.afflictions.afflict(
             world_id,
             kind,
@@ -105,9 +141,10 @@ async def afflict(
             ref,
             effect,
             victims,
-            with_save=str(form.get("op", "")) == "save",
+            with_save=op == "save",
             by=user.username,
             by_name=user.display_name or user.username,
+            totals=totals,
         )
         result = afflict_result(page, shown, outcomes)
     return html(

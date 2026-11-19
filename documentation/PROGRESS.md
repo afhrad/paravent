@@ -663,6 +663,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         them, the gamemaster ends one (cured) or puts a curse of their own on, with a name
         and what it does. All 29 diseases and 40 poisons of the corpus read; whatever else
         a text says (disadvantage, a fit of laughter, an herb's cure) stays the table's
+        **The rest** (2026-11-19): the players may roll the catching save on their sheets,
+        as for a trap (the totals come in on the form; whoever has not rolled is rolled
+        for); the library check names an affliction carried whose entry a new release
+        dropped; and Claude finds the world's diseases and poisons over MCP
+        (`find_afflictions`) to write into a draft's chapters
   - [x] **Tutorial videos** (2026-11-16, `website/film/`, website/README.md "Videos"): six
         episodes recorded in real browsers from scripts, in English and German — a fight on two
         screens, a player's evening on the phone, writing an adventure, between the fights, the
