@@ -62,7 +62,7 @@ player's screen and file in their log (PROTOCOL.md §6).
 ## 3. Reading
 
 `/journal` — in a player's bottom bar and top bar as **Journal**; for the gamemaster on
-each world's page and under *Worlds* — lists what the reader may read, newest first. A
+*Journal* in the top bar, the table's world (documentation/CURRENT-WORLD.md) — lists what the reader may read, newest first. A
 player's list marks what they have not opened; the gamemaster's names who each went to.
 
 `/journal/<id>` shows the handout as its players read it:

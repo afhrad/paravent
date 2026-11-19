@@ -20,7 +20,7 @@ from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field, ValidationError
 
-from app.mcp.common import tool_errors
+from app.mcp.common import current_or, tool_errors
 from app.mcp.models import (
     CreatureBlockInput,
     CreatureDraft,
@@ -291,7 +291,7 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
         `ready_made` on `create_creature` or `update_creature` rather than writing a
         block the builder has. At most 40, so narrow with ``query``."""
         registry = stores()
-        world = registry.worlds.find(world_id)
+        world = registry.worlds.find(current_or(registry, world_id))
         if world is None:
             raise ToolError(f"No world with id {world_id}")
         if kind and kind not in ("trait", "action", "feature"):
@@ -402,7 +402,7 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
         found = registry.mcp_tokens.verify(bearer_of(ctx))
         if found is None:
             raise ToolError("This request carries no valid Paravent key.")
-        world = registry.worlds.find(world_id)
+        world = registry.worlds.find(current_or(registry, world_id))
         if world is None:
             raise ToolError(f"No world with id {world_id}")
         if not registry.creatures.known_cr(cr.strip()):

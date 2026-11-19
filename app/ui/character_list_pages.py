@@ -23,7 +23,7 @@ from htpy import (
 )
 from htpy import input as input_el
 
-from app.models.gamestate import User, World
+from app.models.gamestate import User
 from app.models.pc import DraftStatus, PlayerCharacter
 from app.services.characters import CharacterSummary
 from app.ui.context import Page
@@ -54,18 +54,7 @@ def _player_select(
     ]
 
 
-def _world_select(
-    page: Page, worlds: Sequence[World], selected: str | None, field_id: str
-) -> Element:
-    return select(name="world", id=field_id, aria_label=page.t("party.world"))[
-        option(value="", selected=not selected)[page.t("worlds.none")],
-        [option(value=w.id, selected=w.id == selected)[w.name] for w in worlds],
-    ]
-
-
-def _row(
-    page: Page, row: CharacterSummary, players: Sequence[User], worlds: Sequence[World]
-) -> Element:
+def _row(page: Page, row: CharacterSummary, players: Sequence[User]) -> Element:
     t = page.t
     pc = row.character
     classes = " / ".join(f"{c.name} {c.level}" for c in pc.classes) or t("play.not_started")
@@ -91,12 +80,6 @@ def _row(
             _player_select(page, players, pc.player, assign_id),
             button(type="submit", class_="btn btn-sm")[t("chars.assign")],
         ],
-        form(method="post", action=f"/gm/characters/{pc.id}/world", class_="inline-form")[
-            _world_select(page, worlds, pc.world_id, f"world-{pc.id}"),
-            button(type="submit", class_="btn btn-sm")[t("chars.place")],
-        ]
-        if worlds
-        else None,
         a(href=f"/characters/{pc.id}", class_="btn btn-sm btn-primary")[
             icon("book-open"), span(class_="list-action-label")[t("chars.open")]
         ],
@@ -139,9 +122,9 @@ def characters_page(
     rows: Sequence[CharacterSummary],
     players: Sequence[User],
     unreadable: Mapping[str, str],
-    worlds: Sequence[World] = (),
 ) -> Element:
-    """Every character file, with who plays it."""
+    """Every character file, with who plays it; none belongs to a world, each playing in
+    the table's (documentation/CURRENT-WORLD.md)."""
     t = page.t
     create = details(class_="create-menu")[
         summary(class_="btn btn-primary")[icon("plus"), span[t("chars.new")]],
@@ -168,7 +151,7 @@ def characters_page(
         for name, error in sorted(unreadable.items())
     ]
     listing = (
-        ul(class_="list")[[_row(page, row, players, worlds) for row in rows]]
+        ul(class_="list")[[_row(page, row, players) for row in rows]]
         if rows
         else empty_state("users-round", t("chars.empty_heading"), t("chars.empty_text"))
     )

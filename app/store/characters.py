@@ -50,10 +50,13 @@ def slugify(name: str) -> str:
 
 
 def serialize(character: PlayerCharacter) -> dict[str, Any]:
-    """The file content for a character, in the canonical form."""
+    """The file content for a character, in the canonical form. Its world is never
+    written: a character plays in the table's world (documentation/CURRENT-WORLD.md §2),
+    and an old file loses the field the next time it is saved."""
     data = character.model_dump(mode="json")
     if data.get("$schema") is None:
         data.pop("$schema", None)
+    data.pop("world_id", None)
     return data
 
 
@@ -224,6 +227,26 @@ class CharacterStore:
         self._listeners: list[ChangeListener] = []
         self._lock = threading.RLock()
         self._loaded = False
+        # The table's world, which every character is served in (set by the registry; a
+        # store used on its own keeps each character's own); each served copy is kept
+        # until the character or the world changes.
+        self.world: Callable[[], str | None] | None = None
+        self._served: dict[str, tuple[str | None, PlayerCharacter, PlayerCharacter]] = {}
+
+    def _serve(self, character: PlayerCharacter) -> PlayerCharacter:
+        """``character`` in the table's world: its ``world_id`` is derived, not its own
+        (documentation/CURRENT-WORLD.md §2)."""
+        if self.world is None:
+            return character
+        world = self.world()
+        if character.world_id == world:
+            return character
+        kept = self._served.get(character.id)
+        if kept is not None and kept[0] == world and kept[1] is character:
+            return kept[2]
+        served = character.model_copy(update={"world_id": world})
+        self._served[character.id] = (world, character, served)
+        return served
 
     # -- notification ------------------------------------------------------------
 
@@ -333,6 +356,7 @@ class CharacterStore:
             write_json(path, data)
         revision = revision_of(data)
         previous = self._revisions.get(character.id)
+        character = self._serve(character)
         self._items[character.id] = character
         self._paths[character.id] = path
         self._revisions[character.id] = revision
@@ -417,7 +441,8 @@ class CharacterStore:
         """One character, or None."""
         with self._lock:
             self._ensure_loaded()
-            return self._items.get(character_id)
+            found = self._items.get(character_id)
+            return self._serve(found) if found is not None else None
 
     def list(
         self, predicate: Callable[[PlayerCharacter], bool] | None = None
@@ -425,7 +450,7 @@ class CharacterStore:
         """Every character, optionally filtered."""
         with self._lock:
             self._ensure_loaded()
-            records = list(self._items.values())
+            records = [self._serve(r) for r in self._items.values()]
         return [r for r in records if predicate(r)] if predicate else records
 
     def revision(self, character_id: str) -> str | None:

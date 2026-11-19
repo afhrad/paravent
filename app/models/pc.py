@@ -612,6 +612,8 @@ class PlayerCharacter(Record):
     # for that player once the gamemaster creates the account. Renaming a player renames
     # it here too (app/services/players.py).
     player: str | None = None
+    # Not the character's own: the character store fills in the table's world when it
+    # serves the character and never writes it (documentation/CURRENT-WORLD.md §2).
     world_id: str | None = None
     status: DraftStatus = DraftStatus.DRAFT
     # Levels the gamemaster has granted and the player has not taken yet: while above

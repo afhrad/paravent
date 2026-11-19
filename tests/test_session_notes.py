@@ -84,8 +84,8 @@ class TestNotes:
         assert (
             await raw.post(f"/gm/sessions/{note.id}", data={"day": "soon", "text": "x"})
         ).status_code == 422
-        world_page = (await raw.get(f"/gm/worlds/{world_id}")).text
-        assert "1 session note" in world_page
+        # The top bar's Sessions: the current world's notes, at an address of their own.
+        assert f"/gm/sessions/{note.id}" in (await raw.get("/gm/sessions")).text
         assert (await raw.get(f"/gm/sessions/{note.id}/delete")).status_code == 200
         gone = await raw.post(f"/gm/sessions/{note.id}/delete")
         assert gone.status_code == 303 and registry.session_notes.list(world_id) == []

@@ -163,7 +163,7 @@
   // A <details> menu opens and closes on its own; what it lacks is closing when you
   // click elsewhere or press Escape, which every menu is expected to do.
   var MENUS = ['details.langmenu', 'details.create-menu', 'details.usermenu', 'details.cb-menu',
-    'details.name-roll-menu'];
+    'details.name-roll-menu', 'details.world-menu', 'details.nav-more'];
   var OPEN = MENUS.map(function (m) { return m + '[open]'; }).join(', ');
 
   function closeMenus(except) {
@@ -243,19 +243,50 @@
 })();
 
 // A link or button naming a dialog (data-dialog="id") opens it; without the script the
-// link reloads the page with the dialog shown. A [data-close] inside closes it.
+// link reloads the page with the dialog shown. A [data-close] inside closes it. A dialog
+// with ``data-src`` (the world's settings) loads its content from there the first time
+// it opens; one with ``data-open-now`` opens as the page loads.
 (function () {
   'use strict';
+
+  function focusFirst(target) {
+    var first = target.querySelector('input:not([type=hidden]), textarea, select');
+    if (first) first.focus();
+  }
+
+  function show(target) {
+    if (target.open) target.close();
+    target.showModal();
+    var src = target.dataset.src;
+    if (src && !target.dataset.loaded) {
+      target.dataset.loaded = '1';
+      fetch(src, { credentials: 'same-origin' })
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+        .then(function (html) {
+          var body = target.querySelector('.dialog-body') || target;
+          body.innerHTML = html;
+          focusFirst(target);
+        })
+        .catch(function () {
+          delete target.dataset.loaded;
+          window.location.href = target.dataset.fallback || src;
+        });
+      return;
+    }
+    focusFirst(target);
+  }
+
   document.addEventListener('click', function (e) {
     var opener = e.target.closest && e.target.closest('[data-dialog]');
     if (opener) {
       var target = document.getElementById(opener.dataset.dialog);
       if (target && typeof target.showModal === 'function') {
         e.preventDefault();
-        if (target.open) target.close();
-        target.showModal();
-        var first = target.querySelector('input:not([type=hidden]), textarea, select');
-        if (first) first.focus();
+        // Opened from a menu (the world menu's settings): the menu closes behind it.
+        var menu = opener.closest('details[open]');
+        if (menu) menu.removeAttribute('open');
+        if (!target.dataset.fallback) target.dataset.fallback = opener.getAttribute('href') || '';
+        show(target);
       }
       return;
     }
@@ -265,6 +296,14 @@
       closer.closest('dialog').close();
     }
   });
+
+  function openNow() {
+    document.querySelectorAll('dialog[data-open-now]').forEach(function (d) {
+      if (typeof d.showModal === 'function') show(d);
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', openNow);
+  else openNow();
 })();
 
 // A picture in a text (``img[data-zoom]``: Markdown, the books' pictures, a handout)

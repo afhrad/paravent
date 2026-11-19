@@ -110,7 +110,7 @@ async def show_quests(
     _gm: GamemasterDep, page: PageDep, worlds: WorldsDep, registry: RegistryDep, world: str = ""
 ) -> Response:
     """A world's quests."""
-    chosen = worlds.find_or_only(world)
+    chosen = worlds.find_or_current(world)
     if chosen is None:
         return redirect("/gm/worlds")
     return _page(page, registry, chosen)

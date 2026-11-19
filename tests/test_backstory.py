@@ -62,6 +62,7 @@ def _draft(registry: StoreRegistry, world: str) -> str:
     alice = _alice(registry)
     found = next(w for w in registry.gamestate.worlds.list() if w.name == world)
     drafts = registry.drafts
+    registry.table.select(found.id)  # a character plays in the table's world
     draft = drafts.start(alice, found.id)
     drafts.save(alice, draft.id, "class", {"class": ["Fighter|XPHB"]})
     drafts.save(alice, draft.id, "background", {"background": ["Soldier|XPHB"]})
@@ -106,6 +107,7 @@ class TestWizard:
         alice = _alice(registry)
         registry.gamestate.worlds.create(World(name="2014", source_set=SourceSet(sources=["PHB"])))
         found = next(w for w in registry.gamestate.worlds.list() if w.name == "2014")
+        registry.table.select(found.id)  # a character plays in the table's world
         draft = registry.drafts.start(alice, found.id).id
         registry.drafts.save(alice, draft, "class", {"class": ["Fighter|PHB"]})
         registry.drafts.save(alice, draft, "background", {"background": ["Acolyte|PHB"]})
@@ -137,6 +139,7 @@ class TestWizard:
         alice = _alice(registry)
         registry.gamestate.worlds.create(World(name="2014", source_set=SourceSet(sources=["PHB"])))
         found = next(w for w in registry.gamestate.worlds.list() if w.name == "2014")
+        registry.table.select(found.id)  # a character plays in the table's world
         draft = registry.drafts.start(alice, found.id).id
         registry.drafts.save(alice, draft, "class", {"class": ["Fighter|PHB"]})
         registry.drafts.save(alice, draft, "background", {"background": ["Acolyte|PHB"]})
@@ -164,6 +167,7 @@ class TestWizard:
         alice = _alice(registry)
         registry.gamestate.worlds.create(World(name="2014", source_set=SourceSet(sources=["PHB"])))
         found = next(w for w in registry.gamestate.worlds.list() if w.name == "2014")
+        registry.table.select(found.id)  # a character plays in the table's world
         draft = registry.drafts.start(alice, found.id).id
         registry.drafts.save(alice, draft, "class", {"class": ["Fighter|PHB"]})
         registry.drafts.save(alice, draft, "species", {"species": ["Human|PHB"]})

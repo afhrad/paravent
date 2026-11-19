@@ -174,7 +174,8 @@ async def _fighter_at_equipment(
 ) -> str:
     world = World(name="Sunken Marches", source_set=SourceSet(sources=BOOKS_2014))
     created = registry.gamestate.worlds.create(world)
-    started = await ac.post("/chargen", data={"world": created.id})
+    registry.table.select(created.id)  # a character is made in the table's world
+    started = await ac.post("/chargen")
     url = started.headers["location"]
     await ac.post(f"{url}/class", data={"class": "Fighter|PHB"})
     await ac.post(f"{url}/background", data={"background": "Soldier|PHB"})

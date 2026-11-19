@@ -74,6 +74,16 @@ class PlaceService:
         sheets = {**place.sheets, character_id: shown}
         self._store.places.upsert(place.model_copy(update={"sheets": sheets}))
 
+    def forget_sections(self, user_id: str, sections: frozenset[str]) -> None:
+        """Forget where ``sections`` were left, as when the table's world changes: their
+        pages belong to the old world (documentation/CURRENT-WORLD.md §4)."""
+        place = self._store.places.find(user_id)
+        if place is None:
+            return
+        nav = {href: url for href, url in place.nav.items() if href not in sections}
+        if nav != place.nav:
+            self._store.places.upsert(place.model_copy(update={"nav": nav}))
+
     def forget(self, user_id: str) -> None:
         """Drop a user's place, as when the account is deleted."""
         if self._store.places.find(user_id) is not None:

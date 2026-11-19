@@ -149,7 +149,7 @@ def creatures_page(
                 "world",
                 t("creatures.world"),
                 _world_choices(page, worlds),
-                selected=draft.get("world", worlds[0].id if len(worlds) == 1 else ""),
+                selected=draft.get("world", page.world[0] if page.world else ""),
             ),
             select_field("cr", t("creatures.cr"), _cr_choices(crs), selected=draft.get("cr", "1")),
             text_field(

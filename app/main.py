@@ -39,6 +39,7 @@ from app.routes import combat as combat_routes
 from app.routes import compendium as compendium_routes
 from app.routes import corpus as corpus_routes
 from app.routes import creatures as creature_routes
+from app.routes import current_world as current_world_routes
 from app.routes import editor as editor_routes
 from app.routes import encounters as encounter_routes
 from app.routes import factions as faction_routes
@@ -324,6 +325,7 @@ def create_app() -> FastAPI:
         )
 
     app.include_router(auth_routes.router)
+    app.include_router(current_world_routes.router)
     app.include_router(home_routes.router)
     app.include_router(players_routes.router)
     app.include_router(character_routes.router)

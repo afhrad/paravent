@@ -945,6 +945,9 @@ class TableSettings(Record):
     # The theme everyone reads Paravent in unless they chose their own
     # (documentation/THEMES.md); "" is Paravent's own look.
     theme: str = ""
+    # The world the whole table plays in (documentation/CURRENT-WORLD.md); None before
+    # one is chosen, which reads as the first world by name.
+    world_id: str | None = None
 
 
 class WorldInstructions(Record):

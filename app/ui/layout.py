@@ -47,10 +47,11 @@ from app.services.themes import Theme
 from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon, sprite
-from app.ui.nav import NAV, nav_href
+from app.ui.nav import NAV, NavItem, nav_href
 from app.ui.palette import insert_palette, palette, search_trigger
 from app.ui.protocol_pages import log_button, log_dialog, toast_layer
 from app.ui.sound_panel import sound_button, sound_dialog
+from app.ui.world_menu import world_banner, world_dialogs, world_menu
 
 STYLESHEETS = (
     "/static/css/tokens.css",
@@ -429,16 +430,37 @@ def _player_bar(page: Page) -> Element:
 
 
 def _nav(page: Page, role: Role) -> Element:
+    """The sections as links. The gamemaster's thirteen do not all fit: each carries its
+    rank (``nav-r0`` … ``nav-r3``, app/ui/nav.py), and **More** holds the same links, the
+    stylesheet showing each in one place or the other by the width at hand
+    (documentation/CURRENT-WORLD.md §4)."""
     t = page.t
     path = page.path.split("?", 1)[0]
+    items = NAV[role]
+
+    def link(item: NavItem, cls: str) -> Element:
+        return a(
+            href=nav_href(item, path, page.nav_memory),
+            class_=cls,
+            aria_current="page" if item.contains(path) else None,
+            title=t(item.key),
+        )[icon(item.icon), span[t(item.key)]]
+
+    gm = role == Role.GAMEMASTER
+    inside_more = any(item.contains(path) for item in items if item.rank)
     return nav(class_="shell-nav", aria_label=t("nav.label"))[
-        [
-            a(
-                href=nav_href(item, path, page.nav_memory),
-                aria_current="page" if item.contains(path) else None,
-            )[icon(item.icon), span[t(item.key)]]
-            for item in NAV[role]
+        [link(item, f"nav-r{item.rank}") if gm else link(item, "") for item in items],
+        details(class_="nav-more")[
+            summary(
+                class_="nav-more-button" + (" is-current" if inside_more else ""),
+                title=t("nav.more"),
+            )[icon("ellipsis"), span[t("nav.more")]],
+            div(class_="usermenu-panel nav-more-panel")[
+                [link(item, f"usermenu-link nav-r{item.rank}") for item in items if item.rank]
+            ],
         ]
+        if gm
+        else None,
     ]
 
 
@@ -490,6 +512,7 @@ def app_shell(
                 ]
                 if not identity.is_gamemaster
                 else None,
+                world_menu(page),
                 _nav(page, user.role),
                 div(class_="shell-spacer"),
                 sound_button(page),
@@ -498,11 +521,12 @@ def app_shell(
                 settings_menu(page),
                 user_menu(page, name, user.username),
             ],
-            main(class_=main_class, id="main")[content],
+            main(class_=main_class, id="main")[world_banner(page), content],
             _player_bar(page) if bar else None,
             palette(page, world_id) if palette_layer else None,
             insert_palette(page, world_id) if insert_layer else None,
             log_dialog(page, log_scope or Filter()),
+            world_dialogs(page),
             sound_dialog(page),
             toast_layer(page),
         ],

@@ -505,17 +505,12 @@ def world_page(
     description: Rendered,
     *,
     bosses: Sequence[Npc] = (),
-    counts: tuple[int, int] = (0, 0),
-    sessions: int = 0,
-    places: int = 0,
     books: Sequence[PublishedAdventure] = (),
     notice_text: str | None = None,
     error: str | None = None,
 ) -> Element:
-    """A world: cover, description, its bosses, its adventures in order.
-
-    ``counts`` is how many NPCs and treasures the world holds, for the links to them.
-    """
+    """A world's adventures, in order, under its cover, description and bosses: the
+    page the top bar's Adventures leads to (documentation/CURRENT-WORLD.md §5)."""
     t = page.t
     book_count = (
         t("worlds.books_n", n=len(world.source_set))
@@ -551,52 +546,15 @@ def world_page(
     ]
     return app_shell(
         page,
-        world.name,
+        t("adventures.heading"),
         div(class_="prose-page")[
-            crumbs(page, (t("nav.worlds"), WORLDS_URL), (world.name, None)),
             cover(world.id, world.cover, world.name),
-            page_head(
-                t("adventures.world_eyebrow"),
-                world.name,
-                book_count,
-                div(class_="head-actions")[
-                    a(href=f"{world_url(world.id)}/edit", class_="btn")[
-                        icon("pencil"), span[t("players.edit")]
-                    ],
-                    delete_link(
-                        page, f"{world_url(world.id)}/delete", t("worlds.delete"), text=True
-                    ),
-                ],
-            ),
+            # The world's own page is its adventures: its settings, its other lists and
+            # deleting it are the world menu's and the top bar's (CURRENT-WORLD.md §5).
+            page_head(world.name, t("adventures.heading"), book_count),
             notice(notice_text),
             alert(error),
             div(class_="md-body")[description.html] if description.html.strip() else None,
-            nav(class_="world-links")[
-                a(href=f"/journal?world={world.id}", class_="btn")[
-                    icon("scroll"), span[t("journal.title")]
-                ],
-                a(href=f"{world_url(world.id)}/npcs", class_="btn")[
-                    icon("circle-user"), span[t.plural("npcs.count", counts[0])]
-                ],
-                a(href=f"{world_url(world.id)}/treasure", class_="btn")[
-                    icon("gem"), span[t.plural("treasure.count", counts[1])]
-                ],
-                a(href=f"{world_url(world.id)}/places", class_="btn")[
-                    icon("map"), span[t.plural("places.count", places)]
-                ],
-                a(href=f"{world_url(world.id)}/names", class_="btn")[
-                    icon("dices"), span[t("naming.world.title")]
-                ],
-                a(href=f"{world_url(world.id)}/claude", class_="btn")[
-                    icon("sparkles"), span[t("instructions.title")]
-                ],
-                a(href=f"/gm/encounters?world={world.id}", class_="btn")[
-                    icon("swords"), span[t("nav.encounters")]
-                ],
-                a(href=f"{world_url(world.id)}/sessions", class_="btn")[
-                    icon("scroll"), span[t.plural("sessions.count", sessions)]
-                ],
-            ],
             section(class_="prose-section")[
                 h2(class_="section-title")[t("npcs.bosses")],
                 ul(class_="boss-list")[
@@ -616,7 +574,6 @@ def world_page(
             if bosses
             else None,
             section(class_="prose-section")[
-                h2(class_="section-title")[t("adventures.heading")],
                 ul(class_="list")[rows]
                 if rows
                 else empty_state("map", t("adventures.empty_heading"), t("adventures.empty_text")),

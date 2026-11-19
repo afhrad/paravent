@@ -21,8 +21,12 @@ sind Monster, Zauber, Gegenstände und Regelbücher da.
 
 ## 2. Eine Welt und ihre Bücher
 
-*Welten* → **Neue Welt**. Eine Welt ist deine Kampagne: ihr Name, ihre Sprache und vor
-allem **die Bücher, mit denen ihr spielt**.
+Das Weltmenü links in der oberen Leiste → **Neue Welt**. Eine Welt ist deine Kampagne:
+ihr Name, ihre Sprache und vor allem **die Bücher, mit denen ihr spielt**. Der Tisch spielt
+immer in einer Welt – der im Menü, dort gewählt –, und alles in Paravent spielt in ihr: die
+Abenteuer, NSC, Orte, Schätze und Begegnungen der oberen Leiste, jeder Charakter und jeder
+Spieler. Ihre Einstellungen (Bücher, Sprache und der Rest) stehen unter
+**Welteinstellungen** im selben Menü.
 
 - **Hake die Bücher an, die euer Tisch nutzt.** *PHB* (2014) oder *XPHB* (2024)
   entscheidet die Edition. Jeder Verweis findet dann die richtige Fassung, und einer in ein
@@ -44,7 +48,8 @@ der Cloud.
 
 Die Spieler bauen ihre Charaktere selbst: Benutzermenü → **Neuer Charakter**. Der
 Assistent führt durch Volk, Klasse, Attribute, Hintergrund, Ausrüstung und Zauber, nur aus
-den Büchern ihrer Welt, und erklärt jede Zahl, die er zeigt.
+den Büchern der Welt, in der der Tisch spielt, und erklärt jede Zahl, die er zeigt. Ein
+Charakter gehört zu keiner Welt: Er spielt, wo der Tisch spielt.
 
 Gibt es den Charakter schon auf Papier? *Charaktere* → **Neuer Charakter** legt eine leere
 Datei an, die du von Hand füllst; was die Regeln nicht ausrechnen können (ein selbst
@@ -58,7 +63,7 @@ nur, was die neue Stufe mitbringt.
 
 ## 5. Das erste Kapitel
 
-Öffne deine Welt → **Abenteuer anlegen** → **Kapitel anlegen**. Ein Kapitel ist
+*Abenteuer* in der oberen Leiste → **Abenteuer anlegen** → **Kapitel anlegen**. Ein Kapitel ist
 einfaches Markdown: Schreib es wie eine Notiz, den Rest macht Paravent.
 
 - `{@creature goblin}` oder `{@spell fireball}` wird ein Link mit Vorschau. Tippst du

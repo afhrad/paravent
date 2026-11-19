@@ -128,7 +128,7 @@ A request written yourself works just as well:
 > in the fens, an innocent accused, a hag behind it. Pick up what happened last session.
 
 What Claude does, in order: it reads the world, the characters and what happened at the
-table so far — your **session notes** first (world page → *Session notes*: a few lines per
+table so far — your **session notes** first (*Sessions* in the top bar: a few lines per
 day of play on what happened, whom the party met, what is still open); plans the story and how much fighting the party can take; creates the
 draft with its NPCs, fights (adjusting each until its difficulty fits) and treasure;
 writes the chapters; checks every chapter for references that lead nowhere and mends

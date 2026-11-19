@@ -135,7 +135,7 @@ Eine selbst geschriebene Bitte funktioniert genauso:
 > letzten Spielabend an.
 
 Was Claude der Reihe nach tut: Es liest die Welt, die Charaktere und was bisher am Tisch
-geschah — zuerst deine **Sitzungsnotizen** (Seite der Welt → *Sitzungsnotizen*: ein paar
+geschah — zuerst deine **Sitzungsnotizen** (*Sitzungen* in der oberen Leiste: ein paar
 Zeilen pro Spielabend dazu, was geschah, wem die Gruppe begegnet ist, was noch offen ist); plant die Geschichte und wie viel Kampf die Gruppe verträgt; legt den Entwurf
 mit seinen NSC, Kämpfen (jeden angepasst, bis seine Schwierigkeit passt) und Schätzen an;
 schreibt die Kapitel; prüft jedes Kapitel auf Verweise, die ins Leere führen, und bessert

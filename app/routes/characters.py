@@ -34,7 +34,6 @@ from app.dependencies import (
     PageDep,
     PlayersDep,
     RegistryDep,
-    WorldsDep,
 )
 from app.models.gamestate import BastionFacility, Combat, Shop
 from app.models.pc import PlayerCharacter
@@ -1563,16 +1562,14 @@ async def gm_characters(
     page: PageDep,
     characters: CharactersDep,
     players: PlayersDep,
-    worlds: WorldsDep,
 ) -> HTMLResponse:
-    """Every character, who plays it, its world, and whether its file reads cleanly."""
+    """Every character, who plays it, and whether its file reads cleanly."""
     return html(
         characters_page(
             page,
             characters.summaries(),
             [s.user for s in players.summaries()],
             characters.unreadable_files,
-            worlds.list(),
         )
     )
 

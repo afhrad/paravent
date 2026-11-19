@@ -415,7 +415,22 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         from what the corpus actually holds, titled from `books.json`/`adventures.json`,
         grouped core / supplements / settings / adventures, 2024 books marked. Characters
         are placed in a world from the character list; their references then resolve
-        against its books (TECHSTACK.md §6c)
+        against its books (TECHSTACK.md §6c). **Superseded 2026-11-19 by the current world**
+        (next entry): characters belong to no world, and worlds are made, chosen, set up
+        and deleted from the world menu
+  - [x] **The current world** (2026-11-19, documentation/CURRENT-WORLD.md): the gamemaster
+        selects one world for the whole table from a world menu at the left of the top bar
+        (choose, **New world**, **World settings** as a dialog with the world form, names,
+        Claude's instructions, delete), and everything plays in it. The Worlds item is gone;
+        the top bar links the world's Adventures, NPCs, Places, Treasure, Encounters,
+        Combat, Quests, Factions, Journal and Sessions, by width as words, icons or under
+        **More** (`/gm/adventures`, `/gm/npcs`, … showing the current world). A page of
+        another world says so, with **Switch**. The party view, encounters, quests,
+        factions, the session page, the journal and the clock show the table's world, their
+        pickers gone. **Characters belong to no world**: the character store serves each in
+        the table's world and never writes one, so every character is in the party and uses
+        the world's books; a new character is made in it. Claude's tools: `list_worlds`
+        marks the current world, an empty `world_id` means it
   - [x] **What a player may read** (2026-11-03, documentation/PLAYER-VIEW.md,
         `app/services/player_view.py`): per world the books players may read ("Players" on
         each book of the world form; the handbooks and supplements by default), only player
@@ -742,10 +757,8 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         shift) or 2024 rules (budgets), chosen by the world's books or set per encounter.
         Rated against the characters in the world, or a stated party size and level.
         Monsters are stored as `Name|SOURCE` references, so a corpus update re-rates them.
-        **A new encounter takes place in the world worked in** (2026-11-19,
-        `app/services/current_world.py`): the list's filter, else the world of the last page
-        read under Worlds (or anywhere), else a table's only world; the form names it and
-        asks only when no world can be told.
+        **A new encounter takes place in the table's world** (2026-11-19,
+        documentation/CURRENT-WORLD.md): the form names it and asks for none.
         **2024 ratings corrected** (2026-11-12): a fight is the lowest budget it fits
         within — the XDMG spends "as much of your XP budget as you can without going
         over" — no longer the highest it reaches, which made High a single number and

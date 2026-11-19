@@ -10,6 +10,11 @@ a published one from the corpus.
 > **One sentence:** prose is Markdown files you can open in any editor; objects are records
 > with their own editors; the prose *places* objects where they happen in the story.
 
+> **Since 2026-11-19 the table plays in one world** (documentation/CURRENT-WORLD.md): the
+> world page is the top bar's *Adventures*, its settings are a dialog of the world menu, and
+> its lists have addresses of their own (`/gm/npcs`, `/gm/places`, …). What follows on worlds
+> stays true of how they are stored.
+
 ---
 
 ## 1. Decisions

@@ -329,19 +329,21 @@ class TestPages:
         pc = registry.gamestate.characters.create(
             PlayerCharacter(name="Brunhild", world_id=world.id)
         )
-        registry.gamestate.characters.create(PlayerCharacter(name="Elsewhere"))
+        drifter = registry.gamestate.characters.create(PlayerCharacter(name="Drifter"))
         registry.adventures.update_chapter(
             chapter.id,
             title="C",
             status="running",
             body="Ask {@character brunhild|her}.\n\n{@character Brunhild}\n\n"
-            "{@character Elsewhere}\n",
+            "{@character Drifter}\n\n{@character Nobody}\n",
         )
         page = (await ac.get(f"/gm/chapters/{chapter.id}")).text
         assert f'href="/characters/{pc.id}" class="ref lib character"' in page
         assert "md-embed-character" in page and "pc-hp-row" in page
-        # A character of another world is not this world's.
-        assert "“Elsewhere” is not in this world." in page
+        # Every character plays in the table's world (CURRENT-WORLD.md), even one whose
+        # file names none; a name no character has is no one here.
+        assert f'href="/characters/{drifter.id}"' in page
+        assert "“Nobody” is not in this world." in page
 
     async def test_notes_changed_elsewhere_are_not_overwritten(
         self, client: tuple[AsyncClient, StoreRegistry]

@@ -84,7 +84,7 @@ is meant: `{"item": "Letter from a dead colleague"}`.
 | `name` | `"Lyra Mooncaller"` | |
 | `given_name` | `null` | the parts of a name Paravent made, `{"text": …, "parts": {…}}`, read by a child's name; ignored once `text` is no longer `name` (NAMES.md §3) |
 | `player` | `"tenewaja"` or `null` | who plays it, by **username**. A name with no account yet waits: the character appears for that player once the account exists. Renaming a player updates their files. (Files written before 2026-10-15 used `player_id`, an account id; they are still read, and rewritten to the username on server start.) |
-| `world_id` | world id or `null` | its world's declared books govern reference resolution |
+| `world_id` | *not written* | **since 2026-11-19 a character belongs to no world** (documentation/CURRENT-WORLD.md §2): it plays in the table's world, whose declared books govern reference resolution. The field is filled with the table's world when the character is read and left out when it is saved, so an older file loses it at its next save; one written by hand is ignored |
 | `status` | `"draft"` · `"ready"` · `"retired"` | |
 | `pending_levels` | `0` | levels the gamemaster has granted and the player has not taken yet; while above 0 the sheet offers "Level up" (CHARGEN-WIZARD.md §9) |
 | `experience` | `null` | experience points, or `null` when the table does not track them. The first XP awarded after a fight starts it at the character's level threshold (COMBAT.md §6); XP never grants a level by itself |

@@ -11,7 +11,7 @@ deine Entscheidung – und nichts ändert Trefferpunkte, bevor du es sagst.
 
 ## 1. Vor dem Kampf
 
-1. **Begegnung bauen** (*Begegnungen* → eine Welt → *Neue Begegnung*): Monster über die Suche
+1. **Begegnung bauen** (*Begegnungen* → *Neue Begegnung*, in der Welt des Tischs): Monster über die Suche
    hinzufügen, jede Zeile als **Feind** oder **Freund** markieren. Die Schwierigkeit rechnet
    mit.
 2. **Starten** – aus der Begegnung oder aus ihrer Einbettung in einem Kapitel. Die Charaktere

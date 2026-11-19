@@ -171,7 +171,7 @@ class TestWorlds:
         world = registry.gamestate.worlds.create(World(name="W"))
         pc = _character(registry, "Torvald", world_id=world.id)
         confirm = await gm.get(f"/gm/worlds/{world.id}/delete")
-        assert "Its character is kept" in confirm.text
+        assert "The characters stay" in confirm.text  # they belong to no world
         await gm.post(f"/gm/worlds/{world.id}/delete")
         assert registry.worlds.find(world.id) is None
         assert registry.gamestate.characters.get(pc.id).world_id is None
@@ -188,14 +188,16 @@ class TestWorlds:
     async def test_unknown_world_is_404(self, gm: AsyncClient) -> None:
         assert (await gm.get("/gm/worlds/nope")).status_code == 404
 
-    async def test_place_a_character(self, gm: AsyncClient, registry: StoreRegistry) -> None:
+    async def test_a_character_plays_in_the_tables_world(
+        self, gm: AsyncClient, registry: StoreRegistry
+    ) -> None:
+        # No world of its own (documentation/CURRENT-WORLD.md): no chooser, no route.
         world = registry.gamestate.worlds.create(World(name="W"))
         pc = _character(registry, "Torvald")
-        assert "Move" in (await gm.get("/gm/characters")).text
-        await gm.post(f"/gm/characters/{pc.id}/world", data={"world": world.id})
+        assert f"/gm/characters/{pc.id}/world" not in (await gm.get("/gm/characters")).text
         assert registry.gamestate.characters.get(pc.id).world_id == world.id
-        await gm.post(f"/gm/characters/{pc.id}/world", data={"world": ""})
-        assert registry.gamestate.characters.get(pc.id).world_id is None
+        moved = await gm.post(f"/gm/characters/{pc.id}/world", data={"world": ""})
+        assert moved.status_code in (404, 405)
 
     async def test_players_cannot_manage_worlds(self, registry: StoreRegistry) -> None:
         app = create_app()
@@ -248,17 +250,18 @@ class TestParty:
         assert "✓ 1" in card and "✗ 2" in card
         assert "Alice · Dexterity save" in card and ">4<" in card
 
-    async def test_filter_by_world(self, gm: AsyncClient, registry: StoreRegistry) -> None:
+    async def test_the_party_of_the_tables_world(
+        self, gm: AsyncClient, registry: StoreRegistry
+    ) -> None:
         world = registry.gamestate.worlds.create(
             World(name="Mirefall", source_set=SourceSet(sources=["CoS"]))
         )
         _character(registry, "Isolde", world_id=world.id)
-        _character(registry, "Elsewhere")
-        everyone = (await gm.get("/gm")).text
-        assert "Isolde" in everyone and "Elsewhere" in everyone and "Mirefall" in everyone
-        only = (await gm.get(f"/gm?world={world.id}")).text
-        assert "Isolde" in only and "Elsewhere" not in only
-        assert "Mirefall · books: CoS" in only
+        # No world named: the table's (documentation/CURRENT-WORLD.md), with no picker.
+        shown = (await gm.get("/gm")).text
+        assert "Isolde" in shown and "Mirefall · books: CoS" in shown
+        assert 'class="inline-form party-filter"' not in shown
+        assert "Isolde" in (await gm.get(f"/gm?world={world.id}")).text
         grid = (await gm.get(f"/gm/party?world={world.id}")).text
         assert grid.startswith('<div id="party"') and f"world={world.id}" in grid
 

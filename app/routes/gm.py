@@ -23,9 +23,9 @@ from datetime import UTC, datetime
 from typing import Annotated
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, Form, HTTPException, Request
 from fastapi.responses import HTMLResponse, Response, StreamingResponse
-from htpy import Element, Node
+from htpy import Element, Node, a, p, span
 from starlette.datastructures import FormData
 
 from app.dependencies import (
@@ -36,7 +36,7 @@ from app.dependencies import (
     WorldsDep,
 )
 from app.routes.adventures import upload_messages
-from app.routes.auth import html, redirect
+from app.routes.auth import html, redirect, safe_next
 from app.routes.rolls import announce_roll, new_roll
 from app.services.activities import RARITIES
 from app.services.auth import AuthError
@@ -44,6 +44,7 @@ from app.services.characters import CharacterService
 from app.services.chase import ChaseError, Runner
 from app.services.checks import CheckError
 from app.services.clock import DAY, ClockError, bastions_due
+from app.services.current_world import world_of_page
 from app.services.dice import Advantage
 from app.services.downtime import DowntimeError
 from app.services.events import PARTY, revision_stream
@@ -51,6 +52,7 @@ from app.services.play import Actor, PlayError
 from app.services.player_view import player_choice, player_ticks
 from app.services.references import ReferenceNotFound
 from app.services.shop import ShopError
+from app.services.table import TableError
 from app.services.traps import Target, TrapEffect, read_trap
 from app.services.travel import CLIMATES, PACES, TRAVEL_DAY, WATER, Plan, TravelError, Vessel
 from app.services.units import feet_from
@@ -71,9 +73,12 @@ from app.ui.gm_pages import (
     party_page,
     playing_panel,
     world_delete_page,
+    world_form,
     world_form_page,
     worlds_page,
 )
+from app.ui.icons import icon
+from app.ui.nav import WORLD_SECTIONS, world_section_of
 from app.ui.shop_pages import SHOP_URL, shop_panel
 from app.ui.trap_pages import TRAP_CATEGORIES, TRAPS_URL, spring_form, spring_result
 
@@ -98,11 +103,8 @@ def _checks(
 
 
 def _clock_world(registry: StoreRegistry, world_id: str | None) -> str | None:
-    """The world whose clock the party view shows: the one chosen, or the only one."""
-    if world_id is not None:
-        return world_id
-    worlds = registry.gamestate.worlds.list()
-    return worlds[0].id if len(worlds) == 1 else None
+    """The world whose clock the party view shows: the one named, else the table's."""
+    return world_id if world_id is not None else registry.table.world_id()
 
 
 def _clock(page: Page, registry: StoreRegistry, world_id: str | None) -> Element | None:
@@ -311,14 +313,14 @@ async def party(
     registry: RegistryDep,
     world: str = "",
 ) -> HTMLResponse:
-    """Every character at the table — or in one world — updating live."""
-    chosen = worlds.find(world)
+    """Every character at the table, updating live, in the table's world
+    (documentation/CURRENT-WORLD.md); ``world`` names another, as its own forms do."""
+    chosen = worlds.find(world) or registry.table.world()
     world_id = chosen.id if chosen else None
     return html(
         party_page(
             page,
             _cards(page, characters, world_id),
-            worlds=worlds.list(),
             world=chosen,
             combats=_combats(page, registry, world_id),
             checks=_checks(page, registry, characters, world_id),
@@ -1188,7 +1190,11 @@ async def create_world(
             error=page.t.error(exc),
         )
         return html(view, status_code=422)
-    return redirect(f"{WORLDS_URL}/{world.id}?created=1")
+    # A world made is the one the table plays in, its settings opened to fill in the rest
+    # (documentation/CURRENT-WORLD.md §3).
+    registry.table.select(world.id)
+    registry.places.forget_sections(_gm.user.id, WORLD_SECTIONS)
+    return redirect(f"{WORLDS_URL}/{world.id}?created=1&settings=1")
 
 
 @router.get(f"{WORLDS_URL}/{{world_id}}/edit", response_class=HTMLResponse)
@@ -1245,8 +1251,10 @@ async def update_world(
     language: Annotated[str, Form()] = "",
     encumbrance: Annotated[str, Form()] = "",
     milestone: Annotated[str, Form()] = "",
+    next: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
 ) -> Response:
-    """Save a world's name, description and books."""
+    """Save a world's name, description and books, then back to ``next`` (the page the
+    settings dialog was opened on) or the world."""
     world = worlds.get(world_id)
     data = _world_input(
         registry, name, description, sources, players, rerolls, language, encumbrance, milestone
@@ -1268,9 +1276,77 @@ async def update_world(
             language=data.language,
             languages=_languages(registry),
             error=page.t.error(exc),
+            next_url=safe_next(next) or "",
         )
         return html(view, status_code=422)
-    return redirect(f"{WORLDS_URL}/{world_id}?updated=1")
+    return redirect(safe_next(next) or f"{WORLDS_URL}/{world_id}?updated=1")
+
+
+@router.post("/gm/world/select")
+async def select_world(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    world: Annotated[str, Form()] = "",
+    next: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
+) -> Response:
+    """Make ``world`` the one the whole table plays in, then back to where it was chosen."""
+    before = registry.table.world_id()
+    try:
+        registry.table.select(world)
+    except TableError as exc:
+        raise HTTPException(status_code=404) from exc
+    back = safe_next(next) or "/gm"
+    if world != before:
+        # The world's sections were left on the old world's pages; a page of one of them
+        # gives way to the same section of the new world.
+        registry.places.forget_sections(_gm.user.id, WORLD_SECTIONS)
+        path = back.split("?", 1)[0]
+        section = world_section_of(path)
+        # Stay on a page of the world just chosen (the banner's switch); one of another
+        # world gives way to its section's list in the new one.
+        if section is not None and world_of_page(registry.gamestate, path) != world:
+            back = section
+    return redirect(back)
+
+
+@router.get("/gm/world/settings", response_class=HTMLResponse)
+async def world_settings(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    next: str = "",  # noqa: A002 — the query parameter's name
+) -> HTMLResponse:
+    """The current world's form, for the settings dialog the world menu opens; its
+    pictures stay on the world's own form page, linked from here."""
+    world = registry.table.world()
+    if world is None:
+        raise HTTPException(status_code=404)
+    back = safe_next(next) or ""
+    return html(
+        [
+            world_form(
+                page,
+                registry.books,
+                world=world,
+                name=world.name,
+                description=world.description,
+                sources=world.source_set.sources,
+                players=player_ticks(world, _groups(registry)),
+                rerolls=world.allow_rerolls,
+                encumbrance=world.variant_encumbrance,
+                milestone=world.milestone,
+                language=world.language,
+                languages=_languages(registry),
+                next_url=back,
+                in_dialog=True,
+            ),
+            p(class_="world-settings-more")[
+                a(href=f"{WORLDS_URL}/{world.id}/edit")[
+                    icon("images", "sm"), span[page.t("world.pictures")]
+                ]
+            ],
+        ]
+    )
 
 
 @router.get(f"{WORLDS_URL}/{{world_id}}/delete", response_class=HTMLResponse)
@@ -1296,20 +1372,6 @@ async def delete_world(
         )
         return html(view, status_code=409)
     return redirect(f"{WORLDS_URL}?deleted={moved}")
-
-
-@router.post("/gm/characters/{character_id}/world")
-async def place_character(
-    _gm: GamemasterDep,
-    characters: CharactersDep,
-    worlds: WorldsDep,
-    character_id: str,
-    world: Annotated[str, Form()] = "",
-) -> Response:
-    """Put a character in a world, or in none."""
-    characters.get_any(character_id)
-    worlds.place(character_id, world or None)
-    return redirect("/gm/characters")
 
 
 __all__ = ["router"]

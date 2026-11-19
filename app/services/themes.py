@@ -289,7 +289,8 @@ class ThemeService:
         """Make ``theme_id`` the table's theme ("" for Paravent's own)."""
         if theme_id and self.library.get(theme_id) is None:
             raise KeyError(theme_id)
-        self.gamestate.table.upsert(TableSettings(id=TABLE_ID, theme=theme_id))
+        record = self.gamestate.table.find(TABLE_ID) or TableSettings(id=TABLE_ID)
+        self.gamestate.table.upsert(record.model_copy(update={"theme": theme_id}))
 
     def set_user(self, user_id: str, theme_id: str) -> None:
         """A reader's own choice: a theme, :data:`OWN`, or "" for the table's."""

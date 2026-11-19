@@ -11,6 +11,7 @@ loaded automatically.
 - Read @documentation/CHARGEN.md for details on character generation
 - Read documentation/CHARGEN-WIZARD.md for the character-creation wizard UX spec
 - Read documentation/ADVENTURES.md before touching worlds, adventures, chapters or their Markdown
+- Read documentation/CURRENT-WORLD.md before touching the table's current world, the world menu or the navigation
 - Read documentation/COMBAT.md before touching the combat tracker, combats or combatants
 - Read documentation/CHARACTER-FORMAT.md before touching characters: the file format, overrides, live updates
 - Read documentation/PROTOCOL.md before touching the log (Protokoll): rolls, the character or combat log, toasts

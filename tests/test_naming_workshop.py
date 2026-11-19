@@ -436,7 +436,8 @@ class TestPages:
         registry = facts["app"].state.stores
         await _login(raw)
         shown = await raw.get("/gm/names/samples", params={"key": "starter:old-norse"})
-        assert "/edit" not in shown.text and "/gm/names/copy" in shown.text
+        content = shown.text.split('id="main"', 1)[1]  # the world menu has its own
+        assert "/edit" not in content and "/gm/names/copy" in content
         await raw.post("/gm/names/copy", data={"key": "starter:old-norse"})
         copied = registry.naming_workshop.styles()[0]
         assert copied.name == "Old Norse (saga age)" and copied.id != "old-norse"

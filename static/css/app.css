@@ -2956,3 +2956,97 @@ dialog.img-zoom img{ max-width:100%; max-height:100%; object-fit:contain; border
   font-family:var(--font-ui); font-size:12px; white-space:nowrap; pointer-events:none;
 }
 .copy-field{ position:fixed; top:0; left:0; width:1px; height:1px; opacity:0; }
+
+/* The gamemaster's world menu, left of the top bar (documentation/CURRENT-WORLD.md §3):
+   the user menu's panel, opening to the right */
+.world-menu{ position:relative; flex:0 0 auto; }
+.world-menu > summary{ list-style:none; }
+.world-menu > summary::-webkit-details-marker{ display:none; }
+.world-menu-button{ gap:7px; min-height:40px; padding:0 10px; color:var(--text); }
+.world-menu-button svg:first-child{ color:var(--accent); }
+.world-menu[open] > summary{ background:var(--surface-3); }
+.world-menu-name{ font-family:var(--font-display); font-weight:700; font-size:14px; max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+@media (max-width: 1439px){ .world-menu-name{ max-width:120px; } }
+/* The gamemaster's thirteen links (documentation/CURRENT-WORLD.md §4). Each has a rank;
+   what the bar has no room for is shown in More instead, never in both. Up to a wide
+   screen the links are their icons (the word stays their title and for screen readers). */
+.nav-more{ position:relative; display:flex; }
+.nav-more > summary{ list-style:none; cursor:pointer; }
+.nav-more > summary::-webkit-details-marker{ display:none; }
+.nav-more-button{
+  display:inline-flex; align-items:center; gap:7px; min-height:34px; padding:0 11px;
+  border-radius:var(--r-sm); color:var(--text-2);
+  font-family:var(--font-ui); font-size:13px; font-weight:500;
+}
+.nav-more-button:hover, .nav-more[open] > summary{ background:var(--surface-3); color:var(--text); }
+.nav-more-button.is-current{ background:var(--accent-weak); color:var(--accent-text); font-weight:600; }
+.nav-more-panel{ left:auto; right:0; width:220px; }
+.shell-nav .nav-more-panel a{ min-height:40px; padding:0 10px; color:var(--text); font-size:14px; }
+.shell-nav .nav-more-panel a span{ position:static; width:auto; height:auto; clip:auto; }
+.nav-more-panel a{ display:none; }
+/* Wide: words for the first five, the rest in More */
+.shell-nav > a.nav-r2, .shell-nav > a.nav-r3{ display:none; }
+.nav-more-panel a.nav-r2, .nav-more-panel a.nav-r3{ display:flex; }
+@media (min-width: 761px) and (max-width: 1599px){
+  .role-gm .shell-nav > a, .role-gm .nav-more-button{ padding:0 10px; }
+  .role-gm .shell-nav > a span, .role-gm .nav-more-button span{ position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+}
+@media (min-width: 1800px){
+  /* A wide screen: the NPCs, places and treasure in words too */
+  .shell-nav > a.nav-r2{ display:inline-flex; }
+  .nav-more-panel a.nav-r2{ display:none; }
+}
+@media (min-width: 1280px) and (max-width: 1599px){
+  /* Icons on a laptop: room for the NPCs, places and treasure too */
+  .shell-nav > a.nav-r2{ display:inline-flex; }
+  .nav-more-panel a.nav-r2{ display:none; }
+}
+@media (max-width: 760px){
+  /* A phone: Table, Adventures, Encounters, Combat and More */
+  .shell-nav > a.nav-r1, .shell-nav > a.nav-r2{ display:none; }
+  .nav-more-panel a.nav-r1, .nav-more-panel a.nav-r2{ display:flex; }
+  .nav-more{ flex:1 1 0; min-width:0; }
+  .nav-more > summary{ flex:1 1 auto; }
+}
+@media (max-width: 640px){
+  /* More as a tab like the others: icon over its word */
+  .nav-more-button{
+    min-height:48px; justify-content:center; flex-direction:column; gap:2px;
+    padding:4px 2px; font-size:11px;
+  }
+  .nav-more-button svg{ font-size:18px; }
+  .nav-more-panel{ position:fixed; left:12px; right:12px; top:auto; width:auto; margin-top:6px; }
+  .shell-nav .nav-more-panel a{ min-height:44px; flex-direction:row; justify-content:flex-start; font-size:15px; padding:0 12px; }
+}
+.world-menu-panel{ left:0; right:auto; width:260px; }
+.world-menu-panel .usermenu-first{ border-top:0; padding-top:4px; }
+.world-menu-world{ width:100%; border:0; background:none; font:inherit; text-align:left; cursor:pointer; }
+.world-menu-world[aria-current]{ font-weight:600; }
+.world-menu-world[aria-current] svg{ color:var(--accent); }
+.world-menu-label{ padding:2px 10px 4px; margin:0; }
+.world-delete{ color:var(--dmg); }
+/* The settings dialog holds the whole world form */
+.place-dialog.world-settings{ width:min(94vw, 860px); max-height:92vh; overflow:auto; }
+.world-settings .panel{ border:0; box-shadow:none; padding:0; background:none; }
+.world-settings-more{ margin:12px 0 0; font-size:14px; }
+.world-settings-more a{ display:inline-flex; align-items:center; gap:6px; }
+@media (max-width: 760px){
+  /* A phone: the world gets a line of its own above the sections, its name in full */
+  .world-menu{ order:9; flex-basis:100%; }
+  .world-menu-button{ width:100%; justify-content:flex-start; min-height:40px; }
+  .world-menu-name{ max-width:none; flex:1 1 auto; text-align:left; }
+}
+@media (max-width: 640px){
+  .world-menu-panel{ position:fixed; left:12px; right:12px; top:auto; width:auto; margin-top:6px; }
+  .world-menu-panel .usermenu-link{ min-height:44px; }
+}
+
+/* A page of another world than the table's (documentation/CURRENT-WORLD.md §5) */
+.world-banner{
+  display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; margin:0 auto 16px; max-width:var(--content-max, 1100px);
+  padding:10px 14px; border:1px solid var(--border-strong); border-left:4px solid var(--accent);
+  border-radius:var(--r); background:var(--accent-weak); color:var(--text); font-size:14px;
+}
+.world-banner > svg{ color:var(--accent); }
+.world-banner > span{ flex:1 1 220px; }
+.world-banner .inline-form{ flex-basis:auto; }

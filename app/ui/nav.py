@@ -10,6 +10,7 @@ loaded are remembered, and one that has since gone (a 4xx) is forgotten.
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from http.cookies import CookieError, SimpleCookie
@@ -34,35 +35,66 @@ class NavItem:
 
     ``href`` is the section's root. A root of its own (``/gm``, ``/play``) matches only
     itself, since everything else lives below it; any other root matches its subtree.
-    ``covers`` adds further subtrees that belong to the section.
+    ``covers`` adds further subtrees that belong to the section, or with a leading ``^``
+    a pattern a whole path must match (a world's list, ``/gm/worlds/<id>/npcs``).
+    ``rank`` decides where the gamemaster's thirteen links go when the bar is short of
+    room (documentation/CURRENT-WORLD.md §4): 0 stays in the bar even on a phone, 1 on
+    anything wider, 2 and 3 move into **More** in turn. ``world`` marks a section of the
+    table's world, whose remembered page is forgotten when the world changes.
     """
 
     key: str
     href: str
     icon: str
     covers: tuple[str, ...] = ()
+    rank: int = 0
+    world: bool = False
 
     def contains(self, path: str) -> bool:
         """Whether ``path`` (without its query) lies in this item's section."""
         if path == self.href:
             return True
-        prefixes = self.covers if self.href in ("/gm", "/play") else (self.href, *self.covers)
+        patterns = [c for c in self.covers if c.startswith("^")]
+        if any(re.fullmatch(c[1:], path) for c in patterns):
+            return True
+        plain = [c for c in self.covers if not c.startswith("^")]
+        prefixes = plain if self.href in ("/gm", "/play") else (self.href, *plain)
         return any(path == p or path.startswith(p + "/") for p in prefixes)
 
+
+# A world's own page and the lists under it, before they had addresses of their own.
+_WORLD = r"/gm/worlds/[^/]+"
 
 NAV: dict[Role, tuple[NavItem, ...]] = {
     Role.GAMEMASTER: (
         NavItem("nav.table", "/gm", "swords"),
-        NavItem("nav.characters", "/gm/characters", "users-round", ("/characters", "/chargen")),
-        NavItem("nav.encounters", "/gm/encounters", "skull"),
-        NavItem("nav.combat", "/gm/combat", "zap"),
         NavItem(
-            "nav.worlds",
-            "/gm/worlds",
-            "globe",
-            ("/gm/adventures", "/gm/chapters", "/gm/npcs", "/gm/treasure", "/gm/share", "/journal"),
+            "nav.characters", "/gm/characters", "users-round", ("/characters", "/chargen"), rank=1
         ),
-        NavItem("nav.books", "/books", "book-open", ("/screen",)),
+        NavItem(
+            "nav.adventures",
+            "/gm/adventures",
+            "map",
+            ("/gm/chapters", f"^{_WORLD}", f"^{_WORLD}/edit"),
+            world=True,
+        ),
+        NavItem("nav.npcs", "/gm/npcs", "circle-user", (f"^{_WORLD}/npcs(/.*)?",), 2, True),
+        NavItem("nav.places", "/gm/places", "map-pin", (f"^{_WORLD}/places(/.*)?",), 2, True),
+        NavItem("nav.treasure", "/gm/treasure", "gem", (f"^{_WORLD}/treasure(/.*)?",), 2, True),
+        NavItem("nav.encounters", "/gm/encounters", "skull", world=True),
+        NavItem("nav.combat", "/gm/combat", "zap", world=True),
+        NavItem("nav.quests", "/gm/quests", "compass", rank=3, world=True),
+        NavItem("nav.factions", "/gm/factions", "flag", rank=3, world=True),
+        NavItem("nav.journal", "/journal", "scroll", ("/gm/share",), 3, True),
+        NavItem(
+            "nav.sessions",
+            "/gm/sessions",
+            "notebook-pen",
+            ("/gm/session", f"^{_WORLD}/sessions(/.*)?"),
+            3,
+            True,
+        ),
+        NavItem("nav.books", "/books", "book-open", ("/screen",), rank=3),
     ),
     Role.PLAYER: (
         NavItem(
@@ -72,6 +104,18 @@ NAV: dict[Role, tuple[NavItem, ...]] = {
         NavItem("nav.journal", "/journal", "scroll"),
     ),
 }
+
+# The sections of the table's world: their memory is forgotten when the world changes.
+WORLD_SECTIONS = frozenset(item.href for item in NAV[Role.GAMEMASTER] if item.world)
+
+
+def world_section_of(path: str) -> str | None:
+    """The root of the world section ``path`` lies in, or None outside them."""
+    for item in NAV[Role.GAMEMASTER]:
+        if item.world and item.contains(path):
+            return item.href
+    return None
+
 
 _ALL_ITEMS = tuple({item.href: item for items in NAV.values() for item in items}.values())
 
@@ -248,9 +292,11 @@ __all__ = [
     "NAV_COOKIE",
     "NavItem",
     "NavMemoryMiddleware",
+    "WORLD_SECTIONS",
     "checked_memory",
     "is_place",
     "nav_href",
     "read_memory",
     "remember",
+    "world_section_of",
 ]

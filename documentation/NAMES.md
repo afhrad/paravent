@@ -226,7 +226,7 @@ world's choice only narrows what they find among.
   "Suggest a name" (the character's world), the encounter builder's "Shown as", the
   tracker's dice, a place's name, and Claude's `generate_names`. The workshop stays the
   whole library, but can keep to a world (below).
-- **The screen**: "Names in this world" on the world's page (`/gm/worlds/{id}/names`), a
+- **The screen**: "Names in this world" in the world menu (`/gm/worlds/{id}/names`), a
   checklist like the world's books — people by race, those of no race, then each kind of
   place — with the language and origin of each; a group opens when one of it is ticked.
   Save keeps the ticks; "Use every style" clears them.

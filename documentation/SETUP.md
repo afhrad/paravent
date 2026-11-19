@@ -41,7 +41,9 @@ docker compose up -d --build
 
 1. **Create the gamemaster** at `http://<host>:8000/setup`. The page closes once used.
 2. **Check the data:** settings gear → *5eTools data*. It should report no errors.
-3. **Create a world** under *Worlds* and declare its books. No books means all of them.
+3. **Create a world** from the world menu at the left of the top bar (**New world**), then
+   declare its books in **World settings**. No books means all of them. The table plays in one
+   world at a time, chosen in that menu (documentation/CURRENT-WORLD.md).
 4. **Add players:** settings gear → *Players*.
 5. **Players** open the same address on their phones and can add it to the home screen.
 

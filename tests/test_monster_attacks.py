@@ -214,6 +214,16 @@ def _about(registry: StoreRegistry, character_id: str) -> list[ProtocolEntry]:
 
 @requires_corpus
 class TestInTheTracker:
+    @pytest.fixture(autouse=True)
+    def _handbooks(self, tracker: tuple[AsyncClient, StoreRegistry, str]) -> None:
+        """A character plays in the table's world, its books the world's
+        (documentation/CURRENT-WORLD.md): the handbooks are declared beside the monsters."""
+        registry = tracker[1]
+        for world in registry.gamestate.worlds.list():
+            registry.gamestate.worlds.update(
+                world.id, source_set=SourceSet(sources=["MM", "PHB", "XPHB"])
+            )
+
     async def test_the_statblock_offers_the_attack(
         self, tracker: tuple[AsyncClient, StoreRegistry, str]
     ) -> None:
@@ -1065,7 +1075,10 @@ class TestInTheTracker:
         registry.characters.play._dice = Dice(_Fixed(5))  # type: ignore[attr-defined]
 
         sheet = (await ac.get(f"/characters/{cleric.id}")).text
-        assert f'<option value="{ally.id}">Bruno</option>' in sheet and stranger.id not in sheet
+        # Every character plays in the table's world (CURRENT-WORLD.md): Far too, though
+        # its file names none.
+        assert f'<option value="{ally.id}">Bruno</option>' in sheet
+        assert f'<option value="{stranger.id}">Far</option>' in sheet
         assert draft.id not in sheet  # still in the wizard: no one to heal yet
         healed = await ac.post(
             f"/characters/{cleric.id}/heal",
@@ -1078,10 +1091,10 @@ class TestInTheTracker:
         assert _about(registry, cleric.id)[0].kind is EntryKind.HEAL
         refused = await ac.post(
             f"/characters/{cleric.id}/heal",
-            data={"spell": "Cure Wounds|PHB", "level": "1", "target": stranger.id},
+            data={"spell": "Cure Wounds|PHB", "level": "1", "target": draft.id},
             headers=HTMX,
         )
-        assert store.get(stranger.id).state.hp == 1 and "cs-flash" in refused.text
+        assert "cs-flash" in refused.text  # no one to heal yet
 
         mira = store.get(cleric.id)
         store.update(

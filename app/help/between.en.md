@@ -2,7 +2,7 @@
 
 Everything that happens when nobody is rolling initiative: the session itself, the road,
 the days off, the bastion, and the people the characters know. Most of it starts on the
-party view (*Table*), with a world chosen.
+party view (*Table*), in the world the table plays in.
 
 ---
 

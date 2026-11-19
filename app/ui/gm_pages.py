@@ -17,10 +17,8 @@ from htpy import (
     h2,
     label,
     li,
-    option,
     p,
     section,
-    select,
     small,
     span,
     summary,
@@ -36,7 +34,7 @@ from app.services.worlds import Book, BookCatalog
 from app.ui.affliction_pages import party_chips
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
-from app.ui.forms import alert, checkbox_field, notice, select_field, text_field
+from app.ui.forms import alert, checkbox_field, hidden, notice, select_field, text_field
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
@@ -294,18 +292,6 @@ def party_grid(page: Page, cards: Sequence[Element], *, world_id: str | None) ->
     ]
 
 
-def _world_filter(page: Page, worlds: Sequence[World], selected: str | None) -> Element:
-    t = page.t
-    return form(method="get", action=PARTY_URL, class_="inline-form party-filter")[
-        label(for_="party-world", class_="eyebrow")[t("party.world")],
-        select(id="party-world", name="world", onchange="this.form.submit()")[
-            option(value="", selected=not selected)[t("party.all_worlds")],
-            [option(value=w.id, selected=w.id == selected)[w.name] for w in worlds],
-        ],
-        button(type="submit", class_="btn btn-sm js-hide")[t("party.show")],
-    ]
-
-
 def playing_panel(
     page: Page,
     playing: Sequence[tuple[str, Adventure, Sequence[Chapter], Chapter | None]],
@@ -403,7 +389,6 @@ def party_page(
     page: Page,
     cards: Sequence[Element],
     *,
-    worlds: Sequence[World],
     world: World | None,
     combats: Node = None,
     checks: Node = None,
@@ -419,8 +404,8 @@ def party_page(
     calls for a check outside a fight.
     """
     t = page.t
-    # The world the table plays in: the one chosen, or the only one there is.
-    only = world or (worlds[0] if len(worlds) == 1 else None)
+    # The table's world (documentation/CURRENT-WORLD.md): chosen in the world menu, so the
+    # page has no choice of its own.
     if world is not None:
         books = ", ".join(world.source_set.sources) or t("worlds.all_books")
         lede = t("party.lede_world", world=world.name, books=books)
@@ -435,14 +420,10 @@ def party_page(
                 t("gm.heading"),
                 lede,
                 div(class_="party-tools")[
-                    # A table of one world needs no choice of world.
-                    _world_filter(page, worlds, world.id if world else None)
-                    if len(worlds) > 1
-                    else None,
-                    a(href=session_url(only.id), class_="btn btn-sm")[
+                    a(href=session_url(world.id), class_="btn btn-sm")[
                         icon("clipboard-list", "sm"), span[t("session.open")]
                     ]
-                    if only is not None
+                    if world is not None
                     else None,
                     span(class_="cs-live", data_live_indicator="1", title=t("party.live_title"))[
                         span(class_="dot"), span[t("sheet.live")]
@@ -548,7 +529,7 @@ def _book_choice(page: Page, book: Book, checked: bool, players: bool) -> Elemen
     ]
 
 
-def world_form_page(
+def world_form(
     page: Page,
     catalog: BookCatalog,
     *,
@@ -563,13 +544,13 @@ def world_form_page(
     language: str = "en",
     languages: Sequence[tuple[str, str]] = (),
     error: str | None = None,
-    extra: Node = None,
+    next_url: str = "",
+    in_dialog: bool = False,
 ) -> Element:
-    """Create a world (``world`` is None) or edit one, with its books. ``languages`` are
-    ``(code, name)`` of the languages Paravent speaks.
-
-    ``extra`` follows the form — the world's images panel when editing.
-    """
+    """The world form: create a world (``world`` is None) or edit one, with its books.
+    ``languages`` are ``(code, name)`` of the languages Paravent speaks. ``next_url`` is
+    where saving returns to; ``in_dialog`` makes Cancel close the settings dialog
+    (documentation/CURRENT-WORLD.md §3) instead of leading back."""
     t = page.t
     chosen = {s.upper() for s in sources}
     action = WORLDS_URL if world is None else f"{WORLDS_URL}/{world.id}"
@@ -596,6 +577,99 @@ def world_form_page(
         ]
         for group, books in catalog.grouped()
     ]
+    back = WORLDS_URL if world is None else f"{WORLDS_URL}/{world.id}"
+    return div(class_="panel")[
+        div(class_="panel-head")[span(class_="eyebrow")[t("gm.eyebrow")], b[title]],
+        alert(error),
+        form(method="post", action=action, class_="stack-form")[
+            hidden("next", next_url) if next_url else None,
+            text_field(
+                "name",
+                t("worlds.name"),
+                value=name,
+                autocomplete="off",
+                autofocus=world is None,
+            ),
+            div(class_="field")[
+                label(for_="f-description")[
+                    t("worlds.description"), " ", span(class_="opt")[t("common.optional")]
+                ],
+                textarea(id="f-description", name="description", rows="3")[description],
+            ],
+            select_field(
+                "language",
+                t("worlds.language"),
+                list(languages),
+                selected=language,
+                hint=t("worlds.language_hint"),
+            )
+            if languages
+            else None,
+            section(class_="field books")[
+                h2(class_="eyebrow")[t("worlds.books")],
+                p(class_="field-hint")[t("worlds.books_hint")],
+                [
+                    label(class_="book missing")[
+                        input_el(type="checkbox", name="sources", value=code, checked=True),
+                        span(class_="book-name")[t("worlds.not_loaded", code=code)],
+                    ]
+                    for code in missing
+                ],
+                groups,
+            ],
+            checkbox_field(
+                "rerolls",
+                t("worlds.rerolls"),
+                checked=rerolls,
+                hint=t("worlds.rerolls_hint"),
+            ),
+            checkbox_field(
+                "encumbrance",
+                t("worlds.encumbrance"),
+                checked=encumbrance,
+                hint=t("worlds.encumbrance_hint"),
+            ),
+            checkbox_field(
+                "milestone",
+                t("worlds.milestone"),
+                checked=milestone,
+                hint=t("worlds.milestone_hint"),
+            ),
+            div(class_="form-actions")[
+                button(type="submit", class_="btn btn-primary")[
+                    icon("check"),
+                    span[t("worlds.create") if world is None else t("worlds.save")],
+                ],
+                button(type="button", class_="btn btn-ghost", data_close="1")[t("common.cancel")]
+                if in_dialog
+                else a(href=back, class_="btn btn-ghost")[t("common.cancel")],
+            ],
+        ],
+    ]
+
+
+def world_form_page(
+    page: Page,
+    catalog: BookCatalog,
+    *,
+    world: World | None,
+    name: str,
+    description: str,
+    sources: Sequence[str],
+    players: frozenset[str] = frozenset(),
+    rerolls: bool = False,
+    encumbrance: bool = False,
+    milestone: bool = False,
+    language: str = "en",
+    languages: Sequence[tuple[str, str]] = (),
+    error: str | None = None,
+    extra: Node = None,
+    next_url: str = "",
+) -> Element:
+    """The world form as a page; ``extra`` follows it — the world's images panel when
+    editing."""
+    t = page.t
+    title = t("worlds.new") if world is None else t("worlds.edit_title", name=world.name)
     return app_shell(
         page,
         title,
@@ -604,74 +678,22 @@ def world_form_page(
                 icon("arrow-left"),
                 span[t("worlds.back") if world is None else world.name],
             ],
-            div(class_="panel")[
-                div(class_="panel-head")[span(class_="eyebrow")[t("gm.eyebrow")], b[title]],
-                alert(error),
-                form(method="post", action=action, class_="stack-form")[
-                    text_field(
-                        "name",
-                        t("worlds.name"),
-                        value=name,
-                        autocomplete="off",
-                        autofocus=world is None,
-                    ),
-                    div(class_="field")[
-                        label(for_="f-description")[
-                            t("worlds.description"), " ", span(class_="opt")[t("common.optional")]
-                        ],
-                        textarea(id="f-description", name="description", rows="3")[description],
-                    ],
-                    select_field(
-                        "language",
-                        t("worlds.language"),
-                        list(languages),
-                        selected=language,
-                        hint=t("worlds.language_hint"),
-                    )
-                    if languages
-                    else None,
-                    section(class_="field books")[
-                        h2(class_="eyebrow")[t("worlds.books")],
-                        p(class_="field-hint")[t("worlds.books_hint")],
-                        [
-                            label(class_="book missing")[
-                                input_el(type="checkbox", name="sources", value=code, checked=True),
-                                span(class_="book-name")[t("worlds.not_loaded", code=code)],
-                            ]
-                            for code in missing
-                        ],
-                        groups,
-                    ],
-                    checkbox_field(
-                        "rerolls",
-                        t("worlds.rerolls"),
-                        checked=rerolls,
-                        hint=t("worlds.rerolls_hint"),
-                    ),
-                    checkbox_field(
-                        "encumbrance",
-                        t("worlds.encumbrance"),
-                        checked=encumbrance,
-                        hint=t("worlds.encumbrance_hint"),
-                    ),
-                    checkbox_field(
-                        "milestone",
-                        t("worlds.milestone"),
-                        checked=milestone,
-                        hint=t("worlds.milestone_hint"),
-                    ),
-                    div(class_="form-actions")[
-                        button(type="submit", class_="btn btn-primary")[
-                            icon("check"),
-                            span[t("worlds.create") if world is None else t("worlds.save")],
-                        ],
-                        a(
-                            href=WORLDS_URL if world is None else f"{WORLDS_URL}/{world.id}",
-                            class_="btn btn-ghost",
-                        )[t("common.cancel")],
-                    ],
-                ],
-            ],
+            world_form(
+                page,
+                catalog,
+                world=world,
+                name=name,
+                description=description,
+                sources=sources,
+                players=players,
+                rerolls=rerolls,
+                encumbrance=encumbrance,
+                milestone=milestone,
+                language=language,
+                languages=languages,
+                error=error,
+                next_url=next_url,
+            ),
             extra,
         ],
     )
@@ -680,7 +702,7 @@ def world_form_page(
 def world_delete_page(
     page: Page, world: World, characters: int, *, error: str | None = None
 ) -> Element:
-    """Confirm, saying what happens to the world's characters."""
+    """Confirm, saying that the characters stay. ``characters`` is no longer shown."""
     t = page.t
     return app_shell(
         page,
@@ -696,11 +718,8 @@ def world_delete_page(
                 ],
                 alert(error),
                 p[t("worlds.delete_lede")],
-                p[
-                    t.plural("worlds.delete_characters", characters)
-                    if characters
-                    else t("worlds.delete_no_characters")
-                ],
+                # Characters belong to no world (documentation/CURRENT-WORLD.md).
+                p[t("worlds.delete_characters_stay")],
                 form(method="post", action=f"{WORLDS_URL}/{world.id}/delete")[
                     div(class_="form-actions")[
                         button(type="submit", class_="btn btn-dmg")[
@@ -740,6 +759,7 @@ __all__ = [
     "party_grid",
     "party_page",
     "world_delete_page",
+    "world_form",
     "world_form_page",
     "world_not_found_page",
     "worlds_page",

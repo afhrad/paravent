@@ -83,8 +83,8 @@ class TestPages:
             data={"name": "Grey Reed", "notes": "x", "base": text_version("")},
         )
         assert stale.status_code == 409
-        world_page = (await raw.get(f"/gm/worlds/{world_id}")).text
-        assert "1 place" in world_page
+        # The top bar's Places: the current world's, at an address of its own.
+        assert town.name in (await raw.get("/gm/places")).text
         assert (await raw.get(f"/gm/worlds/{world_id}/places")).status_code == 200
         gone = await raw.post(f"/gm/places/{town.id}/delete")
         assert gone.status_code == 303 and registry.locations.list(world_id) == []

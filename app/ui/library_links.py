@@ -86,9 +86,12 @@ def treasure_url(treasure_id: str) -> str:
 
 
 def crumbs(page: Page, *trail: tuple[str, str | None]) -> Element:
-    """The breadcrumb trail; the last entry, with no link, is where the reader is."""
+    """The breadcrumb trail; the last entry, with no link, is where the reader is. The
+    worlds' list is no step of it: the world menu holds the worlds, so a trail starts at
+    the world (documentation/CURRENT-WORLD.md §5)."""
+    steps = [(text, href) for text, href in trail if href != WORLDS_URL]
     return nav(class_="crumbs", aria_label=page.t("adventures.crumbs"))[
-        ol[[li[a(href=href)[text] if href else span[text]] for text, href in trail]]
+        ol[[li[a(href=href)[text] if href else span[text]] for text, href in steps]]
     ]
 
 

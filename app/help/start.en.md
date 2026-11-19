@@ -19,8 +19,12 @@ spells, items and the rulebooks are all there.
 
 ## 2. A world and its books
 
-*Worlds* → **New world**. A world is your campaign: its name, its language, and above
-all **the books in play**.
+The world menu at the left of the top bar → **New world**. A world is your campaign: its
+name, its language, and above all **the books in play**. The table plays in one world at
+a time — the one in that menu, chosen there — and everything in Paravent plays in it: the
+top bar's adventures, NPCs, places, treasure and encounters, every character and every
+player. Its settings (books, language, the rest) are under **World settings** in the same
+menu.
 
 - **Tick the books your table uses.** Choosing *PHB* (2014) or *XPHB* (2024) decides
   the edition. Every reference then resolves to the right printing, and one into a book
@@ -42,7 +46,8 @@ the cloud.
 
 A player makes their own character: user menu → **New character**. The wizard walks
 through species, class, abilities, background, equipment and spells, using only the
-books of their world, and explains every number it shows.
+books of the world the table plays in, and explains every number it shows. A character
+belongs to no world: it plays wherever the table does.
 
 Already have a character on paper? *Characters* → **New character** makes an empty file
 to fill in by hand; a value the rules cannot work out (a homebrew ring) goes in as an
@@ -56,7 +61,7 @@ new level brings.
 
 ## 5. The first chapter
 
-Open your world → **Add adventure** → **Add chapter**. A chapter is plain Markdown:
+*Adventures* in the top bar → **Add adventure** → **Add chapter**. A chapter is plain Markdown:
 write it like a note, and Paravent adds the rest.
 
 - `{@creature goblin}` or `{@spell fireball}` becomes a link with a preview. Typing

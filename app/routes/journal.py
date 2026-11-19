@@ -226,7 +226,9 @@ def _journal(
     message: str | None = None,
     mine: tuple[str, str, str] | None = None,
 ) -> HTMLResponse:
-    """The journal; ``mine`` is (world, text, conflict) after a refused save of notes."""
+    """The journal; ``mine`` is (world, text, conflict) after a refused save of notes.
+    Its world is the one named, else the table's (documentation/CURRENT-WORLD.md)."""
+    world = world or registry.table.world_id() or ""
     handouts = registry.handouts
     found = handouts.readable(identity, world or None)
     names = {h.id: handouts.names(h) for h in found} if identity.is_gamemaster else None

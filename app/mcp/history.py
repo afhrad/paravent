@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING, Annotated
 from mcp.server.mcpserver import MCPServer
 from pydantic import Field
 
-from app.mcp.common import tool_errors
+from app.mcp.common import current_or, tool_errors
 from app.mcp.models import (
     AdventureRecord,
     CampaignHistory,
@@ -66,7 +66,7 @@ def register_history(server: MCPServer, stores: Callable[[], StoreRegistry]) -> 
         next, so the story follows on from the table."""
         registry = stores()
         with tool_errors():
-            world = registry.worlds.get(world_id)
+            world = registry.worlds.get(current_or(registry, world_id))
         adventures = registry.adventures.adventures(world.id)
         names = {a.id: a.name for a in adventures}
         chapters = {

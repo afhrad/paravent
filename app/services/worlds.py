@@ -22,6 +22,7 @@ from typing import Any
 
 from app.models.gamestate import ONE_EDITION_SOURCES, SourceSet, World
 from app.services.auth import AuthError
+from app.services.table import TableService
 from app.store.gamestate import GameStateStore
 
 logger = logging.getLogger(__name__)
@@ -156,12 +157,12 @@ class WorldService:
         """One world, or None."""
         return self._store.worlds.find(world_id) if world_id else None
 
-    def find_or_only(self, world_id: str | None) -> World | None:
-        """The world named, or the table's only world when none is named."""
+    def find_or_current(self, world_id: str | None) -> World | None:
+        """The world named, or the table's world when none is named
+        (documentation/CURRENT-WORLD.md); None without any world."""
         if world_id:
             return self.find(world_id)
-        every = self.list()
-        return every[0] if len(every) == 1 else None
+        return TableService(self._store).world()
 
     @staticmethod
     def _clean(data: WorldInput) -> tuple[str, SourceSet]:

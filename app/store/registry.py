@@ -108,6 +108,7 @@ from app.services.spellbook import SpellbookService
 from app.services.story import StoryService
 from app.services.style_drafts import ApiAgent, StyleDrafts
 from app.services.summons import Summoning, summoning
+from app.services.table import TableService
 from app.services.text import strip_tags
 from app.services.themes import ThemeLibrary, ThemeService
 from app.services.title_images import TitleImages
@@ -168,6 +169,8 @@ class StoreRegistry:
         # Every character change, from any source, reaches the screens showing it.
         self.events = ChangeHub()
         self.gamestate.characters.subscribe(self._character_changed)
+        # A character plays in the table's world, not one of its own (CURRENT-WORLD.md §2).
+        self.gamestate.characters.world = lambda: self.table.world_id()
         self.gamestate.prose.subscribe(self._prose_changed)
         self._books: BookCatalog | None = None
         self._subclass_names: dict[tuple[str, str], str] | None = None
@@ -2017,6 +2020,11 @@ class StoreRegistry:
     def worlds(self) -> WorldService:
         """Worlds and their declared books."""
         return WorldService(self.gamestate)
+
+    @cached_property
+    def table(self) -> TableService:
+        """The world the whole table plays in (documentation/CURRENT-WORLD.md)."""
+        return TableService(self.gamestate)
 
     @property
     def books(self) -> BookCatalog:

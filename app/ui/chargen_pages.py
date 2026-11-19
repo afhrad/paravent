@@ -2109,12 +2109,14 @@ def wizard_page(
 
 def new_character_page(
     page: Page,
-    worlds: Sequence[World],
+    world: World | None,
     players: Sequence[str] | None,
     *,
     error: str | None = None,
 ) -> Element:
-    """Start a character: pick its world (and, for the gamemaster, its player)."""
+    """Start a character in the table's world, made from its books (and, for the
+    gamemaster, pick its player); it plays in whatever world the table plays in later
+    (documentation/CURRENT-WORLD.md)."""
     t = page.t
     return app_shell(
         page,
@@ -2123,14 +2125,8 @@ def new_character_page(
             page_head(t("chargen.eyebrow"), t("chargen.title"), t("chargen.new_lede")),
             alert(error),
             form(method="post", action=CHARGEN_URL, class_="panel cg-new")[
-                label(class_="field", for_="cg-world")[
-                    span(class_="field-label")[t("chargen.world")],
-                    select(name="world", id="cg-world", required=True)[
-                        [option(value=w.id)[w.name] for w in worlds]
-                    ],
-                    small(class_="field-hint")[t("chargen.world_hint")],
-                ]
-                if worlds
+                p(class_="field-hint")[t("chargen.world_now", world=world.name)]
+                if world is not None
                 else p(class_="muted")[t("chargen.no_worlds")],
                 label(class_="field", for_="cg-player")[
                     span(class_="field-label")[t("chargen.player")],

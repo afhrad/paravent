@@ -164,6 +164,18 @@ class TestReading:
         assert len(overview["party"]) == 2
         assert overview["today"] == "Day 1, 08:00" and overview["calendar"] == ""
 
+    async def test_the_tables_world_is_marked_and_named_by_nothing(
+        self, table: tuple[httpx.AsyncClient, Any]
+    ) -> None:
+        # The table plays in one world (documentation/CURRENT-WORLD.md §6).
+        _raw, facts = table
+        async with session(table) as mcp:
+            worlds = await call(mcp, "list_worlds")
+            overview = await call(mcp, "world_overview", world_id="")
+            named = await call(mcp, "world_overview", world_id="current")
+        assert [w["current"] for w in worlds] == [True]
+        assert overview["name"] == named["name"] == facts["world"].name
+
     async def test_date_factions_traps_and_chases(
         self, table: tuple[httpx.AsyncClient, Any]
     ) -> None:

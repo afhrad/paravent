@@ -18,7 +18,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
-from app.mcp.common import party_levels, rating_answer, resolve_monsters, tool_errors
+from app.mcp.common import current_or, party_levels, rating_answer, resolve_monsters, tool_errors
 from app.mcp.creatures import register_creatures
 from app.mcp.drafts import register_drafts
 from app.mcp.history import register_history
@@ -85,6 +85,9 @@ Paravent is the gamemaster's D&D 5e table: worlds with declared books, player ch
 adventures written in Markdown, NPCs, encounters and treasure.
 
 Use these tools to write adventures that fit the table exactly:
+- The table plays in one world at a time, the one `list_worlds` marks `current`; its
+  characters belong to no world and play in it. Write for that world unless the
+  gamemaster names another; a tool given an empty `world_id` (or `current`) uses it.
 - Read the world (`world_overview`) and the party (`party`) first. Write everything the
   table reads in the world's language.
 - Follow the gamemaster's instructions for the world (`world_overview.instructions`):
@@ -246,8 +249,9 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
     server = MCPServer(name="paravent", title="Paravent", instructions=INSTRUCTIONS)
 
     def world_of(world_id: str) -> World:
+        registry = stores()
         with tool_errors():
-            return stores().worlds.get(world_id)
+            return registry.worlds.get(current_or(registry, world_id))
 
     # -- the table ----------------------------------------------------------------
 
@@ -261,14 +265,17 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
 
     @server.tool()
     def list_worlds() -> list[WorldSummary]:
-        """Every world: its language, declared books, characters and adventures."""
+        """Every world: its language, declared books and adventures, and which one the
+        table plays in (``current``), whose world the characters play in."""
         registry = stores()
+        current = registry.table.world_id()
         return [
             WorldSummary(
                 id=world.id,
                 name=world.name,
                 language=world.language,
                 books=_books(registry, world.source_set),
+                current=world.id == current,
                 characters=registry.worlds.character_count(world.id),
                 adventures=len(registry.adventures.adventures(world.id)),
             )

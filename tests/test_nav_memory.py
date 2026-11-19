@@ -19,18 +19,22 @@ from app.store.registry import StoreRegistry
 from app.ui.nav import NAV, NAV_COOKIE, nav_href, read_memory, remember
 
 PASSWORD = "correct horse"
-WORLDS = next(item for item in NAV[Role.GAMEMASTER] if item.href == "/gm/worlds")
+ADVENTURES = next(item for item in NAV[Role.GAMEMASTER] if item.href == "/gm/adventures")
+NPCS = next(item for item in NAV[Role.GAMEMASTER] if item.href == "/gm/npcs")
 TABLE = next(item for item in NAV[Role.GAMEMASTER] if item.href == "/gm")
 
 
 class TestSections:
     def test_a_section_covers_its_subtree_and_what_belongs_to_it(self) -> None:
-        assert WORLDS.contains("/gm/worlds")
-        assert WORLDS.contains("/gm/worlds/w1")
-        assert WORLDS.contains("/gm/adventures/a1")
-        assert WORLDS.contains("/gm/chapters/c1")
-        assert not WORLDS.contains("/gm/worldsx")
-        assert not WORLDS.contains("/gm")
+        # The current world's adventures, and a world's own page from before it.
+        assert ADVENTURES.contains("/gm/adventures")
+        assert ADVENTURES.contains("/gm/worlds/w1")
+        assert ADVENTURES.contains("/gm/adventures/a1")
+        assert ADVENTURES.contains("/gm/chapters/c1")
+        assert not ADVENTURES.contains("/gm/worlds/w1/npcs")  # the NPCs' own
+        assert NPCS.contains("/gm/worlds/w1/npcs") and NPCS.contains("/gm/npcs/n1")
+        assert not ADVENTURES.contains("/gm/worlds")  # the worlds are the world menu's
+        assert not ADVENTURES.contains("/gm")
 
     def test_the_table_is_only_its_own_page(self) -> None:
         assert TABLE.contains("/gm")
@@ -39,7 +43,7 @@ class TestSections:
 
 class TestMemory:
     def test_a_loaded_page_is_remembered_for_its_section(self) -> None:
-        assert remember({}, "/gm/adventures/a1", 200) == {"/gm/worlds": "/gm/adventures/a1"}
+        assert remember({}, "/gm/adventures/a1", 200) == {"/gm/adventures": "/gm/adventures/a1"}
 
     def test_the_query_is_kept(self) -> None:
         assert remember({}, "/gm?world=w1", 200) == {"/gm": "/gm?world=w1"}
@@ -51,15 +55,15 @@ class TestMemory:
     def test_a_fragment_a_page_fetches_is_not_a_place(self) -> None:
         assert remember({}, "/gm/chapters/c1/live", 200) == {}
         # One remembered before this rule existed is dropped when read.
-        raw = quote(json.dumps({"/gm/worlds": "/gm/chapters/c1/live"}))
+        raw = quote(json.dumps({"/gm/adventures": "/gm/chapters/c1/live"}))
         assert read_memory(raw) == {}
 
     def test_a_page_that_has_gone_is_forgotten(self) -> None:
-        memory = {"/gm/worlds": "/gm/adventures/gone", "/books": "/books/phb"}
+        memory = {"/gm/adventures": "/gm/adventures/gone", "/books": "/books/phb"}
         assert remember(memory, "/gm/adventures/gone", 404) == {"/books": "/books/phb"}
 
     def test_redirects_change_nothing(self) -> None:
-        memory = {"/gm/worlds": "/gm/adventures/a1"}
+        memory = {"/gm/adventures": "/gm/adventures/a1"}
         assert remember(memory, "/gm/worlds/w1", 303) == memory
 
     def test_a_page_outside_every_section_is_not_remembered(self) -> None:
@@ -69,7 +73,7 @@ class TestMemory:
         raw = quote(
             json.dumps(
                 {
-                    "/gm/worlds": "//evil.example/gm/worlds",
+                    "/gm/adventures": "//evil.example/gm/worlds",
                     "/books": "/gm/players",  # outside its section
                     "/gm/encounters": "/gm/encounters/e1",
                     "/nowhere": "/nowhere",
@@ -81,10 +85,10 @@ class TestMemory:
         assert read_memory(quote("[1]")) == {}
 
     def test_inside_its_section_an_item_goes_home(self) -> None:
-        memory = {"/gm/worlds": "/gm/adventures/a1"}
-        assert nav_href(WORLDS, "/gm/chapters/c1", memory) == "/gm/worlds"
-        assert nav_href(WORLDS, "/gm", memory) == "/gm/adventures/a1"
-        assert nav_href(WORLDS, "/gm", {}) == "/gm/worlds"
+        memory = {"/gm/adventures": "/gm/adventures/a1"}
+        assert nav_href(ADVENTURES, "/gm/chapters/c1", memory) == "/gm/adventures"
+        assert nav_href(ADVENTURES, "/gm", memory) == "/gm/adventures/a1"
+        assert nav_href(ADVENTURES, "/gm", {}) == "/gm/adventures"
 
 
 @pytest.fixture
@@ -118,10 +122,10 @@ class TestInTheApp:
         world = registry.worlds.create(WorldInput(name="Mirefall"))
         assert (await gm.get(f"/gm/worlds/{world.id}")).status_code == 200
         table = (await gm.get("/gm")).text
-        assert nav_link(table, "Worlds") == f"/gm/worlds/{world.id}"
+        assert nav_link(table, "Adventures") == f"/gm/worlds/{world.id}"
         # In the section, the item goes back to its root.
         here = (await gm.get(f"/gm/worlds/{world.id}")).text
-        assert nav_link(here, "Worlds") == "/gm/worlds"
+        assert nav_link(here, "Adventures") == "/gm/adventures"
 
     async def test_fragments_and_failures_are_not_remembered(
         self, gm: AsyncClient, registry: StoreRegistry
@@ -129,11 +133,11 @@ class TestInTheApp:
         world = registry.worlds.create(WorldInput(name="Mirefall"))
         await gm.get(f"/gm/worlds/{world.id}")
         await gm.get("/gm/worlds", headers={"HX-Request": "true"})
-        assert read_memory(gm.cookies.get(NAV_COOKIE)) == {"/gm/worlds": f"/gm/worlds/{world.id}"}
+        assert read_memory(gm.cookies.get(NAV_COOKIE)) == {"/gm/adventures": f"/gm/worlds/{world.id}"}
         registry.worlds.delete(world.id)
         assert (await gm.get(f"/gm/worlds/{world.id}")).status_code == 404
         assert read_memory(gm.cookies.get(NAV_COOKIE)) == {}
-        assert nav_link((await gm.get("/gm")).text, "Worlds") == "/gm/worlds"
+        assert nav_link((await gm.get("/gm")).text, "Adventures") == "/gm/adventures"
 
     async def test_a_scripts_fetch_is_not_a_page_read(
         self, gm: AsyncClient, registry: StoreRegistry
@@ -144,7 +148,7 @@ class TestInTheApp:
         other = registry.worlds.create(WorldInput(name="Aldmere"))
         await gm.get(f"/gm/worlds/{world.id}", headers={"Sec-Fetch-Mode": "navigate"})
         await gm.get(f"/gm/worlds/{other.id}", headers={"Sec-Fetch-Mode": "cors"})
-        assert read_memory(gm.cookies.get(NAV_COOKIE)) == {"/gm/worlds": f"/gm/worlds/{world.id}"}
+        assert read_memory(gm.cookies.get(NAV_COOKIE)) == {"/gm/adventures": f"/gm/worlds/{world.id}"}
         user = registry.auth.find_user("dm")
         assert user is not None
         assert registry.places.get(user.id).last == f"/gm/worlds/{world.id}"
@@ -185,9 +189,9 @@ class TestPageChangedInPlace:
         shown = f"http://test/gm/worlds/{world.id}?sel=abc"
         await gm.get("/gm/worlds", headers={"HX-Request": "true", "HX-Current-URL": shown})
         assert read_memory(gm.cookies.get(NAV_COOKIE)) == {
-            "/gm/worlds": f"/gm/worlds/{world.id}?sel=abc"
+            "/gm/adventures": f"/gm/worlds/{world.id}?sel=abc"
         }
-        assert nav_link((await gm.get("/gm")).text, "Worlds") == (f"/gm/worlds/{world.id}?sel=abc")
+        assert nav_link((await gm.get("/gm")).text, "Adventures") == (f"/gm/worlds/{world.id}?sel=abc")
 
     async def test_a_failing_fragment_forgets_nothing(
         self, gm: AsyncClient, registry: StoreRegistry
@@ -198,4 +202,4 @@ class TestPageChangedInPlace:
             "/gm/worlds/nope",
             headers={"HX-Request": "true", "HX-Current-URL": f"http://test/gm/worlds/{world.id}"},
         )
-        assert read_memory(gm.cookies.get(NAV_COOKIE)) == {"/gm/worlds": f"/gm/worlds/{world.id}"}
+        assert read_memory(gm.cookies.get(NAV_COOKIE)) == {"/gm/adventures": f"/gm/worlds/{world.id}"}

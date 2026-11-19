@@ -15,6 +15,7 @@ from app.config import Settings, get_settings
 from app.models.gamestate import Role
 from app.services.auth import COOKIE_NAME, AuthService, Identity
 from app.services.characters import CharacterService
+from app.services.current_world import world_of_page
 from app.services.i18n import LANG_COOKIE
 from app.services.players import PlayerService
 from app.services.worlds import WorldService
@@ -105,7 +106,21 @@ def build_page(request: Request, identity: Identity | None = None) -> Page:
         and identity.is_gamemaster
         and request.query_params.get("as") == "player"
     )
+    current = registry.table.world() if identity is not None else None
+    owner = (
+        registry.gamestate.worlds.find(world_of_page(registry.gamestate, request.url.path) or "")
+        if identity is not None and identity.is_gamemaster
+        else None
+    )
     return Page(
+        page_world=(owner.id, owner.name) if owner is not None else None,
+        world=(current.id, current.name) if current is not None else None,
+        worlds=tuple(
+            (w.id, w.name)
+            for w in sorted(registry.gamestate.worlds.list(), key=lambda w: w.name.casefold())
+        )
+        if identity is not None and identity.is_gamemaster
+        else (),
         reader=registry.player_reader(identity, as_player=as_player)
         if identity is not None
         else None,

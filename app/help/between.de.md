@@ -2,7 +2,7 @@
 
 Alles, was passiert, wenn niemand Initiative würfelt: die Sitzung selbst, die Reise, die
 freien Tage, die Bastion und die Leute, die die Figuren kennen. Das meiste beginnt in der
-Gruppenansicht (*Spieltisch*), mit einer gewählten Welt.
+Gruppenansicht (*Spieltisch*), in der Welt, in der der Tisch spielt.
 
 ---
 

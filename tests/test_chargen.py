@@ -462,12 +462,16 @@ class TestWizardPages:
         assert draft.player == "alice"
         assert 'href="/chargen/new"' in (await ac.get("/gm/characters")).text
 
-    async def test_a_world_is_required_when_there_are_worlds(
+    async def test_a_character_is_made_in_the_tables_world(
         self, client: tuple[AsyncClient, StoreRegistry]
     ) -> None:
-        ac, _ = client
-        refused = await ac.post("/chargen", data={})
-        assert refused.status_code == 400 and "Choose a world" in refused.text
+        # No world to choose (documentation/CURRENT-WORLD.md): the table's books.
+        ac, registry = client
+        page = (await ac.get("/chargen/new")).text
+        assert 'name="world"' not in page and "the world the table plays in" in page
+        started = await ac.post("/chargen", data={})
+        draft = registry.gamestate.characters.get(started.headers["location"].rsplit("/", 1)[1])
+        assert draft.world_id == registry.table.world_id()
 
     async def test_a_finished_character_is_no_draft(
         self, client: tuple[AsyncClient, StoreRegistry]

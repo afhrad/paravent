@@ -28,7 +28,13 @@ class WorldSummary(BaseModel):
     books: list[BookInfo] = Field(
         description="The declared books; empty means every imported book is allowed."
     )
-    characters: int
+    current: bool = Field(
+        False, description="The world the table plays in now; write for it unless told otherwise."
+    )
+    characters: int = Field(
+        description="The characters playing in it: every character in the current world, "
+        "none in the others (characters belong to no world)."
+    )
     adventures: int
 
 

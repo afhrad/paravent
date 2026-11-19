@@ -86,7 +86,8 @@ class TestCards:
             World(name="Sunken Marches", source_set=SourceSet(sources=BOOKS_2014))
         )
         await ac.post("/language", data={"lang": "de"})
-        draft = (await ac.post("/chargen", data={"world": old.id})).headers["location"]
+        registry.table.select(old.id)  # a character is made in the table's world
+        draft = (await ac.post("/chargen")).headers["location"]
         step = f"/chargen/{draft.split('/')[2]}/species"
         chosen = (await ac.post(step, data={"species": "Dwarf|PHB"}, headers=HTMX)).text
         assert 'under 5 feet<span class="unit-hint"> (1,5 m)</span> tall' in chosen

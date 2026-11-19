@@ -42,6 +42,15 @@ class Page:
     # The calendar a world dates its days by: ``world`` → (calendar, the calendar's day
     # of the clock's first day, era), None for plain day numbers (app/services/calendar.py).
     calendars: Callable[[str | None], tuple[Calendar, int, str] | None] | None = None
+    # The world the whole table plays in, ``(id, name)``, or None without one
+    # (documentation/CURRENT-WORLD.md); and, for the gamemaster's world menu, every
+    # world as ``(id, name)`` by name.
+    world: tuple[str, str] | None = None
+    worlds: tuple[tuple[str, str], ...] = ()
+    # The world this page belongs to, ``(id, name)``, when it is a page of one (an NPC,
+    # a chapter, a world's list); the gamemaster's banner offers to switch to it when it
+    # is not the table's (documentation/CURRENT-WORLD.md §5).
+    page_world: tuple[str, str] | None = None
 
     def token_of(self, kind: str, world_id: str | None, ident: str) -> Token:
         """An NPC's, character's, place's, encounter's or treasure's token."""

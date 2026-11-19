@@ -172,7 +172,6 @@ def _world(
     world = service.world(world_id)
     adventures = [(a, service.chapter_count(a.id)) for a in service.adventures(world_id)]
     description = render_body(world.description, _world_context(page, registry, world_id))
-    counts = (len(registry.npcs.list(world_id)), len(registry.treasure.list(world_id)))
     return html(
         world_page(
             page,
@@ -180,9 +179,6 @@ def _world(
             adventures,
             description,
             bosses=registry.npcs.bosses(world_id),
-            counts=counts,
-            sessions=len(registry.session_notes.list(world_id)),
-            places=len(registry.locations.list(world_id)),
             books=registry.adventures.published.all(),
             notice_text=notice_text,
             error=error,

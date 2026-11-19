@@ -1,6 +1,6 @@
 """The character creation wizard (documentation/CHARGEN-WIZARD.md §6).
 
-* ``GET  /chargen/new``            — pick a world (and, for the gamemaster, a player)
+* ``GET  /chargen/new``            — start one in the table's world (the gamemaster picks a player)
 * ``POST /chargen``                — start a draft, then go to its first step
 * ``GET  /chargen/{id}``           — resume where the draft was left
 * ``GET  /chargen/{id}/{step}``    — one step
@@ -41,11 +41,12 @@ router = APIRouter(tags=["chargen"])
 async def new_character(
     identity: IdentityDep, page: PageDep, registry: RegistryDep
 ) -> HTMLResponse:
-    """Where a character starts: its world decides which books it is made from."""
+    """Where a character starts: in the table's world, whose books it is made from
+    (documentation/CURRENT-WORLD.md); the gamemaster also picks its player."""
     players = None
     if identity.role is Role.GAMEMASTER:
         players = [s.user.username for s in registry.players.summaries()]
-    return html(new_character_page(page, registry.worlds.list(), players))
+    return html(new_character_page(page, registry.table.world(), players))
 
 
 @router.post(CHARGEN_URL)
@@ -53,18 +54,17 @@ async def start_character(
     identity: IdentityDep,
     page: PageDep,
     registry: RegistryDep,
-    world: Annotated[str, Form()] = "",
     player: Annotated[str, Form()] = "",
 ) -> Response:
-    """A new draft, opened at its first step."""
+    """A new draft in the table's world, opened at its first step."""
     try:
-        draft = registry.drafts.start(identity, world or None, player or None)
+        draft = registry.drafts.start(identity, registry.table.world_id(), player or None)
     except DraftError as exc:
         players = None
         if identity.role is Role.GAMEMASTER:
             players = [s.user.username for s in registry.players.summaries()]
         return html(
-            new_character_page(page, registry.worlds.list(), players, error=page.t.error(exc)),
+            new_character_page(page, registry.table.world(), players, error=page.t.error(exc)),
             status_code=400,
         )
     return redirect(wizard_url(draft.id))

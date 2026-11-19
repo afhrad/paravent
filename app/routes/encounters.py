@@ -29,7 +29,6 @@ from app.models.pc import DraftStatus
 from app.routes.auth import html, redirect
 from app.routes.paravent_markdown import paravent_markdown
 from app.services import scope, token_export
-from app.services.current_world import current_world
 from app.services.encounter_gen import EncounterGenerator, bands_of, pool_of
 from app.services.encounter_roll import EncounterRoller
 from app.services.encounters import EncounterError, EncounterView
@@ -135,27 +134,33 @@ async def list_encounters(
     world: str = "",
     deleted: str = "",
 ) -> HTMLResponse:
-    """Every encounter, rated."""
-    service = registry.encounters
-    world_id = world if worlds.find(world or None) is not None else None
-    views = [service.view(e) for e in service.list(world_id)]
+    """The encounters of the table's world (``world`` names another), and those planned
+    ahead of any world, rated."""
     return html(
         encounters_page(
             page,
-            views,
+            _views(registry, worlds, world),
             worlds.list(),
-            world_filter=world_id,
-            current=world_id or _working_in(page, registry, worlds),
+            current=_world(registry, worlds, world),
             notice_text=page.t("encounters.deleted") if deleted else None,
         )
     )
 
 
-def _working_in(page: Page, registry: StoreRegistry, worlds: WorldService) -> str | None:
-    """The world the gamemaster is working in, where a new encounter takes place."""
-    if page.identity is None:
-        return None
-    return current_world(registry.gamestate, registry.places, page.identity.user.id, worlds.list())
+def _world(registry: StoreRegistry, worlds: WorldService, named: str = "") -> str | None:
+    """The world the encounters are shown for and a new one takes place in: one ``named``,
+    else the table's (documentation/CURRENT-WORLD.md)."""
+    found = worlds.find(named or None)
+    return found.id if found is not None else registry.table.world_id()
+
+
+def _views(registry: StoreRegistry, worlds: WorldService, named: str = "") -> list[EncounterView]:
+    """The world's encounters, then those of no world, rated."""
+    service = registry.encounters
+    world_id = _world(registry, worlds, named)
+    shown = service.list(world_id) if world_id else []
+    loose = [e for e in service.list() if e.world_id is None]
+    return [service.view(e) for e in [*shown, *loose]]
 
 
 @router.post(ENCOUNTERS_URL, response_class=HTMLResponse)
@@ -177,13 +182,11 @@ async def create_encounter(
         where = scope.decode(place, registry.adventures) if place else None
         encounter = service.create(name, world or None, where)
     except (EncounterError, ScopeError) as exc:
-        views = [service.view(e) for e in service.list()]
         view = encounters_page(
             page,
-            views,
+            _views(registry, worlds, world),
             worlds.list(),
-            world_filter=None,
-            current=world or _working_in(page, registry, worlds),
+            current=_world(registry, worlds, world),
             error=page.t.error(exc),
             draft_name=name,
         )

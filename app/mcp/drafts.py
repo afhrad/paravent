@@ -18,7 +18,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
 from app.mcp.auth import bearer
-from app.mcp.common import rating_answer, resolve_monsters, tool_errors
+from app.mcp.common import current_or, rating_answer, resolve_monsters, tool_errors
 from app.mcp.models import (
     AdventureDetail,
     AdventureProblem,
@@ -248,6 +248,7 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
         found = registry.mcp_tokens.verify(bearer_of(ctx))
         if found is None:
             raise ToolError("This request carries no valid Paravent key.")
+        world_id = current_or(registry, world_id)
         with tool_errors():
             adventure = registry.adventures.create(world_id, name)
             level = None
@@ -541,7 +542,7 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
         if unknown:
             raise ToolError(f"Not naming styles: {', '.join(unknown)}; see list_naming_styles")
         with tool_errors():
-            world = registry.worlds.set_naming(world_id, keys)
+            world = registry.worlds.set_naming(current_or(registry, world_id), keys)
         return WorldStyles(
             world_id=world.id,
             every=not world.naming_styles,

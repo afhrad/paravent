@@ -44,6 +44,14 @@ def tool_errors() -> Iterator[None]:
         raise ToolError(f"Nothing with id {exc} (or it was deleted)") from exc
 
 
+def current_or(registry: StoreRegistry, world_id: str) -> str:
+    """``world_id``, or the world the table plays in when it is empty or ``current``
+    (documentation/CURRENT-WORLD.md §6)."""
+    if world_id and world_id != "current":
+        return world_id
+    return registry.table.world_id() or world_id
+
+
 def cr_text(value: Fraction | None) -> str | None:
     """A challenge rating as the books write it: ``1/4``, ``3``."""
     if value is None:
@@ -140,4 +148,11 @@ def rating_answer(
     )
 
 
-__all__ = ["cr_text", "party_levels", "rating_answer", "resolve_monsters", "tool_errors"]
+__all__ = [
+    "cr_text",
+    "current_or",
+    "party_levels",
+    "rating_answer",
+    "resolve_monsters",
+    "tool_errors",
+]

@@ -138,24 +138,19 @@ def _summary(page: Page, view: EncounterView) -> str:
 # -- the list ------------------------------------------------------------------------------
 
 
-def _world_choices(page: Page, worlds: Sequence[World]) -> list[tuple[str, str]]:
-    return [("", page.t("encounters.no_world")), *((w.id, w.name) for w in worlds)]
-
-
 def encounters_page(
     page: Page,
     views: Sequence[EncounterView],
     worlds: Sequence[World],
     *,
-    world_filter: str | None,
     current: str | None = None,
     notice_text: str | None = None,
     error: str | None = None,
     draft_name: str = "",
 ) -> Element:
-    """Every encounter, newest first, and a form to start one, in ``current``, the world
-    the gamemaster is working in (the filter's, else app/services/current_world.py). Only
-    when no world can be told does the form ask for one."""
+    """The encounters shown, newest first, and a form to start one in ``current``, the
+    table's world (documentation/CURRENT-WORLD.md); with no world yet it belongs to none.
+    The world is the world menu's choice: the page has no picker of its own."""
     t = page.t
     rows = [
         li(class_="list-row")[
@@ -185,43 +180,24 @@ def encounters_page(
                 p(class_="enc-new-world")[t("encounters.new_in", world=here.name)],
             ]
             if here is not None
-            else select_field(
-                "world",
-                t("encounters.world"),
-                _world_choices(page, worlds),
-                selected=world_filter or "",
-            )
-            if worlds
             else None,
             button(type="submit", class_="btn btn-primary")[
                 icon("plus"), span[t("encounters.create")]
             ],
         ],
     ]
-    filter_form = (
-        form(method="get", action=ENCOUNTERS_URL, class_="inline-form party-filter")[
-            label(for_="enc-world", class_="eyebrow")[t("encounters.world")],
-            select(id="enc-world", name="world", onchange="this.form.submit()")[
-                option(value="", selected=not world_filter)[t("encounters.all_worlds")],
-                [option(value=w.id, selected=w.id == world_filter)[w.name] for w in worlds],
-            ],
-            button(type="submit", class_="btn btn-sm js-hide")[t("encounters.show")],
-        ]
-        if worlds
-        else None
-    )
     return app_shell(
         page,
         t("encounters.page_title"),
         [
-            page_head(t("gm.eyebrow"), t("encounters.heading"), t("encounters.lede"), filter_form),
+            page_head(t("gm.eyebrow"), t("encounters.heading"), t("encounters.lede")),
             notice(notice_text),
             create,
             ul(class_="list")[rows]
             if rows
             else empty_state("skull", t("encounters.empty_heading"), t("encounters.empty_text")),
         ],
-        world_id=world_filter,
+        world_id=current,
     )
 
 

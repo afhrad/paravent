@@ -10,7 +10,7 @@ resistance applies stays your call, and nothing touches hit points until you say
 
 ## 1. Before the fight
 
-1. **Build the encounter** (*Encounters* → a world → *New encounter*): add monsters through
+1. **Build the encounter** (*Encounters* → *New encounter*, in the table's world): add monsters through
    the search, mark each line **Foe** or **Friend**. The difficulty updates as you go.
 2. **Run** it — from the encounter, or from its embed in a chapter. The characters of the
    world join; monsters start at average hit points, one initiative per kind.
