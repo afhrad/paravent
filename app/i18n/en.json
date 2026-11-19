@@ -3870,5 +3870,8 @@
   "title_image.error.owner": "This one cannot take a title image: it belongs to no world.",
   "combat.back_to_order": "Back to the order",
   "combat.following_turn": "Whose turn it is",
-  "combat.follow_turn": "Follow the turn"
+  "combat.follow_turn": "Follow the turn",
+  "chapters.at_hand": "At hand",
+  "chapters.previous": "Previous chapter",
+  "chapters.next": "Next chapter"
 }

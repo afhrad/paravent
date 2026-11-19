@@ -30,6 +30,7 @@ from htpy import (
     form,
     h1,
     h2,
+    h3,
     img,
     label,
     legend,
@@ -54,9 +55,11 @@ from app.models.gamestate import (
     Chapter,
     CreatureDesign,
     Encounter,
+    Location,
     Npc,
     Scope,
     SourceSet,
+    Treasure,
     World,
 )
 from app.services import image_effects
@@ -1099,30 +1102,100 @@ def _toc(page: Page, toc: Sequence[Heading]) -> Node:
 
 
 def _neighbours(page: Page, view: ChapterView) -> Element:
+    """The chapters before and after, named, the next one startable from here."""
     t = page.t
+    here = chapter_url(view.chapter.id)
+    after = view.next
     return nav(class_="chapter-nav", aria_label=t("chapters.nav"))[
-        a(href=chapter_url(view.previous.id), class_="btn btn-ghost", rel="prev")[
-            icon("arrow-left"), span[view.previous.title]
+        a(href=chapter_url(view.previous.id), class_="chapter-nav-link", rel="prev")[
+            span(class_="eyebrow")[icon("arrow-left", "sm"), t("chapters.previous")],
+            span(class_="chapter-nav-title")[view.previous.title],
         ]
         if view.previous
         else span,
-        a(href=chapter_url(view.next.id), class_="btn btn-ghost", rel="next")[
-            span[view.next.title], icon("arrow-right")
+        div(class_="chapter-nav-next")[
+            a(href=chapter_url(after.id), class_="chapter-nav-link", rel="next")[
+                span(class_="eyebrow")[t("chapters.next"), icon("arrow-right", "sm")],
+                span(class_="chapter-nav-title")[after.title],
+            ],
+            play_button(page, chapter_url(after.id), after.status, back=here, small_=True)
+            if after.status == "planned" and view.adventure.status != "draft"
+            else None,
         ]
-        if view.next
+        if after
         else span,
     ]
 
 
-def chapter_body(page: Page, view: ChapterView, body: Rendered, revision: str | None) -> Element:
-    """What the live view swaps: the table of contents and the text."""
+@dataclass(frozen=True)
+class AtHand:
+    """What a chapter holds, listed beside its text while it is run."""
+
+    npcs: Sequence[Npc] = ()
+    places: Sequence[Location] = ()
+    encounters: Sequence[Encounter] = ()
+    treasures: Sequence[Treasure] = ()
+
+    @property
+    def empty(self) -> bool:
+        return not (self.npcs or self.places or self.encounters or self.treasures)
+
+
+def _at_hand(page: Page, hand: AtHand | None) -> Node:
+    """The chapter's NPCs, places, encounters (each with Run) and treasure, one tap
+    away beside the text, each link with its preview."""
+    if hand is None or hand.empty:
+        return None
+    t = page.t
+
+    def group(title: str, rows: list[Node]) -> Node:
+        return [h3(class_="at-hand-kind")[title], ul(class_="at-hand-list")[rows]] if rows else None
+
+    return details(class_="toc at-hand", open=True)[
+        summary[t("chapters.at_hand")],
+        group(t("npcs.heading"), [li[a(href=npc_url(n.id))[n.name]] for n in hand.npcs]),
+        group(t("places.heading"), [li[a(href=location_url(x.id))[x.name]] for x in hand.places]),
+        group(
+            t("nav.encounters"),
+            [
+                li(class_="at-hand-encounter")[
+                    a(href=encounter_url(e.id))[e.name],
+                    form(method="post", action=f"{encounter_url(e.id)}/run")[
+                        button(
+                            type="submit",
+                            class_="btn btn-xs",
+                            title=t("combat.run"),
+                            aria_label=f"{t('combat.run')}: {e.name}",
+                        )[icon("play", "sm")]
+                    ]
+                    if e.monsters
+                    else None,
+                ]
+                for e in hand.encounters
+            ],
+        ),
+        group(
+            t("treasure.heading"),
+            [li[a(href=treasure_url(x.id))[x.name]] for x in hand.treasures],
+        ),
+    ]
+
+
+def chapter_body(
+    page: Page,
+    view: ChapterView,
+    body: Rendered,
+    revision: str | None,
+    hand: AtHand | None = None,
+) -> Element:
+    """What the live view swaps: the table of contents, what is at hand, the text."""
     return div(
         id="chapter-live",
         class_="chapter-layout",
         data_live=f"{chapter_url(view.chapter.id)}/events",
         data_rev=revision or "",
     )[
-        aside(class_="chapter-aside")[_toc(page, body.toc)],
+        aside(class_="chapter-aside")[_toc(page, body.toc), _at_hand(page, hand)],
         article(class_="md-body chapter-text")[
             body.html
             if body.html.strip()
@@ -1140,8 +1213,10 @@ def chapter_page(
     holdings: Node = None,
     notice_text: str | None = None,
     error: str | None = None,
+    hand: AtHand | None = None,
 ) -> Element:
-    """A chapter to run the table from, with what it holds folded away below."""
+    """A chapter to run the table from, with what it holds beside the text and, to
+    manage, folded away below."""
     t = page.t
     ch, adv, world = view.chapter, view.adventure, view.world
     return app_shell(
@@ -1159,17 +1234,32 @@ def chapter_page(
             div(class_="chapter-head")[
                 h1[ch.title],
                 status_pill(page, ch.status),
-                play_button(
-                    page, chapter_url(ch.id), ch.status if adv.status != "draft" else "draft"
-                ),
-                a(href=f"{chapter_url(ch.id)}/edit", class_="btn")[
-                    icon("pencil"), span[t("players.edit")]
+                # Start or End, Edit, and Delete folded away: nothing to mis-tap at the table.
+                div(class_="chapter-actions")[
+                    play_button(
+                        page, chapter_url(ch.id), ch.status if adv.status != "draft" else "draft"
+                    ),
+                    a(href=f"{chapter_url(ch.id)}/edit", class_="btn")[
+                        icon("pencil"), span[t("players.edit")]
+                    ],
+                    details(class_="create-menu chapter-more")[
+                        summary(class_="btn btn-ghost", title=t("party.more"))[
+                            span(aria_hidden="true")["⋯"], span(class_="sr-only")[t("party.more")]
+                        ],
+                        div(class_="create-form party-more-menu")[
+                            delete_link(
+                                page,
+                                f"{chapter_url(ch.id)}/delete",
+                                t("chapters.delete"),
+                                text=True,
+                            ),
+                        ],
+                    ],
                 ],
-                delete_link(page, f"{chapter_url(ch.id)}/delete", t("chapters.delete"), text=True),
             ],
             notice(notice_text),
             alert(error),
-            chapter_body(page, view, body, revision),
+            chapter_body(page, view, body, revision, hand),
             holdings,
             _neighbours(page, view),
             p(class_="ref-roll-result", aria_live="polite", hidden=True),
@@ -1379,6 +1469,7 @@ def adventure_not_found_page(page: Page) -> Element:
 
 
 __all__ = [
+    "AtHand",
     "ProseServices",
     "adventure_delete_page",
     "adventure_form_page",

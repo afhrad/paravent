@@ -104,6 +104,12 @@ running, offers the next planned one. Starting a chapter starts its adventure if
 planned; ending an adventure ends its running chapters. A draft has neither: it is taken
 over in its review.
 
+**A chapter at the table** (2026-11-19): beside its text, under the contents, *At hand*
+lists the chapter's own NPCs, places, encounters (each with Run) and treasure, every link
+with its preview; on an upright iPad or a phone both sit folded above the text. Its head
+holds Start or End and Edit, Delete folded into a ⋯ menu; at its foot the previous and
+next chapters are named, a planned next one with Start.
+
 `draft` is an adventure Claude wrote through the MCP server and the gamemaster has not
 reviewed yet; giving it any other status ends Claude's write access (MCP.md §6). `party`
 is chosen in the adventure's form ("nobody ticked" is the whole world): the encounters

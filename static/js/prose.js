@@ -28,7 +28,15 @@
           var holder = document.createElement('div');
           holder.innerHTML = html;
           var fresh = holder.firstElementChild;
-          if (fresh) { current.replaceWith(fresh); window.scrollTo(0, y); }
+          if (fresh) {
+            // The contents and what is at hand keep the folds the reader left them in.
+            var folds = Array.prototype.map.call(
+              current.querySelectorAll('.chapter-aside details'), function (d) { return d.open; });
+            fresh.querySelectorAll('.chapter-aside details').forEach(function (d, i) {
+              if (i < folds.length) d.open = folds[i];
+            });
+            current.replaceWith(fresh); window.scrollTo(0, y);
+          }
         });
     });
   }
@@ -141,7 +149,16 @@
     });
   }
 
-  function start() { follow(); preview(); }
+  // Where the contents sit above the text (an upright iPad, a phone), they and what is at
+  // hand start folded, so the text comes first.
+  function fold() {
+    if (!window.matchMedia('(max-width: 860px)').matches) return;
+    document.querySelectorAll('#chapter-live .chapter-aside details').forEach(function (d) {
+      d.open = false;
+    });
+  }
+
+  function start() { fold(); follow(); preview(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
   else start();
 })();

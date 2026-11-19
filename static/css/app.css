@@ -884,7 +884,7 @@ details.md-callout:not([open]){ padding-bottom:10px; }
 
 .chapter-head{ display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
 .chapter-head h1{ margin:0; font-size:28px; flex:0 1 auto; }
-.chapter-head .btn{ margin-left:auto; }
+.chapter-actions{ display:flex; align-items:center; gap:8px; margin-left:auto; flex-wrap:wrap; }
 .chapter-layout{ display:grid; grid-template-columns:220px minmax(0,1fr); gap:28px; align-items:start; }
 .chapter-aside{ position:sticky; top:72px; max-height:calc(100vh - 96px); overflow:auto; }
 .chapter-aside:empty{ display:none; }
@@ -894,9 +894,24 @@ details.md-callout:not([open]){ padding-bottom:10px; }
 .toc a{ display:block; padding:4px 8px; border-radius:var(--r-sm); color:var(--text-2); text-decoration:none; }
 .toc a:hover{ background:var(--surface-2); color:var(--text); }
 .toc .toc-1 a{ padding-left:18px; } .toc .toc-2 a{ padding-left:28px; font-size:13px; }
-.chapter-nav{ display:flex; justify-content:space-between; gap:12px; border-top:1px solid var(--border); padding-top:12px; }
-.chapter-nav .btn{ max-width:48%; }
-.chapter-nav .btn span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chapter-nav{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; border-top:1px solid var(--border); padding-top:12px; }
+.chapter-nav-link{ display:grid; gap:2px; min-width:0; max-width:100%; padding:6px 10px; border-radius:var(--r-sm); color:var(--text); text-decoration:none; }
+.chapter-nav-link:hover{ background:var(--surface-2); }
+.chapter-nav-link .eyebrow{ display:inline-flex; align-items:center; gap:4px; margin:0; white-space:nowrap; }
+@media (max-width: 640px){ .chapter-nav-next{ max-width:70%; flex-direction:column; align-items:flex-end; gap:6px; } }
+.chapter-nav-title{ font-family:var(--font-ui); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.chapter-nav-next{ display:flex; align-items:center; gap:8px; min-width:0; max-width:60%; margin-left:auto; text-align:right; }
+.chapter-nav-next .chapter-nav-link{ justify-items:end; }
+/* Beside the text: what the chapter holds, one tap away */
+.at-hand{ margin-top:16px; }
+.at-hand-kind{ margin:10px 0 2px; padding:0 8px; font-family:var(--font-ui); font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--text-3); }
+.toc .at-hand-list{ margin-top:0; }
+.at-hand-list{ list-style:none; padding:0; display:grid; gap:2px; font-family:var(--font-ui); font-size:13.5px; }
+.at-hand-list a{ display:block; padding:4px 8px; border-radius:var(--r-sm); color:var(--text-2); text-decoration:none; }
+.at-hand-list a:hover{ background:var(--surface-2); color:var(--text); }
+.at-hand-encounter{ display:flex; align-items:center; gap:4px; }
+.at-hand-encounter > a{ flex:1; min-width:0; }
+.at-hand-encounter form{ margin:0; }
 .chapter-page .ref-roll-result{ position:sticky; bottom:12px; justify-self:center; }
 
 .field-row{ display:flex; gap:12px; flex-wrap:wrap; align-items:end; }
@@ -930,6 +945,8 @@ details.md-callout:not([open]){ padding-bottom:10px; }
   .chapter-layout{ grid-template-columns:minmax(0,1fr); }
   .chapter-aside{ position:static; max-height:none; }
   .toc:not([open]) ol{ display:none; }
+  .chapter-aside{ display:flex; flex-wrap:wrap; gap:8px 20px; }
+  .chapter-aside .at-hand{ margin-top:0; }
   .editor-panes{ grid-template-columns:minmax(0,1fr); }
   .preview-pane{ position:static; max-height:none; }
 }

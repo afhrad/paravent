@@ -3870,5 +3870,8 @@
   "title_image.error.owner": "Dieses Element kann kein Titelbild haben: Es gehört zu keiner Welt.",
   "combat.back_to_order": "Zurück zur Reihenfolge",
   "combat.following_turn": "Wer am Zug ist",
-  "combat.follow_turn": "Dem Zug folgen"
+  "combat.follow_turn": "Dem Zug folgen",
+  "chapters.at_hand": "Zur Hand",
+  "chapters.previous": "Voriges Kapitel",
+  "chapters.next": "Nächstes Kapitel"
 }

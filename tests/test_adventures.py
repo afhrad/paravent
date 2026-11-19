@@ -11,7 +11,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.config import Settings
 from app.main import create_app
-from app.models.gamestate import Role, SourceSet, World
+from app.models.gamestate import Role, Scope, SourceSet, World
 from app.services.adventures import (
     AdventureError,
     AdventureNotFound,
@@ -159,6 +159,34 @@ They flee.
 
 
 class TestPages:
+    async def test_a_chapter_at_the_table(self, client: tuple[AsyncClient, StoreRegistry]) -> None:
+        ac, registry = client
+        world = registry.gamestate.worlds.create(
+            World(name="Sunken Marches", source_set=SourceSet(sources=["PHB", "MM"]))
+        )
+        adventure = registry.adventures.create(world.id, "The Drowned Bell")
+        first, second, third = (
+            registry.adventures.create_chapter(adventure.id, t)
+            for t in ("Grey Reed", "The Landing", "The Chapel")
+        )
+        here = Scope(world_id=world.id, adventure_id=adventure.id, chapter_id=second.id)
+        encounter = registry.encounters.create("Rotfang ambush", world.id, scope=here)
+        registry.encounters.add_monster(encounter.id, "Goblin|MM", 2)
+        npc = registry.npcs.create("Hob Wade", f"c:{second.id}", world.id)
+        page = (await ac.get(f"/gm/chapters/{second.id}")).text
+        # What the chapter holds, beside its text, the encounter with Run.
+        hand = page.split('class="toc at-hand"', 1)[1].split("</details>", 1)[0]
+        assert "At hand" in hand and f'href="/gm/npcs/{npc.id}"' in hand
+        assert f'action="/gm/encounters/{encounter.id}/run"' in hand
+        # Before and after, named; the planned next one starts from here.
+        nav = page.split('class="chapter-nav"', 1)[1]
+        assert "Previous chapter" in nav and first.title in nav
+        assert "Next chapter" in nav and third.title in nav
+        assert f'action="/gm/chapters/{third.id}/start"' in nav
+        # Delete is folded into the head's menu.
+        assert 'class="create-menu chapter-more"' in page
+        assert f'href="/gm/chapters/{second.id}/delete"' in page
+
     async def test_world_adventure_chapter(self, client: tuple[AsyncClient, StoreRegistry]) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.create(

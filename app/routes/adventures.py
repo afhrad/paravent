@@ -46,6 +46,7 @@ from app.services.media import MAX_BYTES, MediaError
 from app.store.maps import BookMap
 from app.store.registry import StoreRegistry
 from app.ui.adventure_pages import (
+    AtHand,
     DraftReview,
     ProseServices,
     adventure_delete_page,
@@ -642,6 +643,18 @@ def _chapter_text(page: Page, registry: StoreRegistry, view: ChapterView) -> Ren
     )
 
 
+def _at_hand(registry: StoreRegistry, view: ChapterView) -> AtHand:
+    """The chapter's own NPCs, places, encounters and treasure, listed beside its text."""
+    ch = view.chapter
+    here = Scope(world_id=ch.world_id, adventure_id=ch.adventure_id, chapter_id=ch.id)
+    return AtHand(
+        npcs=registry.npcs.list(ch.world_id, here),
+        places=registry.locations.list(ch.world_id, here),
+        encounters=registry.encounters.within(here),
+        treasures=registry.treasure.list(ch.world_id, here),
+    )
+
+
 def _creatures(page: Page, registry: StoreRegistry, view: ChapterView) -> Node:
     """For a book chapter: the creatures its section names, each a click from an encounter."""
     book = registry.adventures.book_section(view)
@@ -686,6 +699,7 @@ async def show_chapter(
             else None,
             error=store.error(chapter_id)
             or (page.t(error, ref="") if error.startswith("encounters.error.") else None),
+            hand=_at_hand(registry, view),
         )
     )
 
@@ -697,7 +711,8 @@ async def chapter_live(
     """The chapter's contents and text, for the page to swap in after a change."""
     view = registry.adventures.chapter_view(chapter_id)
     body = _chapter_text(page, registry, view)
-    return html(chapter_body(page, view, body, registry.gamestate.prose.revision(chapter_id)))
+    revision = registry.gamestate.prose.revision(chapter_id)
+    return html(chapter_body(page, view, body, revision, _at_hand(registry, view)))
 
 
 @router.get(f"{CHAPTERS_URL}/{{chapter_id}}/events")
