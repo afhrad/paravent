@@ -1580,7 +1580,7 @@ summary.pv-pick-row{ cursor:pointer; }
 .cg-rail .step.review .num{ background:var(--cond-weak); color:var(--cond-text); border-color:transparent; }
 .cg-rail .step.done .num svg{ width:12px; height:12px; }
 .cg-body{ display:grid; grid-template-columns:minmax(0,1fr) 272px; }
-.cg-main{ padding:20px; min-width:0; display:grid; gap:16px; align-content:start; }
+.cg-main{ padding:20px; min-width:0; display:grid; grid-template-columns:minmax(0, 1fr); gap:16px; align-content:start; }
 .cg-step-title{ font-size:20px; }
 .cg-step-lede{ margin-top:-10px; }
 .derived{ border-left:1px solid var(--border); background:var(--surface-2); padding:16px;
@@ -1666,6 +1666,12 @@ summary.pv-pick-row{ cursor:pointer; }
   .dv-compact{ display:block; }
   .cg-score-grid{ grid-template-columns:repeat(3,minmax(0,1fr)); }
   .cg-options, .cardgrid{ grid-template-columns:minmax(0,1fr); }
+  /* Plain choices (a skill, a language, a tool) two to a row; described ones keep the width */
+  .cg-options:not(.cg-options-wide){ grid-template-columns:repeat(2, minmax(0,1fr)); }
+  /* The summary at the foot: name and line on one row, the numbers under them */
+  .derived > div:first-child{ display:flex; flex-wrap:wrap; align-items:baseline; column-gap:8px; }
+  .derived .dv-sub{ margin-top:0; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1 1 0; }
+  .derived .dv-compact{ flex-basis:100%; }
   .cg-foot-actions{ margin-left:0; flex:1; justify-content:flex-end; }
 }
 
@@ -2840,4 +2846,10 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
   .chapter-row .list-main{ flex:1 1 calc(100% - 48px); }
   .chapter-row > .play-form{ margin-left:0; }
   .chapter-row > :last-child{ margin-left:auto; }
+}
+/* The wizard's skills table on a phone: closer cells, and where a proficiency comes from
+   may wrap, so the table keeps to the screen. */
+@media (max-width: 640px){
+  .cg-skills th, .cg-skills td{ padding-left:4px; padding-right:4px; }
+  .cg-skills .chip-src{ white-space:normal; hyphens:auto; overflow-wrap:break-word; }
 }

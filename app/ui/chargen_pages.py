@@ -266,7 +266,7 @@ def _derived(page: Page, pc: PlayerCharacter, plan: Plan) -> Element:
             div(class_="abil-grid")[
                 [
                     div(class_="abil")[
-                        span(class_="ab-k")[a_.key.upper()],
+                        span(class_="ab-k")[t(f"abbr.{a_.key}")],
                         span(class_="ab-v")[str(a_.score.value) if a_.score.value else "—"],
                         span(class_="ab-m")[f"{a_.modifier:+d}" if a_.score.value else ""],
                     ]
@@ -1279,9 +1279,10 @@ def _backstory_tables(v: View) -> Node:
     ]
 
 
-def _derivation(label_: str, value: Value) -> Element:
-    """A number with how it was reached, open on tap (§4 Details & review)."""
-    shown = value.text
+def _derivation(label_: str, value: Value, text: str | None = None) -> Element:
+    """A number with how it was reached, open on tap (§4 Details & review); ``text``
+    shows it otherwise (a speed in the reader's units)."""
+    shown = text or value.text
     if not value.explanation:
         return div(class_="cg-stat")[span(class_="dv-k")[label_], span(class_="dv-v")[shown]]
     return details(class_="cg-stat")[
@@ -1324,14 +1325,14 @@ def _review(v: View) -> Node:
             _derivation(t("chargen.hp_max"), sheet.hp_max),
             _derivation(t("party.ac"), sheet.armor_class),
             _derivation(t("party.init"), sheet.initiative),
-            _derivation(t("party.speed"), sheet.speed),
+            _derivation(t("party.speed"), sheet.speed, speed_text(page, sheet.speed)),
             _derivation(t("party.pp"), sheet.passive_perception),
             _derivation(t("party.dc"), sheet.spell_save_dc) if sheet.spell_save_dc else None,
         ],
         div(class_="cg-stats cg-abilities")[
             [
                 _derivation(
-                    a_.key.upper() + (" ●" if a_.save_proficient else ""),
+                    t(f"abbr.{a_.key}") + (" ●" if a_.save_proficient else ""),
                     Value(a_.score.value, a_.score.explanation),
                 )
                 for a_ in sheet.abilities
