@@ -129,7 +129,17 @@
       {
         "title": "Characters without homework",
         "icon": "user-plus",
-        "text": "A builder for both editions at any level, and a sheet that explains its numbers, so everyone can see where that 17 comes from. You grant levels when the story says so."
+        "text": "A builder for both editions at any level, and a sheet that explains its numbers, so everyone can see where that 17 comes from. You grant levels when the story says so. A guide in the app shows new players around."
+      },
+      {
+        "title": "Magic items that keep count",
+        "icon": "sparkles",
+        "text": "Attune to three items, no more, and only to those meant for you. A wand's charges show as dots, are spent with a tap and come back at dawn by the world's clock. Its spells are cast straight from the sheet: Fireball from the staff, at the staff's own DC, a level higher for another charge."
+      },
+      {
+        "title": "Diseases, poisons and curses",
+        "icon": "skull",
+        "text": "Put a disease or a poison from your books on the characters it catches, and let the players roll their saves on their phones. The symptoms show when they should, a poison wears off by the hour, and each dawn or long rest rolls the save that may cure it."
       },
       {
         "title": "Adventures in plain text",
@@ -345,6 +355,14 @@
         "icon": "book-open",
         "alt": "A handout in a player's journal on a phone: the read aloud text the game master shared",
         "text": "A handout the game master just passed across the table."
+      },
+      {
+        "title": "Magic items",
+        "kind": "phone",
+        "file": "magic.webp",
+        "icon": "sparkles",
+        "alt": "A character's gear on a phone: a wand and a staff with their charges as dots, attunement counted at the top",
+        "text": "Charges spent and coming back at dawn, attunement counted."
       },
       {
         "title": "Character wizard",

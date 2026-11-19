@@ -129,7 +129,17 @@
       {
         "title": "Charaktere ohne Hausaufgaben",
         "icon": "user-plus",
-        "text": "Eine Charaktererschaffung für beide Editionen auf jeder Stufe und ein Bogen, der seine Zahlen erklärt. So sieht jede, woher die 17 kommt. Stufen vergebt ihr, wenn die Geschichte es sagt."
+        "text": "Eine Charaktererschaffung für beide Editionen auf jeder Stufe und ein Bogen, der seine Zahlen erklärt. So sieht jede, woher die 17 kommt. Stufen vergebt ihr, wenn die Geschichte es sagt. Eine Anleitung in der App führt neue Spieler herum."
+      },
+      {
+        "title": "Magische Gegenstände, die mitzählen",
+        "icon": "sparkles",
+        "text": "Stimmt euch auf drei Gegenstände ein, nicht mehr, und nur auf die, die für euch gedacht sind. Die Ladungen eines Zauberstabs stehen als Punkte da, werden per Tippen verbraucht und kehren bei Sonnenaufgang nach der Uhr der Welt zurück. Seine Zauber wirkt ihr direkt vom Bogen: den Feuerball aus dem Stecken, mit dessen eigenem SG, einen Grad höher für eine weitere Ladung."
+      },
+      {
+        "title": "Krankheiten, Gifte und Flüche",
+        "icon": "skull",
+        "text": "Legt eine Krankheit oder ein Gift aus euren Büchern auf die Figuren, die es erwischt, und lasst die Spieler ihre Rettungswürfe auf dem Handy würfeln. Die Symptome zeigen sich, wann sie sollen, ein Gift lässt nach Stunden nach, und jeder Sonnenaufgang oder jede lange Rast würfelt den Rettungswurf, der heilen kann."
       },
       {
         "title": "Abenteuer als einfacher Text",
@@ -345,6 +355,14 @@
         "icon": "book-open",
         "alt": "Ein Handout im Journal einer Spielerin auf dem Handy: der Vorlesetext, den die Spielleitung geteilt hat",
         "text": "Ein Handout, gerade über den Tisch gereicht."
+      },
+      {
+        "title": "Magische Gegenstände",
+        "kind": "phone",
+        "file": "magic.webp",
+        "icon": "sparkles",
+        "alt": "Die Ausrüstung einer Figur auf dem Handy: ein Zauberstab und ein Stecken mit ihren Ladungen als Punkte, oben die gezählte Einstimmung",
+        "text": "Ladungen verbraucht und bei Sonnenaufgang zurück, Einstimmung gezählt."
       },
       {
         "title": "Charakterassistent",

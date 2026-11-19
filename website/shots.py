@@ -14,6 +14,7 @@ light and the dark mode, into ``website/assets/img/screens/<lang>/`` (light) and
 - ``sheet.webp``        a player's character sheet on a phone
 - ``fight-phone.webp``  the same player's view of the fight, on their turn
 - ``journal.webp``      a handout in that player's journal, on a phone
+- ``magic.webp``        that player's magic items: attunement, charges, on a phone
 - ``wizard.webp``       the character wizard at its class step (without the books' line
                         about each class)
 - ``names.webp``        the names workshop
@@ -328,6 +329,12 @@ def seed(library: Path, scratch: Path, lang: str, users: Path) -> dict[str, str]
         )
         data.pop("$schema", None)
         data.update(world_id=world.id, player=owner)
+        if name == "lyra-mooncaller":  # magic items to show: a wand and a staff, spent
+            data["inventory"] = [
+                *data.get("inventory", []),
+                {"item": "Wand of Magic Missiles|DMG", "charges_used": 2},
+                {"item": "Staff of Fire|DMG", "equipped": True, "attuned": True, "charges_used": 3},
+            ]
         made = registry.gamestate.characters.create(PlayerCharacter.model_validate(data))
         characters[name] = made.id
 
@@ -533,6 +540,12 @@ def shoot(base: str, ids: dict[str, str], langs: list[str], modes: list[str]) ->
                 snap(player, f"/characters/{ids['lyra']}", out / "sheet.webp")
                 snap(player, f"/play/combat/{ids['combat']}", out / "fight-phone.webp")
                 snap(player, f"/journal/{ids['handout']}", out / "journal.webp")
+                snap(
+                    player,
+                    f"/characters/{ids['lyra']}?view=gear",
+                    out / "magic.webp",
+                    scroll=".cs-charges",
+                )
                 player.close()
         browser.close()
 
