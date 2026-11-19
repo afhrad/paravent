@@ -360,27 +360,31 @@ def _wizard_next(actor: Actor, take: Take) -> None:
 def play_start(take: Take, table: Table, t: dict[str, str], labels: dict[str, str]) -> None:
     gm = take.actor("gm", GM, label=labels["gm"])
     lyra = take.actor("lyra", PLAYER, phone=True, label=labels["lyra"])
-    gm.go("/gm/worlds/new")
+    gm.go("/gm/adventures")
     lyra.go("/play")
     take.card(t["title"], t["subtitle"])
     take.layout("desk", "gm")
     take.say(t["intro"])
-    gm.type("input[name=name]", t["world_name"])
-    gm.type("textarea[name=description]", t["world_text"])
+    # A world from the world menu (documentation/CURRENT-WORLD.md): the table plays in it
+    # at once, and its settings open for the books.
+    gm.click(".world-menu > summary", settle=0.8)
+    gm.click('.world-menu a[data-dialog="new-world"]', settle=0.8)
+    gm.type("#new-world input[name=name]", t["world_name"])
+    gm.type("#new-world textarea[name=description]", t["world_text"])
+    gm.click("#new-world button[type=submit]", settle=1.4)
+    gm.page.wait_for_selector('#world-settings form[action^="/gm/worlds/"]', timeout=10000)
     take.caption(t["books"])
     for book in ("PHB", "MM", "DMG"):
-        box = f'input[name=sources][value="{book}"]'
+        box = f'#world-settings input[name=sources][value="{book}"]'
         if not gm.page.locator(box).first.is_checked():
             gm.click(box, settle=0.4)
     take.wait(1.2)
-    gm.click("form.stack-form button[type=submit]", settle=1.8)
+    gm.click("#world-settings form.stack-form button.btn-primary", settle=1.8)
     take.say(t["created"])
-    world = gm.page.url.split("?")[0].rstrip("/").rsplit("/", 1)[-1]
     take.layout("both", "gm", "lyra")
     take.caption(t["wizard"])
+    # A character is made in the world the table plays in: nothing to choose.
     lyra.go("/chargen/new", settle=1.0)
-    if lyra.page.locator("form.cg-new select[name=world]").count():
-        lyra.choose("form.cg-new select[name=world]", world)
     lyra.click("form.cg-new button[type=submit]", settle=1.6)
     take.layout("phone", "lyra")
     take.caption(t["species"])

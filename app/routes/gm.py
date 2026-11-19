@@ -1149,9 +1149,18 @@ async def create_world(
     encumbrance: Annotated[str, Form()] = "",
     milestone: Annotated[str, Form()] = "",
 ) -> Response:
-    """Create a world, or show the form again with the reason it was refused."""
+    """Create a world, or show the form again with the reason it was refused. The world
+    menu's dialog names no language: the world is written in the maker's."""
     data = _world_input(
-        registry, name, description, sources, players, rerolls, language, encumbrance, milestone
+        registry,
+        name,
+        description,
+        sources,
+        players,
+        rerolls,
+        language or page.lang,
+        encumbrance,
+        milestone,
     )
     try:
         world = worlds.create(data)

@@ -262,3 +262,12 @@ async def test_a_player_sees_the_world_the_table_plays_in(registry: StoreRegistr
         assert "You are playing in Grey Reed" in (await client.get("/play")).text
     finally:
         await client.aclose()
+
+
+async def test_a_world_made_from_the_menu_is_in_the_makers_language(
+    gm: AsyncClient, registry: StoreRegistry
+) -> None:
+    await gm.post("/language", data={"lang": "de"})
+    await gm.post("/gm/worlds", data={"name": "Nebelgipfel", "next": "/gm"})
+    world = registry.table.world()
+    assert world is not None and world.language == "de"
