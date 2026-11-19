@@ -46,6 +46,7 @@ from app.services.clock import OIL, OIL_LIGHTS, light_minutes
 from app.services.condition_rolls import bend
 from app.services.dice import Advantage, Dice, DiceError, Roll, is_expression
 from app.services.i18n import Translatable
+from app.services.item_charges import attunement_allows
 from app.services.lifestyle import LIFESTYLES
 from app.services.protocol import ProtocolService, outcome_of, roll_record
 from app.services.sheet import CONDITIONS, Sheet, SpellView, Value, damage_at
@@ -111,6 +112,17 @@ class Actor:
     round: int | None = None
     # The fight's world: its log is where what happens in the fight is kept.
     world: str | None = None
+
+
+def cast_level(raw: str) -> int:
+    """The level a cast form sent: a slot's, or ``item:<index>:<cost>:<level>``'s for an
+    item's spell cast higher; 0 for the spell's own (a free or an item's casting)."""
+    if raw.isdigit():
+        return int(raw)
+    parts = raw.split(":")
+    if len(parts) == 4 and parts[0] == "item" and parts[3].isdigit():
+        return int(parts[3])
+    return 0
 
 
 def _int(params: Mapping[str, str], key: str, default: int | None = None) -> int:
@@ -462,28 +474,36 @@ class PlayService:
 
     def _cast_from_item(
         self, pc: PlayerCharacter, sheet: Sheet, spell: SpellView, key: str, actor: Actor
-    ) -> None:
-        """Cast a spell an item holds (``key`` is ``item:<index>:<cost>``): its charges
-        spent instead of a slot, logged as charges spent; at will, nothing."""
-        held = sheet.item_spell(spell.reference, key) or sheet.item_spell(spell.name, key)
+    ) -> int:
+        """Cast a spell an item holds (``key`` is ``item:<index>:<cost>``, with
+        ``:<level>`` cast higher): its charges spent instead of a slot, a charge more for
+        each level above its own where the item allows it, logged; at will, nothing.
+        Returns the level cast."""
+        parts = key.split(":")
+        held = sheet.item_spell(spell.reference, ":".join(parts[:3])) or sheet.item_spell(
+            spell.name, ":".join(parts[:3])
+        )
         if held is None or not 0 <= held.index < len(pc.inventory):
             raise PlayError("play.error.bad_input")
+        level = cast_level(key) or held.spell.level
         if not held.cost:
-            return
+            return held.spell.level
         item = next((i for i in sheet.inventory if i.index == held.index), None)
         if item is None or item.charges is None:
             raise PlayError("play.error.bad_input")
         carried = pc.inventory[held.index]
-        if held.cost > item.charges.most - carried.charges_used:
+        if level not in held.levels(item.charges.most - carried.charges_used):
             raise PlayError("play.error.no_charges")
-        carried.charges_used += held.cost
+        cost = held.cost + level - held.spell.level
+        carried.charges_used += cost
         left = item.charges.most - carried.charges_used
         self._stage(
             pc,
             actor,
             EntryKind.CUSTOM,
-            what=f"charge:{carried.item.reference}:spend:{held.cost}:{left}",
+            what=f"charge:{carried.item.reference}:spend:{cost}:{left}",
         )
+        return level
 
     def _cast(
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
@@ -493,8 +513,7 @@ class PlayService:
             raise PlayError("play.error.unknown_spell")
         _castable(sheet, spell)
         if params.get("level", "").startswith("item:"):
-            self._cast_from_item(pc, sheet, spell, params["level"], actor)
-            level = spell.level
+            level = self._cast_from_item(pc, sheet, spell, params["level"], actor)
         elif params.get("level") == "free":
             self._cast_free(pc, sheet, spell)
             level = spell.level
@@ -818,7 +837,7 @@ class PlayService:
             )
         elif kind == "damage":
             expression = self._damage_expression(
-                sheet, subject, params.get("versatile") == "1", _int(params, "level", 0)
+                sheet, subject, params.get("versatile") == "1", cast_level(params.get("level", ""))
             )
             self._log(
                 pc, actor, LogKind.DAMAGE, self._label(sheet, subject), self._dice.roll(expression)
@@ -891,6 +910,13 @@ class PlayService:
         if item is None or not item.attunable or not 0 <= index < len(pc.inventory):
             raise PlayError("play.error.bad_input")
         carried = pc.inventory[index]
+        if not carried.attuned and not attunement_allows(
+            item.attune_tags,
+            classes=[c.name for c in pc.classes],
+            species=pc.species.name if pc.species else "",
+            spellcaster=bool(sheet.spells or sheet.slots or sheet.pact),
+        ):
+            raise PlayError("play.error.attune_requires")
         if not carried.attuned:
             held = sum(1 for i in pc.inventory if i.attuned)
             if held >= sheet.attunement_slots:

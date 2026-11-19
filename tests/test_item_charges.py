@@ -7,7 +7,15 @@ from httpx import AsyncClient
 
 from app.models.pc import InventoryItem
 from app.services.afflictions import DAY
-from app.services.item_charges import Charges, attunement_slots, charges_of, crossings
+from app.services.item_charges import (
+    Charges,
+    SpellTerms,
+    attunement_allows,
+    attunement_slots,
+    charges_of,
+    crossings,
+    spell_terms,
+)
 from app.services.play import Actor, PlayError
 from app.store.registry import StoreRegistry
 from tests.conftest import requires_corpus
@@ -131,7 +139,7 @@ async def test_spells_cast_from_an_items_charges(
         registry,
         lyra,
         InventoryItem.model_validate({"item": "Staff of Fire|XDMG", "equipped": True}),
-        InventoryItem.model_validate({"item": "Staff of Healing|XDMG"}),
+        InventoryItem.model_validate({"item": "Hat of Disguise|XDMG"}),
     )
     pc = registry.gamestate.characters.get(lyra)
     staff, healing = len(pc.inventory) - 2, len(pc.inventory) - 1
@@ -151,11 +159,11 @@ async def test_spells_cast_from_an_items_charges(
     after = registry.gamestate.characters.get(lyra)
     assert after.inventory[staff].charges_used == 3
     assert dict(after.state.slots_used) == slots_before  # no slot spent
-    # The 2024 Staff of Healing casts Cure Wounds at will: nothing is spent.
+    # A Hat of Disguise casts Disguise Self at will: nothing is spent.
     registry.characters.act_for(lyra, "attune", {"index": str(healing)}, _dm())
     sheet = registry.characters.sheet(registry.gamestate.characters.get(lyra))
     (will,) = [x for x in sheet.item_spells if x.index == healing and x.cost == 0]
-    assert will.spell.name == "Cure Wounds"
+    assert will.spell.name == "Disguise Self"
     registry.characters.act_for(
         lyra, "cast", {"spell": will.spell.reference, "level": will.key}, _dm()
     )
@@ -167,3 +175,60 @@ async def test_spells_cast_from_an_items_charges(
         registry.characters.act_for(
             lyra, "cast", {"spell": wall.spell.reference, "level": wall.key}, _dm()
         )
+
+
+FIREBALLS_2024 = {
+    "entries": [
+        "This wand has 7 charges. While holding it, you can expend no more than 3 charges to "
+        "cast {@spell Fireball|XPHB} (save {@dc 15}) from it. For 1 charge, you cast the "
+        "level 3 version of the spell. You can increase the spell's level by 1 for each "
+        "additional charge you expend."
+    ]
+}
+
+
+def test_how_an_item_casts_and_who_may_attune() -> None:
+    assert spell_terms(FIREBALLS_2024) == SpellTerms(dc=15, upcast=True, most=3)
+    assert spell_terms({"entries": ["using your spell save DC"]}) == SpellTerms()
+    healers = [{"class": "bard"}, {"class": "cleric|xphb"}, {"class": "druid"}]
+    assert attunement_allows(healers, classes=["Cleric"], species="", spellcaster=True)
+    assert not attunement_allows(healers, classes=["Wizard"], species="", spellcaster=True)
+    casters = [{"spellcasting": True}]
+    assert not attunement_allows(casters, classes=["Fighter"], species="", spellcaster=False)
+    dwarves = [{"race": "dwarf"}]
+    assert attunement_allows(dwarves, classes=[], species="Mountain Dwarf", spellcaster=False)
+    # Alignment is the table's to judge: it passes.
+    assert attunement_allows([{"alignment": ["L", "G"]}], classes=[], species="", spellcaster=False)
+    assert attunement_allows([], classes=[], species="", spellcaster=False)
+
+
+@requires_corpus
+async def test_a_wand_with_its_own_dc_cast_higher(
+    table: tuple[AsyncClient, StoreRegistry, str],
+) -> None:
+    ac, registry, lyra = table
+    _give(
+        registry,
+        lyra,
+        InventoryItem.model_validate({"item": "Wand of Fireballs|XDMG"}),
+        InventoryItem.model_validate({"item": "Staff of Healing|XDMG"}),
+    )
+    pc = registry.gamestate.characters.get(lyra)
+    wand, healing = len(pc.inventory) - 2, len(pc.inventory) - 1
+    # The wand asks for a spellcaster: Lyra, a wizard, may attune to it.
+    registry.characters.act_for(lyra, "attune", {"index": str(wand)}, _dm())
+    sheet = registry.characters.sheet(registry.gamestate.characters.get(lyra))
+    (fireball,) = [x for x in sheet.item_spells if x.index == wand]
+    assert fireball.levels(7) == [3, 4, 5]  # no more than 3 charges
+    assert fireball.levels(2) == [3, 4] and fireball.levels(0) == []
+    dc = sheet.save_dc_for(fireball.spell)
+    assert dc is not None and dc.value == 15  # the wand's, not Lyra's 17
+    page = (await ac.get(f"/characters/{lyra}?tab=spells")).text
+    assert f'value="{fireball.key}:5"' in page and "3 charges" in page
+    registry.characters.act_for(
+        lyra, "cast", {"spell": fireball.spell.reference, "level": f"{fireball.key}:5"}, _dm()
+    )
+    assert registry.gamestate.characters.get(lyra).inventory[wand].charges_used == 3
+    # The Staff of Healing is for a bard, cleric or druid: Lyra, a wizard, cannot attune.
+    with pytest.raises(PlayError):
+        registry.characters.act_for(lyra, "attune", {"index": str(healing)}, _dm())

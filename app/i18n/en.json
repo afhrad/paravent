@@ -3911,5 +3911,6 @@
   "party.magic_items": "Magic items: attuned, and charges left",
   "sheet.item_spells": "From items",
   "sheet.item_spell_title": "Cast from {item}: its charges, not a slot",
-  "sheet.item_spell_cost": {"one": "{count} charge", "other": "{count} charges"}
+  "sheet.item_spell_cost": {"one": "{count} charge", "other": "{count} charges"},
+  "play.error.attune_requires": "Not for this character: the item asks for attunement by someone else (see its text)."
 }

@@ -13,8 +13,9 @@ most three items, an artificer to four from level 10, five from 14 and six from 
 
 from __future__ import annotations
 
+import json
 import re
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Collection, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -62,6 +63,64 @@ def charges_of(data: Mapping[str, Any] | None) -> Charges | None:
     else:
         amount = ""
     return Charges(most, str(data.get("recharge") or ""), amount)
+
+
+# What an item's text says of the spells it casts: its own save DC ("save {@dc 15}"),
+# a higher level for each additional charge, and how many charges a casting may take.
+_ITEM_DC = re.compile(r"save \{@dc (\d+)\}|save DC (\d+)")
+_UPCAST = re.compile(r"(?:slot level|spell's level) by (?:one|1) for each additional charge", re.I)
+_MOST = re.compile(r"no more than (\d+) charges", re.I)
+
+
+@dataclass(frozen=True)
+class SpellTerms:
+    """How an item casts its spells, from its text: ``dc`` when it states one save DC
+    (none: the caster's own), whether more charges raise the level, and the most
+    charges one casting may take."""
+
+    dc: int | None = None
+    upcast: bool = False
+    most: int | None = None
+
+
+def spell_terms(data: Mapping[str, Any] | None) -> SpellTerms:
+    """Read an item's spell terms from its entries."""
+    text = json.dumps((data or {}).get("entries") or [])
+    found = {int(a or b) for a, b in _ITEM_DC.findall(text)}
+    most = _MOST.search(text)
+    return SpellTerms(
+        dc=found.pop() if len(found) == 1 else None,
+        upcast=bool(_UPCAST.search(text)),
+        most=int(most.group(1)) if most else None,
+    )
+
+
+def attunement_allows(
+    tags: Sequence[Mapping[str, Any]],
+    *,
+    classes: Collection[str],
+    species: str,
+    spellcaster: bool,
+) -> bool:
+    """Whether a character may attune to an item, by its ``reqAttuneTags``: any one tag
+    met (all of its parts), each part a class, a species or being a spellcaster; what
+    Paravent cannot judge (alignment, creature type) is the table's, and passes."""
+    if not tags:
+        return True
+    names = {c.lower() for c in classes}
+    kind = species.lower()
+
+    def met(key: str, value: Any) -> bool:
+        if key == "class":
+            return str(value).partition("|")[0].lower() in names
+        if key == "race":
+            wanted = str(value).partition("|")[0].lower()
+            return bool(kind) and wanted in kind
+        if key == "spellcasting":
+            return spellcaster
+        return True
+
+    return any(all(met(k, v) for k, v in tag.items()) for tag in tags)
 
 
 def attunement_slots(classes: Mapping[str, int]) -> int:
@@ -179,7 +238,10 @@ __all__ = [
     "ATTUNEMENT_SLOTS",
     "Charges",
     "ItemCharges",
+    "SpellTerms",
+    "attunement_allows",
     "attunement_slots",
     "charges_of",
     "crossings",
+    "spell_terms",
 ]

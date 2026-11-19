@@ -57,7 +57,14 @@ from app.services.class_refs import (
     subclass_owner,
 )
 from app.services.clock import light_minutes
-from app.services.item_charges import ATTUNEMENT_SLOTS, Charges, attunement_slots, charges_of
+from app.services.item_charges import (
+    ATTUNEMENT_SLOTS,
+    Charges,
+    SpellTerms,
+    attunement_slots,
+    charges_of,
+    spell_terms,
+)
 from app.services.text import first_dice, paragraphs, strip_tags
 from app.services.translations import translation_key
 from app.services.wild_shape import BEAST_SPELLS, Form, WildShapeRules
@@ -394,11 +401,24 @@ class ItemSpell:
     index: int
     cost: int
     spell: SpellView
+    terms: SpellTerms = SpellTerms()
 
     @property
     def key(self) -> str:
-        """What a cast form sends as its ``level``: ``item:<index>:<cost>``."""
+        """What a cast form sends as its ``level``: ``item:<index>:<cost>``; a higher
+        level, for more charges, adds ``:<level>``."""
         return f"item:{self.index}:{self.cost}"
+
+    def levels(self, left: int) -> list[int]:
+        """The levels it can be cast at with ``left`` charges: its own, and higher by a
+        charge each where the item allows it, up to the most one casting may take."""
+        base = self.spell.level
+        if self.cost > left:
+            return []
+        if not self.terms.upcast or not self.cost or not base:
+            return [base]
+        spend = min(left, self.terms.most or left)
+        return list(range(base, min(9, base + spend - self.cost) + 1))
 
 
 @dataclass(frozen=True)
@@ -429,6 +449,8 @@ class ItemView:
     charges: Charges | None = None
     charges_used: int = 0
     attunable: bool = False
+    # Who may attune to it, as its book tags it (``reqAttuneTags``).
+    attune_tags: tuple[dict[str, Any], ...] = ()
 
     @property
     def charges_left(self) -> int:
@@ -683,7 +705,12 @@ class Sheet:
         return None
 
     def save_dc_for(self, spell: SpellView) -> Value | None:
-        """The save DC ``spell`` is cast with: its grant's ability's, else the class's."""
+        """The save DC ``spell`` is cast with: an item's own where its text states one,
+        its grant's ability's, else the class's."""
+        if spell.free.startswith("item:"):
+            held = next((x for x in self.item_spells if x.key == spell.free), None)
+            if held is not None and held.terms.dc is not None:
+                return Value(held.terms.dc, f"{spell.origin} DC {held.terms.dc}")
         found = self.granted_casting.get(spell.ability)
         return found[0] if found else self.spell_save_dc
 
@@ -1360,6 +1387,7 @@ def _armor_and_attacks(
                 charges_of(data),
                 entry.charges_used,
                 bool(data and data.get("reqAttune")),
+                tuple(t for t in (data or {}).get("reqAttuneTags") or [] if isinstance(t, dict)),
             )
         )
     sheet.attacks = [
@@ -1878,6 +1906,7 @@ def _item_spells(sheet: Sheet, character: PlayerCharacter, corpus: _Corpus) -> N
         attached = data.get("attachedSpells")
         if not isinstance(attached, dict):
             continue
+        terms = spell_terms(data)
         uses: list[tuple[int, str]] = [(0, str(ref)) for ref in attached.get("will") or []]
         charges = attached.get("charges")
         if isinstance(charges, dict) and item.charges is not None:
@@ -1899,7 +1928,7 @@ def _item_spells(sheet: Sheet, character: PlayerCharacter, corpus: _Corpus) -> N
             view = replace(
                 spell_view(found, sheet.level), origin=item.name, free=f"item:{item.index}:{cost}"
             )
-            sheet.item_spells.append(ItemSpell(item.index, cost, view))
+            sheet.item_spells.append(ItemSpell(item.index, cost, view, terms))
 
 
 def _class_spell_uses(

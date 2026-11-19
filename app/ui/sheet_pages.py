@@ -867,8 +867,21 @@ def _cast_form(page: Page, sheet: Sheet, spell: SpellView) -> Element:
     ]
     free = _free_castings(sheet, spell)
     if spell.free.startswith("item:"):
-        # Cast from an item: its charges, not a slot (app/services/item_charges.py).
-        choices, free = [(spell.free, "")], None
+        # Cast from an item: its charges, not a slot (app/services/item_charges.py); a
+        # charge more for each level above its own, where the item allows it.
+        held = next((x for x in sheet.item_spells if x.key == spell.free), None)
+        item = next((i for i in sheet.inventory if held and i.index == held.index), None)
+        levels = held.levels(item.charges_left) if held and item and item.charges else []
+        choices = [
+            (
+                spell.free if n == spell.level else f"{spell.free}:{n}",
+                f"{t('rules.spell_level', level=n)} · "
+                + t.plural("sheet.item_spell_cost", held.cost + n - spell.level),
+            )
+            for n in levels
+            if held is not None
+        ] or [(spell.free, "")]
+        free = None
     if free is not None:
         # A granted spell's casting without a slot comes first: it is what it is for.
         choices.insert(

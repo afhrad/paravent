@@ -58,7 +58,7 @@ from app.services.events import revision_stream
 from app.services.experience import progress
 from app.services.factions import granted, title_of
 from app.services.followers import PLAYER_FOLLOWER_CR, FollowerError, sidekick_level
-from app.services.play import Actor, PlayError
+from app.services.play import Actor, PlayError, cast_level
 from app.services.sheet import Sheet
 from app.services.shop import ShopError, Ware, priced
 from app.services.spellbook import SpellbookError
@@ -337,8 +337,9 @@ async def delete_character(
 
 
 def _slot_level(level: str) -> int:
-    """The slot level a form sent; 0 (the spell's own level) for a free casting."""
-    return int(level) if level.isdigit() else 0
+    """The level a cast form sent; 0 (the spell's own level) for a free or an item's
+    casting at its own level (app/services/play.py, ``cast_level``)."""
+    return cast_level(level)
 
 
 @router.post("/characters/{character_id}/fight-spell", response_class=HTMLResponse)
