@@ -81,6 +81,7 @@ from app.services.locations import LocationService
 from app.services.machine_translation import MachineTranslator
 from app.services.mcp_tokens import McpTokenService
 from app.services.media_tags import MediaTags
+from app.services.media_uses import MediaUses
 from app.services.name_suggestions import ApiRunner, NameSuggestions
 from app.services.naming import Naming
 from app.services.naming_workshop import NamingWorkshop
@@ -652,6 +653,11 @@ class StoreRegistry:
     def media_tags(self) -> MediaTags:
         """Tags on a world's pictures, for the image browser (app/services/media_tags.py)."""
         return MediaTags(self.gamestate.prose)
+
+    @cached_property
+    def media_uses(self) -> MediaUses:
+        """Where a world's pictures are used, to rename or delete them (media_uses.py)."""
+        return MediaUses(self.gamestate, self.media_tags)
 
     @cached_property
     def item_charges(self) -> ItemCharges:

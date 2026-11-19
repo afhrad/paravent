@@ -195,9 +195,68 @@
       return toggle && toggle.getAttribute("aria-pressed") === "true";
     }
     function counted() {
-      const n = slot.querySelectorAll(".img-pick.is-chosen").length;
+      const chosen_ = Array.from(slot.querySelectorAll(".img-pick.is-chosen"));
+      const n = chosen_.length;
       const out = slot.querySelector(".img-bulk-n");
       if (out) out.textContent = n ? `${n} ✓` : "";
+      one(n === 1 ? chosen_[0] : null);
+    }
+
+    // One picture ticked: where it is used, a new name for it, and delete while unused.
+    function one(pick) {
+      const panel = slot.querySelector(".img-one");
+      if (!panel) return;
+      panel.hidden = !pick;
+      if (!pick) return;
+      let uses = [];
+      try {
+        uses = JSON.parse(pick.dataset.uses || "[]");
+      } catch (err) {
+        uses = [];
+      }
+      panel.querySelector(".img-one-name").textContent = pick.title;
+      const list = panel.querySelector(".img-uses");
+      list.replaceChildren(
+        ...uses.map((u) => {
+          const li = document.createElement("li");
+          const a = document.createElement("a");
+          a.href = u.url;
+          a.textContent = u.label;
+          li.appendChild(a);
+          return li;
+        }),
+      );
+      panel.querySelector(".img-unused").hidden = uses.length > 0;
+      panel.querySelector(".img-in-use").hidden = uses.length === 0;
+      panel.querySelector(".img-delete").disabled = uses.length > 0;
+      const field = panel.querySelector(".img-rename-name");
+      field.value = pick.title.replace(/\.[^.]+$/, "");
+    }
+
+    function manage(op) {
+      const browser = slot.querySelector(".img-browser");
+      const pick = slot.querySelector(".img-pick.is-chosen");
+      if (!browser || !pick) return;
+      const url = op === "rename" ? browser.dataset.renameUrl : browser.dataset.deleteUrl;
+      if (!url) return;
+      const body = new FormData();
+      body.append("path", pick.dataset.path);
+      if (op === "rename") {
+        const name = slot.querySelector(".img-rename-name").value.trim();
+        if (!name) return;
+        body.append("name", name);
+      } else {
+        const ask = slot.querySelector(".img-delete").dataset.confirm || "";
+        if (ask && !window.confirm(ask.replace("{name}", pick.title))) return;
+      }
+      fetch(url, { method: "POST", body, credentials: "same-origin" })
+        .then((r) => (r.ok ? r.text() : null))
+        .then((html) => {
+          if (html !== null) {
+            fill(html);
+            loading = Promise.resolve();
+          }
+        });
     }
     function bulk(op) {
       const browser = slot.querySelector(".img-browser");
@@ -233,6 +292,8 @@
         counted();
         return;
       }
+      if (event.target.closest(".img-rename")) return manage("rename");
+      if (event.target.closest(".img-delete")) return manage("delete");
       if (event.target.closest(".img-bulk-add")) return bulk("add");
       if (event.target.closest(".img-bulk-remove")) return bulk("remove");
       const pick = event.target.closest(".img-pick");

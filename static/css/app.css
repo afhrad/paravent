@@ -3063,3 +3063,21 @@ dialog.img-zoom img{ max-width:100%; max-height:100%; object-fit:contain; border
    does not stretch them. */
 input[type=checkbox], input[type=radio]{ accent-color:var(--accent-solid); }
 input[type=checkbox]:not(.sr-only), input[type=radio]:not(.sr-only){ width:18px; height:18px; flex-shrink:0; }
+
+/* Where a picture is used (app/services/media_uses.py): a mark on each, and the panel of
+   the one ticked with its uses, a new name and delete while unused */
+.img-pick{ position:relative; }
+.img-pick .img-pick-used{
+  position:absolute; top:8px; left:8px; padding:0 6px; border-radius:999px;
+  background:var(--surface); color:var(--text); font-size:10.5px; font-weight:600; line-height:18px;
+  box-shadow:var(--shadow-sm, 0 1px 2px rgb(0 0 0 / .2));
+}
+.img-pick .img-pick-used.is-unused{ color:var(--text-3); font-weight:400; font-style:italic; }
+.img-one{ display:grid; gap:8px; padding:10px; border:1px solid var(--border-strong); border-radius:var(--r-sm); background:var(--surface); }
+.img-one-head{ display:flex; gap:8px; align-items:baseline; margin:0; overflow-wrap:anywhere; }
+.img-uses{ margin:0; padding-left:18px; display:grid; gap:2px; font-size:13.5px; }
+.img-uses:empty{ display:none; }
+.img-one-actions{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+.img-one .img-rename-name{ flex:1 1 12em; min-width:0; min-height:36px; padding:0 8px; font:inherit; color:var(--text); background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-sm); }
+.img-one .img-delete:disabled{ opacity:.45; cursor:not-allowed; }
+.img-message{ margin:0 0 8px; }

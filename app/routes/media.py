@@ -20,6 +20,7 @@ from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.routes.auth import html
 from app.services import image_effects, media
 from app.services.media_tags import orientation
+from app.services.media_uses import MediaUseError
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
 from app.ui.image_pages import IMAGES_URL, Picture, image_browser
@@ -60,7 +61,9 @@ async def serve_media(
     )
 
 
-def _browser(page: Page, registry: StoreRegistry, record_id: str) -> HTMLResponse:
+def _browser(
+    page: Page, registry: StoreRegistry, record_id: str, message: str | None = None
+) -> HTMLResponse:
     """Every picture of the record's world, grouped by the world, adventure or chapter
     whose folder holds it, each with its path as ``record_id`` writes it, its tags and
     shape; the world's tags with their counts."""
@@ -86,6 +89,7 @@ def _browser(page: Page, registry: StoreRegistry, record_id: str) -> HTMLRespons
                 key = folder.relative_to(world_folder).as_posix()
                 names.setdefault("" if key == "." else key, name)
     tags = registry.media_tags.all(record_id)
+    uses = registry.media_uses.uses(world.id)
     groups: dict[str, list[Picture]] = {}
     for picture in media.world_images(store, record_id):
         seen = media.seen_from(store, record_id, picture.path)
@@ -100,6 +104,7 @@ def _browser(page: Page, registry: StoreRegistry, record_id: str) -> HTMLRespons
                 picture.name,
                 tuple(tags.get(picture.path, ())),
                 orientation(world_folder / picture.path),
+                tuple(uses.get(picture.path, ())),
             )
         )
     vocabulary = sorted(registry.media_tags.vocabulary(record_id).items())
@@ -109,6 +114,9 @@ def _browser(page: Page, registry: StoreRegistry, record_id: str) -> HTMLRespons
             list(groups.items()),
             vocabulary,
             tags_url=f"{IMAGES_URL}/{record_id}/tags",
+            rename_url=f"{IMAGES_URL}/{record_id}/rename",
+            delete_url=f"{IMAGES_URL}/{record_id}/delete",
+            message=message,
         )
     )
 
@@ -144,6 +152,63 @@ async def tag_images(
         return Response(status_code=204)
     service.change(record_id, paths, add=[add], remove=[remove])
     return await asyncio.to_thread(_browser, page, registry, record_id)
+
+
+def _world_of(registry: StoreRegistry, record_id: str) -> str:
+    """The id of the world a record belongs to (the browser is opened from any record)."""
+    store = registry.gamestate.prose
+    folder = store.world_folder(record_id)
+    world = next(
+        (w for w in registry.gamestate.worlds.list() if store.folder(w.id) == folder), None
+    )
+    if folder is None or world is None:
+        raise HTTPException(status_code=404)
+    return world.id
+
+
+@router.post(f"{IMAGES_URL}/{{record_id}}/rename", response_class=HTMLResponse)
+async def rename_image(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    record_id: str,
+    path: Annotated[str, Form()] = "",
+    name: Annotated[str, Form()] = "",
+) -> Response:
+    """Give one picture a new name (``path`` as ``record_id`` writes it) and write every
+    use of it again; answered with the browser, saying why when refused."""
+    world_id = _world_of(registry, record_id)
+    where = registry.media_tags.world_path(record_id, path)
+    if where is None:
+        raise HTTPException(status_code=404)
+    message = None
+    try:
+        await asyncio.to_thread(registry.media_uses.rename, world_id, where, name)
+    except MediaUseError as exc:
+        message = page.t.error(exc)
+    return await asyncio.to_thread(_browser, page, registry, record_id, message)
+
+
+@router.post(f"{IMAGES_URL}/{{record_id}}/delete", response_class=HTMLResponse)
+async def delete_image(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    record_id: str,
+    path: Annotated[str, Form()] = "",
+) -> Response:
+    """Delete one picture nothing uses; answered with the browser, saying why when it is
+    still used."""
+    world_id = _world_of(registry, record_id)
+    where = registry.media_tags.world_path(record_id, path)
+    if where is None:
+        raise HTTPException(status_code=404)
+    message = None
+    try:
+        await asyncio.to_thread(registry.media_uses.delete, world_id, where)
+    except MediaUseError as exc:
+        message = page.t.error(exc)
+    return await asyncio.to_thread(_browser, page, registry, record_id, message)
 
 
 __all__ = ["router"]

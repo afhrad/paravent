@@ -11,6 +11,7 @@ JavaScript the form still uploads the picture, uncut.
 
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 from dataclasses import dataclass
 
@@ -31,10 +32,12 @@ from htpy import (
     script,
     small,
     span,
+    ul,
 )
 from htpy import input as input_el
 
 from app.services import image_effects
+from app.services.media_uses import Use
 from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
@@ -212,6 +215,27 @@ class Picture:
     name: str
     tags: tuple[str, ...] = ()
     shape: str = ""
+    uses: tuple[Use, ...] = ()  # where it is used (app/services/media_uses.py)
+
+
+def _uses_data(page: Page, uses: Sequence[Use]) -> str:
+    """A picture's uses for the browser's script: what each is and where it is edited."""
+    t = page.t
+    return json.dumps(
+        [
+            {
+                "label": t(
+                    "images.use",
+                    owner=t(f"images.owner.{u.owner}"),
+                    name=u.name,
+                    kind=t(f"images.kind.{u.kind}"),
+                ),
+                "url": u.url,
+            }
+            for u in uses
+        ],
+        ensure_ascii=False,
+    )
 
 
 def image_browser(
@@ -220,11 +244,16 @@ def image_browser(
     vocabulary: Sequence[tuple[str, int]] = (),
     *,
     tags_url: str = "",
+    rename_url: str = "",
+    delete_url: str = "",
+    message: str | None = None,
 ) -> Element:
     """The world's pictures, grouped by where they live: a click picks one. A search
     over names, tags and shapes (every word must match), the world's tags as chips that
     filter (several together), and **Select**, which ticks pictures to tag or untag
-    together (``tags_url``)."""
+    together (``tags_url``); with one ticked, where it is used, **Rename** (``rename_url``)
+    and **Delete** while nothing uses it (``delete_url``). Each picture says how often it
+    is used. ``message`` is why the last rename or delete was refused."""
     t = page.t
     if not groups:
         return p(class_="muted img-none")[t("images.none")]
@@ -233,7 +262,13 @@ def image_browser(
         shape = t(f"images.shape.{picture.shape}") if picture.shape else ""
         return " ".join([picture.name.lower(), *picture.tags, shape.lower()])
 
-    return div(class_="img-browser", data_tags_url=tags_url or None)[
+    return div(
+        class_="img-browser",
+        data_tags_url=tags_url or None,
+        data_rename_url=rename_url or None,
+        data_delete_url=delete_url or None,
+    )[
+        p(class_="alert img-message", role="alert")[message] if message else None,
         div(class_="img-browser-tools")[
             input_el(
                 type="search",
@@ -271,6 +306,32 @@ def image_browser(
             ],
             span(class_="muted img-bulk-n"),
         ],
+        # One picture ticked: where it is used, a new name, and delete while unused.
+        div(class_="img-one", hidden=True)[
+            p(class_="img-one-head")[b(class_="img-one-name"), span(class_="muted img-one-count")],
+            ul(class_="img-uses"),
+            p(class_="field-hint img-unused")[t("images.unused_hint")],
+            div(class_="img-one-actions")[
+                input_el(
+                    type="text",
+                    class_="img-rename-name",
+                    aria_label=t("images.rename_to"),
+                    placeholder=t("images.rename_to"),
+                    autocomplete="off",
+                ),
+                button(type="button", class_="btn btn-sm img-rename")[
+                    icon("pencil", "sm"), span[t("images.rename")]
+                ],
+                button(
+                    type="button",
+                    class_="btn btn-sm btn-ghost btn-danger img-delete",
+                    data_confirm=t("images.delete_confirm"),
+                )[icon("trash-2", "sm"), span[t("images.delete")]],
+            ],
+            p(class_="field-hint img-in-use")[t("images.in_use_hint")],
+        ]
+        if rename_url
+        else None,
         [
             div(class_="img-group")[
                 h3(class_="eyebrow")[label_],
@@ -284,9 +345,16 @@ def image_browser(
                             data_name=pic.name.lower(),
                             data_words=words(pic),
                             data_tags=", ".join(pic.tags),
+                            data_uses=_uses_data(page, pic.uses),
                             title=pic.name,
                         )[
                             img(src=pic.preview, alt="", loading="lazy"),
+                            span(
+                                class_="img-pick-used" + ("" if pic.uses else " is-unused"),
+                                title=t.plural("images.used_n", len(pic.uses))
+                                if pic.uses
+                                else t("images.unused"),
+                            )[f"{len(pic.uses)}×" if pic.uses else t("images.unused")],
                             span(class_="img-pick-name")[pic.name],
                             span(class_="img-pick-tags")[
                                 [span(class_="tag")[tag] for tag in pic.tags]

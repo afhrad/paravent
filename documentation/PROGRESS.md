@@ -710,7 +710,9 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         rendered from the original, so it can be moved again later. **Tags** on a
         world's pictures (`app/services/media_tags.py`), typed in the dialog or given to
         a selection in the browser, which finds by name, tag and shape; its grid shows
-        shrunk previews from the cache
+        shrunk previews from the cache. **Where each picture is used** (2026-11-19,
+        `app/services/media_uses.py`): a count on each, its uses listed for the one ticked,
+        **Rename** writing every use again, **Delete** only while unused
   - [x] **Ready-made objects in an adventure** (2026-11-19, `app/services/holdings.py`):
         the world's own NPCs, places, encounters and treasure added to an adventure from
         a list (linked in its `uses`, staying the world's); taken out of it, never

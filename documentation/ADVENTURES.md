@@ -477,6 +477,16 @@ notes may name the place itself).
   at the next write and named by the library check; a file a hand edit broke reads as no
   tags and is left as it is. The browser's grid shows previews, each picture shrunk to 320 pixels
   (`?w=320`, rendered once into the effects cache); the frame step works on the original.
+- **Where a picture is used** (2026-11-19, `app/services/media_uses.py`): each picture in the
+  image browser says how often it is used, or *unused*. Its uses are the covers of the world,
+  an adventure or a chapter, an NPC's portrait, a place's picture, the title image of an
+  encounter, quest or faction, and every text showing it (`![[name]]` found by name,
+  `![alt](path)`) — chapters, adventures, the world's description, the notes of NPCs, places,
+  treasure and encounters, session notes — each read from the record its paths start in.
+  With one picture ticked under **Select**, the browser lists its uses (each a link),
+  **Rename** gives it a new name in its folder, its file type kept, its tags moved and every
+  use written again with its frame and effects; **Delete** removes it only while nothing uses
+  it (`POST /gm/images/{id}/rename`, `/delete`).
 - **A picture in a text enlarges** (2026-11-19, the user's request): a click or tap on a
   picture of a chapter, a note, a handout, the books' pictures or their illustrations
   beside an entry shows it over the page, as large as the window allows, until a click or
