@@ -505,6 +505,12 @@
           "default": "",
           "title": "Spell",
           "type": "string"
+        },
+        "charges_used": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Charges Used",
+          "type": "integer"
         }
       },
       "required": [

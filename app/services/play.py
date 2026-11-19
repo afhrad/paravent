@@ -165,6 +165,8 @@ class PlayService:
             "death_save": self._death_save,
             "roll": self._roll,
             "equip": self._equip,
+            "attune": self._attune,
+            "charge": self._charge,
             "clear_log": self._clear_log,
             "saving_throw": self._saving_throw,
             "resistance": self._resistance,
@@ -850,6 +852,51 @@ class PlayService:
         if not 0 <= index < len(pc.inventory):
             raise PlayError("play.error.bad_input")
         pc.inventory[index].equipped = not pc.inventory[index].equipped
+
+    def _attune(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Attune to an item that asks for it, or end the attunement: no more items
+        than the character has slots for (app/services/item_charges.py), logged."""
+        index = _int(params, "index", -1)
+        item = next((i for i in sheet.inventory if i.index == index), None)
+        if item is None or not item.attunable or not 0 <= index < len(pc.inventory):
+            raise PlayError("play.error.bad_input")
+        carried = pc.inventory[index]
+        if not carried.attuned:
+            held = sum(1 for i in pc.inventory if i.attuned)
+            if held >= sheet.attunement_slots:
+                raise PlayError("play.error.attuned_full", n=sheet.attunement_slots)
+        carried.attuned = not carried.attuned
+        self._stage(
+            pc,
+            actor,
+            EntryKind.CUSTOM,
+            what=f"attune:{carried.item.reference}:{int(carried.attuned)}",
+        )
+
+    def _charge(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Spend a magic item's charges (``op=spend``, ``n`` of them) or give one back
+        (``op=regain``), as its book counts them; logged."""
+        index = _int(params, "index", -1)
+        item = next((i for i in sheet.inventory if i.index == index), None)
+        if item is None or item.charges is None or not 0 <= index < len(pc.inventory):
+            raise PlayError("play.error.bad_input")
+        n = max(1, _int(params, "n", 1))
+        carried = pc.inventory[index]
+        if params.get("op") == "regain":
+            carried.charges_used = max(0, carried.charges_used - n)
+        else:
+            if n > item.charges.most - carried.charges_used:
+                raise PlayError("play.error.no_charges")
+            carried.charges_used += n
+        left = item.charges.most - carried.charges_used
+        op = "regain" if params.get("op") == "regain" else "spend"
+        self._stage(
+            pc, actor, EntryKind.CUSTOM, what=f"charge:{carried.item.reference}:{op}:{n}:{left}"
+        )
 
     def _saving_throw(
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor

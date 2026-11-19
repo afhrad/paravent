@@ -476,6 +476,21 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             return t(
                 "protocol.light", item=name_text(page, ("item", "baseitem"), rest.partition("|")[0])
             )
+        if head == "attune":
+            ref, _, on = rest.rpartition(":")
+            item = name_text(page, ("item", "baseitem"), ref.partition("|")[0])
+            return t("protocol.attune_on" if on == "1" else "protocol.attune_off", item=item)
+        if head == "charge":
+            # charge:<ref>:<spend|regain>:<n>:<left>
+            ref, op, n, left = (rest.rsplit(":", 3) + ["", "", ""])[:4]
+            item = name_text(page, ("item", "baseitem"), ref.partition("|")[0])
+            key = "protocol.charge_regain" if op == "regain" else "protocol.charge_spend"
+            return t(key, item=item, n=n, left=left)
+        if head == "charges":
+            # charges:<ref>:<n>:<left>, regained at dawn, dusk, midnight or a long rest
+            ref, n, left = (rest.rsplit(":", 2) + ["", ""])[:3]
+            item = name_text(page, ("item", "baseitem"), ref.partition("|")[0])
+            return t("protocol.charges_back", item=item, n=n, left=left)
         if head == "use":
             return t(
                 "protocol.use", item=name_text(page, ("item", "baseitem"), rest.partition("|")[0])

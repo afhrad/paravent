@@ -57,6 +57,7 @@ from app.services.class_refs import (
     subclass_owner,
 )
 from app.services.clock import light_minutes
+from app.services.item_charges import ATTUNEMENT_SLOTS, Charges, attunement_slots, charges_of
 from app.services.text import first_dice, paragraphs, strip_tags
 from app.services.translations import translation_key
 from app.services.wild_shape import BEAST_SPELLS, Form, WildShapeRules
@@ -407,6 +408,15 @@ class ItemView:
     # A spell scroll, and the spell it holds ("" while nobody wrote it in).
     scroll: bool = False
     spell: str = ""
+    # A magic item's charges, from its book (app/services/item_charges.py), and how many
+    # are spent; whether it asks to be attuned.
+    charges: Charges | None = None
+    charges_used: int = 0
+    attunable: bool = False
+
+    @property
+    def charges_left(self) -> int:
+        return max(0, self.charges.most - self.charges_used) if self.charges else 0
 
 
 @dataclass(frozen=True)
@@ -564,6 +574,8 @@ class Sheet:
     features: list[FeatureView] = field(default_factory=list)
     resources: list[ResourceView] = field(default_factory=list)
     inventory: list[ItemView] = field(default_factory=list)
+    # How many items the character may attune to (three; an artificer more).
+    attunement_slots: int = ATTUNEMENT_SLOTS
     load: Load | None = None
     conditions: list[ConditionView] = field(default_factory=list)
     concentration: SpellView | None = None
@@ -887,6 +899,9 @@ def build_sheet(
     _skills(sheet, character, corpus, mods, prof_bonus)
     training = _training(character, corpus, (species, subspecies))
     _armor_and_attacks(sheet, character, corpus, classes, mods, prof_bonus, training[1])
+    sheet.attunement_slots = attunement_slots(
+        {level.name.lower(): level.level for level, _data in classes}
+    )
 
     sheet.initiative = _value(
         character,
@@ -1308,6 +1323,9 @@ def _armor_and_attacks(
                 light_minutes(entry.item.name),
                 entry.item.name.lower().startswith("spell scroll"),
                 entry.spell,
+                charges_of(data),
+                entry.charges_used,
+                bool(data and data.get("reqAttune")),
             )
         )
     sheet.attacks = [

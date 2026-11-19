@@ -72,6 +72,7 @@ from app.services.glossary import Glossary, LinkCounts
 from app.services.handouts import HandoutService
 from app.services.i18n import FALLBACK, UiCatalogue
 from app.services.image_effects import ImageEffects
+from app.services.item_charges import Charges, ItemCharges
 from app.services.item_names import ItemNames
 from app.services.knowledge import KnowledgeService
 from app.services.lifestyle import LifestyleService, costs_2014, costs_2024
@@ -594,10 +595,14 @@ class StoreRegistry:
                 character, kind, subject, total
             ),
             on_timed=self._timed,
-            on_rested=lambda character, by: self.afflictions.rested(
-                character, by.username, by.name
-            ),
+            on_rested=lambda character, by: self._rested(character, by.username, by.name),
         )
+
+    def _rested(self, character_id: str, by: str, by_name: str) -> None:
+        """A long rest ended: afflictions roll their saves, a magic item regains the
+        charges a rest brings back."""
+        self.afflictions.rested(character_id, by, by_name)
+        self.item_charges.rested(character_id, by, by_name)
 
     def _timed(
         self, pc: PlayerCharacter, kind: str, reference: str, minutes: int, concentration: bool
@@ -624,10 +629,24 @@ class StoreRegistry:
             end_concentration=self._end_concentration,
             changed=self._clock_changed,
             days_passed=self._days_passed,
-            moved=lambda world, before, now, by, by_name: self.afflictions.passed(
-                world, before, now, by, by_name
-            ),
+            moved=self._clock_moved,
         )
+
+    def _clock_moved(self, world: str, before: int, now: int, by: str, by_name: str) -> None:
+        """The world's clock moved: afflictions run their course, and magic items regain
+        their charges at the dawns, dusks and midnights passed."""
+        self.afflictions.passed(world, before, now, by, by_name)
+        self.item_charges.passed(world, before, now, by, by_name)
+
+    @cached_property
+    def item_charges(self) -> ItemCharges:
+        """Magic items' charges coming back (app/services/item_charges.py)."""
+
+        def charges(pc: PlayerCharacter, index: int) -> Charges | None:
+            item = next((i for i in self.characters.sheet(pc).inventory if i.index == index), None)
+            return item.charges if item is not None else None
+
+        return ItemCharges(self.gamestate, self.protocol, charges=charges)
 
     def _days_passed(self, world_id: str, days: int, why: str, by: str, by_name: str) -> None:
         """Days passed off the road cost each character its lifestyle; on the road the

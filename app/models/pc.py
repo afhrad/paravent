@@ -317,12 +317,18 @@ class InventoryItem(GameStateModel):
     notes: str = ""
     # The spell a spell scroll holds ("Fireball|PHB"); left out of the file while empty.
     spell: str = ""
+    # Charges spent of a magic item's (its book says how many and when they come back);
+    # left out of the file while none are.
+    charges_used: int = Field(default=0, ge=0)
 
     @model_serializer(mode="wrap")
     def _without_empty_spell(self, handler: SerializerFunctionWrapHandler) -> Any:
         data = handler(self)
-        if isinstance(data, dict) and not data.get("spell"):
-            data.pop("spell", None)
+        if isinstance(data, dict):
+            if not data.get("spell"):
+                data.pop("spell", None)
+            if not data.get("charges_used"):
+                data.pop("charges_used", None)
         return data
 
 

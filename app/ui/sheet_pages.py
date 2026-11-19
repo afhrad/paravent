@@ -149,6 +149,7 @@ def act(
     title: str | None = None,
     label: str | None = None,
     pressed: bool | None = None,
+    disabled: bool = False,
 ) -> Element:
     """One sheet action as a form: posts normally, or swaps ``#sheet`` via HTMX."""
     url = _url(sheet, f"/act/{action}")
@@ -160,6 +161,7 @@ def act(
             title=title,
             aria_label=label,
             aria_pressed=None if pressed is None else ("true" if pressed else "false"),
+            disabled=disabled,
         )[content],
     ]
 
@@ -1219,7 +1221,9 @@ def _item_row(page: Page, sheet: Sheet, item: ItemView) -> Element:
     can_equip = item.kind in ("armor", "shield", "weapon") or item.equipped
     badges = [
         span(class_="tag")[f"×{item.quantity}"] if item.quantity != 1 else None,
-        span(class_="tag magic")[t("sheet.attuned")] if item.attuned else None,
+        span(class_="tag magic")[t("sheet.attuned")]
+        if item.attuned and not item.attunable
+        else None,
         span(class_="tag")[_item_summary(page, item.summary)] if item.summary else None,
         span(class_="tag warn")[t("sheet.not_found")]
         if not item.found and "|" in item.name
@@ -1230,8 +1234,20 @@ def _item_row(page: Page, sheet: Sheet, item: ItemView) -> Element:
             name_span(page, ITEM, item.name),
             span(class_="meta")[badges, span[item.notes] if item.notes else None],
             _scroll_acts(page, sheet, item) if item.scroll else None,
+            _charges(page, sheet, item),
         ],
         div(class_="cs-item-act")[
+            act(
+                sheet,
+                "attune",
+                {"index": item.index},
+                t("sheet.attuned_on") if item.attuned else t("sheet.attune"),
+                cls=f"btn btn-sm {'is-on' if item.attuned else ''}",
+                pressed=item.attuned,
+                title=t("sheet.attune_title"),
+            )
+            if item.attunable
+            else None,
             act(
                 sheet,
                 "equip",
@@ -1271,6 +1287,69 @@ def _item_row(page: Page, sheet: Sheet, item: ItemView) -> Element:
             if item.consumable
             else None,
         ],
+    ]
+
+
+def _attunement(page: Page, sheet: Sheet) -> Node:
+    """How many items are attuned of the slots there are, while any item asks for it."""
+    if not any(i.attunable for i in sheet.inventory):
+        return None
+    held = sum(1 for i in sheet.inventory if i.attuned)
+    full = held >= sheet.attunement_slots
+    return span(class_="tag magic" + (" full" if full else ""), title=page.t("sheet.attuned_hint"))[
+        page.t("sheet.attuned_count", n=held, slots=sheet.attunement_slots)
+    ]
+
+
+def _charges(page: Page, sheet: Sheet, item: ItemView) -> Node:
+    """A magic item's charges: what is left, when they come back, spend one or give
+    one back (app/services/item_charges.py)."""
+    charges = item.charges
+    if charges is None:
+        return None
+    t = page.t
+    left = item.charges_left
+    when = (
+        t(
+            f"sheet.recharge.{charges.recharge}",
+            amount=rules_text.dice(page, charges.amount)
+            if charges.amount
+            else t("sheet.charges_all"),
+        )
+        if charges.recharge in ("dawn", "dusk", "midnight", "restLong")
+        else ""
+    )
+    pips = (
+        span(class_="cs-pips", aria_hidden="true")[
+            [span(class_="cs-pip" + (" on" if n < left else "")) for n in range(charges.most)]
+        ]
+        if charges.most <= 12
+        else None
+    )
+    return div(class_="cs-charges")[
+        pips,
+        span(class_="mono cs-charges-n")[t("sheet.charges_left", left=left, most=charges.most)],
+        span(class_="cs-charge-btns")[
+            act(
+                sheet,
+                "charge",
+                {"index": item.index, "op": "spend"},
+                "−",
+                cls="btn btn-sm btn-dmg",
+                title=t("sheet.charge_spend"),
+                disabled=left <= 0,
+            ),
+            act(
+                sheet,
+                "charge",
+                {"index": item.index, "op": "regain"},
+                "+",
+                cls="btn btn-sm btn-heal",
+                title=t("sheet.charge_regain"),
+                disabled=left >= charges.most,
+            ),
+        ],
+        small(class_="muted cs-recharge")[when] if when else None,
     ]
 
 
@@ -1378,7 +1457,10 @@ def _gear_pane(page: Page, sheet: Sheet) -> Element:
     t = page.t
     coins = sheet.character.currency
     return section(class_="cs-pane", data_tab="gear", data_m="gear")[
-        div(class_="cs-pane-head")[h2(class_="eyebrow")[t("sheet.inventory")]],
+        div(class_="cs-pane-head")[
+            h2(class_="eyebrow")[t("sheet.inventory")],
+            _attunement(page, sheet),
+        ],
         div(class_="cs-coins")[
             [
                 div(class_="cs-coin")[

@@ -2853,3 +2853,6 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
   .cg-skills th, .cg-skills td{ padding-left:4px; padding-right:4px; }
   .cg-skills .chip-src{ white-space:normal; hyphens:auto; overflow-wrap:break-word; }
 }
+/* A party card's magic items: attuned ones in the magic colour, charges left beside */
+.pc-magic-item{ background:var(--surface-2); }
+.pc-magic-item.is-attuned{ background:var(--magic-weak); color:var(--magic-text); border-color:color-mix(in srgb, var(--magic) 35%, transparent); }

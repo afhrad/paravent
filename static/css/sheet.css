@@ -419,3 +419,19 @@ a.fchip{ text-decoration:none; }
   .cs-head-meta::before{ content:""; order:2; flex-basis:100%; }
   .cs-head-meta > :not(.pill):not(.cs-live), .cs-head-meta > .cs-act > .btn{ order:3; }
 }
+
+/* A magic item's charges: pips for what is left, the count, when they come back, and
+   spend or give back one (app/services/item_charges.py). */
+.cs-charges{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:6px; }
+.cs-pips{ display:inline-flex; gap:3px; flex-wrap:wrap; }
+.cs-pip{ width:10px; height:10px; border-radius:50%; border:1px solid var(--magic, var(--accent)); background:transparent; }
+.cs-pip.on{ background:var(--magic, var(--accent)); }
+.cs-charges-n{ font-size:13px; font-weight:600; }
+.cs-charges .btn{ min-width:32px; justify-content:center; font-weight:700; }
+.cs-charges .btn[disabled]{ opacity:.4; }
+.cs-pane-head .tag.magic.full{ background:var(--cond-weak); color:var(--cond-text); border-color:var(--cond); }
+@media (hover: none), (max-width: 640px){ .cs-charges .btn{ min-width:44px; min-height:40px; } }
+.cs-charge-btns{ display:inline-flex; gap:4px; }
+.cs-charge-btns .cs-act{ display:contents; }
+.cs-recharge{ font-size:12px; }
+@media (max-width: 640px){ .cs-recharge{ flex-basis:100%; } }

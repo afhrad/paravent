@@ -41,7 +41,7 @@ from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.library_links import adventure_url, chapter_url, world_url
-from app.ui.names import class_line
+from app.ui.names import class_line, name_text
 from app.ui.play_buttons import play_button
 from app.ui.play_session_pages import session_url
 from app.ui.protocol_pages import headline
@@ -254,8 +254,27 @@ def party_card(
         ]
         if slots or sheet.pact
         else None,
+        _magic_items(page, sheet),
         _last_roll(page, sheet),
         _card_actions(page, sheet, world_filter),
+    ]
+
+
+def _magic_items(page: Page, sheet: Sheet) -> Node:
+    """The magic items a character is attuned to or that hold charges, with what is
+    left of them (app/services/item_charges.py)."""
+    t = page.t
+    held = [i for i in sheet.inventory if i.attuned or i.charges is not None]
+    if not held:
+        return None
+    return div(class_="pc-slots pc-magic", title=t("party.magic_items"))[
+        [
+            span(class_="pc-slot pc-magic-item" + (" is-attuned" if i.attuned else ""))[
+                name_text(page, ("item", "baseitem"), i.name),
+                span(class_="mono")[f" {i.charges_left}/{i.charges.most}"] if i.charges else None,
+            ]
+            for i in held
+        ]
     ]
 
 
