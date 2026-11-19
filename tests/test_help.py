@@ -75,3 +75,19 @@ async def test_a_fresh_install_says_there_is_no_data_yet(client: AsyncClient) ->
     assert page.status_code == 404
     assert "No 5eTools data yet" in page.text and 'href="/help/start?back=/"' in page.text
     assert "Entry not found" not in page.text
+
+
+async def test_a_player_finds_how_playing_works(client: AsyncClient) -> None:
+    app_registry = client._transport.app.state.stores  # type: ignore[attr-defined]
+    app_registry.auth.create_user("mara", PASSWORD, Role.PLAYER)
+    await client.post("/logout")
+    await client.post("/login", data={"username": "mara", "password": PASSWORD})
+    home = (await client.get("/play")).text
+    assert 'href="/help/player?back=/play"' in home  # on the home page
+    assert 'href="/help/player?back=' in home.split("usermenu-panel", 1)[1]  # and the menu
+    guide = await client.get("/help/player", params={"back": "/play"})
+    assert guide.status_code == 200 and "Playing with Paravent" in guide.text
+    assert "From items" in guide.text and "X-card" in guide.text
+    await client.post("/language", data={"lang": "de", "next": "/"})
+    german = (await client.get("/help/player")).text
+    assert "Spielen mit Paravent" in german and "Aus Gegenständen" in german

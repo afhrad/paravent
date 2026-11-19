@@ -9,7 +9,7 @@ from __future__ import annotations
 from pathlib import Path
 
 HELP_DIR = Path(__file__).resolve().parent.parent / "help"
-TOPICS = frozenset({"between", "combat", "mcp", "start"})
+TOPICS = frozenset({"between", "combat", "mcp", "player", "start"})
 
 
 def help_text(topic: str, lang: str) -> str | None:

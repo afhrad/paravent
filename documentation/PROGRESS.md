@@ -612,6 +612,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         `/help/between`): a gamemaster's walkthrough of the session page, the clock and
         calendar, the road, downtime, the bastion, contacts, factions, quests, followers,
         chases, traps and levelling, linked from the session page and the start guide
+  - [x] **How playing works, in the app** (2026-11-19, `app/help/player.<lang>.md`,
+        `/help/player`): a player's walkthrough of the sheet's views, rolling, hit points
+        and rests, spells, gear and magic items (attunement, charges, spells from items),
+        the fight view, checks called for them, the time between sessions and the safety
+        tools; linked from the player's home page and the user menu
   - [x] **A character's story** (2026-11-16, `app/services/story.py`, a Story button on
         the sheet): its quests, its factions with renown and title, contacts, followers
         and bastion, and the log's moments that changed it (experience, levels, renown,

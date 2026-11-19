@@ -105,6 +105,10 @@ def player_home(
             else None,
             fights,
             body,
+            # How the sheet, rolls, fights and magic items work, for a new player.
+            a(href="/help/player?back=/play", class_="btn btn-ghost play-guide")[
+                icon("circle-help", "sm"), span[t("help.player")]
+            ],
         ],
     )
 

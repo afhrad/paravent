@@ -12,6 +12,8 @@ submit buttons: no JavaScript needed, and it scales past two languages.
 
 from __future__ import annotations
 
+from urllib.parse import quote
+
 from htpy import (
     Element,
     Node,
@@ -357,6 +359,9 @@ def user_menu(page: Page, name: str, username: str) -> Element:
                 ],
                 a(href="/safety", class_="usermenu-link")[
                     icon("shield", "sm"), span[t("safety.title")]
+                ],
+                a(href=f"/help/player?back={quote(page.path or '/')}", class_="usermenu-link")[
+                    icon("circle-help", "sm"), span[t("help.player")]
                 ],
                 a(href="/gm/creatures", class_="usermenu-link")[
                     icon("skull", "sm"), span[t("creatures.heading")]

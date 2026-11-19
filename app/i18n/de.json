@@ -3912,5 +3912,6 @@
   "sheet.item_spells": "Aus Gegenständen",
   "sheet.item_spell_title": "Aus {item} gewirkt: mit seinen Ladungen, nicht mit einem Zauberplatz",
   "sheet.item_spell_cost": {"one": "{count} Ladung", "other": "{count} Ladungen"},
-  "play.error.attune_requires": "Nicht für diesen Charakter: Der Gegenstand verlangt die Einstimmung durch jemand anderen (siehe seinen Text)."
+  "play.error.attune_requires": "Nicht für diesen Charakter: Der Gegenstand verlangt die Einstimmung durch jemand anderen (siehe seinen Text).",
+  "help.player": "So spielst du"
 }
