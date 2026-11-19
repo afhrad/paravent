@@ -19,6 +19,7 @@ from htpy import (
     a,
     b,
     button,
+    datalist,
     details,
     div,
     fieldset,
@@ -42,6 +43,7 @@ from htpy import input as input_el
 from app.models.gamestate import Coins, Encounter, Location, Npc, Treasure, TreasureItem, World
 from app.services.adventures import ChapterView
 from app.services.holdings import Held
+from app.services.naming import StyleEntry
 from app.services.npcs import KNOWN_ROLES, TreasureLine
 from app.services.references import ReferenceEntry
 from app.services.scope import encode
@@ -56,6 +58,7 @@ from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.library_links import (
+    NPCS_URL,
     WORLDS_URL,
     chapter_url,
     confirm_page,
@@ -71,6 +74,7 @@ from app.ui.library_links import (
     world_url,
 )
 from app.ui.markdown import Rendered
+from app.ui.name_roller import name_roller
 from app.ui.palette import SearchTarget, search_form
 from app.ui.ref_pages import statblock
 from app.ui.tags import RenderContext, ref_url
@@ -415,10 +419,9 @@ def _create_dialog(
     submit: str,
     error: str | None,
     is_open: bool,
-    generate: str | None = None,
 ) -> Element:
-    """A new NPC or treasure in one dialog, as a new place: its name, where it is placed
-    and a first note; ``generate`` adds a button that rolls one instead."""
+    """A new treasure in one dialog, as a new place: its name, where it is placed and a
+    first note."""
     t = page.t
     return new_dialog(
         page,
@@ -441,14 +444,85 @@ def _create_dialog(
                 textarea(id=f"{dialog_id}-notes", name="notes", rows="4"),
             ],
         ],
+    )
+
+
+NEW_NPC_NAME_URL = f"{NPCS_URL}/new/name"
+
+
+def new_npc_name_field(
+    page: Page, name: str, styles: Sequence[StyleEntry], style: str = ""
+) -> Element:
+    """A new NPC's name with dice for one, rolled in the style of the people or creature
+    written above it (or the style chosen), which a roll swaps in place."""
+    return span(class_="name-field")[
+        input_el(
+            id="f-new-npc-name",
+            name="name",
+            type="text",
+            value=name,
+            required=True,
+            autocomplete="off",
+        ),
+        name_roller(page, NEW_NPC_NAME_URL, styles, field_id="f-new-npc-name", selected=style),
+    ]
+
+
+def _new_npc_dialog(
+    page: Page,
+    world: World,
+    *,
+    races: Sequence[str],
+    styles: Sequence[StyleEntry],
+    error: str | None,
+    is_open: bool,
+) -> Element:
+    """A new NPC in the table's world (documentation/CURRENT-WORLD.md): first the people or
+    creature it is, which its name is rolled for, then the name with its dice, a first
+    note, or a whole NPC rolled instead."""
+    t = page.t
+    action = world_npcs_url(world.id)
+    return new_dialog(
+        page,
+        "new-npc",
+        title=t("npcs.new"),
+        action=action,
+        back=action,
+        submit=t("npcs.create"),
+        is_open=is_open,
+        fields=[
+            alert(error),
+            hidden("place", f"w:{world.id}"),
+            div(class_="field")[
+                label(for_="f-new-npc-race")[t("npcs.race")],
+                input_el(
+                    id="f-new-npc-race",
+                    name="race",
+                    type="text",
+                    list="known-new-npc-race",
+                    autocomplete="off",
+                    aria_describedby="f-new-npc-race-hint",
+                ),
+                datalist(id="known-new-npc-race")[[option(value=r) for r in races]],
+                p(class_="field-hint", id="f-new-npc-race-hint")[t("npcs.race_hint")],
+            ],
+            div(class_="field")[
+                label(for_="f-new-npc-name")[t("adventures.name")],
+                new_npc_name_field(page, "", styles),
+            ],
+            div(class_="field")[
+                label(for_="new-npc-notes")[
+                    t("npcs.notes"), " ", span(class_="opt")[t("common.optional")]
+                ],
+                textarea(id="new-npc-notes", name="notes", rows="4"),
+            ],
+        ],
         more=button(
             type="submit",
             formaction=f"{action}/generate",
             formnovalidate=True,
             class_="btn",
-        )[icon("dices", "sm"), span[generate]]
-        if generate
-        else None,
+        )[icon("dices", "sm"), span[t("npcgen.new")]],
     )
 
 
@@ -462,9 +536,12 @@ def npcs_page(
     notice_text: str | None = None,
     error: str | None = None,
     new: bool = False,
+    races: Sequence[str] = (),
+    styles: Sequence[StyleEntry] = (),
 ) -> Element:
     """A world's NPCs, bosses first, with where each is placed, and **New NPC**, which
-    opens a dialog for one (open from the start with ``new``, or after a refused one)."""
+    opens a dialog for one (open from the start with ``new``, or after a refused one);
+    ``races`` are the peoples the naming styles know, ``styles`` what its dice may roll."""
     t = page.t
     ordered = sorted(rows, key=lambda r: ("boss" not in r[0].roles, r[0].name.casefold()))
     items = [
@@ -500,20 +577,17 @@ def npcs_page(
             ul(class_="list")[items]
             if items
             else empty_state("circle-user", t("npcs.empty_heading"), t("npcs.empty_text")),
-            _create_dialog(
+            _new_npc_dialog(
                 page,
-                "new-npc",
-                world_npcs_url(world.id),
-                scopes,
-                selected,
-                title=t("npcs.new"),
-                submit=t("npcs.create"),
+                world,
+                races=races,
+                styles=styles,
                 error=error if new else None,
                 is_open=new,
-                generate=t("npcgen.new"),
             ),
         ],
         world_id=world.id,
+        extra_scripts=("/static/js/htmx.min.js",),
     )
 
 
@@ -1158,6 +1232,7 @@ __all__ = [
     "npc_delete_page",
     "npc_form_page",
     "npc_page",
+    "new_npc_name_field",
     "npcs_page",
     "object_not_found_page",
     "role_pills",

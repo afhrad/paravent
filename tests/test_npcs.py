@@ -458,3 +458,26 @@ class TestPages:
         ac, _ = client
         for url in ("/gm/npcs/nope", "/gm/treasure/nope", "/gm/worlds/nope/npcs"):
             assert (await ac.get(url)).status_code == 404, url
+
+
+async def test_a_new_npcs_name_follows_its_creature(
+    client: tuple[AsyncClient, StoreRegistry],
+) -> None:
+    """Written as a creature of the world's books, a new NPC's name is rolled in the style
+    its subtype finds, as the encounter builder names one (Goblin: goblinoid)."""
+    from app.models.naming import ListPart, NamingStyle
+
+    ac, registry = client
+    registry.gamestate.worlds.create(World(name="W", source_set=SourceSet(sources=["MM"])))
+    registry.naming_workshop.create(
+        NamingStyle(
+            name="Goblinoid names",
+            pattern="{given}",
+            parts={"given": ListPart(names=["Snaggle"])},
+            race="Goblinoid",
+        )
+    )
+    rolled = await ac.post(
+        "/gm/npcs/new/name", data={"race": "Goblin"}, headers={"HX-Request": "true"}
+    )
+    assert 'value="Snaggle"' in rolled.text

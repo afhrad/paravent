@@ -170,3 +170,31 @@ async def test_npcs_and_treasure_are_made_in_a_dialog_as_places_are(
     assert chest.notes == "Under the bridge."
     refused = await gm.post(f"/gm/worlds/{world.id}/treasure", data={"name": ""})
     assert refused.status_code == 422 and 'aria-labelledby="new-treasure-h" open' in refused.text
+
+
+async def test_a_new_npc_is_the_worlds_named_for_its_people(
+    gm: AsyncClient, registry: StoreRegistry
+) -> None:
+    world = registry.worlds.create(WorldInput(name="Grey Reed"))
+    page = (await gm.get("/gm/npcs")).text
+    dialog = page.split('id="new-npc"', 1)[1].split("</dialog>", 1)[0]
+    # No place to choose: the table's world. The people first, then the name and its dice.
+    assert (
+        'name="place" value="w:' + world.id + '"' in dialog
+        and "<select" not in dialog.split('class="name-roll"', 1)[0]
+    )
+    assert dialog.index('name="race"') < dialog.index('name="name"')
+    assert 'hx-post="/gm/npcs/new/name"' in dialog
+    rolled = await gm.post(
+        "/gm/npcs/new/name", data={"race": "Dwarf", "name": ""}, headers={"HX-Request": "true"}
+    )
+    assert rolled.status_code == 200 and rolled.text.startswith('<span class="name-field">')
+    value = rolled.text.split('value="', 1)[1].split('"', 1)[0]
+    assert value  # a name was rolled
+    made = await gm.post(
+        f"/gm/worlds/{world.id}/npcs",
+        data={"name": value, "race": "Dwarf", "place": f"w:{world.id}"},
+    )
+    assert made.status_code == 303
+    npc = next(n for n in registry.gamestate.npcs.list() if n.name == value)
+    assert npc.race == "Dwarf" and npc.scope.world_id == world.id and npc.scope.adventure_id is None

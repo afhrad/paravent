@@ -188,7 +188,12 @@ touched; without JavaScript the form comes back with everything else as typed.
 
 **An NPC** has `race` and `culture`, in its form and offered from what exists, and the
 generator starts from their style, saying when the default stands in. An NPC with neither
-takes those of the style that named it. **A character** has its species: the wizard's
+takes those of the style that named it. **A new NPC** (2026-11-19, the *New NPC* dialog of
+the table's world) asks first for its people or creature, offered from the styles' races, and
+the dice beside its name roll in the style that finds — a people a style serves, else a
+creature of the world's books by its name and subtype, as the encounter builder names one
+(Goblin → goblinoid), else the default (`POST /gm/npcs/new/name`); the people is kept as its
+`race`. **A character** has its species: the wizard's
 "Suggest a name" uses species and subspecies, or any style chosen there.
 
 **The workshop** (`/gm/names`, settings gear; `app/services/naming_workshop.py`) has to

@@ -3960,5 +3960,7 @@
   "world.switch": "Switch to {world}",
   "chargen.world_now": "Made with the books of {world}, the world the table plays in. Characters belong to no world: they play wherever the table does.",
   "worlds.delete_characters_stay": "The characters stay: they belong to no world and play in whichever the table plays in next.",
-  "play.world": "You are playing in {world}"
+  "play.world": "You are playing in {world}",
+  "npcs.race": "People or creature",
+  "npcs.race_hint": "Dwarf, elf, goblin … The dice beside the name roll one in its people's style."
 }

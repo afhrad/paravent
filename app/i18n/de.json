@@ -3960,5 +3960,7 @@
   "world.switch": "Zu {world} wechseln",
   "chargen.world_now": "Erstellt mit den Büchern von {world}, der Welt, in der der Tisch spielt. Charaktere gehören zu keiner Welt: sie spielen, wo der Tisch spielt.",
   "worlds.delete_characters_stay": "Die Charaktere bleiben: Sie gehören zu keiner Welt und spielen in der, in der der Tisch als Nächstes spielt.",
-  "play.world": "Ihr spielt in {world}"
+  "play.world": "Ihr spielt in {world}",
+  "npcs.race": "Volk oder Kreatur",
+  "npcs.race_hint": "Zwerg, Elf, Goblin … Die Würfel neben dem Namen würfeln einen im Stil dieses Volks."
 }

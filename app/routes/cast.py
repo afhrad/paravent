@@ -28,15 +28,19 @@ from app.services import scope
 from app.services.adventures import EditConflict, text_version
 from app.services.i18n import Translatable
 from app.services.media import MAX_BYTES, MediaError
+from app.services.naming import Naming, NamingError, creature_races
 from app.services.naming_workshop import races
+from app.services.npc_gen import edition_for
 from app.services.npcs import ObjectError
 from app.services.play import Actor
 from app.services.references import ReferenceNotFound
 from app.services.treasure_roll import TreasureRollError, roller_for, tables_for
 from app.store.registry import StoreRegistry
 from app.ui.cast_pages import (
+    NEW_NPC_NAME_URL,
     RollForm,
     coins_text,
+    new_npc_name_field,
     npc_delete_page,
     npc_form_page,
     npc_page,
@@ -79,6 +83,7 @@ def _npcs(
     world = registry.adventures.world(world_id)
     npcs = registry.npcs
     rows = [(n, npcs.place(n).names) for n in npcs.list(world_id)]
+    styles = registry.naming_for(world_id).entries()
     return html(
         npcs_page(
             page,
@@ -89,9 +94,57 @@ def _npcs(
             error=error,
             notice_text=notice_text,
             new=new,
+            races=[g.race for g in races(styles) if g.race],
+            styles=styles,
         ),
         status_code=status_code,
     )
+
+
+def _style_for(
+    registry: StoreRegistry, naming: Naming, books: SourceSet, race: str, edition: str, lang: str
+) -> str:
+    """The naming style for a people or creature: the people a style serves, else a
+    creature of the world's books by its name and subtype ("goblinoid"), as the encounter
+    builder names one (NAMES.md), else the default."""
+    found = naming.find(race, "", edition, lang)
+    if not found.fallback or not race.strip():
+        return found.key
+    creature = registry.references.resolver().resolve("monster", race.strip(), books).entry
+    if creature is None:
+        return found.key
+    seen = registry.encounters.monster(creature.name, creature.source)
+    tags = seen.kind.tags if seen is not None else ()
+    return naming.for_creature(creature_races(creature.name, tags), edition, lang).key
+
+
+@router.post(NEW_NPC_NAME_URL, response_class=HTMLResponse)
+async def roll_new_npc_name(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    request: Request,
+    race: Annotated[str, Form()] = "",
+    name: Annotated[str, Form()] = "",
+    style: Annotated[str, Form()] = "",
+) -> Response:
+    """A name for the NPC the new-NPC dialog makes, nothing saved: in the style chosen,
+    else the one the people or creature written finds (NAMES.md), none of the world's
+    NPCs named so already. From HTMX the name field alone, swapped in place."""
+    world = registry.table.world()
+    if world is None:
+        return redirect("/gm/npcs")
+    naming = registry.naming_for(world.id)
+    edition = edition_for(world.source_set, registry.npc_tables)
+    key = style or _style_for(registry, naming, world.source_set, race, edition, page.lang)
+    taken = [n.name for n in registry.npcs.list(world.id)]
+    try:
+        rolled = naming.names(key, count=1, avoid=taken, language=page.lang)
+    except NamingError:
+        rolled = []
+    if request.headers.get("HX-Request") != "true":
+        return redirect("/gm/npcs?new=1")
+    return html(new_npc_name_field(page, rolled[0] if rolled else name, naming.entries(), style))
 
 
 @router.get(f"{WORLDS_URL}/{{world_id}}/npcs", response_class=HTMLResponse)
@@ -118,12 +171,15 @@ async def create_npc(
     name: Annotated[str, Form()] = "",
     place: Annotated[str, Form()] = "",
     notes: Annotated[str, Form()] = "",
+    race: Annotated[str, Form()] = "",
 ) -> Response:
-    """Add an NPC where ``place`` says, with a first note if given (the new-NPC dialog),
-    then open its form."""
+    """Add an NPC where ``place`` says (the new-NPC dialog: the world), with the people
+    or creature its name was rolled for and a first note if given, then open its form."""
     npcs = registry.npcs
     try:
         npc = npcs.create(name, place or f"w:{world_id}", world_id)
+        if race.strip():
+            npc = registry.gamestate.npcs.update(npc.id, race=race.strip())
         if notes.strip():
             npc = npcs.update(
                 npc.id,
