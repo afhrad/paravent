@@ -3908,5 +3908,8 @@
   "protocol.charge_regain": "Gives {item} {n} charge(s) back ({left} left)",
   "protocol.charges_back": "{item} regains {n} charge(s) ({left} left)",
   "sheet.attuned_on": "Attuned",
-  "party.magic_items": "Magic items: attuned, and charges left"
+  "party.magic_items": "Magic items: attuned, and charges left",
+  "sheet.item_spells": "From items",
+  "sheet.item_spell_title": "Cast from {item}: its charges, not a slot",
+  "sheet.item_spell_cost": {"one": "{count} charge", "other": "{count} charges"}
 }

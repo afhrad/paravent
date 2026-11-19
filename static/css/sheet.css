@@ -435,3 +435,4 @@ a.fchip{ text-decoration:none; }
 .cs-charge-btns .cs-act{ display:contents; }
 .cs-recharge{ font-size:12px; }
 @media (max-width: 640px){ .cs-recharge{ flex-basis:100%; } }
+.cs-item-spells{ margin:16px 0 6px; }

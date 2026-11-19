@@ -395,7 +395,13 @@ async def heal_spell(
     character = characters.get_for(identity, character_id)
     try:
         healed = characters.heal_with_spell(
-            identity, character_id, spell, _slot_level(level), target, free=level == "free"
+            identity,
+            character_id,
+            spell,
+            _slot_level(level),
+            target,
+            free=level == "free",
+            item=level if level.startswith("item:") else "",
         )
         known = dict(characters.allies(character))
         names = [known.get(t, "?") for t in dict.fromkeys(target)]

@@ -386,6 +386,22 @@ class ResourceView:
 
 
 @dataclass(frozen=True)
+class ItemSpell:
+    """A spell cast from a carried item, as its book lists it (``attachedSpells``):
+    its place in the inventory, the charges a casting costs (0 at will) and the spell,
+    whose ``origin`` is the item."""
+
+    index: int
+    cost: int
+    spell: SpellView
+
+    @property
+    def key(self) -> str:
+        """What a cast form sends as its ``level``: ``item:<index>:<cost>``."""
+        return f"item:{self.index}:{self.cost}"
+
+
+@dataclass(frozen=True)
 class ItemView:
     index: int
     name: str
@@ -576,6 +592,8 @@ class Sheet:
     inventory: list[ItemView] = field(default_factory=list)
     # How many items the character may attune to (three; an artificer more).
     attunement_slots: int = ATTUNEMENT_SLOTS
+    # The spells its items cast, of those it may use (attuned where they ask for it).
+    item_spells: list[ItemSpell] = field(default_factory=list)
     load: Load | None = None
     conditions: list[ConditionView] = field(default_factory=list)
     concentration: SpellView | None = None
@@ -720,7 +738,8 @@ class Sheet:
 
     @property
     def is_spellcaster(self) -> bool:
-        return bool(self.spells or self.slots or self.pact)
+        """Whether the sheet shows spells: its own, or those its items cast."""
+        return bool(self.spells or self.slots or self.pact or self.item_spells)
 
     @property
     def is_dying(self) -> bool:
@@ -751,9 +770,23 @@ class Sheet:
         return next(a for a in self.abilities if a.key == key)
 
     def spell(self, reference: str) -> SpellView | None:
+        """A spell of the character's, or else one an item of its casts."""
+        lowered = reference.lower()
+        every = [*self.spells, *(x.spell for x in self.item_spells)]
+        return next(
+            (s for s in every if s.reference.lower() == lowered or s.name.lower() == lowered),
+            None,
+        )
+
+    def item_spell(self, reference: str, key: str) -> ItemSpell | None:
+        """The item spell a cast form names by its spell and ``item:<index>:<cost>``."""
         lowered = reference.lower()
         return next(
-            (s for s in self.spells if s.reference.lower() == lowered or s.name.lower() == lowered),
+            (
+                x
+                for x in self.item_spells
+                if x.key == key and lowered in (x.spell.reference.lower(), x.spell.name.lower())
+            ),
             None,
         )
 
@@ -916,6 +949,7 @@ def build_sheet(
     sheet.load = _load(sheet, character, species, subspecies, variant_encumbrance)
     _hit_points(sheet, character, classes, mods["con"])
     _spellcasting(sheet, character, corpus, classes, mods, prof_bonus)
+    _item_spells(sheet, character, corpus)
     _features(sheet, character, corpus, classes, species, subspecies, background)
     # Features that change numbers (Aura of Protection, Defense, Dwarven Toughness…).
     # Imported here: traits reads the sheet's types, so it cannot be imported at the top.
@@ -1830,6 +1864,42 @@ def _always_prepared(
             name, _sep, source = spell.partition("|")
             out.append(ChosenOption(name=name, source=source.upper() or None))
     return out
+
+
+def _item_spells(sheet: Sheet, character: PlayerCharacter, corpus: _Corpus) -> None:
+    """The spells the character's items cast, as their books list them: at will, or for
+    so many charges (``attachedSpells``); an item that asks for attunement only while
+    attuned. Cast from the sheet like the character's own, the charges spent instead
+    of a slot (app/services/play.py)."""
+    for item in sheet.inventory:
+        if not item.found or (item.attunable and not item.attuned):
+            continue
+        data = corpus.item(character.inventory[item.index].item) or {}
+        attached = data.get("attachedSpells")
+        if not isinstance(attached, dict):
+            continue
+        uses: list[tuple[int, str]] = [(0, str(ref)) for ref in attached.get("will") or []]
+        charges = attached.get("charges")
+        if isinstance(charges, dict) and item.charges is not None:
+            uses += [
+                (int(cost), str(ref))
+                for cost, refs in charges.items()
+                if str(cost).isdigit()
+                for ref in refs or []
+            ]
+        for cost, ref in uses:
+            option = ChosenOption.model_validate(ref)
+            # The printing the item names, or else the spell's own in the world's books
+            # (a 2024 staff in a world that plays the 2014 handbook).
+            found = corpus.resolve("spell", option) or corpus.resolve(
+                "spell", ChosenOption(name=option.name)
+            )
+            if found is None:
+                continue
+            view = replace(
+                spell_view(found, sheet.level), origin=item.name, free=f"item:{item.index}:{cost}"
+            )
+            sheet.item_spells.append(ItemSpell(item.index, cost, view))
 
 
 def _class_spell_uses(

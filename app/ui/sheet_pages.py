@@ -774,6 +774,17 @@ def _spell_tags(page: Page, sheet: Sheet, spell: SpellView) -> list[Node]:
     tags.extend(span(class_="tag dmg")[rules_text.damage_word(page, d)] for d in spell.damage_types)
     if spell.always:
         tags.append(span(class_="tag", title=t("sheet.always_title"))[t("sheet.always")])
+    if spell.free.startswith("item:"):
+        cost = int(spell.free.rsplit(":", 1)[1])
+        item = name_text(page, ("item", "baseitem"), spell.origin)
+        tags.append(
+            span(class_="tag magic", title=t("sheet.item_spell_title", item=item))[
+                item,
+                " · ",
+                t.plural("sheet.item_spell_cost", cost) if cost else t("sheet.cast_will"),
+            ]
+        )
+        return tags
     if spell.origin:
         # Granted by a feat, species or background, cast with its own ability.
         origin = name_text(page, ("feat", "race", "subrace", "background"), spell.origin)
@@ -855,6 +866,9 @@ def _cast_form(page: Page, sheet: Sheet, spell: SpellView) -> Element:
         (str(n), t("rules.spell_level", level=n)) for n in sheet.castable(spell)
     ]
     free = _free_castings(sheet, spell)
+    if spell.free.startswith("item:"):
+        # Cast from an item: its charges, not a slot (app/services/item_charges.py).
+        choices, free = [(spell.free, "")], None
     if free is not None:
         # A granted spell's casting without a slot comes first: it is what it is for.
         choices.insert(
@@ -998,7 +1012,9 @@ def _spell_row(
     return details(
         class_=f"cs-spell {'held' if held else ''}",
         data_level=str(spell.level),
-        data_key=f"spell:{spell.reference}",
+        data_key=f"spell:{spell.reference}:{spell.free}"
+        if spell.free
+        else f"spell:{spell.reference}",
     )[
         summary[
             div(class_="cs-item-main")[
@@ -1050,7 +1066,17 @@ def _spells_pane(page: Page, sheet: Sheet, ctx: RenderContext | None = None) -> 
         _prepare_strip(page, sheet),
         div(class_="cs-list")[[_spell_row(page, sheet, s, ctx) for s in sheet.spells]]
         if sheet.spells
-        else p(class_="cs-empty")[t("sheet.no_spells")],
+        else p(class_="cs-empty")[t("sheet.no_spells")]
+        if not sheet.item_spells
+        else None,
+        [
+            h3(class_="eyebrow cs-item-spells")[t("sheet.item_spells")],
+            div(class_="cs-list")[
+                [_spell_row(page, sheet, x.spell, ctx) for x in sheet.item_spells]
+            ],
+        ]
+        if sheet.item_spells
+        else None,
     ]
 
 

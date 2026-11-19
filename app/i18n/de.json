@@ -3908,5 +3908,8 @@
   "protocol.charge_regain": "Gibt {item} {n} Ladung(en) zurück ({left} übrig)",
   "protocol.charges_back": "{item} erhält {n} Ladung(en) zurück ({left} übrig)",
   "sheet.attuned_on": "Eingestimmt",
-  "party.magic_items": "Magische Gegenstände: eingestimmt, und übrige Ladungen"
+  "party.magic_items": "Magische Gegenstände: eingestimmt, und übrige Ladungen",
+  "sheet.item_spells": "Aus Gegenständen",
+  "sheet.item_spell_title": "Aus {item} gewirkt: mit seinen Ladungen, nicht mit einem Zauberplatz",
+  "sheet.item_spell_cost": {"one": "{count} Ladung", "other": "{count} Ladungen"}
 }

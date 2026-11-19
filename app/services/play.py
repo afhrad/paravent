@@ -460,6 +460,31 @@ class PlayService:
             raise PlayError("play.error.resource_spent", name=resource.name)
         pc.state.resources_used = {**pc.state.resources_used, resource.name: used + 1}
 
+    def _cast_from_item(
+        self, pc: PlayerCharacter, sheet: Sheet, spell: SpellView, key: str, actor: Actor
+    ) -> None:
+        """Cast a spell an item holds (``key`` is ``item:<index>:<cost>``): its charges
+        spent instead of a slot, logged as charges spent; at will, nothing."""
+        held = sheet.item_spell(spell.reference, key) or sheet.item_spell(spell.name, key)
+        if held is None or not 0 <= held.index < len(pc.inventory):
+            raise PlayError("play.error.bad_input")
+        if not held.cost:
+            return
+        item = next((i for i in sheet.inventory if i.index == held.index), None)
+        if item is None or item.charges is None:
+            raise PlayError("play.error.bad_input")
+        carried = pc.inventory[held.index]
+        if held.cost > item.charges.most - carried.charges_used:
+            raise PlayError("play.error.no_charges")
+        carried.charges_used += held.cost
+        left = item.charges.most - carried.charges_used
+        self._stage(
+            pc,
+            actor,
+            EntryKind.CUSTOM,
+            what=f"charge:{carried.item.reference}:spend:{held.cost}:{left}",
+        )
+
     def _cast(
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
     ) -> None:
@@ -467,7 +492,10 @@ class PlayService:
         if spell is None:
             raise PlayError("play.error.unknown_spell")
         _castable(sheet, spell)
-        if params.get("level") == "free":
+        if params.get("level", "").startswith("item:"):
+            self._cast_from_item(pc, sheet, spell, params["level"], actor)
+            level = spell.level
+        elif params.get("level") == "free":
             self._cast_free(pc, sheet, spell)
             level = spell.level
         elif spell.level > 0:

@@ -434,10 +434,12 @@ class CharacterService:
         target_ids: Sequence[str],
         *,
         free: bool = False,
+        item: str = "",
     ) -> int:
         """Cast a healing spell on characters of the caster's world — one, or up to the
-        spell's number (Mass Cure Wounds: six): the slot is spent on the caster, the dice
-        rolled once, each target heals that much. Returns the hit points."""
+        spell's number (Mass Cure Wounds: six): the slot is spent on the caster, or with
+        ``item`` (``item:<index>:<cost>``) an item's charges, the dice rolled once, each
+        target heals that much. Returns the hit points."""
         caster = self.get_for(identity, caster_id)
         sheet = self.sheet(caster)
         allowed = {cid for cid, _ in self.allies(caster)}
@@ -456,7 +458,7 @@ class CharacterService:
         self.play.act(
             caster_id,
             "cast",
-            {"spell": reference, "level": "free" if free else str(level)},
+            {"spell": reference, "level": item or ("free" if free else str(level))},
             sheet,
             _actor(identity),
         )

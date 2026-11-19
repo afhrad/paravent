@@ -120,3 +120,50 @@ async def test_attuning_up_to_the_slots(table: tuple[AsyncClient, StoreRegistry,
     log = (await ac.get(f"/log/panel?world={pc.world_id}")).text
     assert "Attunes to Cloak of Protection" in log
     assert "Ends the attunement to Cloak of Protection" in log
+
+
+@requires_corpus
+async def test_spells_cast_from_an_items_charges(
+    table: tuple[AsyncClient, StoreRegistry, str],
+) -> None:
+    ac, registry, lyra = table
+    _give(
+        registry,
+        lyra,
+        InventoryItem.model_validate({"item": "Staff of Fire|XDMG", "equipped": True}),
+        InventoryItem.model_validate({"item": "Staff of Healing|XDMG"}),
+    )
+    pc = registry.gamestate.characters.get(lyra)
+    staff, healing = len(pc.inventory) - 2, len(pc.inventory) - 1
+    # Not attuned yet: the staff casts nothing.
+    assert not [x for x in registry.characters.sheet(pc).item_spells if x.index == staff]
+    registry.characters.act_for(lyra, "attune", {"index": str(staff)}, _dm())
+    sheet = registry.characters.sheet(registry.gamestate.characters.get(lyra))
+    costs = {x.spell.name: x.cost for x in sheet.item_spells if x.index == staff}
+    assert costs == {"Burning Hands": 1, "Fireball": 3, "Wall of Fire": 4}
+    page = (await ac.get(f"/characters/{lyra}?tab=spells")).text
+    assert "From items" in page and "3 charges" in page
+    slots_before = dict(registry.gamestate.characters.get(lyra).state.slots_used)
+    fireball = next(x for x in sheet.item_spells if x.spell.name == "Fireball")
+    registry.characters.act_for(
+        lyra, "cast", {"spell": fireball.spell.reference, "level": fireball.key}, _dm()
+    )
+    after = registry.gamestate.characters.get(lyra)
+    assert after.inventory[staff].charges_used == 3
+    assert dict(after.state.slots_used) == slots_before  # no slot spent
+    # The 2024 Staff of Healing casts Cure Wounds at will: nothing is spent.
+    registry.characters.act_for(lyra, "attune", {"index": str(healing)}, _dm())
+    sheet = registry.characters.sheet(registry.gamestate.characters.get(lyra))
+    (will,) = [x for x in sheet.item_spells if x.index == healing and x.cost == 0]
+    assert will.spell.name == "Cure Wounds"
+    registry.characters.act_for(
+        lyra, "cast", {"spell": will.spell.reference, "level": will.key}, _dm()
+    )
+    assert registry.gamestate.characters.get(lyra).inventory[healing].charges_used == 0
+    # More than the charges left is refused.
+    wall = next(x for x in sheet.item_spells if x.spell.name == "Wall of Fire")
+    registry.characters.act_for(lyra, "charge", {"index": str(staff), "n": "5"}, _dm())
+    with pytest.raises(PlayError):  # 2 left, Wall of Fire costs 4
+        registry.characters.act_for(
+            lyra, "cast", {"spell": wall.spell.reference, "level": wall.key}, _dm()
+        )
