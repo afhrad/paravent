@@ -412,16 +412,15 @@ def _create_dialog(
     page: Page,
     dialog_id: str,
     action: str,
-    scopes: Sequence[tuple[str, str, int]],
-    selected: str,
+    world_id: str,
     *,
     title: str,
     submit: str,
     error: str | None,
     is_open: bool,
 ) -> Element:
-    """A new treasure in one dialog, as a new place: its name, where it is placed and a
-    first note."""
+    """A new treasure of the table's world in one dialog, as a new place: its name and a
+    first note (moved into an adventure or chapter on its page if wanted)."""
     t = page.t
     return new_dialog(
         page,
@@ -433,10 +432,8 @@ def _create_dialog(
         is_open=is_open,
         fields=[
             alert(error),
+            hidden("place", f"w:{world_id}"),
             text_field("name", t("adventures.name"), value="", autocomplete="off"),
-            scope_select(
-                "place", t("scope.label"), scopes, selected=selected, hint=t("scope.hint")
-            ),
             div(class_="field")[
                 label(for_=f"{dialog_id}-notes")[
                     t("npcs.notes"), " ", span(class_="opt")[t("common.optional")]
@@ -505,6 +502,10 @@ def _new_npc_dialog(
                 ),
                 datalist(id="known-new-npc-race")[[option(value=r) for r in races]],
                 p(class_="field-hint", id="f-new-npc-race-hint")[t("npcs.race_hint")],
+                label(class_="check-inline")[
+                    input_el(type="checkbox", name="statblock_from", value="1"),
+                    t("npcs.statblock_from"),
+                ],
             ],
             div(class_="field")[
                 label(for_="f-new-npc-name")[t("adventures.name")],
@@ -653,8 +654,7 @@ def treasures_page(
                 page,
                 "new-treasure",
                 world_treasure_url(world.id),
-                scopes,
-                selected,
+                world.id,
                 title=t("treasure.new"),
                 submit=t("treasure.create"),
                 error=error if new else None,

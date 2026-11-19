@@ -198,3 +198,23 @@ async def test_a_new_npc_is_the_worlds_named_for_its_people(
     assert made.status_code == 303
     npc = next(n for n in registry.gamestate.npcs.list() if n.name == value)
     assert npc.race == "Dwarf" and npc.scope.world_id == world.id and npc.scope.adventure_id is None
+
+
+async def test_new_treasure_and_places_go_to_the_tables_world(
+    gm: AsyncClient, registry: StoreRegistry
+) -> None:
+    world = registry.worlds.create(WorldInput(name="Grey Reed"))
+    for address, dialog_id in (("/gm/treasure", "new-treasure"), ("/gm/places", "new-place")):
+        page = (await gm.get(address)).text
+        dialog = page.split(f'id="{dialog_id}"', 1)[1].split("</dialog>", 1)[0]
+        assert '<select id="f-place"' not in dialog, address  # no "belongs to"
+        assert f'name="place" value="w:{world.id}"' in dialog, address
+    await gm.post(
+        f"/gm/worlds/{world.id}/treasure", data={"name": "Toll chest", "place": f"w:{world.id}"}
+    )
+    await gm.post(
+        f"/gm/worlds/{world.id}/places", data={"name": "Landing", "place": f"w:{world.id}"}
+    )
+    chest = next(x for x in registry.gamestate.treasures.list() if x.name == "Toll chest")
+    landing = next(x for x in registry.gamestate.locations.list() if x.name == "Landing")
+    assert chest.scope.adventure_id is None and landing.scope.adventure_id is None

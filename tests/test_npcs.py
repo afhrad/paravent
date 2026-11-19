@@ -481,3 +481,18 @@ async def test_a_new_npcs_name_follows_its_creature(
         "/gm/npcs/new/name", data={"race": "Goblin"}, headers={"HX-Request": "true"}
     )
     assert 'value="Snaggle"' in rolled.text
+
+
+async def test_a_new_npc_takes_its_creatures_statblock_when_ticked(
+    client: tuple[AsyncClient, StoreRegistry],
+) -> None:
+    ac, registry = client
+    world = registry.gamestate.worlds.create(World(name="W", source_set=SourceSet(sources=["MM"])))
+    url = f"/gm/worlds/{world.id}/npcs"
+    await ac.post(url, data={"name": "Snik", "race": "Goblin", "statblock_from": "1"})
+    await ac.post(url, data={"name": "Grub", "race": "Goblin"})
+    await ac.post(url, data={"name": "Thora", "race": "Dwarf", "statblock_from": "1"})
+    by_name = {n.name: n for n in registry.gamestate.npcs.list()}
+    assert by_name["Snik"].statblock == "Goblin|MM"
+    assert by_name["Grub"].statblock is None  # not ticked
+    assert by_name["Thora"].statblock is None  # a people, no creature of the books

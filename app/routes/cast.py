@@ -172,14 +172,23 @@ async def create_npc(
     place: Annotated[str, Form()] = "",
     notes: Annotated[str, Form()] = "",
     race: Annotated[str, Form()] = "",
+    statblock_from: Annotated[str, Form()] = "",
 ) -> Response:
     """Add an NPC where ``place`` says (the new-NPC dialog: the world), with the people
-    or creature its name was rolled for and a first note if given, then open its form."""
+    or creature its name was rolled for and a first note if given, then open its form.
+    With ``statblock_from`` ticked, a creature of the world's books gives it its
+    statblock."""
     npcs = registry.npcs
     try:
         npc = npcs.create(name, place or f"w:{world_id}", world_id)
         if race.strip():
             npc = registry.gamestate.npcs.update(npc.id, race=race.strip())
+        if statblock_from and race.strip():
+            books = registry.adventures.world(world_id).source_set
+            creature = registry.references.resolver().resolve("monster", race.strip(), books)
+            if creature.entry is not None:
+                ref = f"{creature.entry.name}|{creature.entry.source}"
+                npc = registry.gamestate.npcs.update(npc.id, statblock=ref)
         if notes.strip():
             npc = npcs.update(
                 npc.id,

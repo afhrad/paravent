@@ -158,21 +158,14 @@ def locations_page(
             ul(class_="list")[items]
             if items
             else empty_state("map", t("places.empty_heading"), t("places.empty_text")),
-            _new_place_dialog(page, world, scopes, selected, error if new else None, new),
+            _new_place_dialog(page, world, error if new else None, new),
         ],
         world_id=world.id,
     )
 
 
-def _new_place_dialog(
-    page: Page,
-    world: World,
-    scopes: Sequence[tuple[str, str, int]],
-    selected: str,
-    error: str | None,
-    is_open: bool,
-) -> Element:
-    """A new place in one go: its name, where it is placed, its tags, a first note and
+def _new_place_dialog(page: Page, world: World, error: str | None, is_open: bool) -> Element:
+    """A new place of the table's world in one go: its name, its tags, a first note and
     its picture (framed later on its page, in the image dialog)."""
     t = page.t
     return new_dialog(
@@ -186,10 +179,10 @@ def _new_place_dialog(
         upload=True,
         fields=[
             alert(error),
+            # In the table's world (documentation/CURRENT-WORLD.md); moved into an
+            # adventure or chapter on its form if wanted.
+            hidden("place", f"w:{world.id}"),
             text_field("name", t("adventures.name"), value="", autocomplete="off"),
-            scope_select(
-                "place", t("scope.label"), scopes, selected=selected, hint=t("scope.hint")
-            ),
             text_field(
                 "tags",
                 t("places.tags"),

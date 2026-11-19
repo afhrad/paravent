@@ -208,8 +208,10 @@ from the world's folder), ready-made from then on. In a chapter's panel an objec
 out of the chapter the same way, moving up to its adventure. Deleting for good is on the
 object's own page and its list. **A new place, NPC or treasure** is made in a dialog,
 opened by *New place*, *New NPC* or *New treasure* beside its list's heading (`new_dialog`):
-the name, where it is placed and a first note — a place also its tags and a picture, an NPC
-*Roll an NPC* instead.
+the name and a first note, in the table's world (moved into an adventure or chapter on its
+form if wanted) — a place also its tags and a picture; an NPC first its people or creature,
+which its name's dice roll for (NAMES.md), with *Take this creature's statblock* for one of
+the world's books, or *Roll an NPC* instead.
 
 **Tags to copy** (2026-11-19, the user's request): wherever a page shows the line that
 names an object in a text — `{@npc …}`, `{@place …}`, `{@encounter …}` (an encounter of a
@@ -468,8 +470,10 @@ notes may name the place itself).
 - **Tags on pictures** (2026-11-19, `app/services/media_tags.py`): one `media/tags.json` per
   world maps each picture's path from the world's folder to its tags — the gamemaster's
   own words, lower case, short — beside the pictures, never in them. Typed in the dialog's
-  frame step (the world's tags suggested; saved with the cover, title image or picture
-  written), or given to several at once in the browser: **Select**, tick, *Add the tags* /
+  frame step (saved with the cover, title image or picture written), or given to several
+  at once in the browser — under either field the world's tags are offered as chips, those
+  starting with the word being typed first, without those already written, a tap adding one
+  (`image_editor.js`): **Select**, tick, *Add the tags* /
   *Remove them* (`POST /gm/images/<record>/tags`). The browser's search matches names,
   tags and each picture's shape, worked out from its size and never stored (landscape,
   portrait, square), every word; the world's tags stand above as chips with their counts,
