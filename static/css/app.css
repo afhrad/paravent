@@ -1568,7 +1568,7 @@ summary.pv-pick-row{ cursor:pointer; }
 .cb-summary-down{ display:flex; align-items:center; gap:6px; color:var(--dmg-text); }
 
 /* ---- The character creation wizard (CHARGEN-WIZARD.md §3) --------------------------- */
-.cg-page{ display:grid; gap:14px; }
+.cg-page{ display:grid; gap:14px; grid-template-columns:minmax(0, 1fr); }
 .cg-head h1{ margin-top:2px; }
 .cg-rail-toggle > summary{ list-style:none; }
 .cg-rail-toggle > summary::-webkit-details-marker{ display:none; }
@@ -2785,3 +2785,32 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .story-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); gap:16px; align-items:start; }
 .story-panel{ display:grid; gap:10px; }
 .story-list li{ align-items:baseline; }
+
+/* Copying a spell into the spellbook: the list's longest name must not widen the page */
+.prepare-copy .inline-form{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.prepare-copy{ min-width:0; overflow:hidden; }
+.prepare-copy select{ flex:1 1 14em; width:0; min-width:0; max-width:100%; min-height:40px; }
+
+/* The shop on a phone: a ware is one row, its name over its book and price, the count and
+   the button beside them; the way down to selling at the purse. */
+.shop-to-sell{ margin-left:auto; }
+.shop-meta{ display:inline-flex; align-items:baseline; gap:12px; }
+@media (max-width: 640px){
+  .shop-row{ display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:2px 10px; align-items:center; }
+  .shop-row > a, .shop-row > span:first-child{ grid-column:1; min-width:0; overflow-wrap:anywhere; }
+  .shop-row > .shop-meta, .shop-row > .shop-price{ grid-column:1; font-size:12px; }
+  .shop-row > .shop-trade{ grid-column:2; grid-row:1 / span 2; }
+  .shop-trade input[type=number]{ width:48px; min-height:40px; text-align:center; }
+  .shop-trade .btn{ min-height:40px; }
+}
+
+/* A spell picker on a phone or an upright iPad: the list scrolls in its own box under its
+   filter and level chips, so what follows (hit points, the next question) stays near. */
+@media (max-width: 860px){
+  .cg-spell-tools + .cg-options{
+    max-height:min(60vh, 560px); overflow-y:auto; overscroll-behavior:contain;
+    padding:2px; border:1px solid var(--border); border-radius:var(--r); background:var(--surface-2);
+    grid-auto-rows:max-content; align-content:start;
+  }
+}
+@media (hover: none), (max-width: 640px){ .inline-form select{ min-height:40px; font-size:14px; } }

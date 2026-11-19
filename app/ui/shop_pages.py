@@ -345,6 +345,12 @@ def shop_page(
                 b[t("shop.purse")],
                 " ",
                 span(class_="mono")[purse_text(page, purse)],
+                # Selling sits below the shelves: a long way down on a phone.
+                a(href="#shop-sell", class_="btn btn-sm btn-ghost shop-to-sell")[
+                    icon("arrow-down", "sm"), t("shop.sell_heading")
+                ]
+                if sellable
+                else None,
             ],
             section(class_="panel shop-magic")[
                 div(class_="panel-head")[h2[t("shop.magic")]],
@@ -375,7 +381,7 @@ def shop_page(
                 if shown
                 else p(class_="muted")[t("shop.nothing")],
             ],
-            section(class_="panel shop-sell")[
+            section(class_="panel shop-sell", id="shop-sell")[
                 div(class_="panel-head")[h2[t("shop.sell_heading")]],
                 ul(class_="shop-list")[
                     [_sellable(page, url, n, item, price) for n, item, price in sellable]
@@ -393,8 +399,10 @@ def _ware(page: Page, url: str, ware: Ware, money: int, world_id: str | None) ->
     name = name_text(page, ("item", "baseitem"), offer.name)
     return li(class_="shop-row")[
         a(href=ref_url(ware.category, offer.name, offer.source, world_id), class_="ref")[name],
-        small(class_="muted")[offer.source],
-        span(class_="mono shop-price")[coin_text(page, ware.price)],
+        span(class_="shop-meta")[
+            small(class_="muted")[offer.source],
+            span(class_="mono shop-price")[coin_text(page, ware.price)],
+        ],
         form(method="post", action=url, class_="inline-form shop-trade")[
             hidden("op", "buy"),
             hidden("item", offer.reference),
@@ -426,10 +434,12 @@ def _magic(
     name = name_text(page, "item", item_name)
     return li(class_="shop-row")[
         a(href=ref_url("item", item_name, source, world_id), class_="ref")[name],
-        small(class_="muted")[
-            source, f" · {t('shop.left', n=item.count)}" if item.count is not None else ""
+        span(class_="shop-meta")[
+            small(class_="muted")[
+                source, f" · {t('shop.left', n=item.count)}" if item.count is not None else ""
+            ],
+            span(class_="mono shop-price")[coin_text(page, cost)],
         ],
-        span(class_="mono shop-price")[coin_text(page, cost)],
         form(method="post", action=url, class_="inline-form shop-trade")[
             hidden("op", "buy_magic"),
             hidden("item", item.ref),

@@ -60,6 +60,7 @@ from app.ui.context import Page
 from app.ui.forms import alert
 from app.ui.icons import icon
 from app.ui.layout import app_shell
+from app.ui.names import name_text
 
 
 def levelup_url(character_id: str, suffix: str = "") -> str:
@@ -124,7 +125,8 @@ def _class_notes(page: Page, lu: LevelUp) -> Node:
             t(
                 "levelup.held",
                 classes=", ".join(
-                    f"{cls.name} ({requirement_text(page, need)})" for cls, need in lu.held
+                    f"{name_text(page, 'class', cls.name)} ({requirement_text(page, need)})"
+                    for cls, need in lu.held
                 ),
             )
         ]
@@ -133,7 +135,8 @@ def _class_notes(page: Page, lu: LevelUp) -> Node:
             t(
                 "levelup.blocked",
                 classes=", ".join(
-                    f"{cls.name} ({requirement_text(page, need)})" for cls, need in lu.blocked
+                    f"{name_text(page, 'class', cls.name)} ({requirement_text(page, need)})"
+                    for cls, need in lu.blocked
                 ),
             )
         ]
@@ -346,7 +349,9 @@ def levelup_form(
                 # Which class first: what the level brings depends on it.
                 [_question(v, pick, lu) for pick in lu.picks if pick.kind == "class"]
                 or _class_notes(page, lu),
-                h2(class_="cg-step-title")[t("levelup.title", cls=lu.cls.name, level=lu.to_level)],
+                h2(class_="cg-step-title")[
+                    t("levelup.title", cls=name_text(page, "class", lu.cls.name), level=lu.to_level)
+                ],
                 section(class_="cg-features")[
                     span(class_="eyebrow")[t("levelup.gains")],
                     ul(class_="cg-feature-list")[
