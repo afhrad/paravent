@@ -706,6 +706,8 @@ a.res{ color:inherit; text-decoration:none; }
   .enc-side{ position:static; }
   /* On one column the rating follows the plan it rates; the picker comes after. */
   .enc-main, .enc-side{ display:contents; }
+  /* Building a fight, rolling one, past fights and the title image after them */
+  .enc-main > *, .enc-side > *{ order:9; }
   .enc-plan{ order:1; } .enc-rating{ order:2; } .enc-picker{ order:3; } .enc-settings{ order:4; }
 }
 .enc-plan .panel-head, .enc-rating .panel-head, .enc-picker .panel-head{
@@ -2566,8 +2568,8 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .sb-head.has-token > :not(.tok){ grid-column:2; }
 .tip-head .tok{ margin-right:2px; }
 .token-panel-body{ display:flex; gap:16px; align-items:flex-start; flex-wrap:wrap; }
-.token-panel-forms{ display:grid; gap:8px; flex:1; min-width:200px; }
-.tok-drop{ display:flex; align-items:center; gap:10px; padding:14px; border:2px dashed var(--border-strong); border-radius:var(--r); cursor:pointer; color:var(--text-2); }
+.token-panel-forms{ display:grid; gap:8px; flex:1 1 260px; min-width:0; }
+.tok-drop{ display:flex; flex-wrap:wrap; min-width:0; align-items:center; gap:10px; padding:14px; border:2px dashed var(--border-strong); border-radius:var(--r); cursor:pointer; color:var(--text-2); }
 .tok-drop.is-over{ border-color:var(--accent); background:var(--accent-weak); color:var(--accent-text); }
 .tok-drop input[type="file"]{ font-size:12px; max-width:100%; }
 .tok-dialog{ width:min(92vw, 380px); border:1px solid var(--border-strong); border-radius:var(--r-lg, 14px); background:var(--surface); color:var(--text); padding:18px; }
@@ -2587,6 +2589,13 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .title-drop{ flex-wrap:wrap; min-width:0; }
 .title-drop > span{ flex:1 1 140px; min-width:0; }
 .title-drop input[type="file"]{ max-width:100%; min-width:0; }
+/* Sent as soon as it is chosen (ui.js marks the form live): the panel is the button, the
+   browser's own field (in the browser's language) only for screen readers and the keyboard. */
+.title-upload.is-live .title-drop{ position:relative; }
+.title-upload.is-live .title-drop input[type="file"]{
+  position:absolute; inset:auto auto 0 0; width:1px; height:1px; opacity:0;
+}
+.title-upload.is-live .title-drop:focus-within{ outline:2px solid var(--accent); outline-offset:2px; }
 .title-upload.is-live .title-plain{ display:none; }
 .quest-edit .title-panel, .faction-edit .title-panel{ margin-top:10px; padding-top:10px; border-top:1px solid var(--border); }
 .title-thumb{ width:44px; height:44px; object-fit:cover; border-radius:var(--r-sm); border:1px solid var(--border); flex-shrink:0; }
@@ -2814,3 +2823,21 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
   }
 }
 @media (hover: none), (max-width: 640px){ .inline-form select{ min-height:40px; font-size:14px; } }
+
+/* A page's grid keeps to the screen's width: without a column of its own its one track
+   grew to its widest child (a crumb trail, a code snippet), and the page scrolled sideways. */
+.enc-page, .prose-page, .cb-page, .gl-page, .tr-page, .recap-page, .themes-page, .journal-page{
+  grid-template-columns:minmax(0, 1fr);
+}
+/* The same inside a page: a section's or panel's children may shrink below their widest
+   content (a dropdown of long book titles, a file field), and so may the fields of a row. */
+.prose-section > *, .panel > *, .enc-grid > *, .enc-main > *{ min-width:0; }
+.add-row > input, .add-row > select, .inline-form > input, .inline-form > select{ min-width:0; }
+/* A chapter's row on a phone: its title on the first line, Start, Edit, Delete and the
+   arrows on the second, under it. */
+@media (max-width: 640px){
+  .chapter-row{ flex-wrap:wrap; row-gap:4px; }
+  .chapter-row .list-main{ flex:1 1 calc(100% - 48px); }
+  .chapter-row > .play-form{ margin-left:0; }
+  .chapter-row > :last-child{ margin-left:auto; }
+}
