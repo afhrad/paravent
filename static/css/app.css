@@ -9,6 +9,9 @@ body{ min-height:100vh; min-height:100dvh; }
 /* Form fields write in the page's face, not the browser's; a field styled where it is
    defined keeps its own. */
 input, select, textarea{ font-family:inherit; }
+/* Every link in the theme's link colour unless its own rule says otherwise: never the
+   browser's blue or visited purple. :where keeps it the weakest rule there is. */
+:where(a, a:visited){ color:var(--accent-text); }
 
 /* Pills and chips are tags with a small corner, not capsules: components.css (kept
    verbatim from the design reference) rounds them fully, so the shape is set here. Every
@@ -258,7 +261,7 @@ select:not([multiple]):not([size]):disabled{ opacity:.6; }
   box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 }
 .field-check{ grid-template-columns:auto 1fr; align-items:start; gap:10px; }
-.field-check input{ width:20px; height:20px; margin:2px 0 0; accent-color:var(--accent-solid); }
+.field-check input{ width:18px; height:18px; margin:3px 0 0; accent-color:var(--accent-solid); }
 .field-check > div{ display:grid; gap:2px; }
 
 .form-actions{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:4px; }
@@ -410,7 +413,7 @@ a.btn{ text-decoration:none; }
   font-size:12px; color:var(--text-3); cursor:pointer; white-space:nowrap;
 }
 .book-players:hover{ background:var(--surface-2); }
-.book-players input{ width:15px; height:15px; margin:0; accent-color:var(--accent-solid); }
+.book-players input{ width:18px; height:18px; margin:0; accent-color:var(--accent-solid); }
 
 /* ---------------------------------------------------------- party card actions */
 .pc-actions{ display:grid; gap:8px; padding-top:10px; border-top:1px solid var(--border); margin-top:auto; }
@@ -1953,7 +1956,7 @@ div.cg-stat{ display:flex; justify-content:space-between; align-items:baseline; 
 .npcgen-row{ display:flex; align-items:center; gap:10px; padding:8px 10px; min-width:0; }
 .npcgen-row + .npcgen-row{ border-top:1px solid var(--border); }
 .npcgen-take{ display:flex; align-items:center; min-width:24px; min-height:44px; }
-.npcgen-take input{ width:20px; height:20px; }
+.npcgen-take input{ width:18px; height:18px; }
 .npcgen-main{ flex:1 1 auto; min-width:0; display:grid; gap:2px; }
 .npcgen-label{ font-size:.75rem; color:var(--text-3); text-transform:uppercase; letter-spacing:.04em; }
 .npcgen-value{ overflow-wrap:anywhere; }
@@ -3054,3 +3057,9 @@ dialog.img-zoom img{ max-width:100%; max-height:100%; object-fit:contain; border
 .world-banner > span{ flex:1 1 220px; }
 .world-banner .inline-form{ flex-basis:auto; }
 .empty-actions{ display:flex; flex-wrap:wrap; justify-content:center; gap:8px; margin-top:4px; }
+
+/* Every checkbox and radio: the theme's accent (the browser's blue nowhere) and one size,
+   as the world's book list has them. Last, so a rule that sizes a whole form's inputs
+   does not stretch them. */
+input[type=checkbox], input[type=radio]{ accent-color:var(--accent-solid); }
+input[type=checkbox]:not(.sr-only), input[type=radio]:not(.sr-only){ width:18px; height:18px; flex-shrink:0; }
