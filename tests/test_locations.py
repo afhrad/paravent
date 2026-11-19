@@ -89,6 +89,38 @@ class TestPages:
         gone = await raw.post(f"/gm/places/{town.id}/delete")
         assert gone.status_code == 303 and registry.locations.list(world_id) == []
 
+    async def test_the_new_place_dialog(self, table: Table) -> None:  # noqa: F811
+        import io
+
+        from PIL import Image
+
+        raw, facts = table
+        registry = facts["app"].state.stores
+        world_id = facts["world"].id
+        await _login(raw)
+        listed = (await raw.get(f"/gm/worlds/{world_id}/places")).text
+        assert 'data-dialog="new-place"' in listed and 'id="new-place"' in listed
+        assert (
+            'id="new-place" class="place-dialog" aria-labelledby="new-place-h" open' not in listed
+        )
+        # Without the script, ?new=1 shows it open.
+        opened = (await raw.get(f"/gm/worlds/{world_id}/places", params={"new": "1"})).text
+        assert 'aria-labelledby="new-place-h" open' in opened
+        picture = io.BytesIO()
+        Image.new("RGB", (60, 30), (40, 80, 120)).save(picture, "PNG")
+        made = await raw.post(
+            f"/gm/worlds/{world_id}/places",
+            data={"name": "Grey Reed Landing", "tags": "harbour, ferry", "notes": "Fog."},
+            files={"picture": ("landing.png", picture.getvalue(), "image/png")},
+        )
+        (landing,) = registry.locations.list(world_id)
+        assert made.headers["location"] == f"/gm/places/{landing.id}"  # its page
+        assert landing.tags == ["ferry", "harbour"] and landing.notes == "Fog."
+        assert landing.picture and landing.picture.startswith("media/")
+        # A name refused keeps the dialog open with the reason.
+        refused = await raw.post(f"/gm/worlds/{world_id}/places", data={"name": " "})
+        assert refused.status_code == 422 and 'aria-labelledby="new-place-h" open' in refused.text
+
     async def test_created_from_the_editor(self, table: Table) -> None:  # noqa: F811
         raw, facts = table
         registry = facts["app"].state.stores

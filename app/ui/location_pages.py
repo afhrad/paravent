@@ -14,6 +14,7 @@ from htpy import (
     b,
     button,
     details,
+    dialog,
     div,
     form,
     h1,
@@ -118,8 +119,10 @@ def locations_page(
     selected: str,
     notice_text: str | None = None,
     error: str | None = None,
+    new: bool = False,
 ) -> Element:
-    """A world's places by name, with where each is placed and a form for a new one."""
+    """A world's places by name, with where each is placed, and **New place**, which
+    opens a dialog for one (open from the start with ``new``, or after a refused one)."""
     t = page.t
     items = [
         li(class_="list-row")[
@@ -142,30 +145,87 @@ def locations_page(
                 (world.name, world_url(world.id)),
                 (t("places.heading"), None),
             ),
-            page_head(t("adventures.world_eyebrow"), t("places.heading"), t("places.lede")),
+            page_head(
+                t("adventures.world_eyebrow"),
+                t("places.heading"),
+                t("places.lede"),
+                a(href="?new=1", class_="btn btn-primary", data_dialog="new-place")[
+                    icon("plus"), span[t("places.new")]
+                ],
+            ),
             notice(notice_text),
-            alert(error),
+            alert(error) if not new else None,
             ul(class_="list")[items]
             if items
             else empty_state("map", t("places.empty_heading"), t("places.empty_text")),
-            form(
-                method="post",
-                action=world_locations_url(world.id),
-                class_="panel stack-form create-form",
-            )[
-                text_field("name", t("adventures.name"), value="", autocomplete="off"),
-                scope_select(
-                    "place", t("scope.label"), scopes, selected=selected, hint=t("scope.hint")
-                ),
-                div(class_="form-actions")[
-                    button(type="submit", class_="btn btn-primary")[
-                        icon("plus"), span[t("places.new")]
-                    ],
-                ],
-            ],
+            _new_place_dialog(page, world, scopes, selected, error if new else None, new),
         ],
         world_id=world.id,
     )
+
+
+def _new_place_dialog(
+    page: Page,
+    world: World,
+    scopes: Sequence[tuple[str, str, int]],
+    selected: str,
+    error: str | None,
+    is_open: bool,
+) -> Element:
+    """A new place in one go: its name, where it is placed, its tags, a first note and
+    its picture (framed later on its page, in the image dialog)."""
+    t = page.t
+    return dialog(
+        id="new-place", class_="place-dialog", aria_labelledby="new-place-h", open=is_open
+    )[
+        form(
+            method="post",
+            action=world_locations_url(world.id),
+            enctype="multipart/form-data",
+            class_="stack-form",
+        )[
+            div(class_="place-dialog-head")[
+                b(id="new-place-h")[t("places.new")],
+                a(
+                    href=world_locations_url(world.id),
+                    class_="btn btn-sm btn-ghost",
+                    data_close="1",
+                    aria_label=t("images.close"),
+                )[icon("x", "sm")],
+            ],
+            alert(error),
+            text_field("name", t("adventures.name"), value="", autocomplete="off"),
+            scope_select(
+                "place", t("scope.label"), scopes, selected=selected, hint=t("scope.hint")
+            ),
+            text_field(
+                "tags",
+                t("places.tags"),
+                value="",
+                autocomplete="off",
+                required=False,
+                optional_text=t("common.optional"),
+                hint=t("places.tags_hint"),
+            ),
+            div(class_="field")[
+                label(for_="f-new-notes")[t("places.notes")],
+                textarea(id="f-new-notes", name="notes", rows="4"),
+            ],
+            label(for_="f-new-picture", class_="tok-drop img-drop")[
+                icon("upload"),
+                span[t("places.picture_drop")],
+                input_el(id="f-new-picture", type="file", name="picture", accept="image/*"),
+            ],
+            div(class_="form-actions")[
+                button(type="submit", class_="btn btn-primary")[
+                    icon("plus"), span[t("places.create")]
+                ],
+                a(href=world_locations_url(world.id), class_="btn btn-ghost", data_close="1")[
+                    t("common.cancel")
+                ],
+            ],
+        ]
+    ]
 
 
 def location_page(
@@ -231,7 +291,9 @@ def location_page(
             ]
             if here
             else None,
-            title_image_panel(page, "place", location.id, _title(location)),
+            title_image_panel(
+                page, "place", location.id, _title(location), owner=location.scope.record_id
+            ),
         ],
         world_id=world.id,
     )
@@ -334,7 +396,9 @@ def location_form_page(
                     ],
                 ],
             ],
-            title_image_panel(page, "place", location.id, _title(location)),
+            title_image_panel(
+                page, "place", location.id, _title(location), owner=location.scope.record_id
+            ),
         ],
         world_id=world.id,
         insert_layer=True,

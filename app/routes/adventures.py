@@ -42,6 +42,8 @@ from app.services.creature_builder import HOMEBREW_SOURCE
 from app.services.difficulty import rules_for
 from app.services.encounters import EncounterError
 from app.services.events import revision_stream
+from app.services.holdings import KINDS as HOLDING_KINDS
+from app.services.holdings import HoldingsError, holdings_of
 from app.services.media import MAX_BYTES, MediaError
 from app.store.maps import BookMap
 from app.store.registry import StoreRegistry
@@ -101,7 +103,15 @@ def _services(registry: StoreRegistry) -> ProseServices:
 def _holdings(
     page: Page, registry: StoreRegistry, here: Scope, heading: str, *, open_: bool = False
 ) -> Element:
-    """What an adventure or chapter holds: its NPCs, treasure and encounters."""
+    """What an adventure or chapter holds: its NPCs, treasure and encounters; an
+    adventure also the world's ready-made ones it uses, and those it could."""
+    adventure_id = here.adventure_id if here.chapter_id is None else None
+    used = holdings_of(registry.holdings, adventure_id) if adventure_id else None
+    ready = (
+        {kind: registry.holdings.ready(adventure_id, kind) for kind in HOLDING_KINDS}
+        if adventure_id
+        else None
+    )
     return holdings_panel(
         page,
         world=registry.adventures.world(here.world_id),
@@ -112,6 +122,9 @@ def _holdings(
         encounters=registry.encounters.within(here),
         heading=heading,
         open_=open_,
+        adventure_id=adventure_id,
+        used=used,
+        ready=ready,
     )
 
 
@@ -398,6 +411,7 @@ async def show_adventure(
     accepted: str = "",
     revised: str = "",
     kept: str = "",
+    error: str = "",
 ) -> HTMLResponse:
     """An adventure: its text and its chapters."""
     notice_text = None
@@ -409,7 +423,8 @@ async def show_adventure(
         notice_text = page.t("draft.accepted")
     elif deleted:
         notice_text = page.t("chapters.deleted")
-    return _adventure(page, registry, adventure_id, notice_text=notice_text)
+    problem = page.t(error) if error.startswith("holdings.error.") else None
+    return _adventure(page, registry, adventure_id, notice_text=notice_text, error=problem)
 
 
 def _adventure_form(
@@ -561,6 +576,28 @@ async def delete_adventure(
     if adventure.revision_of:
         return redirect(adventure_url(adventure.revision_of))
     return redirect(_with(world_url(world_id), deleted="1"))
+
+
+@router.post(f"{ADVENTURES_URL}/{{adventure_id}}/holdings")
+async def change_holdings(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    adventure_id: str,
+    kind: Annotated[str, Form()] = "",
+    object: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
+    op: Annotated[str, Form()] = "",
+) -> Response:
+    """Use one of the world's ready-made objects in the adventure (``op=use``), or take
+    one out of it (``op=drop``) without deleting it (app/services/holdings.py)."""
+    back = f"{adventure_url(adventure_id)}#holdings"
+    try:
+        if op == "use":
+            registry.holdings.use(adventure_id, kind, object)
+        elif op == "drop":
+            registry.holdings.drop(adventure_id, kind, object)
+    except HoldingsError as exc:
+        return redirect(_with(adventure_url(adventure_id), error=exc.key))
+    return redirect(back)
 
 
 @router.post(f"{ADVENTURES_URL}/{{adventure_id}}/move")
@@ -1065,6 +1102,40 @@ async def choose_cover(
             record_id, image_effects.join(path, effects or []) if path else None
         )
     except AdventureError as exc:
+        return redirect(_with(back, error=exc.key))
+    return redirect(back)
+
+
+@router.post(f"{MEDIA_UPLOAD_URL}/{{record_id}}/frame")
+async def frame_cover(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    record_id: str,
+    file: Annotated[UploadFile | None, File()] = None,
+    path: Annotated[str, Form()] = "",
+    crop: Annotated[str, Form()] = "",
+    effects: Annotated[list[str] | None, Form()] = None,
+    tags: Annotated[str | None, Form()] = None,
+    next: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
+) -> Response:
+    """The image dialog's cover: an upload, or a picture of the world (``path``, as this
+    record writes it), shown in the frame chosen (``crop``) with ``effects``, the
+    picture's ``tags`` kept for the image browser. The picture itself is never cut, so
+    the frame can be moved again later."""
+    back = safe_next(next) or "/gm/worlds"
+    try:
+        if file is not None and file.filename:
+            data = await file.read(MAX_BYTES + 1)
+            path = registry.adventures.upload(record_id, file.filename, data, as_cover=False)
+        if not path:
+            return redirect(back)
+        registry.adventures.set_cover(
+            record_id, image_effects.spec(path, image_effects.framed(crop), effects or [])
+        )
+        where = registry.media_tags.world_path(record_id, path)
+        if tags is not None and where:
+            registry.media_tags.set(record_id, where, [tags])
+    except (MediaError, AdventureError) as exc:
         return redirect(_with(back, error=exc.key))
     return redirect(back)
 

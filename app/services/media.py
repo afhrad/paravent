@@ -15,6 +15,7 @@ from __future__ import annotations
 import mimetypes
 import os
 import re
+from dataclasses import dataclass
 from pathlib import Path
 
 from app.services.i18n import Translatable
@@ -91,6 +92,53 @@ def find(store: ProseStore, record_id: str, world_id: str, name: str) -> tuple[s
             if resolve(store, owner, relative) is not None:
                 return owner, relative
     return None
+
+
+@dataclass(frozen=True)
+class WorldImage:
+    """A picture in a world's folder: its path from the world's folder, and the folder it
+    lies in (``""`` for the world's own ``media/``)."""
+
+    path: str
+    folder: str
+
+    @property
+    def name(self) -> str:
+        return self.path.rsplit("/", 1)[-1]
+
+
+def world_images(store: ProseStore, record_id: str) -> list[WorldImage]:
+    """Every picture in the world ``record_id`` belongs to, its own and its adventures'
+    and chapters', for the image browser; tokens and hidden files left out."""
+    world = store.world_folder(record_id)
+    if world is None or not world.is_dir():
+        return []
+    out: list[WorldImage] = []
+    for path in sorted(world.rglob("*")):
+        relative = path.relative_to(world)
+        parts = relative.parts
+        if (
+            not path.is_file()
+            or path.suffix.lower() not in IMAGE_TYPES
+            or any(part.startswith(".") for part in parts)
+            or "tokens" in parts
+        ):
+            continue
+        folder = relative.parent
+        if folder.name == MEDIA_DIR:
+            folder = folder.parent
+        out.append(WorldImage(relative.as_posix(), "" if str(folder) == "." else folder.as_posix()))
+    return out
+
+
+def seen_from(store: ProseStore, record_id: str, world_path: str) -> str | None:
+    """A picture's path from the world's folder as ``record_id`` writes it (relative to
+    its own folder: ``../media/map.webp``), or None when it may not be served there."""
+    world, folder = store.world_folder(record_id), store.folder(record_id)
+    if world is None or folder is None:
+        return None
+    relative = Path(os.path.relpath(world / world_path, folder)).as_posix()
+    return relative if resolve(store, record_id, relative) is not None else None
 
 
 def media_type(path: Path) -> str:

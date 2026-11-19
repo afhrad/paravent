@@ -310,6 +310,22 @@ class TestLibrary:
             "character: Kim — Gone Venom|ZZ",
         ]
 
+    def test_tags_of_a_picture_gone(self, old: StoreRegistry, world: World) -> None:
+        import io
+
+        from PIL import Image
+
+        picture = io.BytesIO()
+        Image.new("RGB", (20, 10)).save(picture, "PNG")
+        path = old.adventures.upload(world.id, "landing.png", picture.getvalue(), as_cover=False)
+        old.media_tags.set(world.id, path, ["river"])
+        folder = old.gamestate.prose.world_folder(world.id)
+        assert folder is not None
+        (folder / path).unlink()
+        assert f"image tags: {world.name} — media/landing.png" in found(
+            run(old), Kind.LIBRARY_REFERENCE
+        )
+
     def test_links_in_a_chapter_and_nothing_about_the_writing(
         self, old: StoreRegistry, world: World
     ) -> None:

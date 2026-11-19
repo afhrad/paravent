@@ -5,11 +5,11 @@ from __future__ import annotations
 
 from urllib.parse import parse_qs, urlencode, urlsplit
 
-from htpy import Element, Node, button, div, form, h2, img, label, p, section, span
+from htpy import Element, Node, button, div, form, h2, img, p, section
 from htpy import input as input_el
 
 from app.ui.context import Page
-from app.ui.icons import icon
+from app.ui.image_pages import image_editor
 from app.ui.library_links import cover, media_url
 
 TITLE_URL = "/gm/title-image"
@@ -28,11 +28,20 @@ def title_thumb(found: tuple[str, str] | None, alt: str = "") -> Node:
 
 
 def title_image_panel(
-    page: Page, kind: str, ident: str, found: tuple[str, str] | None, *, heading: bool = True
+    page: Page,
+    kind: str,
+    ident: str,
+    found: tuple[str, str] | None,
+    *,
+    owner: str,
+    heading: bool = True,
 ) -> Element:
-    """Drop or choose a picture to make it the title image, or take it away. The page
-    comes back to here (its own anchor: a page lists several quests), with what went
-    wrong (``?title_error=``). Without ``heading`` it sits inside another panel."""
+    """Drop, choose or pick a picture of the world to make it the title image, framed
+    and dressed in the image dialog (app/ui/image_pages.py), or take it away. ``owner``
+    is the record whose folder the picture is written from (a place's scope record, else
+    the world). The page comes back to here (its own anchor: a page lists several
+    quests), with what went wrong (``?title_error=``). Without ``heading`` it sits
+    inside another panel."""
     t = page.t
     parts = urlsplit(page.path)
     query = parse_qs(parts.query)
@@ -43,31 +52,21 @@ def title_image_panel(
     kept = urlencode([(k, v) for k, vs in query.items() if k != "title_error" for v in vs])
     back = parts.path + (f"?{kept}" if kept else "") + f"#{anchor}"
     action = f"{TITLE_URL}/{kind}/{ident}"
-    field_id = f"f-title-{kind}-{ident}"
     return section(class_="panel title-panel" if heading else "title-panel", id=anchor)[
         div(class_="panel-head")[h2[t("title_image.heading")]] if heading else None,
         div(class_="title-panel-body")[
-            title_thumb(found),
             div(class_="title-panel-forms")[
                 p(class_="alert", role="alert")[t(f"title_image.error.{problem}")]
                 if problem in ("none", "image", "owner")
                 else None,
-                form(
-                    method="post",
+                image_editor(
+                    page,
+                    record_id=owner,
                     action=action,
-                    enctype="multipart/form-data",
-                    class_="stack-form title-upload",
-                )[
-                    input_el(type="hidden", name="next", value=back),
-                    label(for_=field_id, class_="tok-drop title-drop")[
-                        icon("upload"),
-                        span[t("title_image.drop")],
-                        input_el(id=field_id, type="file", name="image", accept="image/*"),
-                    ],
-                    button(type="submit", class_="btn btn-sm title-plain")[
-                        icon("upload", "sm"), span[t("tokens.upload")]
-                    ],
-                ],
+                    reference=found[1] if found else None,
+                    next_url=back,
+                    file_field="image",
+                ),
                 form(method="post", action=action)[
                     input_el(type="hidden", name="next", value=back),
                     input_el(type="hidden", name="do", value="remove"),

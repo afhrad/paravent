@@ -13,7 +13,7 @@ import builtins
 import re
 
 from app.models.gamestate import Location, Scope
-from app.services import media, scope
+from app.services import image_effects, media, scope
 from app.services.adventures import AdventureService, check_base, clean_name
 from app.services.naming import SUBJECT_PREFIX, Naming, NamingError, pool_key
 from app.services.npcs import ObjectNotFound, Place, clean_roles
@@ -121,6 +121,15 @@ class LocationService:
         relative = media.store_upload(self._store.prose, found.scope.record_id, filename, data)
         self._store.locations.update(location_id, picture=relative)
         return relative
+
+    def set_picture(self, location_id: str, reference: str) -> None:
+        """Use a picture of the place's world, as its scope's record writes it, with its
+        frame and effects (``../media/x.jpg|crop:… torn``)."""
+        found = self.get(location_id)
+        path = image_effects.split(reference)[0]
+        if media.resolve(self._store.prose, found.scope.record_id, path) is None:
+            raise media.MediaError("media.error.record")
+        self._store.locations.update(location_id, picture=reference)
 
     def clear_picture(self, location_id: str) -> None:
         """Show the place without a picture (the image file stays)."""

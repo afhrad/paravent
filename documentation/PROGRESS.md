@@ -687,6 +687,22 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         (`![[tavern.jpg|torn sepia]]`, `cover: media/x.jpg|fade`), rendered once with
         Pillow into the cache as WebP with transparency, so it fits every theme; the cover's
         effects ticked in the images panel
+  - [x] **Frames and the image dialog** (2026-11-19, ADVENTURES.md §5.5,
+        `app/ui/image_pages.py`, `static/js/image_editor.js`): covers, title images and
+        pictures in a chapter's text are dropped, chosen or picked from the world's
+        pictures (a browser grouped by where they live), framed in a chosen shape and
+        dressed with effects; the frame is kept beside the path (`crop:x_y_w_h`) and
+        rendered from the original, so it can be moved again later. **Tags** on a
+        world's pictures (`app/services/media_tags.py`), typed in the dialog or given to
+        a selection in the browser, which finds by name, tag and shape
+  - [x] **Ready-made objects in an adventure** (2026-11-19, `app/services/holdings.py`):
+        the world's own NPCs, places, encounters and treasure added to an adventure from
+        a list (linked in its `uses`, staying the world's); taken out of it, never
+        deleted — a linked one unlinked, its own moved up to the world
+  - [x] **A new place in one dialog** (2026-11-19): **New place** on a world's places
+        opens it — name, where it is placed, tags, a first note, a picture. The places,
+        NPCs, treasure, creature builder and sound library had their "new" form floating
+        off the page's corner (a drop-down menu's style), out of sight
   - [x] **Title images** (2026-11-18, TOKENS.md §6, `app/services/title_images.py`): tokens
         of the table's own only for NPCs, creatures, characters and treasure; places,
         encounters, quests and factions take a title image, dropped or chosen on their page,

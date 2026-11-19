@@ -225,7 +225,7 @@ def _quest(
         details(class_="quest-edit")[
             summary[t("quests.edit")],
             _fields(page, base, quest, members, factions, milestone),
-            title_image_panel(page, "quest", quest.id, found, heading=False),
+            title_image_panel(page, "quest", quest.id, found, owner=quest.world_id, heading=False),
         ]
         if is_open
         else None,

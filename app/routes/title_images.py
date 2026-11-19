@@ -1,7 +1,8 @@
 """Title images of places, encounters, quests and factions (app/services/title_images.py).
 
-* ``POST /gm/title-image/{kind}/{ident}`` — an upload becomes the title image, or
-  ``do=remove`` takes it away; back where it was set
+* ``POST /gm/title-image/{kind}/{ident}`` — an upload, or a picture of the world
+  (``path``), becomes the title image with the frame (``crop``) and ``effects`` chosen in
+  the image dialog, or ``do=remove`` takes it away; back where it was set
 """
 
 from __future__ import annotations
@@ -14,6 +15,7 @@ from starlette.datastructures import UploadFile
 
 from app.dependencies import GamemasterDep, RegistryDep
 from app.routes.auth import redirect, safe_next
+from app.services import image_effects
 from app.services.media import MAX_BYTES, MediaError
 from app.services.title_images import KINDS, TitleImageError
 from app.ui.title_images import TITLE_URL
@@ -40,12 +42,24 @@ async def set_title_image(
     if form.get("do") == "remove":
         images.clear(kind, ident)
         return redirect(back)
+    # A frame (a ``crop:`` word) and effects chosen in the image dialog, if any.
+    frame = image_effects.framed(str(form.get("crop") or ""))
+    effects = [str(e) for e in form.getlist("effects")]
     upload = form.get("image")
-    if not isinstance(upload, UploadFile) or not upload.filename:
-        return redirect(_with(back, "none"))
-    data = await upload.read(MAX_BYTES + 1)
+    picked = str(form.get("path") or "")
     try:
-        images.set(kind, ident, upload.filename, data)
+        if isinstance(upload, UploadFile) and upload.filename:
+            data = await upload.read(MAX_BYTES + 1)
+            picked = images.set(kind, ident, upload.filename, data)
+            if not frame and not effects:
+                return redirect(back)
+        if not picked:
+            return redirect(_with(back, "none"))
+        images.use(kind, ident, image_effects.spec(picked, frame, effects))
+        owner = images.owner(kind, ident) or ""
+        where = registry.media_tags.world_path(owner, picked)
+        if form.get("tags") is not None and where:
+            registry.media_tags.set(owner, where, [str(form.get("tags"))])
     except MediaError:
         return redirect(_with(back, "image"))
     except TitleImageError:

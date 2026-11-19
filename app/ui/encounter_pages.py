@@ -86,12 +86,12 @@ LEVEL_TONE = {
 }
 
 
-
 def encounter_title(encounter: Encounter) -> tuple[str, str] | None:
     """Where an encounter's title image is, for ``media_url``; None without one."""
     if encounter.world_id and encounter.cover:
         return encounter.world_id, encounter.cover
     return None
+
 
 def encounter_url(encounter_id: str) -> str:
     """The builder for one encounter."""
@@ -697,7 +697,9 @@ def encounter_page(
                     _settings(page, view, scopes),
                     # A title image lives in the world's folder: none for an encounter
                     # planned ahead of any world.
-                    title_image_panel(page, "encounter", enc.id, encounter_title(enc))
+                    title_image_panel(
+                        page, "encounter", enc.id, encounter_title(enc), owner=enc.world_id or ""
+                    )
                     if enc.world_id
                     else None,
                 ],

@@ -240,3 +240,28 @@
     });
   });
 })();
+
+// A link or button naming a dialog (data-dialog="id") opens it; without the script the
+// link reloads the page with the dialog shown. A [data-close] inside closes it.
+(function () {
+  'use strict';
+  document.addEventListener('click', function (e) {
+    var opener = e.target.closest && e.target.closest('[data-dialog]');
+    if (opener) {
+      var target = document.getElementById(opener.dataset.dialog);
+      if (target && typeof target.showModal === 'function') {
+        e.preventDefault();
+        if (target.open) target.close();
+        target.showModal();
+        var first = target.querySelector('input:not([type=hidden]), textarea, select');
+        if (first) first.focus();
+      }
+      return;
+    }
+    var closer = e.target.closest && e.target.closest('dialog [data-close]');
+    if (closer) {
+      e.preventDefault();
+      closer.closest('dialog').close();
+    }
+  });
+})();

@@ -206,6 +206,7 @@ class AdventureFront(_Front):
     revision_of: str | None = None
     origins: dict[str, str] = {}
     baseline: dict[str, str] = {}
+    uses: list[str] = []
 
 
 class ChapterFront(_Front):
@@ -254,6 +255,7 @@ def to_file(record: Record) -> tuple[dict[str, Any], str]:
             "revision_of": record.revision_of,
             "origins": record.origins,
             "baseline": record.baseline,
+            "uses": record.uses,
         }
         out = _clean(fields)
         if record.source_set is not None:
@@ -482,6 +484,7 @@ class ProseStore:
                 revision_of=a.revision_of,
                 origins=a.origins,
                 baseline=a.baseline,
+                uses=a.uses,
             )
         c = ChapterFront.model_validate(fields)
         assert adventure_id is not None

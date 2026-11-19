@@ -89,7 +89,7 @@ async def test_dropped_on_its_panel_and_drawn(gm: AsyncClient, registry: StoreRe
     )
     assert sent.status_code == 303 and "title_error" not in sent.headers["location"]
     page = (await gm.get(f"/gm/encounters/{encounter.id}")).text
-    assert 'class="cover' in page and "title-thumb" in page
+    assert 'class="cover' in page and "img-current" in page  # the panel shows it as set
     listed = (await gm.get("/gm/encounters")).text
     assert "title-thumb" in listed
     # Not a picture: back with the reason; nothing chosen likewise.

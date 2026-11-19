@@ -297,9 +297,13 @@ a.btn{ text-decoration:none; }
 .create-menu{ position:relative; }
 .create-menu > summary{ list-style:none; }
 .create-menu > summary::-webkit-details-marker{ display:none; }
-.create-form{
-  position:absolute; right:0; top:calc(100% + 6px); z-index:30; width:300px; margin:0;
-  display:grid; gap:10px; padding:14px;
+.create-form{ display:grid; gap:10px; margin:0; }
+/* Only inside a drop-down menu does it float: a page's own "new" panel stays in place
+   (it floated off the page's corner, out of sight, on the places, NPCs and treasure
+   lists, the creature builder and the sound library). */
+.create-menu > .create-form{
+  position:absolute; right:0; top:calc(100% + 6px); z-index:30; width:300px;
+  padding:14px;
   background:var(--surface); border:1px solid var(--border); border-radius:var(--r);
   box-shadow:var(--shadow-lg);
 }
@@ -2856,3 +2860,71 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 /* A party card's magic items: attuned ones in the magic colour, charges left beside */
 .pc-magic-item{ background:var(--surface-2); }
 .pc-magic-item.is-attuned{ background:var(--magic-weak); color:var(--magic-text); border-color:color-mix(in srgb, var(--magic) 35%, transparent); }
+
+/* The image dialog (app/ui/image_pages.py, static/js/image_editor.js): the world's
+   pictures to pick from, then a frame of a chosen shape over the whole picture — what
+   lies outside it dimmed, the picture itself never cut — and its effects. */
+.img-editor{ display:grid; gap:8px; min-width:0; }
+.img-form{ display:grid; gap:8px; margin:0; min-width:0; }
+.img-actions{ display:flex; flex-wrap:wrap; gap:6px; }
+.img-form.is-live .img-plain{ display:none; }
+.img-insert{ display:contents; }
+.img-dialog{ width:min(94vw, 760px); max-height:92vh; border:1px solid var(--border-strong); border-radius:var(--r-lg, 14px); background:var(--surface); color:var(--text); padding:16px; }
+.img-dialog::backdrop{ background:rgba(0,0,0,.5); }
+.img-dialog[open]{ display:grid; gap:12px; grid-template-rows:auto auto 1fr auto; }
+.img-dialog-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.img-dialog-head b{ font-family:var(--font-display); font-size:17px; }
+.img-dialog-foot{ display:flex; justify-content:space-between; gap:8px; }
+.img-browser-slot{ overflow:auto; min-height:120px; max-height:62vh; }
+.img-browser{ display:grid; gap:12px; }
+.img-filter{ width:100%; min-height:40px; padding:0 10px; font:inherit; color:var(--text); background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-sm); }
+.img-group{ display:grid; gap:6px; }
+.img-group .eyebrow{ margin:0; }
+.img-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(118px, 1fr)); gap:8px; }
+.img-pick{ display:grid; gap:4px; padding:4px; border:1px solid var(--border); border-radius:var(--r-sm); background:var(--surface-2); color:var(--text-2); cursor:pointer; font:inherit; font-size:11.5px; text-align:left; min-width:0; }
+.img-pick:hover, .img-pick:focus-visible{ border-color:var(--accent); color:var(--text); }
+.img-pick img{ width:100%; aspect-ratio:4/3; object-fit:cover; border-radius:calc(var(--r-sm) - 2px); background:var(--surface-3); }
+.img-pick span{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.img-frame-step{ display:grid; gap:10px; justify-items:center; min-width:0; }
+.img-aspects{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+.img-aspects .chip[aria-pressed="true"]{ background:var(--accent-weak); border-color:var(--accent); color:var(--accent-text); font-weight:600; }
+.img-stage{ position:relative; display:inline-block; max-width:100%; overflow:hidden; touch-action:none; user-select:none; line-height:0; background:var(--surface-3); border-radius:var(--r-sm); }
+.img-stage .img-src{ display:block; max-width:100%; max-height:52vh; width:auto; height:auto; pointer-events:none; }
+.img-frame{ position:absolute; border:2px solid #fff; outline:1px solid rgba(0,0,0,.6); box-shadow:0 0 0 9999px rgba(0,0,0,.5); cursor:move; }
+.img-handle{ position:absolute; width:18px; height:18px; background:#fff; border:1px solid rgba(0,0,0,.6); border-radius:3px; }
+.img-handle[data-corner="nw"]{ left:-2px; top:-2px; cursor:nwse-resize; }
+.img-handle[data-corner="ne"]{ right:-2px; top:-2px; cursor:nesw-resize; }
+.img-handle[data-corner="sw"]{ left:-2px; bottom:-2px; cursor:nesw-resize; }
+.img-handle[data-corner="se"]{ right:-2px; bottom:-2px; cursor:nwse-resize; }
+@media (hover: none){ .img-handle{ width:28px; height:28px; } }
+.img-effects{ display:flex; flex-wrap:wrap; gap:6px 14px; border:0; padding:0; margin:0; justify-content:center; }
+.img-effects legend{ width:100%; text-align:center; font-size:12px; color:var(--text-3); margin-bottom:4px; }
+.img-dialog [hidden]{ display:none !important; }
+/* The drop zone is the button: the browser's own file field only for the keyboard */
+.img-drop{ position:relative; }
+.img-form.is-live .img-drop input[type="file"], .img-dialog .img-drop input[type="file"]{
+  position:absolute; inset:auto auto 0 0; width:1px; height:1px; opacity:0;
+}
+.img-drop:focus-within{ outline:2px solid var(--accent); outline-offset:2px; }
+.img-current{ max-width:100%; max-height:160px; width:auto; border-radius:var(--r-sm); box-shadow:var(--shadow-sm); justify-self:start; }
+
+/* The new-place dialog (app/ui/location_pages.py), opened from the places page */
+.place-dialog{ width:min(94vw, 560px); max-height:92vh; border:1px solid var(--border-strong); border-radius:var(--r-lg, 14px); background:var(--surface); color:var(--text); padding:18px; }
+.place-dialog::backdrop{ background:rgba(0,0,0,.5); }
+.place-dialog:not([open]){ display:none; }
+.place-dialog-head{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.place-dialog-head b{ font-family:var(--font-display); font-size:18px; }
+.place-dialog textarea{ width:100%; padding:10px 12px; font:inherit; color:var(--text); background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-sm); }
+/* Tags in the image browser: a search with Select beside it, the world's tags as
+   filtering chips, a picture's own tags under its name, and the ticked ones in select mode */
+.img-browser-tools{ display:flex; gap:8px; align-items:center; }
+.img-browser-tools .img-filter{ flex:1; min-width:0; }
+.img-tagstrip{ display:flex; flex-wrap:wrap; gap:6px; }
+.img-tagstrip .chip[aria-pressed="true"]{ background:var(--accent-weak); border-color:var(--accent); color:var(--accent-text); font-weight:600; }
+.img-bulk{ display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:8px; border:1px dashed var(--accent); border-radius:var(--r-sm); }
+.img-bulk .img-bulk-tags{ flex:1 1 12em; min-width:0; min-height:36px; padding:0 8px; font:inherit; color:var(--text); background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-sm); }
+.img-pick-tags{ display:flex; flex-wrap:wrap; gap:3px; }
+.img-pick-tags .tag{ font-size:10px; padding:0 5px; }
+.img-pick.is-chosen{ border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); background:var(--accent-weak); }
+.img-tags-field{ display:grid; gap:4px; width:100%; max-width:520px; font-size:13px; color:var(--text-2); }
+.img-tags{ min-height:38px; padding:0 10px; font:inherit; color:var(--text); background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-sm); }

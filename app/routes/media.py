@@ -11,13 +11,19 @@ rendered with those effects instead, made once and kept in the cache (§5.5).
 from __future__ import annotations
 
 import asyncio
+from typing import Annotated
 
-from fastapi import APIRouter, HTTPException
-from fastapi.responses import FileResponse
+from fastapi import APIRouter, Form, HTTPException
+from fastapi.responses import FileResponse, HTMLResponse, Response
 
-from app.dependencies import GamemasterDep, RegistryDep
+from app.dependencies import GamemasterDep, PageDep, RegistryDep
+from app.routes.auth import html
 from app.services import image_effects, media
-from app.ui.library_links import MEDIA_URL
+from app.services.media_tags import orientation
+from app.store.registry import StoreRegistry
+from app.ui.context import Page
+from app.ui.image_pages import IMAGES_URL, Picture, image_browser
+from app.ui.library_links import MEDIA_URL, media_url
 
 router = APIRouter(tags=["media"])
 
@@ -42,6 +48,91 @@ async def serve_media(
         media_type="image/webp" if effects else media.media_type(path),
         headers={"Cache-Control": "private, max-age=300", "X-Content-Type-Options": "nosniff"},
     )
+
+
+def _browser(page: Page, registry: StoreRegistry, record_id: str) -> HTMLResponse:
+    """Every picture of the record's world, grouped by the world, adventure or chapter
+    whose folder holds it, each with its path as ``record_id`` writes it, its tags and
+    shape; the world's tags with their counts."""
+    store = registry.gamestate.prose
+    world_folder = store.world_folder(record_id)
+    if world_folder is None:
+        raise HTTPException(status_code=404)
+    world = next(
+        (w for w in registry.gamestate.worlds.list() if store.folder(w.id) == world_folder),
+        None,
+    )
+    if world is None:
+        raise HTTPException(status_code=404)
+    # Each folder by the record it belongs to: the world, an adventure, a chapter.
+    names: dict[str, str] = {"": world.name}
+    for adventure in registry.adventures.adventures(world.id):
+        for record_id_, name in [
+            (adventure.id, adventure.name),
+            *((c.id, adventure.name) for c in registry.adventures.chapters(adventure.id)),
+        ]:
+            folder = store.folder(record_id_)
+            if folder is not None:
+                key = folder.relative_to(world_folder).as_posix()
+                names.setdefault("" if key == "." else key, name)
+    tags = registry.media_tags.all(record_id)
+    groups: dict[str, list[Picture]] = {}
+    for picture in media.world_images(store, record_id):
+        seen = media.seen_from(store, record_id, picture.path)
+        if seen is None:
+            continue
+        label = names.get(picture.folder, picture.folder)
+        groups.setdefault(label, []).append(
+            Picture(
+                seen,
+                media_url(world.id, picture.path),
+                picture.name,
+                tuple(tags.get(picture.path, ())),
+                orientation(world_folder / picture.path),
+            )
+        )
+    vocabulary = sorted(registry.media_tags.vocabulary(record_id).items())
+    return html(
+        image_browser(
+            page,
+            list(groups.items()),
+            vocabulary,
+            tags_url=f"{IMAGES_URL}/{record_id}/tags",
+        )
+    )
+
+
+@router.get(f"{IMAGES_URL}/{{record_id}}", response_class=HTMLResponse)
+async def browse_images(
+    _gm: GamemasterDep, page: PageDep, registry: RegistryDep, record_id: str
+) -> HTMLResponse:
+    """The image browser for a record (app/ui/image_pages.py)."""
+    return await asyncio.to_thread(_browser, page, registry, record_id)
+
+
+@router.post(f"{IMAGES_URL}/{{record_id}}/tags", response_class=HTMLResponse)
+async def tag_images(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    record_id: str,
+    path: Annotated[list[str] | None, Form()] = None,
+    tags: Annotated[str | None, Form()] = None,
+    add: Annotated[str, Form()] = "",
+    remove: Annotated[str, Form()] = "",
+) -> Response:
+    """Tag pictures of the world, each ``path`` as ``record_id`` writes it: ``tags``
+    replaces one picture's tags (204); ``add`` and ``remove`` change those of several
+    (the browser's selection), answered with the browser again."""
+    service = registry.media_tags
+    paths = [w for w in (service.world_path(record_id, p) for p in path or []) if w]
+    if not paths:
+        raise HTTPException(status_code=404)
+    if tags is not None:
+        service.set(record_id, paths[0], [tags])
+        return Response(status_code=204)
+    service.change(record_id, paths, add=[add], remove=[remove])
+    return await asyncio.to_thread(_browser, page, registry, record_id)
 
 
 __all__ = ["router"]

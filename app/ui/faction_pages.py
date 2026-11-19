@@ -147,7 +147,9 @@ def _faction(
                 button(type="submit", class_="btn btn-sm")[t("factions.save")],
                 cls="faction-form",
             ),
-            title_image_panel(page, "faction", faction.id, found, heading=False),
+            title_image_panel(
+                page, "faction", faction.id, found, owner=faction.world_id, heading=False
+            ),
             _post(
                 base,
                 "delete",

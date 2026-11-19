@@ -142,11 +142,14 @@ class TestButtons:
             "encounter": (f"/gm/encounters/{fight.id}", f"/gm/encounters?world={world_id}"),
         }
         holdings = (await raw.get(f"/gm/adventures/{adventure.id}")).text
+        assert holdings.count('name="op" value="drop"') >= len(targets)
         for kind, (own_page, listing) in targets.items():
             link = f'href="{own_page}/delete"'
             assert link in (await raw.get(own_page)).text, kind  # beside Edit / Run
             assert link in (await raw.get(listing)).text, kind  # on its row
-            assert link in holdings, kind  # in the adventure's panel
+            # In the adventure's panel it is only taken out of the adventure, never
+            # deleted (app/services/holdings.py).
+            assert link not in holdings, kind
             assert (await raw.get(f"{own_page}/delete")).status_code == 200, kind
 
     async def test_never_in_an_edit_form(self, table: Table) -> None:  # noqa: F811

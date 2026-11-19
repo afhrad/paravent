@@ -86,6 +86,7 @@ from app.ui.forms import alert, hidden, notice, select_field, text_field
 from app.ui.gm_pages import party_card
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
+from app.ui.image_pages import image_editor, image_insert
 from app.ui.layout import app_shell
 from app.ui.library_links import (
     MEDIA_UPLOAD_URL,
@@ -442,31 +443,7 @@ def images_panel(
         ],
         button(type="submit", class_="btn")[icon("upload"), span[t("adventures.upload")]],
     ]
-    cover_path, cover_effects = image_effects.split(cover)
-
-    def effects_form(path: str) -> Element:
-        """The cover's effects, ticked and saved together (ADVENTURES.md §5.5)."""
-        return form(
-            method="post", action=f"{MEDIA_UPLOAD_URL}/{record_id}/cover", class_="image-fx"
-        )[
-            hidden("next", next_url),
-            hidden("path", path),
-            span(class_="image-fx-label")[t("adventures.effects")],
-            [
-                label(class_="check-inline", title=t(f"adventures.effect_hint.{name}"))[
-                    input_el(
-                        type="checkbox",
-                        name="effects",
-                        value=name,
-                        checked=name in cover_effects,
-                    ),
-                    t(f"adventures.effect.{name}"),
-                ]
-                for name in image_effects.EFFECTS
-                if name != "banner"  # a cover wears it by itself
-            ],
-            button(type="submit", class_="btn btn-sm")[t("adventures.effects_apply")],
-        ]
+    cover_path = image_effects.split(cover)[0]
 
     rows = [
         li(class_="image-row")[
@@ -488,11 +465,19 @@ def images_panel(
                     t("adventures.clear_cover") if path == cover_path else t("adventures.use_cover")
                 ],
             ],
-            effects_form(path) if path == cover_path else None,
         ]
         for path in images
     ]
     return section(class_="panel images-panel")[
+        div(class_="panel-head")[b[t("adventures.cover")]],
+        # The cover: dropped, chosen or picked from the world, framed and dressed.
+        image_editor(
+            page,
+            record_id=record_id,
+            action=f"{MEDIA_UPLOAD_URL}/{record_id}/frame",
+            reference=cover,
+            next_url=next_url,
+        ),
         div(class_="panel-head")[b[t("adventures.images")]],
         p(class_="field-hint")[t("adventures.images_hint")],
         upload,
@@ -1001,6 +986,7 @@ def adventure_form_page(
                 ],
             ],
             images_panel(page, adv.id, adv.cover, images, f"{url}/edit"),
+            image_insert(page, record_id=adv.id, area_id="f-body"),
         ],
         world_id=view.world.id,
         insert_layer=True,
@@ -1425,6 +1411,7 @@ def chapter_form_page(
             if places
             else None,
             images_panel(page, ch.id, ch.cover, images, f"{url}/edit"),
+            image_insert(page, record_id=ch.id, area_id="f-body"),
         ],
         extra_scripts=("/static/js/prose.js",),
         world_id=view.world.id,

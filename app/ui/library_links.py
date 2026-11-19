@@ -95,7 +95,9 @@ def cover(record_id: str, path: str | None, alt: str) -> Node:
     if not path:
         return None
     relative, effects = image_effects.split(path)
-    if effects:  # cut to the banner first, so the page shows the edges the effects drew
+    if effects and image_effects.frame_of(effects) is None:
+        # Cut to the banner first, so the page shows the edges the effects drew; a frame
+        # chosen by hand is the shape instead.
         path = image_effects.join(relative, ("banner", *effects))
     return img(class_="cover" + (" fx" if effects else ""), src=media_url(record_id, path), alt=alt)
 

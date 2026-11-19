@@ -452,7 +452,15 @@
     add('table', '<span aria-hidden="true">▦</span>', function () {
       block('| | |\n|---|---|\n| | |\n');
     });
-    if (upload) {
+    // The image dialog (image_editor.js): a picture of the world or a new one, framed and
+    // written at the cursor; on a picture already written, reframed. Without it, a
+    // plain upload.
+    var dialogRoot = area.id && document.querySelector('[data-image-editor][data-for="' + area.id + '"]');
+    if (dialogRoot) {
+      add('image', glyph('image'), function () {
+        dialogRoot.dispatchEvent(new CustomEvent('paravent-image-open', { detail: { area: area } }));
+      });
+    } else if (upload) {
       var chooser = document.createElement('input');
       chooser.type = 'file';
       chooser.accept = 'image/*';

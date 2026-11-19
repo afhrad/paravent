@@ -229,6 +229,20 @@ class LibraryCheck:
         for shop in state.shops.list():
             for ware in shop.stock:
                 self._missing(f"shop: {shop.name}", f"/gm?world={shop.id}", ITEMS, ware.ref)
+        # Tags kept for a picture that is no longer in its world's folder.
+        prose = state.prose
+        for world in state.worlds.list():
+            folder = prose.world_folder(world.id)
+            if folder is None:
+                continue
+            for path in self._stores.media_tags.all(world.id):
+                if not (folder / path).is_file():
+                    self._found.add(
+                        Kind.LIBRARY_REFERENCE,
+                        subject=f"image tags: {world.name}",
+                        detail=path,
+                        href=f"/gm/worlds/{world.id}/edit",
+                    )
         for clock in state.clocks.list():
             if clock.calendar and clock.calendar not in {
                 c.key for c in self._stores.calendars(clock.id)

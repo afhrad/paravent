@@ -127,8 +127,10 @@ cover — at the head of a place's page and of an encounter's builder, as a bann
 of a quest's and a faction's panel — and as a small square beside them in lists and in a
 chapter's place and encounter cards; without one their kind's disc stands there.
 
-**The panel** (`app/ui/title_images.py`): a picture dropped on it or chosen is sent at once
-(`ui.js`; without the script, Upload), and *Remove the title image* takes it away. On a
+**The panel** (`app/ui/title_images.py`): the image dialog (ADVENTURES.md §5.5, *Frames
+and the image dialog*, 2026-11-19) — a picture dropped, chosen or picked from the world's
+pictures, framed in a shape (10:3 by default) and dressed with effects, the picture itself
+never cut — and *Remove the title image* takes it away. On a
 place's page and edit form, an encounter's builder, and in a quest's and a faction's Edit
 fold. `POST /gm/title-image/<kind>/<id>` (`app/services/title_images.py`) stores it: a
 place's picture beside its scope's record as before (`Location.picture`), an encounter's,

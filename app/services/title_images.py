@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from app.services import media
+from app.services import image_effects, media
 from app.services.i18n import Translatable
 from app.services.locations import LocationService
 from app.store.gamestate import GameStateStore
@@ -81,6 +81,21 @@ class TitleImages:
         relative = media.store_upload(self._store.prose, owner, filename, data)
         self._update(kind, ident, relative)
         return relative
+
+    def use(self, kind: str, ident: str, reference: str) -> None:
+        """Make a picture of the element's world its title image, as the owner's record
+        writes it, with its frame and effects (``../media/x.jpg|crop:… torn``). Raises
+        :class:`TitleImageError` or :class:`~app.services.media.MediaError`."""
+        owner = self.owner(kind, ident)
+        if owner is None:
+            raise TitleImageError("title_image.error.owner")
+        if kind == "place":
+            self._locations.set_picture(ident, reference)
+            return
+        path = image_effects.split(reference)[0]
+        if media.resolve(self._store.prose, owner, path) is None:
+            raise media.MediaError("media.error.record")
+        self._update(kind, ident, reference)
 
     def clear(self, kind: str, ident: str) -> None:
         """Show the element without a title image (the file stays)."""

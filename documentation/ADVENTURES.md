@@ -191,6 +191,18 @@ holds has a *Places* column; the editor creates one where `{@place New}` is writ
 the chapter check offers that too. Claude writes them into drafts (`create_place`,
 `update_place`, MCP.md §4).
 
+**Ready-made objects in an adventure** (2026-11-19, the user's decision;
+`app/services/holdings.py`). The world's own NPCs, places, encounters and treasure are
+ready-made: the panel of what an adventure holds offers them in a list under each column,
+and choosing one adds it — kept in the adventure's `uses` (front matter, by id), the object
+staying the world's, so several adventures share one innkeeper; a world object is named in
+any chapter already. Such a row is marked *from the world*. In that panel an object is
+**taken out of the adventure, never deleted**: a ready-made one is unlinked; one made in the
+adventure or one of its chapters moves up to the world (its portrait or picture written again
+from the world's folder), ready-made from then on. Deleting for good is on the object's own
+page and its list. **A new place** has its own dialog, *New place* on the world's places
+(name, where it is placed, tags, a first note, a picture).
+
 ---
 
 ## 4b. Session notes
@@ -418,6 +430,37 @@ notes may name the place itself).
   the banner first, so the page shows the edges the effects drew. The crop runs first,
   then the colour, then the edges; a tear is the same each time for the same picture, as
   it is seeded by the file. The URL asks for it: `/media/<id>/<path>?fx=torn,fade`.
+- **Frames and the image dialog** (2026-11-19, the user's decisions;
+  `app/ui/image_pages.py`, `static/js/image_editor.js`): a picture is never cut. Its
+  frame is written beside the path like an effect, `crop:x_y_w_h` — the part of the
+  original shown, as fractions of its width and height, left and top first
+  (`media/tavern.jpg|crop:0.1200_0.0500_0.8000_0.4500 torn`) — rendered from the original
+  first, before the colour and the edges, and a framed cover takes the frame's shape
+  instead of the banner. **The dialog** sets covers (worlds, adventures, chapters) and
+  title images (places, encounters, quests, factions): a picture dropped or chosen, or
+  **picked from the world's pictures** (`GET /gm/images/<record>`: every picture of the
+  record's world, its own, its adventures' and chapters', grouped by where it lives,
+  searchable by name, each as the record writes it, `../media/map.webp` from a chapter),
+  then a frame dragged over the whole picture — moved inside, resized at a corner — in a
+  shape of Free, 10:3 (the default), 16:9, 3:2, 4:3, 1:1 or 3:4, and its effects ticked.
+  **Frame and effects** reopens it where it was set, to move the frame again. Covers save
+  through `POST /gm/media/<record>/frame`, title images through their own route, both
+  taking an upload or `path` with `crop` and `effects`. In a chapter's or adventure's
+  editor the toolbar's **Image** button opens it in insert mode: the picture is written at
+  the cursor as `![[path|crop:… effects]]` (a new file uploaded first), and on a picture
+  already written it reframes that one. Without the script the forms still upload, uncut.
+  Tokens keep their own dialog (TOKENS.md §3).
+- **Tags on pictures** (2026-11-19, `app/services/media_tags.py`): one `media/tags.json` per
+  world maps each picture's path from the world's folder to its tags — the gamemaster's
+  own words, lower case, short — beside the pictures, never in them. Typed in the dialog's
+  frame step (the world's tags suggested; saved with the cover, title image or picture
+  written), or given to several at once in the browser: **Select**, tick, *Add the tags* /
+  *Remove them* (`POST /gm/images/<record>/tags`). The browser's search matches names,
+  tags and each picture's shape, worked out from its size and never stored (landscape,
+  portrait, square), every word; the world's tags stand above as chips with their counts,
+  several pressed together narrowing it further. Tags of a picture that is gone are dropped
+  at the next write and named by the library check; a file a hand edit broke reads as no
+  tags and is left as it is.
 - The title comes from the front matter. `#` in the body is the first section level; the
   page derives a table of contents and anchors from the headings.
 - **Dropping or pasting an image** into the chapter's or adventure's editor stores it in the

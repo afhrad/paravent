@@ -70,6 +70,7 @@ from app.services.factions import FactionService, Reward, ranks_from, rewards_of
 from app.services.followers import FollowerService, Statblock, hit_die
 from app.services.glossary import Glossary, LinkCounts
 from app.services.handouts import HandoutService
+from app.services.holdings import Holdings
 from app.services.i18n import FALLBACK, UiCatalogue
 from app.services.image_effects import ImageEffects
 from app.services.item_charges import Charges, ItemCharges
@@ -79,6 +80,7 @@ from app.services.lifestyle import LifestyleService, costs_2014, costs_2024
 from app.services.locations import LocationService
 from app.services.machine_translation import MachineTranslator
 from app.services.mcp_tokens import McpTokenService
+from app.services.media_tags import MediaTags
 from app.services.name_suggestions import ApiRunner, NameSuggestions
 from app.services.naming import Naming
 from app.services.naming_workshop import NamingWorkshop
@@ -637,6 +639,16 @@ class StoreRegistry:
         their charges at the dawns, dusks and midnights passed."""
         self.afflictions.passed(world, before, now, by, by_name)
         self.item_charges.passed(world, before, now, by, by_name)
+
+    @cached_property
+    def holdings(self) -> Holdings:
+        """The world's ready-made objects an adventure uses (app/services/holdings.py)."""
+        return Holdings(self.gamestate)
+
+    @cached_property
+    def media_tags(self) -> MediaTags:
+        """Tags on a world's pictures, for the image browser (app/services/media_tags.py)."""
+        return MediaTags(self.gamestate.prose)
 
     @cached_property
     def item_charges(self) -> ItemCharges:

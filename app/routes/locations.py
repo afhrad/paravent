@@ -10,7 +10,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Form, Request
+from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
@@ -21,7 +21,7 @@ from app.services import scope
 from app.services.adventures import EditConflict, text_version
 from app.services.i18n import Translatable
 from app.services.locations import named_in
-from app.services.media import MAX_BYTES
+from app.services.media import MAX_BYTES, MediaError
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
 from app.ui.encounter_pages import encounter_url
@@ -49,6 +49,7 @@ def _locations(
     error: str | None = None,
     notice_text: str | None = None,
     status_code: int = 200,
+    new: bool = False,
 ) -> HTMLResponse:
     world = registry.adventures.world(world_id)
     service = registry.locations
@@ -62,6 +63,7 @@ def _locations(
             selected=selected or f"w:{world_id}",
             error=error,
             notice_text=notice_text,
+            new=new,
         ),
         status_code=status_code,
     )
@@ -75,10 +77,13 @@ async def list_locations(
     world_id: str,
     place: str = "",
     deleted: str = "",
+    new: str = "",
 ) -> HTMLResponse:
-    """A world's places."""
+    """A world's places; ``new`` opens the dialog for a new one (without the script)."""
     notice_text = page.t("places.deleted") if deleted else None
-    return _locations(page, registry, world_id, selected=place, notice_text=notice_text)
+    return _locations(
+        page, registry, world_id, selected=place, notice_text=notice_text, new=bool(new)
+    )
 
 
 @router.post(f"{WORLDS_URL}/{{world_id}}/places", response_class=HTMLResponse)
@@ -89,15 +94,42 @@ async def create_location(
     world_id: str,
     name: Annotated[str, Form()] = "",
     place: Annotated[str, Form()] = "",
+    tags: Annotated[str, Form()] = "",
+    notes: Annotated[str, Form()] = "",
+    picture: Annotated[UploadFile | None, File()] = None,
 ) -> Response:
-    """Add a place where ``place`` (the scope) says, then open its form."""
+    """Add a place where ``place`` (the scope) says, with its tags, a first note and a
+    picture if given (the new-place dialog), then open its page."""
+    service = registry.locations
     try:
-        location = registry.locations.create(name, place or f"w:{world_id}", world_id)
+        location = service.create(name, place or f"w:{world_id}", world_id)
+        words = [w.strip() for w in tags.split(",") if w.strip()]
+        if words or notes.strip():
+            location = service.update(
+                location.id,
+                name=location.name,
+                scope_value=place or f"w:{world_id}",
+                tags=words,
+                notes=notes,
+            )
     except Translatable as exc:
         return _locations(
-            page, registry, world_id, selected=place, error=page.t.error(exc), status_code=422
+            page,
+            registry,
+            world_id,
+            selected=place,
+            error=page.t.error(exc),
+            status_code=422,
+            new=True,
         )
-    return redirect(f"{location_url(location.id)}/edit")
+    if picture is not None and picture.filename:
+        data = await picture.read(MAX_BYTES + 1)
+        try:
+            service.upload_picture(location.id, picture.filename, data)
+        except MediaError:
+            # The place stands; its page says why the picture was refused.
+            return redirect(f"{location_url(location.id)}?title_error=image")
+    return redirect(location_url(location.id))
 
 
 def here_of(registry: StoreRegistry, location: Location) -> list[Here]:

@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
 from htpy import (
@@ -42,6 +42,7 @@ from htpy import input as input_el
 
 from app.models.gamestate import Coins, Encounter, Location, Npc, Treasure, TreasureItem, World
 from app.services.adventures import ChapterView
+from app.services.holdings import Held
 from app.services.npcs import KNOWN_ROLES, TreasureLine
 from app.services.references import ReferenceEntry
 from app.services.scope import encode
@@ -190,6 +191,15 @@ def treasure_card(
 # -- what an adventure or chapter holds ------------------------------------------------------
 
 
+# Each kind's page, for an object the adventure uses.
+URLS = {
+    "npc": npc_url,
+    "place": location_url,
+    "encounter": encounter_url,
+    "treasure": treasure_url,
+}
+
+
 def holdings_panel(
     page: Page,
     *,
@@ -201,14 +211,40 @@ def holdings_panel(
     heading: str,
     open_: bool = False,
     places: Sequence[Location] = (),
+    adventure_id: str | None = None,
+    used: Mapping[str, Sequence[Held]] | None = None,
+    ready: Mapping[str, Sequence[tuple[str, str]]] | None = None,
 ) -> Element:
     """The NPCs, places, treasure and encounters placed here, each with the line to
-    paste."""
+    paste. For an adventure (``adventure_id``) also the world's ready-made ones it
+    ``used``, marked, and a list of the ``ready`` ones to add; there a row's button takes
+    the object out of the adventure without deleting it (app/services/holdings.py)."""
     t = page.t
+    holdings_url = f"/gm/adventures/{adventure_id}/holdings" if adventure_id else ""
+
+    def out_of_here(kind: str, object_id: str) -> Element:
+        return form(method="post", action=holdings_url, class_="inline-form")[
+            hidden("kind", kind),
+            hidden("object", object_id),
+            hidden("op", "drop"),
+            button(
+                type="submit",
+                class_="btn btn-sm btn-ghost",
+                title=t("holdings.drop"),
+                aria_label=t("holdings.drop"),
+            )[icon("x", "sm")],
+        ]
 
     def column(
-        kind: str, title: str, rows: list[tuple[str, str]], action: str, extra: Node = None
+        kind: str,
+        title: str,
+        rows: list[tuple[str, str, str]],
+        action: str,
+        extra: Node = None,
     ) -> Element:
+        mine = [(name, url, ident, False) for name, url, ident in rows]
+        theirs = [(h.name, URLS[kind](h.id), h.id, True) for h in (used or {}).get(kind, ())]
+        offered = (ready or {}).get(kind, ())
         return div(class_="holdings-col")[
             h2(class_="section-title")[title],
             ul(class_="holdings-list")[
@@ -216,15 +252,36 @@ def holdings_panel(
                     li[
                         div(class_="holdings-row")[
                             a(href=url)[name],
-                            delete_link(page, f"{url}/delete", t(DELETE_LABEL[kind])),
+                            span(class_="pill neutral", title=t("holdings.from_world_hint"))[
+                                t("holdings.from_world")
+                            ]
+                            if from_world
+                            else None,
+                            out_of_here(kind, ident)
+                            if adventure_id
+                            else delete_link(page, f"{url}/delete", t(DELETE_LABEL[kind])),
                         ],
                         _snippet(kind, name),
                     ]
-                    for name, url in rows
+                    for name, url, ident, from_world in [*mine, *theirs]
                 ]
             ]
-            if rows
+            if mine or theirs
             else p(class_="field-hint")[t("holdings.none")],
+            form(method="post", action=holdings_url, class_="add-row add-row-sm")[
+                hidden("kind", kind),
+                hidden("op", "use"),
+                label(for_=f"f-use-{kind}", class_="sr-only")[t(f"holdings.ready.{kind}")],
+                select(id=f"f-use-{kind}", name="object", required=True)[
+                    option(value="")[t(f"holdings.ready.{kind}")],
+                    [option(value=ident)[name] for ident, name in offered],
+                ],
+                button(type="submit", class_="btn btn-sm", aria_label=t("holdings.use"))[
+                    icon("plus")
+                ],
+            ]
+            if adventure_id and offered
+            else None,
             form(method="post", action=action, class_="add-row add-row-sm")[
                 hidden("place", place),
                 extra,
@@ -243,17 +300,17 @@ def holdings_panel(
             ],
         ]
 
-    return details(class_="panel holdings", open=open_)[
+    return details(class_="panel holdings", id="holdings", open=open_)[
         summary(class_="panel-head")[
             b[heading],
             span(class_="list-meta")[
                 " · ".join(
                     t.plural(f"count.{key}", n)
                     for key, n in (
-                        ("npcs", len(npcs)),
-                        ("places", len(places)),
-                        ("encounters", len(encounters)),
-                        ("treasure", len(treasures)),
+                        ("npcs", len(npcs) + len((used or {}).get("npc", ()))),
+                        ("places", len(places) + len((used or {}).get("place", ()))),
+                        ("encounters", len(encounters) + len((used or {}).get("encounter", ()))),
+                        ("treasure", len(treasures) + len((used or {}).get("treasure", ()))),
                     )
                 )
             ],
@@ -262,26 +319,26 @@ def holdings_panel(
             column(
                 "npc",
                 t("npcs.heading"),
-                [(n.name, npc_url(n.id)) for n in npcs],
+                [(n.name, npc_url(n.id), n.id) for n in npcs],
                 world_npcs_url(world.id),
             ),
             column(
                 "place",
                 t("places.heading"),
-                [(x.name, location_url(x.id)) for x in places],
+                [(x.name, location_url(x.id), x.id) for x in places],
                 f"{world_url(world.id)}/places",
             ),
             column(
                 "encounter",
                 t("nav.encounters"),
-                [(e.name, encounter_url(e.id)) for e in encounters],
+                [(e.name, encounter_url(e.id), e.id) for e in encounters],
                 "/gm/encounters",
                 hidden("world", world.id),
             ),
             column(
                 "treasure",
                 t("treasure.heading"),
-                [(x.name, treasure_url(x.id)) for x in treasures],
+                [(x.name, treasure_url(x.id), x.id) for x in treasures],
                 world_treasure_url(world.id),
             ),
         ],

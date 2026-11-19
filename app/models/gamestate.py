@@ -266,6 +266,9 @@ class Adventure(Record):
     revision_of: str | None = None
     origins: dict[str, str] = Field(default_factory=dict)
     baseline: dict[str, str] = Field(default_factory=dict)
+    # The world's ready-made NPCs, places, encounters and treasure it uses, by id; they
+    # stay the world's (app/services/holdings.py).
+    uses: list[str] = Field(default_factory=list)
 
     # An optional narrowing of the world's books, for the case where one module is
     # deliberately tighter than the campaign. ``None`` means "use the world's set",

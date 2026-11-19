@@ -32,26 +32,71 @@ from pathlib import Path
 from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageOps
 
 # Bump when the rendering changes, so cached images are made again.
-VERSION = 5
+VERSION = 6
 EFFECTS = ("banner", "sepia", "aged", "mono", "torn", "fade", "oval")
 # A title image's shape: wide, as the pages show a cover.
 BANNER = 10 / 3
 ALIASES = {"ripped": "torn", "soft": "fade", "vignette": "fade", "old": "aged", "bw": "mono"}
+# A frame's word: the part of the original shown (``crop:x_y_w_h``, fractions).
+CROP = "crop:"
 # The longest side a rendering keeps; a page never shows more.
 MAX_SIDE = 1600
 _WORDS = re.compile(r"[\s,+]+")
 
 
+def frame_word(x: float, y: float, width: float, height: float) -> str:
+    """The word a frame is written as: ``crop:0.1200_0.0500_0.8000_0.4500``, the part of
+    the original it shows as fractions of its width and height (left, top, width,
+    height). The original is never cut; the frame is rendered from it."""
+    x, y = min(max(x, 0.0), 1.0), min(max(y, 0.0), 1.0)
+    width, height = min(max(width, 0.01), 1.0 - x), min(max(height, 0.01), 1.0 - y)
+    return f"{CROP}{x:.4f}_{y:.4f}_{width:.4f}_{height:.4f}"
+
+
+def frame_of(effects: tuple[str, ...]) -> tuple[float, float, float, float] | None:
+    """The frame among ``effects``, as ``(x, y, width, height)``, or None."""
+    for word in effects:
+        if word.startswith(CROP):
+            parts = word[len(CROP) :].split("_")
+            try:
+                x, y, width, height = (float(v) for v in parts)
+            except ValueError:
+                return None
+            return x, y, width, height
+    return None
+
+
+def _frame(word: str) -> str | None:
+    """A frame word made canonical, or None when it is not one."""
+    if not word.startswith(CROP):
+        return None
+    parts = word[len(CROP) :].split("_")
+    try:
+        values = [float(v) for v in parts]
+    except ValueError:
+        return None
+    if len(values) != 4 or not all(0.0 <= v <= 1.0 for v in values):
+        return None
+    return frame_word(*values)
+
+
+def framed(word: str) -> str:
+    """A frame word as a form sent it, made canonical, or "" (none, or not one)."""
+    found = _frame(word.strip().lower()) if word else None
+    return found or ""
+
+
 def parse(text: str) -> tuple[str, ...] | None:
-    """The effects ``text`` names, in rendering order, or None when it is not made only of
-    effect words (then it is alt text, a size, or nothing)."""
+    """The effects ``text`` names, in rendering order (a frame first), or None when it
+    is not made only of effect words (then it is alt text, a size, or nothing)."""
     words = [w for w in _WORDS.split(text.strip().lower()) if w]
     if not words:
         return None
-    named = {ALIASES.get(w, w) for w in words}
-    if not named <= set(EFFECTS):
+    if any(_frame(w) is None and ALIASES.get(w, w) not in EFFECTS for w in words):
         return None
-    return tuple(e for e in EFFECTS if e in named)
+    frames = [f for f in (_frame(w) for w in words) if f is not None]
+    named = {ALIASES.get(w, w) for w in words if not w.startswith(CROP)}
+    return (*frames[:1], *(e for e in EFFECTS if e in named))
 
 
 def split(spec: str | None) -> tuple[str, tuple[str, ...]]:
@@ -68,6 +113,13 @@ def join(path: str, effects: tuple[str, ...] | list[str]) -> str:
     """The spec for ``path`` wearing ``effects``."""
     named = parse(" ".join(effects)) if effects else None
     return f"{path}|{' '.join(named)}" if named else path
+
+
+def spec(path: str, frame: str = "", effects: tuple[str, ...] | list[str] = ()) -> str:
+    """The reference to write for ``path`` shown in ``frame`` (a ``crop:`` word, or none)
+    wearing ``effects``: ``media/x.jpg|crop:0.1000_0.0500_0.8000_0.4500 torn``."""
+    words = [frame, *effects] if frame else list(effects)
+    return join(path, words)
 
 
 def query(effects: tuple[str, ...]) -> str:
@@ -196,6 +248,17 @@ def apply(image: Image.Image, effects: tuple[str, ...], seed: str) -> Image.Imag
     """``image`` wearing ``effects``, with transparency where an edge falls away."""
     rng = random.Random(seed)
     image = ImageOps.exif_transpose(image)
+    frame = frame_of(effects)
+    if frame is not None:
+        # The frame chosen, from the original: the file itself is never cut.
+        x, y, width, height = frame
+        box = (
+            round(x * image.width),
+            round(y * image.height),
+            max(round((x + width) * image.width), round(x * image.width) + 1),
+            max(round((y + height) * image.height), round(y * image.height) + 1),
+        )
+        image = image.crop(box)
     image = _trimmed(image)
     if max(image.size) > MAX_SIDE:
         scale = MAX_SIDE / max(image.size)
@@ -203,7 +266,7 @@ def apply(image: Image.Image, effects: tuple[str, ...], seed: str) -> Image.Imag
             (max(1, round(image.width * scale)), max(1, round(image.height * scale))),
             Image.Resampling.LANCZOS,
         )
-    if "banner" in effects and image.width / image.height < BANNER:
+    if "banner" in effects and frame is None and image.width / image.height < BANNER:
         height = max(1, round(image.width / BANNER))
         top = (image.height - height) // 2
         image = _trimmed(image.crop((0, top, image.width, top + height)))
@@ -263,12 +326,17 @@ class ImageEffects:
 
 __all__ = [
     "ALIASES",
+    "CROP",
     "EFFECTS",
     "ImageEffects",
     "apply",
+    "frame_of",
+    "frame_word",
+    "framed",
     "join",
     "parse",
     "query",
+    "spec",
     "split",
     "with_effects",
 ]
