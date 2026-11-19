@@ -33,6 +33,7 @@ from app.mcp.models import (
     PlaceInfo,
     Problem,
     QuestInfo,
+    ReadyMadeObject,
     RevisionChange,
     TreasureInfo,
     TreasureLine,
@@ -61,6 +62,7 @@ from app.models.gamestate import (
 from app.models.naming import Subject
 from app.services import scope as scopes
 from app.services.adventures import text_version
+from app.services.holdings import KINDS as HELD_KINDS
 from app.services.i18n import english
 from app.services.naming import sample_notes
 from app.services.naming_workshop import style_from_raw
@@ -226,7 +228,41 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
                 for t in registry.treasure.list(adventure.world_id)
                 if in_it(t.scope)
             ],
+            ready_made=[
+                ReadyMadeObject(kind=held.kind, id=held.id, name=held.name)
+                for kind in HELD_KINDS
+                for held in registry.holdings.used(adventure.id, kind)
+            ],
         )
+
+    @server.tool()
+    def use_ready_made(
+        adventure_id: str,
+        kind: Annotated[str, Field(description="npc, place, encounter or treasure")],
+        object_id: Annotated[
+            str, Field(description="One of the world's own (scope world, from world_overview)")
+        ],
+        remove: Annotated[bool, Field(description="Unlink it from the draft again")] = False,
+    ) -> list[ReadyMadeObject]:
+        """Let a draft use one of the world's own NPCs, places, encounters or treasure, as
+        the gamemaster adds a ready-made one: linked, it stays the world's (a chapter names
+        it by tag as any other), goes when the draft is discarded and stays when it is
+        accepted. ``remove`` unlinks one again. Answers what the draft now uses."""
+        registry = stores()
+        adventure = writable(adventure_id)
+        holdings = registry.holdings
+        with tool_errors():
+            if remove:
+                if object_id not in adventure.uses:
+                    raise ToolError("That is not one of the world's objects this draft uses.")
+                holdings.drop(adventure.id, kind, object_id)
+            else:
+                holdings.use(adventure.id, kind, object_id)
+        return [
+            ReadyMadeObject(kind=held.kind, id=held.id, name=held.name)
+            for k in HELD_KINDS
+            for held in holdings.used(adventure.id, k)
+        ]
 
     # -- the adventure and its chapters -----------------------------------------------
 

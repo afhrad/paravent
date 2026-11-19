@@ -110,6 +110,10 @@ class WorldOverview(BaseModel):
         default_factory=list, description="Places, written {@place Name}"
     )
     treasures: list[CampaignObject]
+    encounters: list[CampaignObject] = Field(
+        default_factory=list,
+        description="Its encounters; those of scope world are ready-made, for any adventure",
+    )
     party: list[str] = Field(description="The world's characters: name, level")
     today: str = Field(
         default="",
@@ -707,6 +711,14 @@ class TreasureInfo(BaseModel):
     unresolved: list[str] = Field(default_factory=list, description="Items not in the books")
 
 
+class ReadyMadeObject(BaseModel):
+    """One of the world's own objects an adventure uses."""
+
+    kind: str = Field(description="npc, place, encounter or treasure")
+    id: str
+    name: str
+
+
 class AdventureDetail(BaseModel):
     """An adventure with everything in it."""
 
@@ -728,9 +740,15 @@ class AdventureDetail(BaseModel):
     places: list[PlaceInfo] = Field(default_factory=list)
     encounters: list[EncounterInfo]
     treasures: list[TreasureInfo]
+    ready_made: list[ReadyMadeObject] = Field(
+        default_factory=list,
+        description="The world's own NPCs, places, encounters and treasure it uses "
+        "(use_ready_made), staying the world's",
+    )
 
 
 __all__ = [
+    "ReadyMadeObject",
     "AdventureProblem",
     "AdventureRecord",
     "SoundInfo",

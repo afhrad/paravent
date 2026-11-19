@@ -90,6 +90,9 @@ Use these tools to write adventures that fit the table exactly:
   gamemaster names another; a tool given an empty `world_id` (or `current`) uses it.
 - Read the world (`world_overview`) and the party (`party`) first. Write everything the
   table reads in the world's language.
+- The world's own NPCs, places, encounters and treasure (scope `world`) are ready-made: when
+  one fits, link it into the draft with `use_ready_made` instead of making another — the
+  innkeeper of the last adventure can keep her inn.
 - Follow the gamemaster's instructions for the world (`world_overview.instructions`):
   `setting` says which world this is — use your knowledge of it, its places, people and
   creatures — and each kind (`npc`, `encounter`, …) how those should be made.
@@ -326,6 +329,15 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
             npcs=[placed(n) for n in registry.npcs.list(world.id)],
             places=[placed(x) for x in registry.locations.list(world.id)],
             treasures=[placed(t) for t in registry.treasure.list(world.id)],
+            encounters=[
+                CampaignObject(
+                    id=e.id,
+                    name=e.name,
+                    scope=e.scope.level if e.scope is not None else "world",
+                    adventure=names.get(e.adventure_id or ""),
+                )
+                for e in registry.encounters.list(world.id)
+            ],
             party=[
                 f"{pc.name}, level {pc.total_level}"
                 for pc in registry.characters.in_world(world.id)

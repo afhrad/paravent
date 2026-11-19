@@ -680,6 +680,67 @@ class TestCraft:
 
 
 class TestDraftReview:
+    async def test_a_draft_uses_the_worlds_ready_made_objects(
+        self, table: tuple[httpx.AsyncClient, Any]
+    ) -> None:
+        _raw, facts = table
+        registry = facts["app"].state.stores
+        world_id = facts["world"].id
+        lyra = facts["ids"][0]
+        innkeeper = registry.npcs.create("Maren", f"w:{world_id}", world_id)
+        landing = registry.locations.create("Grey Reed Landing", f"w:{world_id}", world_id)
+        async with session(table) as mcp:
+            overview = await call(mcp, "world_overview", world_id=world_id)
+            assert "encounters" in overview
+            draft = await call(
+                mcp,
+                "create_adventure",
+                world_id=world_id,
+                name="Ready-made",
+                summary="",
+                character_ids=[lyra],
+            )
+            used = await call(
+                mcp, "use_ready_made", adventure_id=draft["id"], kind="npc", object_id=innkeeper.id
+            )
+            used = await call(
+                mcp, "use_ready_made", adventure_id=draft["id"], kind="place", object_id=landing.id
+            )
+            assert {(u["kind"], u["name"]) for u in used} == {
+                ("npc", "Maren"),
+                ("place", "Grey Reed Landing"),
+            }
+            read = await call(mcp, "read_adventure", adventure_id=draft["id"])
+            assert {u["id"] for u in read["ready_made"]} == {innkeeper.id, landing.id}
+            # Unlinked again: still the world's.
+            left = await call(
+                mcp,
+                "use_ready_made",
+                adventure_id=draft["id"],
+                kind="npc",
+                object_id=innkeeper.id,
+                remove=True,
+            )
+            assert [u["name"] for u in left] == ["Grey Reed Landing"]
+            assert registry.gamestate.npcs.get(innkeeper.id).scope.adventure_id is None
+            # Only the world's own may be used; the draft's own NPC is not ready-made.
+            own = await call(mcp, "create_npc", adventure_id=draft["id"], name="Odo", notes="")
+            assert (
+                "world"
+                in (
+                    await refused(
+                        mcp,
+                        "use_ready_made",
+                        adventure_id=draft["id"],
+                        kind="npc",
+                        object_id=own["id"],
+                    )
+                ).lower()
+            )
+            # Discarding the draft takes its links with it, the objects stay.
+            await call(mcp, "delete", kind="adventure", id=draft["id"])
+            assert registry.gamestate.locations.find(landing.id) is not None
+
     async def test_review_then_accept(self, table: tuple[httpx.AsyncClient, Any]) -> None:
         raw, facts = table
         registry = facts["app"].state.stores
