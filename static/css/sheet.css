@@ -15,6 +15,7 @@
 .cs-flash{ margin:0; }
 .cs-call{ margin:0; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .cs-call .btn{ margin-left:auto; }
+.cs-call > span{ flex:1 1 12em; min-width:0; }
 .cs-chase{ margin:0; display:flex; align-items:center; gap:6px 10px; flex-wrap:wrap; }
 .cs-chase.is-turn{ border-color:var(--accent); box-shadow:0 0 0 1px var(--accent); }
 .cs-ammo{ font-variant-numeric:tabular-nums; }
@@ -400,3 +401,21 @@ a.fchip{ text-decoration:none; }
 .cs-bent{ display:flex; gap:6px; align-items:flex-start; margin:0 0 8px; font-size:12.5px; color:var(--cond-text); }
 .cs-bent svg{ flex-shrink:0; margin-top:2px; }
 .cs-scroll{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:4px; }
+
+/* On a phone the head's buttons are their icons (the name stays for screen readers and
+   as the title), the X-card keeps its word, and Live is its dot: two rows, not three. */
+@media (max-width: 640px){
+  .cs-head-meta{ gap:6px; }
+  .cs-head-meta .btn:not(.xcard) > span:not(.pill),
+  .cs-head-meta .cs-live > span:not(.dot){
+    position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;
+  }
+  .cs-head-meta .btn:not(.xcard){ min-width:44px; min-height:44px; justify-content:center; padding:0 10px; }
+  .cs-head-meta .xcard{ min-height:44px; }
+  .cs-head-meta .xcard-form{ margin-left:auto; }
+  /* The clock, passive Perception and Live on the first row, the buttons on the second */
+  .cs-head-meta > .pill{ order:0; }
+  .cs-head-meta > .cs-live{ order:1; margin-left:auto; }
+  .cs-head-meta::before{ content:""; order:2; flex-basis:100%; }
+  .cs-head-meta > :not(.pill):not(.cs-live), .cs-head-meta > .cs-act > .btn{ order:3; }
+}

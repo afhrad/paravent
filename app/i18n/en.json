@@ -1787,7 +1787,7 @@
   "combat.round_n": "Round {n}",
   "combat.rolling": "Rolling initiative",
   "combat.ended": "Ended",
-  "combat.turn_of": "{name}'s turn",
+  "combat.turn_of": "Turn: {name}",
   "combat.begin": "Begin",
   "combat.next": "Next turn",
   "combat.previous": "Previous turn",
@@ -1866,7 +1866,7 @@
   "combat.add_character": "Add character",
   "combat.add_other": "Add",
   "combat.summary": "Summary",
-  "combat.summary_line": "{rounds} rounds fought, {fallen} fallen.",
+  "combat.summary_line": "{rounds} fought, {fallen} fallen.",
   "combat.summary_xp": "{xp} XP for the defeated — {share} each for {n} characters.",
   "combat.error.bad_input": "That did not make sense as a number.",
   "combat.you": "You",
@@ -1947,7 +1947,7 @@
   "combat.log_more": "{n} older entries are kept in the record.",
   "combat.log.start": "Combat started: {subject}",
   "combat.log.begin": "The fight begins",
-  "combat.log.turn": "{subject}'s turn",
+  "combat.log.turn": "Turn: {subject}",
   "combat.log.initiative": "{subject}: initiative {amount}",
   "combat.log.damage": "{subject} takes {amount} damage",
   "combat.log.heal": "{subject} heals {amount}",
@@ -3867,5 +3867,8 @@
   "title_image.remove": "Remove the title image",
   "title_image.error.none": "Choose a picture first.",
   "title_image.error.image": "That file is not a picture Paravent can show (PNG, JPEG, WebP, GIF or AVIF).",
-  "title_image.error.owner": "This one cannot take a title image: it belongs to no world."
+  "title_image.error.owner": "This one cannot take a title image: it belongs to no world.",
+  "combat.back_to_order": "Back to the order",
+  "combat.following_turn": "Whose turn it is",
+  "combat.follow_turn": "Follow the turn"
 }

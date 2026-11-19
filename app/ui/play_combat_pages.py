@@ -311,9 +311,10 @@ def _aim_forms(
         if character_id == member.character_id:
             continue
         aimed = view.targets.get(character_id) == member.id
-        # The character's name: whose target it becomes, or stops being.
-        label = names.get(character_id, "")
         title = t("combat.untarget" if aimed else "combat.choose_target")
+        # With one character the button says what it does; with several, whose target
+        # it becomes, or stops being.
+        label = names.get(character_id, "") if len(mine) > 1 else title
         out.append(
             form(
                 method="post",
@@ -329,7 +330,7 @@ def _aim_forms(
                     type="submit",
                     class_=f"btn btn-sm {'btn-ghost' if aimed else 'btn-primary'}",
                     title=title,
-                    aria_label=f"{title}: {label}",
+                    aria_label=f"{title}: {label}" if label != title else None,
                 )[icon("x" if aimed else "target", "sm"), span[label]],
             ]
         )
@@ -442,12 +443,13 @@ def player_board(
         data_events=play_combat_url(view.id, "/events"),
     )[
         div(class_="pv-head")[
-            _state(page, view),
+            # The round and whose turn on one line; your own turn is the banner below.
+            div(class_="pv-now")[_state(page, view), None if yours else banner],
             quick_switch(page, view, mine, "fight"),
             xcard_button(page, view.world_id),
         ],
         div(class_="notice cs-flash", role="status")[flash] if flash else None,
-        banner,
+        banner if yours else None,
         _save_calls(page, view, sorted(mine), "board", "#combat-board") if view.running else None,
         _repeat_calls(page, view, sorted(mine), "board", "#combat-board"),
         p(class_="cb-waiting")[icon("hourglass", "sm"), t("combat.roll_on_sheet")]

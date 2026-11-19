@@ -80,8 +80,8 @@ Ein Kasten oder Bild in einem Kapitel hat **Mit Spielern teilen**: Es landet in 
 
 **Starten** beginnt den Kampf. Die Spieler würfeln Initiative auf dem Handy, der Tracker
 hält Reihenfolge, Trefferpunkte und Zustände fest, und der Wertekasten öffnet sich daneben.
-Ob ein Angriff trifft, entscheidest immer du. Den ganzen Rundgang findest du unter *So
-geht's* im Tracker.
+Ob ein Angriff trifft, entscheidest immer du. Den ganzen Rundgang findest du unter dem **?** in
+der Rundenleiste des Trackers.
 
 ## 7. Schön zu haben
 

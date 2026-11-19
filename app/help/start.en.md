@@ -77,8 +77,8 @@ the search and watch the difficulty change for the party you actually have.
 
 **Run** starts the fight. The players roll initiative on their phones, the tracker keeps
 the order, hit points and conditions, and the statblock opens beside it. Whether an
-attack hits is always your call. The whole walkthrough is under *How it works* in the
-tracker.
+attack hits is always your call. The whole walkthrough is under the **?** in the
+tracker's round bar.
 
 ## 7. Nice to have
 

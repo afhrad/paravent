@@ -250,7 +250,8 @@ def _tools(page: Page, view: CombatView) -> Element:
             href=f"/help/combat?back={url}",
             class_="btn btn-sm btn-ghost",
             title=t("combat.help_title"),
-        )[t("combat.help")],
+            aria_label=t("combat.help"),
+        )[icon("circle-help", "sm")],
         a(href=f"{url}/end", class_="btn btn-sm cb-end")[icon("x", "sm"), t("combat.end")]
         if combat.running
         else a(href=f"{url}/delete", class_="btn btn-sm cb-end")[
@@ -827,6 +828,8 @@ def board(
         # The combat's own revision: an echo of this screen's change matches it, while
         # a character's change arrives as "<combat>|<character>" and never does.
         data_rev=combat.updated_at.isoformat(),
+        # Whoever acts now: a side panel that follows the turn reloads when it changes.
+        data_turn=view.acting.combatant.id if view.acting is not None else "",
         data_url=f"{COMBATS_URL}/{combat.id}/board" + (f"?{query}" if query else ""),
         data_events=f"{COMBATS_URL}/{combat.id}/events",
     )[
@@ -1302,8 +1305,12 @@ def side_panel(
     offer: Sequence[Revealable] = (),
     translate: TranslateOffer | None = None,
     picture: PictureOffer | None = None,
+    follow: bool = False,
 ) -> Element:
     """The selected combatant: a monster's statblock, a character's fighting stats.
+
+    With none selected (``follow``), ``row`` is whoever acts now: the panel carries the
+    turn it shows, and ``combat.js`` reloads it when the board's turn moves on.
 
     For a creature, ``known`` is what the players know of its kind and ``offer`` what
     its statblock has to tell them; the gamemaster reveals and forgets facts there.
@@ -1360,16 +1367,41 @@ def side_panel(
         ]
     else:
         content = div(class_="panel")[h3[shown_label(page, row)], p[t("combat.no_statblock")]]
+    side_url = f"{COMBATS_URL}/{view.combat.id}/side"
+    own_url = None
+    if row is not None:
+        own_url = side_url if follow else f"{side_url}?sel={row.combatant.id}"
+    can_follow = not follow and view.acting is not None
     return div(
         id="combat-side",
         class_="cb-side",
-        data_url=f"{COMBATS_URL}/{view.combat.id}/side?sel={row.combatant.id}"
+        data_url=own_url,
+        data_live=own_url if live else None,
+        data_follow="1" if follow else None,
+        data_turn=row.combatant.id if follow and row is not None else None,
+    )[
+        div(class_="cb-side-bar")[
+            # Below the order on a phone or an upright iPad: the way back to its row.
+            a(href=f"#c-{row.combatant.id}", class_="btn btn-sm btn-ghost cb-side-back")[
+                icon("arrow-up", "sm"), t("combat.back_to_order")
+            ],
+            span(class_="cb-side-follow")[span(class_="dot"), t("combat.following_turn")]
+            if follow
+            else None,
+            a(
+                href=combat_url(view.combat.id),
+                hx_get=side_url,
+                hx_target="#combat-side",
+                hx_swap="outerHTML",
+                class_="btn btn-sm btn-ghost cb-follow",
+            )[icon("arrow-right", "sm"), t("combat.follow_turn")]
+            if can_follow
+            else None,
+        ]
         if row is not None
         else None,
-        data_live=f"{COMBATS_URL}/{view.combat.id}/side?sel={row.combatant.id}"
-        if live and row is not None
-        else None,
-    )[content]
+        content,
+    ]
 
 
 # What the statblock could still tell the players, folded by kind: the group's label key.
@@ -1985,63 +2017,72 @@ def add_panel(
         pick=combat.id,
         swap="#combat-board",
     )
-    return section(class_="panel cb-add", id="add", aria_labelledby="add-h")[
-        div(class_="panel-head")[h2(id="add-h")[t("combat.add_heading")]],
-        search_form(
-            page,
-            result,
-            combat.world_id,
-            in_dialog=False,
-            target=target,
-            autofocus=bool(result.query),
-            extra=_side_choice(page, ally, "pick"),
-        ),
-        form(method="post", action=f"{url}/characters", class_="cb-line")[
-            select(name="character_id", aria_label=t("combat.add_character"))[
-                [option(value=cid)[name] for cid, name in characters]
+    # Folded until it is needed; open after a search or an add, which come back to #add
+    # (combat.js opens it for the anchor).
+    return details(class_="panel cb-add-fold", id="add", open=bool(result.query))[
+        summary(class_="cb-add-head")[
+            h2[icon("plus", "sm"), t("combat.add_heading")],
+            icon("chevron-down", "sm", muted=True),
+        ],
+        div(class_="cb-add")[
+            search_form(
+                page,
+                result,
+                combat.world_id,
+                in_dialog=False,
+                target=target,
+                autofocus=bool(result.query),
+                extra=_side_choice(page, ally, "pick"),
+            ),
+            form(method="post", action=f"{url}/characters", class_="cb-line")[
+                select(name="character_id", aria_label=t("combat.add_character"))[
+                    [option(value=cid)[name] for cid, name in characters]
+                ],
+                button(type="submit", class_="btn btn-sm")[
+                    icon("plus", "sm"), t("combat.add_character")
+                ],
+            ]
+            if characters
+            else None,
+            form(method="post", action=f"{url}/others", class_="cb-line cb-other")[
+                input_el(
+                    type="text",
+                    name="label",
+                    required=True,
+                    placeholder=t("combat.label"),
+                    aria_label=t("combat.label"),
+                ),
+                input_el(
+                    type="number",
+                    name="ac",
+                    min="0",
+                    max="40",
+                    placeholder=t("combat.ac_label"),
+                    aria_label=t("combat.ac_label"),
+                    class_="mono",
+                ),
+                input_el(
+                    type="number",
+                    name="hp",
+                    min="0",
+                    placeholder=t("combat.hp_label"),
+                    aria_label=t("combat.hp_label"),
+                    class_="mono",
+                ),
+                input_el(
+                    type="number",
+                    name="initiative",
+                    min="-10",
+                    max="50",
+                    placeholder=t("combat.init_short"),
+                    aria_label=t("combat.init_short"),
+                    class_="mono",
+                ),
+                _side_choice(page, ally, "other"),
+                button(type="submit", class_="btn btn-sm")[
+                    icon("plus", "sm"), t("combat.add_other")
+                ],
             ],
-            button(type="submit", class_="btn btn-sm")[
-                icon("plus", "sm"), t("combat.add_character")
-            ],
-        ]
-        if characters
-        else None,
-        form(method="post", action=f"{url}/others", class_="cb-line cb-other")[
-            input_el(
-                type="text",
-                name="label",
-                required=True,
-                placeholder=t("combat.label"),
-                aria_label=t("combat.label"),
-            ),
-            input_el(
-                type="number",
-                name="ac",
-                min="0",
-                max="40",
-                placeholder=t("combat.ac_label"),
-                aria_label=t("combat.ac_label"),
-                class_="mono",
-            ),
-            input_el(
-                type="number",
-                name="hp",
-                min="0",
-                placeholder=t("combat.hp_label"),
-                aria_label=t("combat.hp_label"),
-                class_="mono",
-            ),
-            input_el(
-                type="number",
-                name="initiative",
-                min="-10",
-                max="50",
-                placeholder=t("combat.init_short"),
-                aria_label=t("combat.init_short"),
-                class_="mono",
-            ),
-            _side_choice(page, ally, "other"),
-            button(type="submit", class_="btn btn-sm")[icon("plus", "sm"), t("combat.add_other")],
         ],
     ]
 
@@ -2297,7 +2338,13 @@ def _summary(page: Page, combat: Combat, s: Summary, rows: Sequence[XpRow]) -> E
     t = page.t
     return div(class_="panel cb-summary")[
         div(class_="panel-head")[h2[t("combat.summary")]],
-        p[t("combat.summary_line", rounds=s.rounds, fallen=len(s.fallen))],
+        p[
+            t(
+                "combat.summary_line",
+                rounds=t("combat.rounds_n", count=s.rounds),
+                fallen=len(s.fallen),
+            )
+        ],
         ul(class_="cb-defeated")[
             [
                 li[span[label], span(class_="mono muted")[t("combat.xp_n", xp=xp)]]

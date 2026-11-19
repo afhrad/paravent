@@ -767,8 +767,8 @@ class TestInTheTracker:
         await ac.post("/login", data={"username": "alice", "password": PASSWORD})
         board = (await ac.get(board_url)).text
         assert f'data-member="{second.id}"' in board and "Details" in board
-        # the menu aims by the character's name; Details is the "i" alone
-        assert 'title="Target"' in board and "<span>Brunhild</span>" in board
+        # one character: the menu says what it does; Details is the "i" alone
+        assert 'title="Target"' in board and "<span>Target</span>" in board
         assert 'aria-label="Details"' in board and ">Details<" not in board
         aimed = await ac.post(
             f"{board_url}/target",

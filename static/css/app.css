@@ -624,9 +624,16 @@ a.ext{ color:var(--accent-text); }
    The bar's trigger, the ⌘K dialog, and the /search page — one form in all three. */
 .shell-search{ flex:0 1 260px; text-decoration:none; margin-right:6px; }
 .shell-search .search-label{ flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-@media (max-width: 640px){
+/* Up to an iPad held upright the field is its icon, and up to one held sideways the
+   user menu its avatar, so the bar stays one row in either language. */
+@media (max-width: 1023px){
   .shell-search{ flex:0 0 auto; min-height:40px; min-width:40px; padding:0 11px; justify-content:center; }
   .shell-search .search-label, .shell-search .search-kbd{ display:none; }
+}
+@media (max-width: 1279px){ .usermenu-name{ display:none; } }
+@media (min-width: 761px) and (max-width: 1023px){
+  .shell-bar{ gap:8px; }
+  .shell-nav a{ padding:0 7px; gap:5px; }
 }
 
 dialog.palette{
@@ -1081,7 +1088,13 @@ h2.book-heading{ font-size:22px; } h3.book-heading{ font-size:18px; } h4.book-he
 .cb-tools .cb-form{ display:contents; }
 .cb-remove{ color:var(--dmg-text); }
 
-.cb-add{ display:grid; gap:12px; }
+.cb-add{ display:grid; gap:12px; margin-top:12px; }
+/* Folded under the order until it is needed */
+.cb-add-head{ list-style:none; display:flex; align-items:center; gap:8px; cursor:pointer; min-height:32px; }
+.cb-add-head::-webkit-details-marker{ display:none; }
+.cb-add-head h2{ margin:0; display:flex; align-items:center; gap:8px; flex:1; }
+.cb-add-fold[open] > .cb-add-head > svg:last-child{ transform:rotate(180deg); }
+.cb-add-fold:not([open]){ padding-top:12px; padding-bottom:12px; }
 .cb-other input[type="number"]{ width:72px; }
 .cb-side-hint{ color:var(--text-3); font-size:13.5px; padding:16px; border:1px dashed var(--border); border-radius:var(--r); margin:0; }
 .cb-summary p{ margin:4px 0; }
@@ -1098,11 +1111,18 @@ h2.book-heading{ font-size:22px; } h3.book-heading{ font-size:18px; } h4.book-he
 @media (max-width: 640px){
   .cb-turn{ grid-template-columns:48px minmax(0, 1fr); }
   .cb-init-input{ width:46px; }
-  .cb-members .combatant{ grid-template-columns:minmax(0, 1fr); }
+  .cb-members .combatant{ grid-template-columns:minmax(0, 1fr) auto; align-items:start; }
   .cb-members .combatant .token, .cb-members .combatant .tok{ display:none; }
-  .c-actions{ justify-content:flex-start; }
+  .c-actions{ justify-content:flex-end; padding-top:2px; }
 }
 .cb-aside{ min-width:0; }
+.cb-side-bar{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px; }
+.cb-side-bar:empty{ display:none; }
+.cb-side-follow{ display:inline-flex; align-items:center; gap:6px; font-size:12px; color:var(--text-3);
+  font-family:var(--font-ui); text-transform:uppercase; letter-spacing:.06em; }
+.cb-side-follow .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); }
+.cb-follow{ margin-left:auto; }
+@media (min-width: 1024px){ .cb-side-back{ display:none; } }
 .cb-aside .statblock{ font-size:13.5px; overflow-wrap:anywhere; }
 .cb-aside .statblock p{ font-size:13.5px; }
 .cb-aside .sb-abilities{ grid-template-columns:repeat(3, 1fr); }
@@ -1167,7 +1187,38 @@ button.pill.cb-side-switch:hover{ border-color:currentColor; }
    height leaves room for the bar, the title and the head above it on first view. */
 .cb-scroll{ overflow-y:auto; overscroll-behavior:contain; max-height:calc(100dvh - 300px);
   min-height:320px; padding:4px 2px 2px; scrollbar-gutter:stable; }
-@media (max-width: 640px){ .cb-scroll{ max-height:calc(100dvh - 450px); min-height:300px; } }
+/* Wide enough, a row is one line: token, name, hit points, then damage and the menu.
+   Half the height, so twice the order shows without scrolling. */
+.cb-scroll{ container-type:inline-size; }
+/* A narrower board keeps its round bar on one line: the difficulty is its pill alone
+   (named in its title), the gaps closer. */
+.tracker{ container:tracker / inline-size; }
+@container tracker (max-width: 900px){
+  .round-head{ gap:8px; }
+  .round-head .cb-difficulty .eyebrow{ display:none; }
+}
+@container (min-width: 700px){
+  .cb-members .combatant{ grid-template-columns:34px minmax(0, 1fr) auto auto; }
+  .c-damage{ grid-column:auto; padding-top:0; border-top:0; }
+  .c-damage .cb-menu{ margin-left:0; }
+}
+/* On a phone the page scrolls instead, the round bar pinned to the top: a box inside
+   the page showed a row and a half. The top bar is left behind there. */
+@media (max-width: 640px){
+  body:has(.tracker) .shell-bar{ position:static; }
+  .cb-scroll{ max-height:none; min-height:0; overflow:visible; padding:0; }
+  .tracker .round-head{
+    position:sticky; top:0; z-index:6; margin:-14px -16px 4px; padding:10px 16px 8px;
+    background-color:var(--surface); gap:6px 10px; border-radius:var(--r-lg) var(--r-lg) 0 0;
+  }
+  .round-head .round-n{ order:1; }
+  .round-head .cb-controls{ order:2; }
+  .round-head > .pill{ order:3; max-width:100%; }
+  .round-head .cb-difficulty{ order:4; }
+  .round-head .cb-links{ order:5; margin-left:auto; }
+  .cb-members .combatant{ scroll-margin-top:150px; }
+  .c-damage{ padding-top:6px; }
+}
 
 /* The fight's difficulty in the round head, and the add panel's friend/foe choice */
 .cb-difficulty{ display:inline-flex; align-items:center; gap:6px; }
@@ -1333,7 +1384,13 @@ button.pill.cb-side-switch:hover{ border-color:currentColor; }
   font-size:13.5px; font-weight:500; }
 .pv-switch a[aria-current="page"]{ background:var(--surface); color:var(--text); box-shadow:var(--shadow-sm); }
 .pv-switch-name{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:14em; }
-@media (max-width: 640px){ .pv-switch a{ min-height:44px; } }
+.pv-now{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; min-width:0; }
+@media (max-width: 640px){
+  .pv-switch a{ min-height:44px; }
+  /* On the phone the switch spans the top, the round, the turn and the X-card beneath */
+  .pv-head > .pv-switch{ order:-1; flex-basis:100%; }
+  .pv-head > .pv-switch a{ flex:1 1 0; justify-content:center; }
+}
 .pv-yours{ display:flex; align-items:center; gap:10px; padding:14px 16px; border-radius:var(--r);
   background:var(--accent-solid); color:var(--on-accent); font-size:1.25rem; font-weight:600; }
 .pv-turn{ margin:0; font-weight:600; }
@@ -1714,7 +1771,8 @@ div.cg-stat{ display:flex; justify-content:space-between; align-items:baseline; 
 .cb-due{ display:grid; gap:6px; padding:10px 12px; border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:var(--r); background:var(--surface); font-size:13.5px; }
 .cb-due .eyebrow{ display:flex; align-items:center; gap:6px; }
 /* Only the reminder lines are flex rows; the lair's own text flows as prose. */
-.cb-due-item{ margin:0; display:flex; align-items:center; gap:4px; flex-wrap:wrap; }
+.cb-due-item{ margin:0; }
+.cb-due-item > svg{ vertical-align:-2px; margin-right:2px; }
 .cb-due-line{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .cb-due-lair{ display:grid; gap:4px; }
 .cb-due-lair ul{ margin:0; padding-left:18px; }

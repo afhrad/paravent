@@ -659,7 +659,7 @@ class TestPages:
 
         begun = await ac.post(f"{url}/begin", headers=HTMX)
         assert begun.status_code == 200 and begun.text.startswith('<div id="combat-board"')
-        assert "Goblin ×2&#39;s turn" in begun.text
+        assert "Turn: Goblin ×2" in begun.text
 
         goblin = registry.combats.get(combat_id).combatants[0]
         hit = await ac.post(
@@ -1055,6 +1055,48 @@ class TestCharacterPanel:
         goblin = next(c for c in combat.combatants if c.ref)
         monster = (await ac.get(f"{url}/side", params={"sel": goblin.id})).text
         assert "Nimble Escape" in monster and "data-live" not in monster
+
+
+class TestFollowingTheTurn:
+    async def test_the_side_panel_follows_whoever_acts(
+        self, client: tuple[AsyncClient, StoreRegistry]
+    ) -> None:
+        ac, registry = client
+        url = (await ac.post(f"/gm/encounters/{_encounter(registry).id}/run")).headers["location"]
+        combat_id = url.rsplit("/", 1)[1]
+        # Before round 1 nobody acts: the hint, and the add panel folded.
+        page = (await ac.get(url)).text
+        assert "Select a combatant" in page and "data-follow" not in page
+        assert '<details class="panel cb-add-fold" id="add">' in page
+        await ac.post(f"{url}/begin", headers=HTMX)
+        acting = registry.combats.view(registry.combats.get(combat_id)).acting
+        assert acting is not None
+        page = (await ac.get(url)).text
+        assert 'data-follow="1"' in page and f'data-turn="{acting.combatant.id}"' in page
+        assert "Whose turn it is" in page and "Follow the turn" not in page
+        assert "is-selected" not in page  # following marks no row
+        # The fragment without a pick follows too; with one it is pinned, and offers to follow.
+        side = (await ac.get(f"{url}/side")).text
+        assert f'data-url="{url}/side"' in side and 'data-follow="1"' in side
+        other = next(
+            c for c in registry.combats.get(combat_id).combatants if c.id != acting.combatant.id
+        )
+        pinned = (await ac.get(f"{url}/side", params={"sel": other.id})).text
+        assert "data-follow" not in pinned and "Follow the turn" in pinned
+        # Next turn: the board names the new one, which the panel compares with.
+        board = (await ac.post(f"{url}/next", headers=HTMX)).text
+        now = registry.combats.view(registry.combats.get(combat_id)).acting
+        assert now is not None and f'data-turn="{now.combatant.id}"' in board
+
+    async def test_an_add_comes_back_to_the_panel(
+        self, client: tuple[AsyncClient, StoreRegistry]
+    ) -> None:
+        ac, registry = client
+        url = (await ac.post(f"/gm/encounters/{_encounter(registry).id}/run")).headers["location"]
+        added = await ac.post(f"{url}/others", data={"label": "Ferryman", "hp": "4"})
+        assert added.headers["location"].endswith("#add")
+        searched = (await ac.get(url, params={"q": "wolf"})).text
+        assert '<details class="panel cb-add-fold" id="add" open>' in searched
 
 
 class TestNames:

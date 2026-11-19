@@ -202,6 +202,9 @@ def _side(
     page: Page, registry: StoreRegistry, view: CombatView, sel: str, picture_error: str = ""
 ) -> HTMLResponse:
     row = view.row(sel) if sel else None
+    follow = row is None and view.acting is not None
+    if follow:
+        row = view.acting
     known, offer = _known(registry, view.combat, row)
     return html(
         side_panel(
@@ -217,6 +220,7 @@ def _side(
                 page, registry, row, combat_url(view.combat.id, sel=row.combatant.id if row else "")
             ),
             _picture(registry, view.combat, row, picture_error),
+            follow=follow,
         )
     )
 
@@ -230,8 +234,9 @@ def _answer(
     error: CombatError | None = None,
     q: str = "",
     side: str = "",
+    anchor: str = "",
 ) -> Response:
-    """The board for htmx, a redirect back to the tracker otherwise."""
+    """The board for htmx, a redirect back to the tracker otherwise (at ``anchor``)."""
     if _is_htmx(request):
         view = registry.combats.view(registry.combats.get(combat_id))
         flash = page.t.error(error) if error is not None else None
@@ -239,7 +244,7 @@ def _answer(
         return html(board(page, view, sel=sel, flash=flash, ctx=ctx))
     return redirect(
         combat_url(combat_id, sel=sel, q=q, side=side, error=error.key if error is not None else "")
-        + ("#add" if q else "")
+        + ("#add" if q else f"#{anchor}" if anchor else "")
     )
 
 
@@ -350,7 +355,9 @@ async def tracker(
     service = registry.combats
     combat = service.get(combat_id)
     view = service.view(combat)
-    row = view.row(sel) if sel else None
+    picked = view.row(sel) if sel else None
+    # With none picked, the side panel shows whoever acts now and follows the turn.
+    row = picked or view.acting
     add = None
     if combat.running:
         world_id = registry.references.known_world(combat.world_id)
@@ -383,13 +390,14 @@ async def tracker(
                     combat_url(view.combat.id, sel=row.combatant.id if row else ""),
                 ),
                 _picture(registry, view.combat, row),
+                follow=picked is None and row is not None,
             ),
             add=add,
             summary_=None if combat.running else service.summary(combat),
             progress=None if combat.running else _progress(registry, combat),
             ctx=_ctx(page, registry, combat),
             notes=_notes(page, registry, combat),
-            sel=row.combatant.id if row else "",
+            sel=picked.combatant.id if picked else "",
             error=page.t(error) if error.startswith("combat.error.") else None,
         )
     )
@@ -688,8 +696,8 @@ async def _add(
                 ally=ally,
             )
     except CombatError as exc:
-        return _answer(request, page, registry, combat_id, sel, exc, q=q, side=side)
-    return _answer(request, page, registry, combat_id, sel, q=q, side=side)
+        return _answer(request, page, registry, combat_id, sel, exc, q=q, side=side, anchor="add")
+    return _answer(request, page, registry, combat_id, sel, q=q, side=side, anchor="add")
 
 
 @router.post(f"{COMBATS_URL}/{{combat_id}}/monsters")

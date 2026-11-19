@@ -788,7 +788,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         gamemaster's Hit or Miss; **save spells** (Fireball, Hold Person) go to the fight from
         the sheet as save effects with the caster's DC, cast with the slot chosen — upcast
         damage from `{@scaledamage}`. A gamemaster's walkthrough ships in the app
-        (`app/help/combat.<lang>.md`, `/help/combat`, "How it works" in the tracker).
+        (`app/help/combat.<lang>.md`, `/help/combat`, the **?** in the tracker's round bar).
         **Weapon mastery** (2024): `itemMastery` loads (8 entries); the sheet links a
         weapon's mastery for characters with Weapon Mastery; after a hit Topple calls a
         CON save against prone, the others are noted in the log (Graze after a miss).

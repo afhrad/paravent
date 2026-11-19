@@ -43,6 +43,16 @@
     if (!e.detail.target || e.detail.target.id !== 'combat-side') return;
     knownOpen = !!document.querySelector('#combat-side details.cb-known[open]');
   });
+  // Where the side panel sits under the order (a phone, an upright iPad), a name picked
+  // brings it into view; there it carries a link back to the row.
+  document.addEventListener('htmx:afterSwap', function (e) {
+    var from = e.detail.requestConfig && e.detail.requestConfig.elt;
+    if (!e.detail.target || e.detail.target.id !== 'combat-side') return;
+    if (!from || !from.closest || !from.closest('.cb-name')) return;
+    if (!window.matchMedia('(max-width: 1023px)').matches) return;
+    var side = document.getElementById('combat-side');
+    if (side) side.scrollIntoView({ block: 'start' });
+  });
   document.addEventListener('htmx:afterSwap', function (e) {
     if (!knownOpen || !e.detail.target) return;
     var known = document.querySelector('#combat-side details.cb-known');
@@ -84,11 +94,17 @@
   });
   // A character's side panel shows HP, slots and conditions: it follows every change
   // of the board, which is also where a change to the character file arrives.
+  // A panel following the turn (nothing picked) reloads when the turn has moved on.
   function refreshSide() {
-    var side = document.getElementById('combat-side');
-    if (side && side.dataset.live && window.htmx) {
-      htmx.ajax('GET', side.dataset.live, { target: '#combat-side', swap: 'outerHTML' });
+    var side = document.getElementById('combat-side'), b = board();
+    if (!side || !window.htmx) return;
+    var url = side.dataset.live;
+    if (side.dataset.follow !== undefined && b && b.dataset.turn !== side.dataset.turn) {
+      url = side.dataset.url;
+    } else if (side.dataset.follow === undefined && !side.dataset.url && b && b.dataset.turn) {
+      url = b.dataset.url.replace(/\/board(\?.*)?$/, '/side');  // a fight just begun
     }
+    if (url) htmx.ajax('GET', url, { target: '#combat-side', swap: 'outerHTML' });
   }
   document.addEventListener('htmx:afterSettle', function (e) {
     if (e.detail.target && e.detail.target.id === 'combat-board') refreshSide();
@@ -126,7 +142,7 @@
   // Selecting a combatant loads its statblock beside the board; the board then follows,
   // so the selection is marked and kept by every form.
   document.addEventListener('click', function (e) {
-    var link = e.target.closest && e.target.closest('a.cb-name');
+    var link = e.target.closest && e.target.closest('a.cb-name, a.cb-follow');
     var b = board();
     if (!link || !b) return;
     var sel = new URL(link.href, location.href).searchParams.get('sel') || '';
@@ -183,6 +199,13 @@
     });
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', connect);
-  else connect();
+  // An add comes back to #add: the folded panel opens there.
+  function openAdd() {
+    var add = document.getElementById('add');
+    if (add && location.hash === '#add' && add.tagName === 'DETAILS') add.open = true;
+  }
+  function start() { openAdd(); connect(); }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
+  else start();
 })();

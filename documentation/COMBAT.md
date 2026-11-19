@@ -338,11 +338,25 @@ at ≥1024px, stacked below the board on narrower screens.
   the row's background as its bar, and **one compact line at the bottom**: the amount field, **−**, **+**, Temp and the
   ⋯ row menu at its end (moved there 2026-10-21, so the name and pills keep the width). It
   never wraps: 36px targets with a mouse, 44px on touch (DESIGN.md §2), Temp included on a
-  phone, where it used to hide in the menu.
+  phone, where it used to hide in the menu. **Where the order is 700px wide or more**
+  (2026-11-19, a container query: a laptop, an iPad held sideways or upright), that line
+  moves up beside the hit points, so a row is one line and twice the order shows.
 - **The order scrolls in its own box** under the round head (2026-10-21), so the round,
   whose turn, the difficulty and **Next** stay in view through a long fight; the board's
   swap after every button keeps the scroll position (`combat.js`), and so does leaving
-  through the top bar and coming back (`data-scroll-keep`, `ui.js`).
+  through the top bar and coming back (`data-scroll-keep`, `ui.js`). **On a phone**
+  (2026-11-19) the page scrolls instead, with the round head pinned to the top and the top
+  bar left behind: the box showed a row and a half. Picking a name there (and on an
+  upright iPad, where the side panel sits under the order) scrolls to the side panel,
+  which offers **Back to the order**.
+- **The round head stays one line** on a narrower board (2026-11-19): the rules and the
+  walkthrough are icons, and under 900px the difficulty is its pill alone.
+- **The side panel follows the turn** while nothing is picked (2026-11-19): it shows
+  whoever acts now (the first of a group), marked "Whose turn it is", and `combat.js`
+  reloads it when the board's `data-turn` moves on. Picking a name pins it; **Follow the
+  turn** returns to following. Before round 1 and after the end it shows the hint.
+- **Adding to the fight is folded** under the order (2026-11-19), open after a search and
+  after an add without JavaScript, which comes back to `#add`.
 - A **group** renders as its members in one block with one initiative number.
 - The statblock is the reference page's `statblock()`; its rolls roll locally, as elsewhere.
 - **A character's side panel** (2026-10-21) is a statblock of its own, read from the derived
@@ -385,7 +399,12 @@ can't be picked. The row then shows "Your target" and the sheet's strip "Target:
 On the tracker, the character's row names its target, and the gamemaster's Hit list for
 that character's attack offers it first. Nothing is logged. **Details** shows the side,
 the state word and the conditions for now; more will follow. An open menu stays open
-when the board refreshes, and closes once a target is picked.
+when the board refreshes, and closes once a target is picked. A player with one character
+reads **Target** on the button; with several, each character's name (2026-11-19).
+
+**On a phone** (2026-11-19) the page's head is the character | fight switch across the top,
+then the round, whose turn and the X-card on one line; the player's own turn stays the
+banner beneath.
 
 ### What players know about a creature (designed 2026-10-25)
 

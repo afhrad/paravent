@@ -369,6 +369,14 @@ class CombatView:
         return next((t for t in self.turns if t.active), None)
 
     @property
+    def acting(self) -> Row | None:
+        """The first of those acting now, while the fight runs (never the lair)."""
+        current = self.current
+        if not self.combat.running or current is None or current.turn.is_lair:
+            return None
+        return current.rows[0] if current.rows else None
+
+    @property
     def waiting(self) -> tuple[Row, ...]:
         """Rows whose initiative is not rolled yet."""
         return tuple(r for t in self.turns for r in t.rows if r.combatant.initiative is None)

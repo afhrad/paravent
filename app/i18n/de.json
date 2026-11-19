@@ -1866,7 +1866,7 @@
   "combat.add_character": "Charakter hinzufügen",
   "combat.add_other": "Hinzufügen",
   "combat.summary": "Zusammenfassung",
-  "combat.summary_line": "{rounds} Runden gekämpft, {fallen} gefallen.",
+  "combat.summary_line": "{rounds} gekämpft, {fallen} gefallen.",
   "combat.summary_xp": "{xp} EP für die Besiegten — je {share} für {n} Charaktere.",
   "combat.error.bad_input": "Das ergab als Zahl keinen Sinn.",
   "combat.you": "Du",
@@ -3867,5 +3867,8 @@
   "title_image.remove": "Titelbild entfernen",
   "title_image.error.none": "Bitte zuerst ein Bild auswählen.",
   "title_image.error.image": "Diese Datei ist kein Bild, das Paravent zeigen kann (PNG, JPEG, WebP, GIF oder AVIF).",
-  "title_image.error.owner": "Dieses Element kann kein Titelbild haben: Es gehört zu keiner Welt."
+  "title_image.error.owner": "Dieses Element kann kein Titelbild haben: Es gehört zu keiner Welt.",
+  "combat.back_to_order": "Zurück zur Reihenfolge",
+  "combat.following_turn": "Wer am Zug ist",
+  "combat.follow_turn": "Dem Zug folgen"
 }
