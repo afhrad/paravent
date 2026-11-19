@@ -3946,5 +3946,6 @@
   "holdings.ready.treasure": "Schatz der Welt hinzufügen …",
   "holdings.error.kind": "Das kann ein Abenteuer nicht enthalten.",
   "holdings.error.not_ready": "Nur NSC, Orte, Begegnungen und Schätze der Welt selbst lassen sich hinzufügen.",
-  "holdings.error.not_here": "Das gehört nicht zu diesem Abenteuer."
+  "holdings.error.not_here": "Das ist nicht mehr hier.",
+  "holdings.drop_chapter": "Aus dem Kapitel ins Abenteuer verschieben (wird nicht gelöscht)"
 }

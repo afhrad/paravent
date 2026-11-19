@@ -30,22 +30,32 @@ router = APIRouter(tags=["media"])
 
 @router.get(f"{MEDIA_URL}/{{record_id}}/{{relative:path}}")
 async def serve_media(
-    _gm: GamemasterDep, registry: RegistryDep, record_id: str, relative: str, fx: str = ""
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    record_id: str,
+    relative: str,
+    fx: str = "",
+    w: int = 0,
 ) -> FileResponse:
     """One image, if it lies inside the record's world; with ``fx``, rendered with those
-    effects (unknown words leave it as it is)."""
+    effects (unknown words leave it as it is); with ``w`` one of the preview widths,
+    shrunk to it."""
     path = media.resolve(registry.gamestate.prose, record_id, relative)
     if path is None:
         raise HTTPException(status_code=404)
     effects = image_effects.parse(fx) if fx else None
-    if effects:
+    width = w if w in image_effects.PREVIEW_WIDTHS else None
+    rendered = bool(effects) or width is not None
+    if rendered:
         try:
-            path = await asyncio.to_thread(registry.image_effects.render, path, effects)
+            path = await asyncio.to_thread(
+                registry.image_effects.render, path, effects or (), width
+            )
         except (OSError, ValueError) as exc:  # a file Pillow cannot read
             raise HTTPException(status_code=404) from exc
     return FileResponse(
         path,
-        media_type="image/webp" if effects else media.media_type(path),
+        media_type="image/webp" if rendered else media.media_type(path),
         headers={"Cache-Control": "private, max-age=300", "X-Content-Type-Options": "nosniff"},
     )
 
@@ -86,6 +96,7 @@ def _browser(page: Page, registry: StoreRegistry, record_id: str) -> HTMLRespons
             Picture(
                 seen,
                 media_url(world.id, picture.path),
+                f"{media_url(world.id, picture.path)}?w={image_effects.PREVIEW_WIDTHS[0]}",
                 picture.name,
                 tuple(tags.get(picture.path, ())),
                 orientation(world_folder / picture.path),

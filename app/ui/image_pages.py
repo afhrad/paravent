@@ -208,6 +208,7 @@ class Picture:
 
     path: str
     src: str
+    preview: str  # the same, shrunk for the browser's grid
     name: str
     tags: tuple[str, ...] = ()
     shape: str = ""
@@ -285,7 +286,7 @@ def image_browser(
                             data_tags=", ".join(pic.tags),
                             title=pic.name,
                         )[
-                            img(src=pic.src, alt="", loading="lazy"),
+                            img(src=pic.preview, alt="", loading="lazy"),
                             span(class_="img-pick-name")[pic.name],
                             span(class_="img-pick-tags")[
                                 [span(class_="tag")[tag] for tag in pic.tags]

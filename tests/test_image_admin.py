@@ -44,7 +44,9 @@ def test_a_frame_is_written_beside_the_path_and_rendered_from_the_original() -> 
     assert image_effects.framed("crop:2_0_1_1") == "" and image_effects.framed("torn") == ""
     # A framed cover takes the frame's shape instead of the banner.
     framed_cover = str(cover("w1", reference, ""))
-    assert "banner" not in framed_cover and "fx=crop:0.5000_0.0000_0.5000_1.0000,torn" in framed_cover
+    assert (
+        "banner" not in framed_cover and "fx=crop:0.5000_0.0000_0.5000_1.0000,torn" in framed_cover
+    )
 
 
 @pytest.fixture
@@ -128,6 +130,14 @@ async def test_the_dialog_sets_a_framed_cover_and_title_image(
     assert served.status_code == 200 and served.headers["content-type"] == "image/webp"
     with Image.open(io.BytesIO(served.content)) as shown:
         assert shown.size == (100, 100)
+    # The browser's grid shows previews, shrunk; a width it does not offer is the original.
+    assert f"/media/{world.id}/media/map.png?w=320" in browser
+    big = registry.adventures.upload(world.id, "big.png", _png((1600, 800)), as_cover=False)
+    preview = await gm.get(f"/media/{world.id}/{big}?w=320")
+    with Image.open(io.BytesIO(preview.content)) as shown:
+        assert preview.headers["content-type"] == "image/webp" and shown.size == (320, 160)
+    other = await gm.get(f"/media/{world.id}/{big}?w=50")
+    assert other.headers["content-type"] == "image/png"
 
 
 async def test_the_editor_gets_the_dialog(gm: AsyncClient, registry: StoreRegistry) -> None:

@@ -694,11 +694,13 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         dressed with effects; the frame is kept beside the path (`crop:x_y_w_h`) and
         rendered from the original, so it can be moved again later. **Tags** on a
         world's pictures (`app/services/media_tags.py`), typed in the dialog or given to
-        a selection in the browser, which finds by name, tag and shape
+        a selection in the browser, which finds by name, tag and shape; its grid shows
+        shrunk previews from the cache
   - [x] **Ready-made objects in an adventure** (2026-11-19, `app/services/holdings.py`):
         the world's own NPCs, places, encounters and treasure added to an adventure from
         a list (linked in its `uses`, staying the world's); taken out of it, never
-        deleted — a linked one unlinked, its own moved up to the world
+        deleted — a linked one unlinked, its own moved up to the world; taken out of
+        a chapter, up to its adventure
   - [x] **A new place in one dialog** (2026-11-19): **New place** on a world's places
         opens it — name, where it is placed, tags, a first note, a picture. The places,
         NPCs, treasure, creature builder and sound library had their "new" form floating

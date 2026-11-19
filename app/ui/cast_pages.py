@@ -214,13 +214,22 @@ def holdings_panel(
     adventure_id: str | None = None,
     used: Mapping[str, Sequence[Held]] | None = None,
     ready: Mapping[str, Sequence[tuple[str, str]]] | None = None,
+    chapter_id: str | None = None,
 ) -> Element:
     """The NPCs, places, treasure and encounters placed here, each with the line to
     paste. For an adventure (``adventure_id``) also the world's ready-made ones it
     ``used``, marked, and a list of the ``ready`` ones to add; there a row's button takes
-    the object out of the adventure without deleting it (app/services/holdings.py)."""
+    the object out of the adventure without deleting it (app/services/holdings.py); for
+    a chapter (``chapter_id``) out of the chapter, up to its adventure."""
     t = page.t
-    holdings_url = f"/gm/adventures/{adventure_id}/holdings" if adventure_id else ""
+    holdings_url = (
+        f"/gm/adventures/{adventure_id}/holdings"
+        if adventure_id
+        else f"/gm/chapters/{chapter_id}/holdings"
+        if chapter_id
+        else ""
+    )
+    drop_label = t("holdings.drop_chapter") if chapter_id else t("holdings.drop")
 
     def out_of_here(kind: str, object_id: str) -> Element:
         return form(method="post", action=holdings_url, class_="inline-form")[
@@ -230,8 +239,8 @@ def holdings_panel(
             button(
                 type="submit",
                 class_="btn btn-sm btn-ghost",
-                title=t("holdings.drop"),
-                aria_label=t("holdings.drop"),
+                title=drop_label,
+                aria_label=drop_label,
             )[icon("x", "sm")],
         ]
 
@@ -258,7 +267,7 @@ def holdings_panel(
                             if from_world
                             else None,
                             out_of_here(kind, ident)
-                            if adventure_id
+                            if holdings_url
                             else delete_link(page, f"{url}/delete", t(DELETE_LABEL[kind])),
                         ],
                         _snippet(kind, name),

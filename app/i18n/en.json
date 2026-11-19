@@ -3946,5 +3946,6 @@
   "holdings.ready.treasure": "Add a treasure of the world…",
   "holdings.error.kind": "That is not something an adventure holds.",
   "holdings.error.not_ready": "Only the world's own NPCs, places, encounters and treasure can be added.",
-  "holdings.error.not_here": "That is not in this adventure."
+  "holdings.error.not_here": "That is not here any more.",
+  "holdings.drop_chapter": "Take it out of the chapter, up to the adventure (it is not deleted)"
 }

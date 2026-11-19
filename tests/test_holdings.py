@@ -114,3 +114,22 @@ async def test_from_the_adventures_panel(gm: AsyncClient, registry: StoreRegistr
     )
     shown = (await gm.get(refused.headers["location"])).text
     assert "Only the world" in shown
+
+
+async def test_out_of_a_chapter_up_to_its_adventure(
+    gm: AsyncClient, registry: StoreRegistry
+) -> None:
+    world = registry.worlds.create(WorldInput(name="Grey Reed"))
+    bell = registry.adventures.create(world.id, "The Drowned Bell")
+    fog = registry.adventures.create_chapter(bell.id, "Fog")
+    hob = registry.npcs.create("Hob", f"c:{fog.id}", world.id)
+    page = (await gm.get(f"/gm/chapters/{fog.id}")).text
+    assert f"/gm/npcs/{hob.id}/delete" not in page and f"/gm/chapters/{fog.id}/holdings" in page
+    moved = await gm.post(f"/gm/chapters/{fog.id}/holdings", data={"kind": "npc", "object": hob.id})
+    assert moved.headers["location"].endswith("#holdings")
+    where = registry.gamestate.npcs.get(hob.id).scope
+    assert where.adventure_id == bell.id and where.chapter_id is None
+    refused = await gm.post(
+        f"/gm/chapters/{fog.id}/holdings", data={"kind": "npc", "object": hob.id}
+    )
+    assert "not here any more" in (await gm.get(refused.headers["location"])).text

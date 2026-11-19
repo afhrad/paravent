@@ -125,6 +125,7 @@ def _holdings(
         adventure_id=adventure_id,
         used=used,
         ready=ready,
+        chapter_id=here.chapter_id,
     )
 
 
@@ -600,6 +601,23 @@ async def change_holdings(
     return redirect(back)
 
 
+@router.post(f"{CHAPTERS_URL}/{{chapter_id}}/holdings")
+async def change_chapter_holdings(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    chapter_id: str,
+    kind: Annotated[str, Form()] = "",
+    object: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
+) -> Response:
+    """Take one of the chapter's objects out of it, up to its adventure, without deleting
+    it (app/services/holdings.py)."""
+    try:
+        registry.holdings.drop_from_chapter(chapter_id, kind, object)
+    except HoldingsError as exc:
+        return redirect(_with(chapter_url(chapter_id), error=exc.key))
+    return redirect(f"{chapter_url(chapter_id)}#holdings")
+
+
 @router.post(f"{ADVENTURES_URL}/{{adventure_id}}/move")
 async def move_adventure(
     _gm: GamemasterDep,
@@ -735,7 +753,8 @@ async def show_chapter(
             if added
             else None,
             error=store.error(chapter_id)
-            or (page.t(error, ref="") if error.startswith("encounters.error.") else None),
+            or (page.t(error, ref="") if error.startswith("encounters.error.") else None)
+            or (page.t(error) if error.startswith("holdings.error.") else None),
             hand=_at_hand(registry, view),
         )
     )

@@ -33,6 +33,8 @@ from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageOp
 
 # Bump when the rendering changes, so cached images are made again.
 VERSION = 6
+# The sizes a picture is served shrunk to (``?w=``): the image browser's previews.
+PREVIEW_WIDTHS = (320,)
 EFFECTS = ("banner", "sepia", "aged", "mono", "torn", "fade", "oval")
 # A title image's shape: wide, as the pages show a cover.
 BANNER = 10 / 3
@@ -302,14 +304,17 @@ class ImageEffects:
     def __init__(self, cache_dir: Path) -> None:
         self.cache_dir = cache_dir
 
-    def _key(self, source: Path, effects: tuple[str, ...]) -> str:
+    def _key(self, source: Path, effects: tuple[str, ...], width: int | None = None) -> str:
         stat = source.stat()
-        text = f"{source.resolve()}|{stat.st_mtime_ns}|{stat.st_size}|{','.join(effects)}|{VERSION}"
+        size = f"|w{width}" if width else ""
+        words = ",".join(effects)
+        text = f"{source.resolve()}|{stat.st_mtime_ns}|{stat.st_size}|{words}{size}|{VERSION}"
         return hashlib.sha256(text.encode()).hexdigest()[:32]
 
-    def render(self, source: Path, effects: tuple[str, ...]) -> Path:
-        """The rendering of ``source`` with ``effects``, made now if it is not cached."""
-        key = self._key(source, effects)
+    def render(self, source: Path, effects: tuple[str, ...], width: int | None = None) -> Path:
+        """The rendering of ``source`` with ``effects``, made now if it is not cached;
+        with ``width``, shrunk to fit a square of that many pixels (a preview)."""
+        key = self._key(source, effects, width)
         target = self.cache_dir / key[:2] / f"{key}.webp"
         if target.is_file():
             return target
@@ -318,6 +323,8 @@ class ImageEffects:
         with Image.open(source) as image:
             image.load()
             rendered = apply(image, effects, seed)
+        if width:
+            rendered.thumbnail((width, width), Image.Resampling.LANCZOS)
         tmp = target.with_name(f".{target.name}.tmp")
         rendered.save(tmp, "WEBP", quality=82, method=4)
         tmp.replace(target)
@@ -329,6 +336,7 @@ __all__ = [
     "CROP",
     "EFFECTS",
     "ImageEffects",
+    "PREVIEW_WIDTHS",
     "apply",
     "frame_of",
     "frame_word",

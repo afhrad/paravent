@@ -8,7 +8,8 @@ any chapter already, so nothing else changes for the text.
 
 Taking an object out of an adventure never deletes it: a ready-made one used there is
 unlinked, and one made inside the adventure (or one of its chapters) moves up to the
-world, ready to be used again. Deleting for good stays on the object's own page.
+world, ready to be used again. Taken out of a chapter, an object moves up to its
+adventure. Deleting for good stays on the object's own page.
 """
 
 from __future__ import annotations
@@ -116,16 +117,30 @@ class Holdings:
         where = self._scope(record) if record is not None else None
         if record is None or where is None or where.adventure_id != adventure_id:
             raise HoldingsError("holdings.error.not_here")
-        world = Scope(world_id=adventure.world_id)
-        changes: dict[str, Any] = {"scope": world}
-        # A picture written from the old scope's folder, written again from the world's.
+        self._move(collection, record, where, Scope(world_id=adventure.world_id))
+
+    def drop_from_chapter(self, chapter_id: str, kind: str, object_id: str) -> None:
+        """Take one of a chapter's own objects out of it without deleting it: it moves
+        up to the chapter's adventure, still found from every chapter there."""
+        chapter = self._store.chapters.get(chapter_id)
+        collection = self._collection(kind)
+        record = collection.find(object_id)
+        where = self._scope(record) if record is not None else None
+        if record is None or where is None or where.chapter_id != chapter_id:
+            raise HoldingsError("holdings.error.not_here")
+        wider = Scope(world_id=chapter.world_id, adventure_id=chapter.adventure_id)
+        self._move(collection, record, where, wider)
+
+    def _move(self, collection: Any, record: Any, where: Scope, wider: Scope) -> None:
+        changes: dict[str, Any] = {"scope": wider}
+        # A picture written from the old scope's folder, written again from the new one's.
         for field in ("portrait", "picture"):
             value = getattr(record, field, None)
             if value:
-                changes[field] = self._rewritten(where.record_id, adventure.world_id, value)
-        collection.update(object_id, **changes)
+                changes[field] = self._rewritten(where.record_id, wider.record_id, value)
+        collection.update(record.id, **changes)
 
-    def _rewritten(self, old_record: str, world_id: str, reference: str) -> str:
+    def _rewritten(self, old_record: str, new_record: str, reference: str) -> str:
         path, effects = image_effects.split(reference)
         prose = self._store.prose
         world, folder = prose.world_folder(old_record), prose.folder(old_record)
@@ -135,7 +150,7 @@ class Holdings:
             from_world = (folder / path).resolve().relative_to(world.resolve()).as_posix()
         except ValueError:
             return reference
-        seen = media.seen_from(prose, world_id, from_world)
+        seen = media.seen_from(prose, new_record, from_world)
         return image_effects.join(seen, list(effects)) if seen else reference
 
 

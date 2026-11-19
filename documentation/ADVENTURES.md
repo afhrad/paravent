@@ -199,8 +199,9 @@ staying the world's, so several adventures share one innkeeper; a world object i
 any chapter already. Such a row is marked *from the world*. In that panel an object is
 **taken out of the adventure, never deleted**: a ready-made one is unlinked; one made in the
 adventure or one of its chapters moves up to the world (its portrait or picture written again
-from the world's folder), ready-made from then on. Deleting for good is on the object's own
-page and its list. **A new place** has its own dialog, *New place* on the world's places
+from the world's folder), ready-made from then on. In a chapter's panel an object is taken
+out of the chapter the same way, moving up to its adventure. Deleting for good is on the
+object's own page and its list. **A new place** has its own dialog, *New place* on the world's places
 (name, where it is placed, tags, a first note, a picture).
 
 ---
@@ -460,7 +461,8 @@ notes may name the place itself).
   portrait, square), every word; the world's tags stand above as chips with their counts,
   several pressed together narrowing it further. Tags of a picture that is gone are dropped
   at the next write and named by the library check; a file a hand edit broke reads as no
-  tags and is left as it is.
+  tags and is left as it is. The browser's grid shows previews, each picture shrunk to 320 pixels
+  (`?w=320`, rendered once into the effects cache); the frame step works on the original.
 - The title comes from the front matter. `#` in the body is the first section level; the
   page derives a table of contents and anchors from the headings.
 - **Dropping or pasting an image** into the chapter's or adventure's editor stores it in the
