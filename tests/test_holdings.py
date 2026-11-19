@@ -133,3 +133,40 @@ async def test_out_of_a_chapter_up_to_its_adventure(
         f"/gm/chapters/{fog.id}/holdings", data={"kind": "npc", "object": hob.id}
     )
     assert "not here any more" in (await gm.get(refused.headers["location"])).text
+
+
+async def test_npcs_and_treasure_are_made_in_a_dialog_as_places_are(
+    gm: AsyncClient, registry: StoreRegistry
+) -> None:
+    world = registry.worlds.create(WorldInput(name="Grey Reed"))
+    for kind, dialog_id in (
+        ("npcs", "new-npc"),
+        ("treasure", "new-treasure"),
+        ("places", "new-place"),
+    ):
+        url = f"/gm/worlds/{world.id}/{kind}"
+        page = (await gm.get(url)).text
+        assert f'data-dialog="{dialog_id}"' in page and f'id="{dialog_id}"' in page
+        assert (
+            f'<dialog id="{dialog_id}" class="place-dialog" aria-labelledby="{dialog_id}-h">'
+            in page
+        )
+        assert (
+            f'id="{dialog_id}" class="place-dialog" aria-labelledby="{dialog_id}-h" open'
+            in (await gm.get(f"{url}?new=1")).text
+        )
+    # A first note is kept; a refused one reopens the dialog with its reason.
+    made = await gm.post(
+        f"/gm/worlds/{world.id}/npcs", data={"name": "Maren", "notes": "Keeps the inn."}
+    )
+    assert made.status_code == 303
+    maren = next(n for n in registry.gamestate.npcs.list() if n.name == "Maren")
+    assert maren.notes == "Keeps the inn."
+    made = await gm.post(
+        f"/gm/worlds/{world.id}/treasure", data={"name": "Toll chest", "notes": "Under the bridge."}
+    )
+    assert made.status_code == 303
+    chest = next(x for x in registry.gamestate.treasures.list() if x.name == "Toll chest")
+    assert chest.notes == "Under the bridge."
+    refused = await gm.post(f"/gm/worlds/{world.id}/treasure", data={"name": ""})
+    assert refused.status_code == 422 and 'aria-labelledby="new-treasure-h" open' in refused.text

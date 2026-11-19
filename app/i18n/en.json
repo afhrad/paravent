@@ -1642,7 +1642,7 @@
   "npcs.bosses": "Bosses",
   "npcs.empty_heading": "No NPCs yet",
   "npcs.empty_text": "Add the first one below, or from an adventure's or chapter's page.",
-  "npcs.new": "Add NPC",
+  "npcs.new": "New NPC",
   "npcs.saved": "NPC saved.",
   "npcs.deleted": "NPC deleted.",
   "npcs.delete": "Delete NPC",
@@ -1670,7 +1670,7 @@
   "treasure.items_n": {"one": "{count} item", "other": "{count} items"},
   "treasure.empty_heading": "No treasure yet",
   "treasure.empty_text": "Add the first one below, or from an adventure's or chapter's page.",
-  "treasure.new": "Add treasure",
+  "treasure.new": "New treasure",
   "treasure.saved": "Treasure saved.",
   "treasure.deleted": "Treasure deleted.",
   "treasure.delete": "Delete treasure",
@@ -3950,5 +3950,8 @@
   "holdings.drop_chapter": "Take it out of the chapter, up to the adventure (it is not deleted)",
   "tokens.change": "Change the token",
   "copy.hint": "Click to copy, then paste it into a text",
-  "copy.done": "Copied"
+  "copy.done": "Copied",
+  "encounters.new_in": "in {world}",
+  "npcs.create": "Create the NPC",
+  "treasure.create": "Create the treasure"
 }

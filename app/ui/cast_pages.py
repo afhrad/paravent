@@ -63,6 +63,8 @@ from app.ui.library_links import (
     crumbs,
     delete_link,
     location_url,
+    new_button,
+    new_dialog,
     npc_url,
     saved_version,
     treasure_url,
@@ -402,32 +404,52 @@ def creatures_panel(
 # -- lists ---------------------------------------------------------------------------
 
 
-def _create_form(
+def _create_dialog(
     page: Page,
+    dialog_id: str,
     action: str,
     scopes: Sequence[tuple[str, str, int]],
     selected: str,
-    placeholder: str,
+    *,
+    title: str,
     submit: str,
+    error: str | None,
+    is_open: bool,
     generate: str | None = None,
 ) -> Element:
-    """Name and place a new object; ``generate`` adds a button that rolls one instead."""
+    """A new NPC or treasure in one dialog, as a new place: its name, where it is placed
+    and a first note; ``generate`` adds a button that rolls one instead."""
     t = page.t
-    return form(method="post", action=action, class_="panel stack-form create-form")[
-        text_field("name", t("adventures.name"), value="", autocomplete="off"),
-        scope_select("place", t("scope.label"), scopes, selected=selected, hint=t("scope.hint")),
-        div(class_="form-actions")[
-            button(type="submit", class_="btn btn-primary")[icon("plus"), span[submit]],
-            button(
-                type="submit",
-                formaction=f"{action}/generate",
-                formnovalidate=True,
-                class_="btn",
-            )[icon("dices", "sm"), span[generate]]
-            if generate
-            else None,
+    return new_dialog(
+        page,
+        dialog_id,
+        title=title,
+        action=action,
+        back=action,
+        submit=submit,
+        is_open=is_open,
+        fields=[
+            alert(error),
+            text_field("name", t("adventures.name"), value="", autocomplete="off"),
+            scope_select(
+                "place", t("scope.label"), scopes, selected=selected, hint=t("scope.hint")
+            ),
+            div(class_="field")[
+                label(for_=f"{dialog_id}-notes")[
+                    t("npcs.notes"), " ", span(class_="opt")[t("common.optional")]
+                ],
+                textarea(id=f"{dialog_id}-notes", name="notes", rows="4"),
+            ],
         ],
-    ]
+        more=button(
+            type="submit",
+            formaction=f"{action}/generate",
+            formnovalidate=True,
+            class_="btn",
+        )[icon("dices", "sm"), span[generate]]
+        if generate
+        else None,
+    )
 
 
 def npcs_page(
@@ -439,8 +461,10 @@ def npcs_page(
     selected: str,
     notice_text: str | None = None,
     error: str | None = None,
+    new: bool = False,
 ) -> Element:
-    """A world's NPCs, bosses first, with where each is placed."""
+    """A world's NPCs, bosses first, with where each is placed, and **New NPC**, which
+    opens a dialog for one (open from the start with ``new``, or after a refused one)."""
     t = page.t
     ordered = sorted(rows, key=lambda r: ("boss" not in r[0].roles, r[0].name.casefold()))
     items = [
@@ -465,19 +489,27 @@ def npcs_page(
                 (world.name, world_url(world.id)),
                 (t("npcs.heading"), None),
             ),
-            page_head(t("adventures.world_eyebrow"), t("npcs.heading"), t("npcs.lede")),
+            page_head(
+                t("adventures.world_eyebrow"),
+                t("npcs.heading"),
+                t("npcs.lede"),
+                new_button(page, "new-npc", t("npcs.new")),
+            ),
             notice(notice_text),
-            alert(error),
+            alert(error) if not new else None,
             ul(class_="list")[items]
             if items
             else empty_state("circle-user", t("npcs.empty_heading"), t("npcs.empty_text")),
-            _create_form(
+            _create_dialog(
                 page,
+                "new-npc",
                 world_npcs_url(world.id),
                 scopes,
                 selected,
-                t("npcs.new"),
-                t("npcs.new"),
+                title=t("npcs.new"),
+                submit=t("npcs.create"),
+                error=error if new else None,
+                is_open=new,
                 generate=t("npcgen.new"),
             ),
         ],
@@ -494,8 +526,10 @@ def treasures_page(
     selected: str,
     notice_text: str | None = None,
     error: str | None = None,
+    new: bool = False,
 ) -> Element:
-    """A world's treasure, with where each is placed."""
+    """A world's treasure, with where each is placed, and **New treasure**, which opens
+    a dialog for one (open from the start with ``new``, or after a refused one)."""
     t = page.t
     items = [
         li(class_="list-row")[
@@ -530,19 +564,27 @@ def treasures_page(
                 (world.name, world_url(world.id)),
                 (t("treasure.heading"), None),
             ),
-            page_head(t("adventures.world_eyebrow"), t("treasure.heading"), t("treasure.lede")),
+            page_head(
+                t("adventures.world_eyebrow"),
+                t("treasure.heading"),
+                t("treasure.lede"),
+                new_button(page, "new-treasure", t("treasure.new")),
+            ),
             notice(notice_text),
-            alert(error),
+            alert(error) if not new else None,
             ul(class_="list")[items]
             if items
             else empty_state("gem", t("treasure.empty_heading"), t("treasure.empty_text")),
-            _create_form(
+            _create_dialog(
                 page,
+                "new-treasure",
                 world_treasure_url(world.id),
                 scopes,
                 selected,
-                t("treasure.new"),
-                t("treasure.new"),
+                title=t("treasure.new"),
+                submit=t("treasure.create"),
+                error=error if new else None,
+                is_open=new,
             ),
         ],
         world_id=world.id,

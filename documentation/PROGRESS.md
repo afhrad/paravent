@@ -701,8 +701,9 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         a list (linked in its `uses`, staying the world's); taken out of it, never
         deleted — a linked one unlinked, its own moved up to the world; taken out of
         a chapter, up to its adventure
-  - [x] **A new place in one dialog** (2026-11-19): **New place** on a world's places
-        opens it — name, where it is placed, tags, a first note, a picture. The places,
+  - [x] **A new place, NPC or treasure in one dialog** (2026-11-19): **New place**,
+        **New NPC** and **New treasure** beside a world's lists open it — name, where it is
+        placed, a first note (a place's tags and picture, an NPC's roll). The places,
         NPCs, treasure, creature builder and sound library had their "new" form floating
         off the page's corner (a drop-down menu's style), out of sight
   - [x] **Title images** (2026-11-18, TOKENS.md §6, `app/services/title_images.py`): tokens
@@ -741,6 +742,10 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         shift) or 2024 rules (budgets), chosen by the world's books or set per encounter.
         Rated against the characters in the world, or a stated party size and level.
         Monsters are stored as `Name|SOURCE` references, so a corpus update re-rates them.
+        **A new encounter takes place in the world worked in** (2026-11-19,
+        `app/services/current_world.py`): the list's filter, else the world of the last page
+        read under Worlds (or anywhere), else a table's only world; the form names it and
+        asks only when no world can be told.
         **2024 ratings corrected** (2026-11-12): a fight is the lowest budget it fits
         within — the XDMG spends "as much of your XP budget as you can without going
         over" — no longer the highest it reaches, which made High a single number and

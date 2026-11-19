@@ -1642,7 +1642,7 @@
   "npcs.bosses": "Bosse",
   "npcs.empty_heading": "Noch keine NSC",
   "npcs.empty_text": "Leg unten den ersten an, oder auf der Seite eines Abenteuers oder Kapitels.",
-  "npcs.new": "NSC anlegen",
+  "npcs.new": "Neuer NSC",
   "npcs.saved": "NSC gespeichert.",
   "npcs.deleted": "NSC gelöscht.",
   "npcs.delete": "NSC löschen",
@@ -1670,7 +1670,7 @@
   "treasure.items_n": {"one": "{count} Gegenstand", "other": "{count} Gegenstände"},
   "treasure.empty_heading": "Noch keine Schätze",
   "treasure.empty_text": "Leg unten den ersten an, oder auf der Seite eines Abenteuers oder Kapitels.",
-  "treasure.new": "Schatz anlegen",
+  "treasure.new": "Neuer Schatz",
   "treasure.saved": "Schatz gespeichert.",
   "treasure.deleted": "Schatz gelöscht.",
   "treasure.delete": "Schatz löschen",
@@ -3950,5 +3950,8 @@
   "holdings.drop_chapter": "Aus dem Kapitel ins Abenteuer verschieben (wird nicht gelöscht)",
   "tokens.change": "Spielmarke ändern",
   "copy.hint": "Klicken zum Kopieren, dann in einen Text einfügen",
-  "copy.done": "Kopiert"
+  "copy.done": "Kopiert",
+  "encounters.new_in": "in {world}",
+  "npcs.create": "NSC anlegen",
+  "treasure.create": "Schatz anlegen"
 }

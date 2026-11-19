@@ -201,8 +201,10 @@ any chapter already. Such a row is marked *from the world*. In that panel an obj
 adventure or one of its chapters moves up to the world (its portrait or picture written again
 from the world's folder), ready-made from then on. In a chapter's panel an object is taken
 out of the chapter the same way, moving up to its adventure. Deleting for good is on the
-object's own page and its list. **A new place** has its own dialog, *New place* on the world's places
-(name, where it is placed, tags, a first note, a picture).
+object's own page and its list. **A new place, NPC or treasure** is made in a dialog,
+opened by *New place*, *New NPC* or *New treasure* beside its list's heading (`new_dialog`):
+the name, where it is placed and a first note — a place also its tags and a picture, an NPC
+*Roll an NPC* instead.
 
 **Tags to copy** (2026-11-19, the user's request): wherever a page shows the line that
 names an object in a text — `{@npc …}`, `{@place …}`, `{@encounter …}` (an encounter of a

@@ -29,6 +29,7 @@ from app.models.pc import DraftStatus
 from app.routes.auth import html, redirect
 from app.routes.paravent_markdown import paravent_markdown
 from app.services import scope, token_export
+from app.services.current_world import current_world
 from app.services.encounter_gen import EncounterGenerator, bands_of, pool_of
 from app.services.encounter_roll import EncounterRoller
 from app.services.encounters import EncounterError, EncounterView
@@ -144,9 +145,17 @@ async def list_encounters(
             views,
             worlds.list(),
             world_filter=world_id,
+            current=world_id or _working_in(page, registry, worlds),
             notice_text=page.t("encounters.deleted") if deleted else None,
         )
     )
+
+
+def _working_in(page: Page, registry: StoreRegistry, worlds: WorldService) -> str | None:
+    """The world the gamemaster is working in, where a new encounter takes place."""
+    if page.identity is None:
+        return None
+    return current_world(registry.gamestate, registry.places, page.identity.user.id, worlds.list())
 
 
 @router.post(ENCOUNTERS_URL, response_class=HTMLResponse)
@@ -174,6 +183,7 @@ async def create_encounter(
             views,
             worlds.list(),
             world_filter=None,
+            current=world or _working_in(page, registry, worlds),
             error=page.t.error(exc),
             draft_name=name,
         )

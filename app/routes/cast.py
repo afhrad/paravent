@@ -74,6 +74,7 @@ def _npcs(
     error: str | None = None,
     notice_text: str | None = None,
     status_code: int = 200,
+    new: bool = False,
 ) -> HTMLResponse:
     world = registry.adventures.world(world_id)
     npcs = registry.npcs
@@ -87,6 +88,7 @@ def _npcs(
             selected=selected or f"w:{world_id}",
             error=error,
             notice_text=notice_text,
+            new=new,
         ),
         status_code=status_code,
     )
@@ -100,10 +102,11 @@ async def list_npcs(
     world_id: str,
     place: str = "",
     deleted: str = "",
+    new: str = "",
 ) -> HTMLResponse:
-    """A world's NPCs."""
+    """A world's NPCs; ``new`` opens the dialog for a new one (without the script)."""
     notice_text = page.t("npcs.deleted") if deleted else None
-    return _npcs(page, registry, world_id, selected=place, notice_text=notice_text)
+    return _npcs(page, registry, world_id, selected=place, notice_text=notice_text, new=bool(new))
 
 
 @router.post(f"{WORLDS_URL}/{{world_id}}/npcs", response_class=HTMLResponse)
@@ -114,13 +117,31 @@ async def create_npc(
     world_id: str,
     name: Annotated[str, Form()] = "",
     place: Annotated[str, Form()] = "",
+    notes: Annotated[str, Form()] = "",
 ) -> Response:
-    """Add an NPC where ``place`` says, then go back to where the form was."""
+    """Add an NPC where ``place`` says, with a first note if given (the new-NPC dialog),
+    then open its form."""
+    npcs = registry.npcs
     try:
-        npc = registry.npcs.create(name, place or f"w:{world_id}", world_id)
+        npc = npcs.create(name, place or f"w:{world_id}", world_id)
+        if notes.strip():
+            npc = npcs.update(
+                npc.id,
+                name=npc.name,
+                scope_value=place or f"w:{world_id}",
+                roles=list(npc.roles),
+                statblock=npc.statblock or "",
+                notes=notes,
+            )
     except Translatable as exc:  # an empty name, or a place not in this world
         return _npcs(
-            page, registry, world_id, selected=place, error=page.t.error(exc), status_code=422
+            page,
+            registry,
+            world_id,
+            selected=place,
+            error=page.t.error(exc),
+            status_code=422,
+            new=True,
         )
     return redirect(f"{npc_url(npc.id)}/edit")
 
@@ -330,6 +351,7 @@ def _treasures(
     error: str | None = None,
     notice_text: str | None = None,
     status_code: int = 200,
+    new: bool = False,
 ) -> HTMLResponse:
     world = registry.adventures.world(world_id)
     service = registry.treasure
@@ -343,6 +365,7 @@ def _treasures(
             selected=selected or f"w:{world_id}",
             error=error,
             notice_text=notice_text,
+            new=new,
         ),
         status_code=status_code,
     )
@@ -356,10 +379,13 @@ async def list_treasure(
     world_id: str,
     place: str = "",
     deleted: str = "",
+    new: str = "",
 ) -> HTMLResponse:
-    """A world's treasure."""
+    """A world's treasure; ``new`` opens the dialog for a new one (without the script)."""
     notice_text = page.t("treasure.deleted") if deleted else None
-    return _treasures(page, registry, world_id, selected=place, notice_text=notice_text)
+    return _treasures(
+        page, registry, world_id, selected=place, notice_text=notice_text, new=bool(new)
+    )
 
 
 @router.post(f"{WORLDS_URL}/{{world_id}}/treasure", response_class=HTMLResponse)
@@ -370,13 +396,30 @@ async def create_treasure(
     world_id: str,
     name: Annotated[str, Form()] = "",
     place: Annotated[str, Form()] = "",
+    notes: Annotated[str, Form()] = "",
 ) -> Response:
-    """Add a treasure and open it, so its items can be picked."""
+    """Add a treasure, with a first note if given (the new-treasure dialog), and open it,
+    so its items can be picked."""
+    service = registry.treasure
     try:
-        treasure = registry.treasure.create(name, place or f"w:{world_id}", world_id)
+        treasure = service.create(name, place or f"w:{world_id}", world_id)
+        if notes.strip():
+            treasure = service.update(
+                treasure.id,
+                name=treasure.name,
+                scope_value=place or f"w:{world_id}",
+                coins=treasure.coins,
+                notes=notes,
+            )
     except Translatable as exc:
         return _treasures(
-            page, registry, world_id, selected=place, error=page.t.error(exc), status_code=422
+            page,
+            registry,
+            world_id,
+            selected=place,
+            error=page.t.error(exc),
+            status_code=422,
+            new=True,
         )
     return redirect(treasure_url(treasure.id))
 

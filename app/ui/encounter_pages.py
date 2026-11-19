@@ -148,11 +148,14 @@ def encounters_page(
     worlds: Sequence[World],
     *,
     world_filter: str | None,
+    current: str | None = None,
     notice_text: str | None = None,
     error: str | None = None,
     draft_name: str = "",
 ) -> Element:
-    """Every encounter, newest first, and a form to start one."""
+    """Every encounter, newest first, and a form to start one, in ``current``, the world
+    the gamemaster is working in (the filter's, else app/services/current_world.py). Only
+    when no world can be told does the form ask for one."""
     t = page.t
     rows = [
         li(class_="list-row")[
@@ -169,6 +172,7 @@ def encounters_page(
         ]
         for v in views
     ]
+    here = next((w for w in worlds if w.id == current), None)
     create = form(method="post", action=ENCOUNTERS_URL, class_="panel enc-new")[
         div(class_="panel-head")[b[t("encounters.new")]],
         alert(error),
@@ -176,12 +180,19 @@ def encounters_page(
             text_field(
                 "name", t("encounters.name"), value=draft_name, autocomplete="off", required=True
             ),
-            select_field(
+            [
+                hidden("world", here.id),
+                p(class_="enc-new-world")[t("encounters.new_in", world=here.name)],
+            ]
+            if here is not None
+            else select_field(
                 "world",
                 t("encounters.world"),
                 _world_choices(page, worlds),
-                selected=world_filter or (worlds[0].id if len(worlds) == 1 else ""),
-            ),
+                selected=world_filter or "",
+            )
+            if worlds
+            else None,
             button(type="submit", class_="btn btn-primary")[
                 icon("plus"), span[t("encounters.create")]
             ],

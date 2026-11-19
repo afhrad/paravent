@@ -14,7 +14,6 @@ from htpy import (
     b,
     button,
     details,
-    dialog,
     div,
     form,
     h1,
@@ -47,6 +46,8 @@ from app.ui.library_links import (
     crumbs,
     delete_link,
     location_url,
+    new_button,
+    new_dialog,
     saved_version,
     world_url,
 )
@@ -150,9 +151,7 @@ def locations_page(
                 t("adventures.world_eyebrow"),
                 t("places.heading"),
                 t("places.lede"),
-                a(href="?new=1", class_="btn btn-primary", data_dialog="new-place")[
-                    icon("plus"), span[t("places.new")]
-                ],
+                new_button(page, "new-place", t("places.new")),
             ),
             notice(notice_text),
             alert(error) if not new else None,
@@ -176,24 +175,16 @@ def _new_place_dialog(
     """A new place in one go: its name, where it is placed, its tags, a first note and
     its picture (framed later on its page, in the image dialog)."""
     t = page.t
-    return dialog(
-        id="new-place", class_="place-dialog", aria_labelledby="new-place-h", open=is_open
-    )[
-        form(
-            method="post",
-            action=world_locations_url(world.id),
-            enctype="multipart/form-data",
-            class_="stack-form",
-        )[
-            div(class_="place-dialog-head")[
-                b(id="new-place-h")[t("places.new")],
-                a(
-                    href=world_locations_url(world.id),
-                    class_="btn btn-sm btn-ghost",
-                    data_close="1",
-                    aria_label=t("images.close"),
-                )[icon("x", "sm")],
-            ],
+    return new_dialog(
+        page,
+        "new-place",
+        title=t("places.new"),
+        action=world_locations_url(world.id),
+        back=world_locations_url(world.id),
+        submit=t("places.create"),
+        is_open=is_open,
+        upload=True,
+        fields=[
             alert(error),
             text_field("name", t("adventures.name"), value="", autocomplete="off"),
             scope_select(
@@ -217,16 +208,8 @@ def _new_place_dialog(
                 span[t("places.picture_drop")],
                 input_el(id="f-new-picture", type="file", name="picture", accept="image/*"),
             ],
-            div(class_="form-actions")[
-                button(type="submit", class_="btn btn-primary")[
-                    icon("plus"), span[t("places.create")]
-                ],
-                a(href=world_locations_url(world.id), class_="btn btn-ghost", data_close="1")[
-                    t("common.cancel")
-                ],
-            ],
-        ]
-    ]
+        ],
+    )
 
 
 def location_page(

@@ -15,6 +15,7 @@ from htpy import (
     button,
     code,
     details,
+    dialog,
     div,
     form,
     img,
@@ -126,6 +127,59 @@ def copy_snippet(page: Page, text: str) -> Element:
     )[text]
 
 
+def new_button(page: Page, dialog_id: str, label: str) -> Element:
+    """**New …** beside a list's heading, opening :func:`new_dialog`; without the script
+    it reloads the page with the dialog open (``?new=1``)."""
+    return a(href="?new=1", class_="btn btn-primary", data_dialog=dialog_id)[
+        icon("plus"), span[label]
+    ]
+
+
+def new_dialog(
+    page: Page,
+    dialog_id: str,
+    *,
+    title: str,
+    action: str,
+    back: str,
+    fields: Node,
+    submit: str,
+    more: Node = None,
+    is_open: bool = False,
+    upload: bool = False,
+) -> Element:
+    """A new object of a world's list in one dialog — places, NPCs, treasure alike:
+    ``fields`` posted to ``action``, ``submit`` making it, ``more`` other buttons of the
+    form (a roll instead); Cancel and × close it, or go ``back`` without the script.
+    Open from the start with ``is_open`` (``?new=1``, or after a refused one)."""
+    t = page.t
+    head = f"{dialog_id}-h"
+    return dialog(id=dialog_id, class_="place-dialog", aria_labelledby=head, open=is_open)[
+        form(
+            method="post",
+            action=action,
+            enctype="multipart/form-data" if upload else None,
+            class_="stack-form",
+        )[
+            div(class_="place-dialog-head")[
+                b(id=head)[title],
+                a(
+                    href=back,
+                    class_="btn btn-sm btn-ghost",
+                    data_close="1",
+                    aria_label=t("images.close"),
+                )[icon("x", "sm")],
+            ],
+            fields,
+            div(class_="form-actions")[
+                button(type="submit", class_="btn btn-primary")[icon("plus"), span[submit]],
+                more,
+                a(href=back, class_="btn btn-ghost", data_close="1")[t("common.cancel")],
+            ],
+        ]
+    ]
+
+
 def confirm_page(
     page: Page,
     *,
@@ -166,6 +220,8 @@ __all__ = [
     "confirm_page",
     "copy_snippet",
     "delete_link",
+    "new_button",
+    "new_dialog",
     "ADVENTURES_URL",
     "CHAPTERS_URL",
     "MEDIA_UPLOAD_URL",
