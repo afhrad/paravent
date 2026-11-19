@@ -162,7 +162,8 @@
   // -- Dropdown menus (<details>) ------------------------------------------------
   // A <details> menu opens and closes on its own; what it lacks is closing when you
   // click elsewhere or press Escape, which every menu is expected to do.
-  var MENUS = ['details.langmenu', 'details.create-menu', 'details.usermenu', 'details.cb-menu'];
+  var MENUS = ['details.langmenu', 'details.create-menu', 'details.usermenu', 'details.cb-menu',
+    'details.name-roll-menu'];
   var OPEN = MENUS.map(function (m) { return m + '[open]'; }).join(', ');
 
   function closeMenus(except) {
@@ -263,5 +264,83 @@
       e.preventDefault();
       closer.closest('dialog').close();
     }
+  });
+})();
+
+// A picture in a text (``img[data-zoom]``: Markdown, the books' pictures, a handout)
+// enlarges on a click or tap, over the page, until a click or tap outside it or Escape.
+// Title images, covers and tokens carry no ``data-zoom``; a picture inside a link
+// follows the link.
+(function () {
+  'use strict';
+  var box = null;
+
+  function viewer() {
+    if (box) return box;
+    box = document.createElement('dialog');
+    box.className = 'img-zoom';
+    box.appendChild(document.createElement('img'));
+    box.addEventListener('click', function (e) {
+      if (e.target !== box.firstChild) box.close();
+    });
+    document.body.appendChild(box);
+    return box;
+  }
+
+  document.addEventListener('click', function (e) {
+    var pic = e.target.closest && e.target.closest('img[data-zoom]');
+    if (!pic || pic.closest('a[href], .img-zoom')) return;
+    e.preventDefault();
+    var d = viewer();
+    d.firstChild.src = pic.currentSrc || pic.src;
+    d.firstChild.alt = pic.alt || '';
+    d.showModal();
+  });
+})();
+
+// A tag or line to paste into an editor (``.copy-snippet``: ``{@npc Hob Wade}``) is
+// copied by a click, a tap, Enter or Space, and says so for a moment. The clipboard API
+// needs a secure address, which a server on the home network over plain http is not, so
+// a hidden field and the older copy command stand in.
+(function () {
+  'use strict';
+
+  function fallback(text) {
+    var field = document.createElement('textarea');
+    field.value = text;
+    field.setAttribute('readonly', '');
+    field.className = 'copy-field';
+    document.body.appendChild(field);
+    field.select();
+    var done = false;
+    try { done = document.execCommand('copy'); } catch (err) { done = false; }
+    field.remove();
+    return done;
+  }
+
+  function copy(el) {
+    var text = el.textContent;
+    var shown = function () {
+      el.classList.add('is-copied');
+      clearTimeout(el._copied);
+      el._copied = setTimeout(function () { el.classList.remove('is-copied'); }, 1400);
+    };
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text).then(shown, function () { if (fallback(text)) shown(); });
+    } else if (fallback(text)) {
+      shown();
+    }
+  }
+
+  document.addEventListener('click', function (e) {
+    var el = e.target.closest && e.target.closest('.copy-snippet');
+    if (el) copy(el);
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    var el = e.target.closest && e.target.closest('.copy-snippet');
+    if (!el) return;
+    e.preventDefault();
+    copy(el);
   });
 })();

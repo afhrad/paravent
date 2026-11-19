@@ -43,6 +43,7 @@ from app.ui.layout import app_shell
 from app.ui.library_links import (
     WORLDS_URL,
     confirm_page,
+    copy_snippet,
     crumbs,
     delete_link,
     location_url,
@@ -261,7 +262,7 @@ def location_page(
                     p(class_="field-hint")[
                         t("holdings.paste"),
                         " ",
-                        span(class_="image-snippet mono")[f"{{@place {location.name}}}"],
+                        copy_snippet(page, f"{{@place {location.name}}}"),
                     ],
                 ],
                 div(class_="npc-head-actions")[
@@ -291,9 +292,6 @@ def location_page(
             ]
             if here
             else None,
-            title_image_panel(
-                page, "place", location.id, _title(location), owner=location.scope.record_id
-            ),
         ],
         world_id=world.id,
     )

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from urllib.parse import parse_qs, urlsplit
 
-from htpy import Element, button, dialog, div, form, h2, img, label, p, script, section, span
+from htpy import Element, Node, button, dialog, div, form, h2, img, label, p, script, section, span
 from htpy import input as input_el
 
 from app.services.tokens import (
@@ -67,11 +67,14 @@ def token_panel(
     *,
     world_id: str | None = None,
     has_picture: bool = False,
+    heading: bool = True,
+    extra: Node = None,
 ) -> Element:
     """Upload an element's own token, or remove it: its current token, a place to drop or
     choose a picture, and the dialog that centres and zooms it in the kind's frame
     (``token_editor.js``; without it the picture is centred). Shows what went wrong with
-    the last upload (``?token_error=``)."""
+    the last upload (``?token_error=``). Without ``heading`` it sits inside another
+    panel (an edit mode's); ``extra`` goes below its forms."""
     t = page.t
     query = parse_qs(urlsplit(page.path).query)
     problem = (query.get("token_error") or [""])[0]
@@ -94,9 +97,9 @@ def token_panel(
         else None
     )
     return section(
-        class_="panel token-panel",
+        class_="panel token-panel" if heading else "token-panel",
         id="token",
-        aria_labelledby="token-h",
+        aria_labelledby="token-h" if heading else None,
         data_token_editor="",
         data_inner=str(FRAME_INNER),
         data_picture=picture_url,
@@ -104,7 +107,7 @@ def token_panel(
         data_y=str(placed.y),
         data_zoom=str(placed.zoom),
     )[
-        div(class_="panel-head")[h2(id="token-h")[t("tokens.title")]],
+        div(class_="panel-head")[h2(id="token-h")[t("tokens.title")]] if heading else None,
         div(class_="token-panel-body")[
             token(tok, "xl"),
             div(class_="token-panel-forms")[
@@ -143,6 +146,7 @@ def token_panel(
                 ]
                 if own and not pictured
                 else None,
+                extra,
             ],
         ],
         dialog(class_="tok-dialog", aria_labelledby=f"tok-dialog-h-{ident}")[

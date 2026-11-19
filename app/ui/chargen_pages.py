@@ -562,6 +562,7 @@ def _about_panel(
                 src=f"/play/img/{quote(about.image)}",
                 alt="",
                 loading="lazy",
+                data_zoom="",
             )
             if about.image
             else None,

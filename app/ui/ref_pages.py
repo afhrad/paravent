@@ -1290,7 +1290,13 @@ def _description(
         ],
         coverage_note(page, shown.coverage, untranslated=True) if entries else None,
         div(class_="ref-fluff-body")[
-            img(class_="ref-fluff-image", src=f"/play/img/{quote(image)}", alt="", loading="lazy")
+            img(
+                class_="ref-fluff-image",
+                src=f"/play/img/{quote(image)}",
+                alt="",
+                loading="lazy",
+                data_zoom="",
+            )
             if image
             else None,
             render_entries(shown.data["entries"], ctx),

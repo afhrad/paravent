@@ -3947,5 +3947,8 @@
   "holdings.error.kind": "Das kann ein Abenteuer nicht enthalten.",
   "holdings.error.not_ready": "Nur NSC, Orte, Begegnungen und Schätze der Welt selbst lassen sich hinzufügen.",
   "holdings.error.not_here": "Das ist nicht mehr hier.",
-  "holdings.drop_chapter": "Aus dem Kapitel ins Abenteuer verschieben (wird nicht gelöscht)"
+  "holdings.drop_chapter": "Aus dem Kapitel ins Abenteuer verschieben (wird nicht gelöscht)",
+  "tokens.change": "Spielmarke ändern",
+  "copy.hint": "Klicken zum Kopieren, dann in einen Text einfügen",
+  "copy.done": "Kopiert"
 }

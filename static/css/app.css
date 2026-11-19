@@ -52,15 +52,15 @@ h1, h2, h3, .sb-name{ font-family:var(--font-display); }
 }
 .field .opt{ font-weight:400; color:var(--text-3); }
 /* Text-like fields only: a radio or checkbox in a .field keeps its own size. */
-.field input:not([type=radio]):not([type=checkbox]), .add-row input, .cg-filter, .cg-score input{
+.field input:not([type=radio]):not([type=checkbox]), .add-row input, .add-row select, .cg-filter, .cg-score input{
   width:100%; min-height:44px; padding:0 12px;
   font:inherit; font-size:16px; /* 16px stops iOS zooming into the field */
   color:var(--text); background:var(--surface);
   border:1px solid var(--border-strong); border-radius:var(--r-sm);
   transition:border-color .12s, box-shadow .12s;
 }
-.field input:not([type=radio]):not([type=checkbox]):hover, .add-row input:hover, .cg-filter:hover, .cg-score input:hover{ border-color:var(--text-3); }
-.field input:not([type=radio]):not([type=checkbox]):focus, .add-row input:focus, .cg-filter:focus, .cg-score input:focus{
+.field input:not([type=radio]):not([type=checkbox]):hover, .add-row input:hover, .add-row select:hover, .cg-filter:hover, .cg-score input:hover{ border-color:var(--text-3); }
+.field input:not([type=radio]):not([type=checkbox]):focus, .add-row input:focus, .add-row select:focus, .cg-filter:focus, .cg-score input:focus{
   outline:none; border-color:var(--accent);
   box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
 }
@@ -877,8 +877,11 @@ details.md-callout:not([open]){ padding-bottom:10px; }
 .prose-meta{ display:flex; gap:8px; align-items:center; flex-wrap:wrap; color:var(--text-2); font-family:var(--font-ui); font-size:13.5px; margin:-6px 0 0; }
 .prose-section{ display:grid; gap:10px; }
 .section-title{ font-family:var(--font-ui); font-size:13px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-3); margin:8px 0 0; }
-.add-row{ display:flex; gap:8px; }
-.add-row input{ flex:1; width:auto; min-width:0; }
+.add-row{ display:flex; gap:8px; min-width:0; } /* a drop-down's longest entry never widens its column */
+/* A drop-down in such a row takes the room a text field would (the adventure's
+   ready-made objects, a book to start from). */
+.add-row input, .add-row select{ flex:1; width:auto; min-width:0; }
+.add-row select{ text-overflow:ellipsis; }
 .add-row .btn{ min-height:44px; }
 .order-buttons{ display:flex; gap:2px; }
 .btn-icon{ padding-inline:8px; min-width:var(--tap, 36px); justify-content:center; }
@@ -995,7 +998,7 @@ details.md-callout:not([open]){ padding-bottom:10px; }
 .holdings-list{ list-style:none; margin:0; padding:0; display:grid; gap:6px; }
 .holdings-list li{ display:grid; gap:2px; }
 .holdings-list a{ font-weight:600; color:var(--text); }
-.add-row-sm input{ min-height:36px; font-size:14px; }
+.add-row-sm input, .add-row-sm select{ min-height:36px; font-size:14px; }
 .add-row-sm .btn{ min-height:36px; }
 @media (max-width: 860px){ .holdings-grid{ grid-template-columns:minmax(0,1fr); } }
 
@@ -1024,7 +1027,6 @@ h2.book-heading{ font-size:22px; } h3.book-heading{ font-size:18px; } h4.book-he
 .places-list{ list-style:none; margin:8px 0 0; padding:0; display:grid; gap:4px; font-size:14px; }
 .places-list li{ display:flex; gap:8px; align-items:center; justify-content:space-between; }
 .places-1{ padding-left:16px; } .places-2{ padding-left:32px; }
-.from-book select{ flex:1; min-width:0; min-height:44px; font:inherit; font-size:15px; border:1px solid var(--border-strong); border-radius:var(--r-sm); background:var(--surface); color:var(--text); padding:0 10px; }
 
 /* ---------------------------------------------------------- combat tracker (COMBAT.md §5) */
 .cb-page{ display:grid; gap:14px; }
@@ -2379,6 +2381,7 @@ dialog.logpanel::backdrop{ background:rgba(10,12,16,.35); }
 /* A holdings row: the name, its delete at the right, the line to paste beneath */
 .holdings-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .holdings-row .btn{ min-height:0; padding:2px 6px; }
+.holdings-row .inline-form{ flex-basis:auto; } /* the × only, never the whole row on a phone */
 
 /* The sound desk (documentation/SOUND.md). Not modal: the page beneath stays in use. */
 dialog.soundpanel{ position:fixed; inset:0 0 0 auto; z-index:45; }
@@ -2608,6 +2611,9 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .title-upload.is-live .title-drop:focus-within{ outline:2px solid var(--accent); outline-offset:2px; }
 .title-upload.is-live .title-plain{ display:none; }
 .quest-edit .title-panel, .faction-edit .title-panel{ margin-top:10px; padding-top:10px; border-top:1px solid var(--border); }
+.enc-settings .title-panel, .enc-settings .token-panel, .cs-token-edit .token-panel{ margin-top:12px; padding-top:12px; border-top:1px solid var(--border); }
+.cs-token-edit{ margin-top:12px; }
+.cs-token-edit > summary{ cursor:pointer; color:var(--text-2); font-size:.875rem; }
 .title-thumb{ width:44px; height:44px; object-fit:cover; border-radius:var(--r-sm); border:1px solid var(--border); flex-shrink:0; }
 .title-panel-body > .title-thumb{ width:120px; height:80px; }
 .quest-panel > .cover, .faction-panel > .cover{ margin:-4px 0 4px; max-height:200px; }
@@ -2928,3 +2934,24 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .img-pick.is-chosen{ border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); background:var(--accent-weak); }
 .img-tags-field{ display:grid; gap:4px; width:100%; max-width:520px; font-size:13px; color:var(--text-2); }
 .img-tags{ min-height:38px; padding:0 10px; font:inherit; color:var(--text); background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-sm); }
+
+/* A picture in a text, enlarged on a click (ui.js): over the page until a click beside it */
+img[data-zoom]{ cursor:zoom-in; }
+dialog.img-zoom{
+  position:fixed; inset:0; margin:0; padding:16px; border:0; background:transparent;
+  width:100vw; height:100dvh; max-width:none; max-height:none; box-sizing:border-box;
+}
+dialog.img-zoom[open]{ display:flex; align-items:center; justify-content:center; }
+dialog.img-zoom::backdrop{ background:rgb(0 0 0 / .82); }
+dialog.img-zoom img{ max-width:100%; max-height:100%; object-fit:contain; border-radius:var(--r-sm); }
+
+/* A tag to paste, copied by a click (ui.js): "Copied" over it for a moment */
+.copy-snippet{ cursor:copy; position:relative; user-select:none; -webkit-user-select:none; }
+.copy-snippet:hover{ background:color-mix(in srgb, var(--accent) 14%, var(--surface-3)); }
+.copy-snippet:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+.copy-snippet.is-copied::after{
+  content:attr(data-copied); position:absolute; left:50%; bottom:calc(100% + 4px); transform:translateX(-50%);
+  padding:2px 8px; border-radius:var(--r-sm); background:var(--text); color:var(--surface);
+  font-family:var(--font-ui); font-size:12px; white-space:nowrap; pointer-events:none;
+}
+.copy-field{ position:fixed; top:0; left:0; width:1px; height:1px; opacity:0; }

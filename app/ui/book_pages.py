@@ -204,9 +204,11 @@ def book_image(
         areas = _map_areas(entry, area)
         return figure(class_="book-image book-picture", id=ident)[
             span(class_="md-shareable")[
-                span(class_="map-frame")[img(src=url, alt=str(title), loading="lazy"), areas]
+                span(class_="map-frame")[
+                    img(src=url, alt=str(title), loading="lazy", data_zoom=""), areas
+                ]
                 if areas is not None
-                else img(src=url, alt=str(title), loading="lazy"),
+                else img(src=url, alt=str(title), loading="lazy", data_zoom=""),
                 share_link(shared, page.t("journal.share")) if shared else None,
             ],
             figcaption[span(class_="book-image-title")[str(title)]] if entry.get("title") else None,

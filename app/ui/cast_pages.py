@@ -19,7 +19,6 @@ from htpy import (
     a,
     b,
     button,
-    code,
     details,
     div,
     fieldset,
@@ -60,6 +59,7 @@ from app.ui.library_links import (
     WORLDS_URL,
     chapter_url,
     confirm_page,
+    copy_snippet,
     crumbs,
     delete_link,
     location_url,
@@ -128,8 +128,8 @@ def _place_text(names: Sequence[str]) -> str:
     return " › ".join(names)
 
 
-def _snippet(kind: str, name: str) -> Element:
-    return code(class_="image-snippet")[f"{{@{kind} {name}}}"]
+def _snippet(page: Page, kind: str, name: str) -> Element:
+    return copy_snippet(page, f"{{@{kind} {name}}}")
 
 
 # -- cards for ::: npc / ::: treasure ----------------------------------------------------
@@ -270,7 +270,7 @@ def holdings_panel(
                             if holdings_url
                             else delete_link(page, f"{url}/delete", t(DELETE_LABEL[kind])),
                         ],
-                        _snippet(kind, name),
+                        _snippet(page, kind, name),
                     ]
                     for name, url, ident, from_world in [*mine, *theirs]
                 ]
@@ -583,7 +583,9 @@ def npc_page(
                     span(class_="eyebrow")[_place_text(place)],
                     h1[npc.name],
                     div(class_="npc-roles")[role_pills(page, npc.roles)],
-                    p(class_="field-hint")[t("holdings.paste"), " ", _snippet("npc", npc.name)],
+                    p(class_="field-hint")[
+                        t("holdings.paste"), " ", _snippet(page, "npc", npc.name)
+                    ],
                 ],
                 div(class_="npc-head-actions")[
                     a(href=f"{npc_url(npc.id)}/edit", class_="btn")[
@@ -597,14 +599,6 @@ def npc_page(
             ],
             div(class_="md-body")[notes.html] if notes.html.strip() else None,
             statblock(page, creature, ctx) if creature is not None else None,
-            token_panel(
-                page,
-                page.token_of("npc", npc.scope.world_id, npc.id),
-                "npc",
-                npc.id,
-                world_id=npc.scope.world_id,
-                has_picture=bool(npc.portrait),
-            ),
             p(class_="ref-roll-result", aria_live="polite", hidden=True),
         ],
         extra_scripts=("/static/js/roll.js",),
@@ -713,37 +707,21 @@ def npc_form_page(
                     ],
                 ],
             ],
-            section(class_="panel images-panel")[
-                div(class_="panel-head")[b[t("npcs.portrait")]],
-                div(class_="image-row")[
-                    _portrait(page, npc),
-                    form(
-                        method="post",
-                        action=f"{url}/portrait",
-                        enctype="multipart/form-data",
-                        class_="upload-form",
-                    )[
-                        label(for_="f-portrait", class_="sr-only")[t("adventures.image_file")],
-                        input_el(
-                            id="f-portrait",
-                            type="file",
-                            name="file",
-                            accept="image/png,image/jpeg,image/webp,image/gif,image/avif",
-                            required=True,
-                        ),
-                        button(type="submit", class_="btn")[
-                            icon("upload"), span[t("adventures.upload")]
-                        ],
-                    ],
-                    form(method="post", action=f"{url}/portrait/clear")[
-                        button(type="submit", class_="btn btn-sm btn-ghost")[
-                            t("npcs.clear_portrait")
-                        ]
-                    ]
-                    if npc.portrait
-                    else None,
-                ],
-            ],
+            # One picture for both: the portrait is the token's picture, placed in its
+            # frame here (documentation/TOKENS.md).
+            token_panel(
+                page,
+                page.token_of("npc", npc.scope.world_id, npc.id),
+                "npc",
+                npc.id,
+                world_id=npc.scope.world_id,
+                has_picture=bool(npc.portrait),
+                extra=form(method="post", action=f"{url}/portrait/clear")[
+                    button(type="submit", class_="btn btn-sm btn-ghost")[t("npcs.clear_portrait")]
+                ]
+                if npc.portrait
+                else None,
+            ),
         ],
         world_id=world.id,
         insert_layer=True,
@@ -955,7 +933,7 @@ def treasure_page(
                     ),
                 ],
                 p(class_="field-hint")[
-                    t("holdings.paste"), " ", _snippet("treasure", treasure.name)
+                    t("holdings.paste"), " ", _snippet(page, "treasure", treasure.name)
                 ],
             ],
             alert(error),
@@ -989,12 +967,6 @@ def treasure_page(
                     div(class_="md-body")[notes.html] if notes.html.strip() else None,
                 ],
                 div(class_="enc-side")[
-                    token_panel(
-                        page,
-                        page.token_of("treasure", treasure.scope.world_id, treasure.id),
-                        "treasure",
-                        treasure.id,
-                    ),
                     _share_panel(page, treasure, lines, characters),
                     _roll_panel(page, url, roll) if roll is not None else None,
                     details(class_="panel enc-settings", open=True)[
@@ -1036,6 +1008,13 @@ def treasure_page(
                                 ],
                             ],
                         ],
+                        token_panel(
+                            page,
+                            page.token_of("treasure", treasure.scope.world_id, treasure.id),
+                            "treasure",
+                            treasure.id,
+                            heading=False,
+                        ),
                     ],
                 ],
             ],

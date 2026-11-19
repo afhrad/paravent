@@ -1632,7 +1632,17 @@ def _features_pane(page: Page, sheet: Sheet, ctx: RenderContext | None = None) -
             if text
         ],
         notes,
-        token_panel(page, page.token_of("character", pc.world_id, pc.id), "character", pc.id),
+        # Changed in its own fold, as a quest's or faction's picture: the sheet reads.
+        details(class_="cs-token-edit")[
+            summary[t("tokens.change")],
+            token_panel(
+                page,
+                page.token_of("character", pc.world_id, pc.id),
+                "character",
+                pc.id,
+                heading=False,
+            ),
+        ],
     ]
 
 

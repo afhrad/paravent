@@ -80,7 +80,10 @@ async def test_dropped_on_its_panel_and_drawn(gm: AsyncClient, registry: StoreRe
     world = registry.worlds.create(WorldInput(name="Grey Reed"))
     encounter = registry.encounters.create("Ambush", world.id)
     page = (await gm.get(f"/gm/encounters/{encounter.id}")).text
-    assert "Title image" in page and 'class="cover' not in page
+    assert 'class="cover' not in page
+    # Changed only in its settings, the builder's edit mode.
+    settings = page.split('class="panel enc-settings"', 1)[1]
+    assert f'id="title-encounter-{encounter.id}"' in settings
     assert f'action="/tokens/encounter/{encounter.id}"' not in page  # no token panel
     sent = await gm.post(
         f"/gm/title-image/encounter/{encounter.id}",
@@ -106,3 +109,19 @@ async def test_dropped_on_its_panel_and_drawn(gm: AsyncClient, registry: StoreRe
         f"/tokens/encounter/{encounter.id}", files={"token": ("t.png", _png(), "image/png")}
     )
     assert refused.status_code == 404
+
+
+async def test_pictures_are_changed_only_in_an_edit_mode(
+    gm: AsyncClient, registry: StoreRegistry
+) -> None:
+    world = registry.worlds.create(WorldInput(name="Grey Reed"))
+    landing = registry.locations.create("Grey Reed Landing", f"w:{world.id}", world.id)
+    shown = (await gm.get(f"/gm/places/{landing.id}")).text
+    assert "img-editor" not in shown and f"/gm/title-image/place/{landing.id}" not in shown
+    edited = (await gm.get(f"/gm/places/{landing.id}/edit")).text
+    assert "img-editor" in edited and f"/gm/title-image/place/{landing.id}" in edited
+    # A treasure's page is its own builder: its token sits in the settings.
+    hoard = registry.treasure.create("Hoard", f"w:{world.id}", world.id)
+    page = (await gm.get(f"/gm/treasure/{hoard.id}")).text
+    settings = page.split('class="panel enc-settings"', 1)[1]
+    assert f'action="/tokens/treasure/{hoard.id}"' in settings

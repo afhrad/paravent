@@ -195,7 +195,10 @@ class TestThePages:
         await _login(ac, "dm")
         world = registry.gamestate.worlds.create(World(name="Moor", source_set=SourceSet()))
         npc = registry.gamestate.npcs.create(Npc(name="Maren", scope=Scope(world_id=world.id)))
+        # Changed only in its edit mode; its page shows the token and no panel.
         page = (await ac.get(f"/gm/npcs/{npc.id}")).text
+        assert 'id="token"' not in page and "tok-npc tok-disc" in page
+        page = (await ac.get(f"/gm/npcs/{npc.id}/edit")).text
         assert 'id="token"' in page and "tok-npc tok-disc" in page
         assert "/static/tokens/frame-npc.png" in page and "token_editor.js" in page
         sent = await ac.post(
@@ -204,10 +207,11 @@ class TestThePages:
             files={"token": ("maren.png", _picture(), "image/png")},
         )
         assert sent.status_code == 303
-        page = (await ac.get(f"/gm/npcs/{npc.id}")).text
+        page = (await ac.get(f"/gm/npcs/{npc.id}/edit")).text
         assert f"/tokens/{world.id}/npc/{npc.id}?v=" in page
-        # The upload is its portrait too, and the panel offers to place it anew.
+        # The upload is its portrait too, and the panel offers to place it anew or clear it.
         assert registry.gamestate.npcs.get(npc.id).portrait
+        assert f"/gm/npcs/{npc.id}/portrait/clear" in page
         assert "tok-adjust" in page and f"/tokens/{world.id}/npc/{npc.id}/picture" in page
         picture = await ac.get(f"/tokens/{world.id}/npc/{npc.id}/picture")
         assert picture.status_code == 200

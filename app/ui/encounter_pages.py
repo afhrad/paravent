@@ -61,7 +61,7 @@ from app.ui.forms import (
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
-from app.ui.library_links import delete_link
+from app.ui.library_links import copy_snippet, delete_link
 from app.ui.markdown import Rendered
 from app.ui.name_roller import name_roller
 from app.ui.names import name_text
@@ -588,6 +588,13 @@ def _settings(page: Page, view: EncounterView, scopes: Sequence[tuple[str, str, 
                 ],
             ],
         ],
+        # A title image lives in the world's folder: none for an encounter planned ahead
+        # of any world. Outside the form above: a form never holds another.
+        title_image_panel(
+            page, "encounter", enc.id, encounter_title(enc), owner=enc.world_id, heading=False
+        )
+        if enc.world_id
+        else None,
     ]
 
 
@@ -681,6 +688,12 @@ def encounter_page(
                         page, f"{encounter_url(enc.id)}/delete", t("encounters.delete"), text=True
                     ),
                 ],
+                # Only an encounter of a world is named in its texts.
+                p(class_="field-hint")[
+                    t("holdings.paste"), " ", copy_snippet(page, f"{{@encounter {enc.name}}}")
+                ]
+                if enc.world_id
+                else None,
                 div(class_="md-body enc-notes")[notes.html]
                 if notes is not None and notes.html.strip()
                 else None,
@@ -695,13 +708,6 @@ def encounter_page(
                     _roll_table(page, view, environments),
                     _fought(page, fought),
                     _settings(page, view, scopes),
-                    # A title image lives in the world's folder: none for an encounter
-                    # planned ahead of any world.
-                    title_image_panel(
-                        page, "encounter", enc.id, encounter_title(enc), owner=enc.world_id or ""
-                    )
-                    if enc.world_id
-                    else None,
                 ],
             ],
         ],

@@ -204,6 +204,13 @@ out of the chapter the same way, moving up to its adventure. Deleting for good i
 object's own page and its list. **A new place** has its own dialog, *New place* on the world's places
 (name, where it is placed, tags, a first note, a picture).
 
+**Tags to copy** (2026-11-19, the user's request): wherever a page shows the line that
+names an object in a text — `{@npc …}`, `{@place …}`, `{@encounter …}` (an encounter of a
+world), `{@treasure …}` on their pages and in the holdings panel, an image's `![](…)`, a
+book place's `:::: at …` — a click, a tap or Enter copies it, and "Copied" shows on it for a
+moment (`copy_snippet`, `ui.js`). Over plain http on the home network the browser's
+clipboard API is closed, so the older copy command stands in.
+
 ---
 
 ## 4b. Session notes
@@ -463,6 +470,11 @@ notes may name the place itself).
   at the next write and named by the library check; a file a hand edit broke reads as no
   tags and is left as it is. The browser's grid shows previews, each picture shrunk to 320 pixels
   (`?w=320`, rendered once into the effects cache); the frame step works on the original.
+- **A picture in a text enlarges** (2026-11-19, the user's request): a click or tap on a
+  picture of a chapter, a note, a handout, the books' pictures or their illustrations
+  beside an entry shows it over the page, as large as the window allows, until a click or
+  tap beside it or Escape (`img[data-zoom]`, `ui.js`). Title images, covers and tokens do
+  not; a picture inside a link follows the link.
 - The title comes from the front matter. `#` in the body is the first section level; the
   page derives a table of contents and anchors from the headings.
 - **Dropping or pasting an image** into the chapter's or adventure's editor stores it in the

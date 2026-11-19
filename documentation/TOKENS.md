@@ -79,8 +79,10 @@ point at the centre, cut round to the opening, the ring on top — and saved so,
 
 ## 3. The table's own tokens
 
-Set on the element's page (the NPC's, treasure's, character's sheet, a builder
-creature's), as any image the world's media accepts: dropped on the panel or chosen. For
+Set only where the element is edited (2026-11-19, the user's request: a page that reads
+shows no dialog that changes it): an NPC's edit form (with *Clear the portrait*), a
+treasure's Settings, a builder creature's builder, and the *Change the token* fold on
+a character's sheet. Any image the world's media accepts: dropped on the panel or chosen. For
 an NPC or a builder creature the picture chosen **becomes its picture too** (portrait,
 creature picture), and **Adjust** reopens the
 dialog with the picture it has, where it sits, to place it anew without uploading
@@ -131,8 +133,8 @@ chapter's place and encounter cards; without one their kind's disc stands there.
 and the image dialog*, 2026-11-19) — a picture dropped, chosen or picked from the world's
 pictures, framed in a shape (10:3 by default) and dressed with effects, the picture itself
 never cut — and *Remove the title image* takes it away. On a
-place's page and edit form, an encounter's builder, and in a quest's and a faction's Edit
-fold. `POST /gm/title-image/<kind>/<id>` (`app/services/title_images.py`) stores it: a
+place's edit form, an encounter's Settings, and in a quest's and a faction's Edit
+fold: only where the element is edited (2026-11-19), never on the page that reads it. `POST /gm/title-image/<kind>/<id>` (`app/services/title_images.py`) stores it: a
 place's picture beside its scope's record as before (`Location.picture`), an encounter's,
 quest's or faction's in its world's `media/` folder (`cover`); an encounter of no world
 has none. The file is never deleted. Tokens once uploaded for a place or an encounter stay

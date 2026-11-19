@@ -267,7 +267,7 @@ def share_link(url: str, label: str) -> Element:
 
 def _image(url: str, alt: str, effects: tuple[str, ...], **attrs: Any) -> str:
     """An image, asking for its effects; one with effects carries ``fx`` so the page
-    leaves its edges alone."""
+    leaves its edges alone. A click enlarges it (``data-zoom``, ``ui.js``)."""
     return _html(
         img(
             src=image_effects.with_effects(url, effects),
@@ -275,6 +275,7 @@ def _image(url: str, alt: str, effects: tuple[str, ...], **attrs: Any) -> str:
             class_=" ".join(["fx", *(f"fx-{e}" for e in effects)]) if effects else None,
             **attrs,
             loading="lazy",
+            data_zoom="",
         )
     )
 

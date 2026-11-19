@@ -95,6 +95,7 @@ from app.ui.library_links import (
     chapter_url,
     character_url,
     confirm_page,
+    copy_snippet,
     cover,
     crumbs,
     delete_link,
@@ -453,7 +454,7 @@ def images_panel(
                 loading="lazy",
             ),
             div(class_="image-main")[
-                code(class_="image-snippet")[f"![]({path})"],
+                copy_snippet(page, f"![]({path})"),
                 span(class_="pill accent")[t("adventures.is_cover")]
                 if path == cover_path
                 else None,
@@ -1402,7 +1403,7 @@ def chapter_form_page(
                 ul(class_="places-list")[
                     [
                         li(class_=f"places-{min(depth, 2)}")[
-                            span[name], code(class_="image-snippet")[f":::: at {ident}"]
+                            span[name], copy_snippet(page, f":::: at {ident}")
                         ]
                         for ident, name, depth in places
                     ]

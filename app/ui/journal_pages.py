@@ -241,6 +241,7 @@ def handout_page(
             class_="journal-picture" + (" fx" if image_effects.split(handout.image)[1] else ""),
             src=picture_url(handout.id, handout.image),
             alt=handout.title,
+            data_zoom="",
         )
         if handout.kind == "image"
         else div(class_="md-body journal-body")[content]

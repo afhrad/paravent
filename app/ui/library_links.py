@@ -13,6 +13,7 @@ from htpy import (
     a,
     b,
     button,
+    code,
     details,
     div,
     form,
@@ -112,6 +113,19 @@ def delete_link(page: Page, href: str, label: str, *, text: bool = False) -> Ele
     ]
 
 
+def copy_snippet(page: Page, text: str) -> Element:
+    """A tag or line to paste into an editor (``{@npc Hob Wade}``, ``![](media/x.png)``),
+    copied to the clipboard by a click, a tap or Enter (``ui.js``), "Copied" shown on it."""
+    t = page.t
+    return code(
+        class_="image-snippet copy-snippet",
+        role="button",
+        tabindex="0",
+        title=t("copy.hint"),
+        data_copied=t("copy.done"),
+    )[text]
+
+
 def confirm_page(
     page: Page,
     *,
@@ -150,6 +164,7 @@ def confirm_page(
 
 __all__ = [
     "confirm_page",
+    "copy_snippet",
     "delete_link",
     "ADVENTURES_URL",
     "CHAPTERS_URL",

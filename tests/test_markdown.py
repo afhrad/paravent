@@ -324,7 +324,7 @@ class TestImages:
         out = html(
             "![Rotfang](media/map.webp) ![gone](media/nope.png)", MarkdownContext(media=media)
         )
-        assert '<img src="/media/a1/media/map.webp" alt="Rotfang" loading="lazy">' in out
+        assert '<img src="/media/a1/media/map.webp" alt="Rotfang" loading="lazy" data-zoom="">' in out
         assert "Image not found: media/nope.png" in out
         assert asked == ["media/map.webp", "media/nope.png"]
 
@@ -421,7 +421,7 @@ class TestImageEmbeds:
 
     def test_by_name_with_width_and_alt(self) -> None:
         out = html("![[map.png]]\n\n![[map.png|The map|300]]\n\n![[map.png|300x200]]\n", self.ctx())
-        assert '<img src="/media/w/maps/map.png" alt="" loading="lazy">' in out
+        assert '<img src="/media/w/maps/map.png" alt="" loading="lazy" data-zoom="">' in out
         assert 'alt="The map" width="300"' in out
         assert 'width="300" height="200"' in out
 
