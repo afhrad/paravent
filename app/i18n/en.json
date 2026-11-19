@@ -3884,5 +3884,7 @@
   "travel.wx.heavy_snow": "heavy snowfall",
   "travel.wx.or": " or ",
   "travel.wx.colder": "{degrees} colder than normal",
-  "travel.wx.hotter": "{degrees} hotter than normal"
+  "travel.wx.hotter": "{degrees} hotter than normal",
+  "glossary.search_named": "Search the names given",
+  "glossary.nothing_found": "No name matches."
 }

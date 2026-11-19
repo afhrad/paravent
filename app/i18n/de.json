@@ -3884,5 +3884,7 @@
   "travel.wx.heavy_snow": "starker Schneefall",
   "travel.wx.or": " oder ",
   "travel.wx.colder": "{degrees} kälter als normal",
-  "travel.wx.hotter": "{degrees} wärmer als normal"
+  "travel.wx.hotter": "{degrees} wärmer als normal",
+  "glossary.search_named": "Vergebene Namen durchsuchen",
+  "glossary.nothing_found": "Kein Name passt."
 }

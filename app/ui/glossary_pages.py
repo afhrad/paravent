@@ -44,8 +44,13 @@ CATEGORIES = (
 )
 
 
-def _url(lang: str, category: str = "") -> str:
-    query = {"lang": lang, **({"category": category} if category else {})}
+def _url(lang: str, category: str = "", q: str = "", number: int = 1) -> str:
+    query = {
+        "lang": lang,
+        **({"category": category} if category else {}),
+        **({"q": q} if q else {}),
+        **({"page": str(number)} if number > 1 else {}),
+    }
     return f"{GLOSSARY_URL}?{urlencode(query)}"
 
 
@@ -358,11 +363,23 @@ def glossary_page(
     terms: Sequence[Term],
     wanted: Sequence[Wanted],
     still: int = 0,
+    q: str = "",
+    number: int = 1,
 ) -> Element:
     """The glossary of one language; ``still`` is how many names the file lists as
-    ``"-"``, linked to the list to give them."""
+    ``"-"``, linked to the list to give them. The names given are searched by ``q``
+    (either name) and shown a page at a time: a full glossary holds thousands."""
     t = page.t
-    here = _url(lang, category)
+    needle = q.strip().casefold()
+    found = [
+        term
+        for term in terms
+        if not needle or needle in term.english.casefold() or needle in term.localized.casefold()
+    ]
+    pages = max(1, -(-len(found) // PER_PAGE))
+    number = min(max(1, number), pages)
+    shown = found[(number - 1) * PER_PAGE : number * PER_PAGE]
+    here = _url(lang, category, q, number)
     others = [x for x in t.languages if x.code != "en"]
     language = next((x.name for x in others if x.code == lang), lang)
 
@@ -417,6 +434,20 @@ def glossary_page(
                     h2[t.plural("glossary.named", len(terms), language=language)],
                     p(class_="muted")[t("glossary.named_hint")],
                 ],
+                form(method="get", action=GLOSSARY_URL, class_="gl-search")[
+                    input_el(type="hidden", name="lang", value=lang),
+                    input_el(type="hidden", name="category", value=category) if category else None,
+                    input_el(
+                        type="search",
+                        name="q",
+                        value=q,
+                        placeholder=t("glossary.search_named"),
+                        aria_label=t("glossary.search_named"),
+                    ),
+                    button(type="submit", class_="btn btn-sm")[t("glossary.open.search_button")],
+                ]
+                if terms
+                else None,
                 ul(class_="gl-list")[
                     [
                         li(class_="gl-row")[
@@ -428,11 +459,28 @@ def glossary_page(
                                 page, lang, term.category, term.english, term.localized, here
                             ),
                         ]
-                        for term in terms
+                        for term in shown
                     ]
                 ]
-                if terms
-                else p(class_="muted")[t("glossary.nothing_named")],
+                if shown
+                else p(class_="muted")[
+                    t("glossary.nothing_found") if terms else t("glossary.nothing_named")
+                ],
+                nav(class_="gl-pager", aria_label=t("glossary.open.pages"))[
+                    a(href=_url(lang, category, q, number - 1), class_="btn btn-sm btn-ghost")[
+                        t("glossary.open.prev")
+                    ]
+                    if number > 1
+                    else None,
+                    span(class_="muted")[t("glossary.open.page", page=number, pages=pages)],
+                    a(href=_url(lang, category, q, number + 1), class_="btn btn-sm btn-ghost")[
+                        t("glossary.open.next")
+                    ]
+                    if number < pages
+                    else None,
+                ]
+                if pages > 1
+                else None,
             ],
         ]
     return app_shell(

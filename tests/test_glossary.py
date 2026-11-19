@@ -179,6 +179,27 @@ class TestPages:
         conditions = (await ac.get("/gm/glossary", params={"category": "condition"})).text
         assert ">Prone<" not in conditions  # the UI names it already
 
+    async def test_names_given_are_searched_and_paged(
+        self, client: tuple[AsyncClient, StoreRegistry]
+    ) -> None:
+        from app.ui.glossary_pages import PER_PAGE
+
+        ac, registry = client
+        await _login(ac, "dm")
+        for i in range(PER_PAGE + 5):
+            registry.glossary.set("de", "monster", f"Beast {i:03}", f"Biest {i:03}")
+        page = (await ac.get("/gm/glossary", params={"category": "monster"})).text
+        assert "Seite 1 von 2" in page and 'value="Biest 000"' in page
+        assert 'value="Biest 104"' not in page  # on page 2
+        second = (await ac.get("/gm/glossary", params={"category": "monster", "page": 2})).text
+        assert 'value="Biest 104"' in second
+        # Either name finds it; saving returns to the same search.
+        found = (await ac.get("/gm/glossary", params={"category": "monster", "q": "biest 10"})).text
+        assert 'value="Biest 104"' in found and 'value="Biest 000"' not in found
+        assert "q=biest+10" in found
+        none = (await ac.get("/gm/glossary", params={"category": "monster", "q": "zzz"})).text
+        assert "Kein Name passt." in none
+
     async def test_names_still_open_are_given_a_page_at_a_time(
         self, client: tuple[AsyncClient, StoreRegistry]
     ) -> None:

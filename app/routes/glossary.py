@@ -47,6 +47,8 @@ async def show(
     registry: RegistryDep,
     lang: str = "",
     category: str = "",
+    q: str = "",
+    page_number: Annotated[int, Query(alias="page")] = 1,
 ) -> HTMLResponse:
     """What is named, and what to name next."""
     chosen = _chosen(registry, page, lang)
@@ -56,7 +58,7 @@ async def show(
     if category:
         terms = [term for term in terms if term.category == category]
     still = sum(len(n) for n in registry.glossary.still_open(chosen).values()) if chosen else 0
-    return html(glossary_page(page, chosen, category, terms, wanted, still))
+    return html(glossary_page(page, chosen, category, terms, wanted, still, q[:100], page_number))
 
 
 def _still_open(registry: RegistryDep, lang: str, players: bool) -> dict[str, list[str]]:
