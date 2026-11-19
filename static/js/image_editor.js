@@ -116,22 +116,66 @@
       show("frame");
     }
 
-    // The tags field: its own list of the world's tags to suggest.
+    // The tags field. The world's tags are offered as chips beneath a tags field, those
+    // matching the word being typed and not yet in it; a tap adds one, so "harbour" is not
+    // written again as "harbor". The browser's own suggestions cannot help here: a field
+    // of several tags, comma-separated, is never one of them.
     const tagsField = dlg.querySelector(".img-tags");
-    const words = document.createElement("datalist");
-    words.id = `img-tag-words-${Math.random().toString(36).slice(2, 9)}`;
-    dlg.appendChild(words);
-    if (tagsField) tagsField.setAttribute("list", words.id);
+    let vocabulary = [];
 
     function fill(html) {
       slot.innerHTML = html;
-      words.innerHTML = "";
-      slot.querySelectorAll(".img-tagchip").forEach((chip) => {
-        const option = document.createElement("option");
-        option.value = chip.dataset.tag;
-        words.appendChild(option);
-      });
+      vocabulary = Array.from(slot.querySelectorAll(".img-tagchip")).map((chip) => chip.dataset.tag);
     }
+
+    function suggestions(field) {
+      let row = field.nextElementSibling;
+      if (!row || !row.classList.contains("img-tag-suggest")) {
+        row = document.createElement("div");
+        row.className = "chips img-tag-suggest";
+        field.insertAdjacentElement("afterend", row);
+      }
+      return row;
+    }
+
+    function suggest(field) {
+      const row = suggestions(field);
+      const parts = field.value.split(",");
+      const typing = parts[parts.length - 1].trim().toLowerCase();
+      const have = parts.slice(0, -1).map((p) => p.trim().toLowerCase());
+      // Those starting with what is typed first, then those containing it.
+      const offered = vocabulary
+        .filter((tag) => !have.includes(tag) && tag !== typing && tag.includes(typing))
+        .sort((a, b) => Number(!a.startsWith(typing)) - Number(!b.startsWith(typing)))
+        .slice(0, 12);
+      row.replaceChildren(
+        ...offered.map((tag) => {
+          const chip = document.createElement("button");
+          chip.type = "button";
+          chip.className = "chip img-tag-offer";
+          chip.textContent = tag;
+          chip.addEventListener("click", () => {
+            const kept = field.value.split(",").slice(0, -1).map((p) => p.trim()).filter(Boolean);
+            field.value = [...kept, tag].join(", ") + ", ";
+            field.focus();
+            suggest(field);
+          });
+          return chip;
+        }),
+      );
+      row.hidden = !offered.length;
+    }
+
+    // A tags field: the world's tags loaded (once) as soon as it is used, then offered.
+    function watchTags(field) {
+      if (!field || field.dataset.suggesting) return;
+      field.dataset.suggesting = "1";
+      field.setAttribute("autocomplete", "off");
+      const offer = () => load().then(() => suggest(field));
+      field.addEventListener("focus", offer);
+      field.addEventListener("input", () => suggest(field));
+    }
+    watchTags(tagsField);
 
     // The world's pictures, fetched once (again after tagging).
     let loading = null;
@@ -312,6 +356,13 @@
     });
     slot.addEventListener("input", (event) => {
       if (event.target.matches(".img-filter")) filter();
+    });
+    // The selection's tags field comes with the browser, drawn anew after each change.
+    slot.addEventListener("focusin", (event) => {
+      if (event.target.matches(".img-bulk-tags")) {
+        watchTags(event.target);
+        suggest(event.target);
+      }
     });
 
     if (file) file.addEventListener("change", () => openFile(file.files && file.files[0]));

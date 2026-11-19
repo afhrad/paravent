@@ -3081,3 +3081,7 @@ input[type=checkbox]:not(.sr-only), input[type=radio]:not(.sr-only){ width:18px;
 .img-one .img-rename-name{ flex:1 1 12em; min-width:0; min-height:36px; padding:0 8px; font:inherit; color:var(--text); background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-sm); }
 .img-one .img-delete:disabled{ opacity:.45; cursor:not-allowed; }
 .img-message{ margin:0 0 8px; }
+/* The world's tags offered beneath a tags field of the image dialog (image_editor.js) */
+.img-tag-suggest{ display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; flex-basis:100%; }
+.img-tag-suggest[hidden]{ display:none; }
+.img-tag-offer{ font-size:12px; padding:2px 8px; }
