@@ -2,13 +2,18 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from httpx import AsyncClient
 
 from app.models.gamestate import SourceSet, World
 from app.services.calendar import Calendar, months_of
 from app.services.clock import DAY
+from app.services.i18n import UiCatalogue
+from app.services.units import UnitFormat
 from app.store.registry import StoreRegistry
-from app.ui.clock_pages import by_season
+from app.ui.clock_pages import by_season, weather_words
+from app.ui.context import Page
 from tests.conftest import requires_corpus
 from tests.test_travel_downtime_shop import table
 
@@ -51,6 +56,23 @@ def test_weather_by_season() -> None:
     assert by_season("Heavy rain or heavy snowfall", "summer") == "Heavy rain"
     assert by_season("no wind", "summer") == "no wind"
     assert by_season("light rain or light snowfall", "") == "light rain or light snowfall"
+
+
+def test_weather_in_the_readers_words() -> None:
+    german = Page(UiCatalogue().translator("de"))
+    assert weather_words(german, "Normal for the season") == "jahreszeitlich normal"
+    assert weather_words(german, "no wind") == "keiner"
+    assert weather_words(german, "light rain or light snowfall") == (
+        "leichter Regen oder leichter Schneefall"
+    )
+    assert weather_words(german, "30 degrees Fahrenheit colder") == "30 °F kälter als normal"
+    # A reader in metres reads the difference in degrees Celsius.
+    metric = SimpleNamespace(t=german.t, u=UnitFormat("metres", "de"))
+    assert weather_words(metric, "20 degrees Fahrenheit hotter than normal") == (  # type: ignore[arg-type]
+        "11 °C wärmer als normal"
+    )
+    # Words the vocabulary lacks stay as printed.
+    assert weather_words(german, "Fog banks") == "Fog banks"
 
 
 @requires_corpus

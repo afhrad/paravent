@@ -3873,5 +3873,16 @@
   "combat.follow_turn": "Dem Zug folgen",
   "chapters.at_hand": "Zur Hand",
   "chapters.previous": "Voriges Kapitel",
-  "chapters.next": "Nächstes Kapitel"
+  "chapters.next": "Nächstes Kapitel",
+  "travel.wx.normal": "jahreszeitlich normal",
+  "travel.wx.none": "keiner",
+  "travel.wx.light": "leicht",
+  "travel.wx.strong": "stark",
+  "travel.wx.light_rain": "leichter Regen",
+  "travel.wx.light_snow": "leichter Schneefall",
+  "travel.wx.heavy_rain": "starker Regen",
+  "travel.wx.heavy_snow": "starker Schneefall",
+  "travel.wx.or": " oder ",
+  "travel.wx.colder": "{degrees} kälter als normal",
+  "travel.wx.hotter": "{degrees} wärmer als normal"
 }

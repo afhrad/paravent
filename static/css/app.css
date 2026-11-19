@@ -1280,6 +1280,12 @@ button.pill.cb-side-switch:hover{ border-color:currentColor; }
 .table-tools .party-clock-steps > .inline-form:has(input[name=kind]){ flex:1 1 40%; }
 .table-tools .party-clock-steps .btn{ width:100%; justify-content:center; padding:0 6px; }
 .table-tools .party-clock-more > summary{ font-size:14px; }
+/* One column (an upright iPad, a phone): what is in play leads, above the fights and the
+   party; the other tools follow them. */
+@media (max-width: 999px){
+  .table-tools{ display:contents; }
+  .table-tools > .party-playing{ order:-1; }
+}
 @media (min-width: 1000px){
   .table-layout:has(.table-tools > *){ grid-template-columns:minmax(0, 1fr) minmax(320px, 380px); }
   .table-layout .party-grid{ grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); }

@@ -3,6 +3,7 @@ and the time and a character's own timers on its sheet."""
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Mapping, Sequence
 from urllib.parse import quote, urlencode
 
@@ -83,6 +84,41 @@ def by_season(text: str, season: str) -> str:
         return text
     chosen = snow if season == "winter" else next(x for x in parts if x is not snow)
     return chosen[:1].upper() + chosen[1:] if text[:1].isupper() else chosen
+
+
+# The guides' weather words (the 2014 and 2024 tables' cells, lower case, dice rolled):
+# a fixed vocabulary, so the reader's language has them; anything else stays as printed.
+_WEATHER_WORDS = {
+    "normal for the season": "travel.wx.normal",
+    "none": "travel.wx.none",
+    "no wind": "travel.wx.none",
+    "no precipitation": "travel.wx.none",
+    "light": "travel.wx.light",
+    "light wind": "travel.wx.light",
+    "strong": "travel.wx.strong",
+    "strong wind": "travel.wx.strong",
+    "light rain": "travel.wx.light_rain",
+    "light snowfall": "travel.wx.light_snow",
+    "heavy rain": "travel.wx.heavy_rain",
+    "heavy snowfall": "travel.wx.heavy_snow",
+}
+_DEGREES = re.compile(r"^(\d+) degrees fahrenheit (colder|hotter)(?: than normal)?$")
+
+
+def weather_words(page: Page, text: str) -> str:
+    """A cell of the guides' weather table in the reader's words; a temperature that
+    differs from the season's in degrees Celsius for a reader in metres."""
+    plain = text.strip().lower()
+    if " or " in plain:
+        return page.t("travel.wx.or").join(weather_words(page, x) for x in plain.split(" or "))
+    if plain in _WEATHER_WORDS:
+        return page.t(_WEATHER_WORDS[plain])
+    found = _DEGREES.match(plain)
+    if found is None:
+        return text
+    n = int(found.group(1))
+    degrees = f"{round(n * 5 / 9)} °C" if page.u.metric else f"{n} °F"
+    return page.t(f"travel.wx.{found.group(2)}", degrees=degrees)
 
 
 def season_of(page: Page, minute: int, world_id: str | None) -> str:
@@ -506,9 +542,9 @@ def _journey(
                 t(
                     "travel.weather_line",
                     day=day,
-                    temperature=temperature,
-                    wind=wind,
-                    rain=rain,
+                    temperature=weather_words(page, temperature),
+                    wind=weather_words(page, wind),
+                    rain=weather_words(page, rain),
                 ),
             ]
         )

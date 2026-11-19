@@ -3873,5 +3873,16 @@
   "combat.follow_turn": "Follow the turn",
   "chapters.at_hand": "At hand",
   "chapters.previous": "Previous chapter",
-  "chapters.next": "Next chapter"
+  "chapters.next": "Next chapter",
+  "travel.wx.normal": "normal for the season",
+  "travel.wx.none": "none",
+  "travel.wx.light": "light",
+  "travel.wx.strong": "strong",
+  "travel.wx.light_rain": "light rain",
+  "travel.wx.light_snow": "light snowfall",
+  "travel.wx.heavy_rain": "heavy rain",
+  "travel.wx.heavy_snow": "heavy snowfall",
+  "travel.wx.or": " or ",
+  "travel.wx.colder": "{degrees} colder than normal",
+  "travel.wx.hotter": "{degrees} hotter than normal"
 }
