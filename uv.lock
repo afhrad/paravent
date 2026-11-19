@@ -1191,7 +1191,7 @@ wheels = [
 
 [[package]]
 name = "paravent"
-version = "0.1.330"
+version = "0.1.331"
 source = { editable = "." }
 dependencies = [
     { name = "anthropic" },
