@@ -7,6 +7,7 @@ other's links without importing each other.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from urllib.parse import urlencode
 
 from htpy import (
@@ -28,6 +29,7 @@ from htpy import (
     span,
     summary,
     textarea,
+    ul,
 )
 
 from app.services import image_effects
@@ -235,10 +237,18 @@ def confirm_page(
 
 
 def new_object_page(
-    page: Page, *, kind: str, name: str, scope: str, where: str, back: str
+    page: Page,
+    *,
+    kind: str,
+    name: str,
+    scope: str,
+    where: str,
+    back: str,
+    near: Sequence[tuple[str, str]] = (),
 ) -> Element:
     """Ask before making what a link names but the world lacks: what, and where it goes
-    (the text's chapter, adventure or world, where the link looks first)."""
+    (the text's chapter, adventure or world, where the link looks first). ``near`` are
+    ``(name, url)`` of what the text probably meant, offered first."""
     t = page.t
     what = t(f"md.embed.{kind}")
     return app_shell(
@@ -251,6 +261,17 @@ def new_object_page(
                     span(class_="eyebrow")[what], b[t("md.create_title", name=name)]
                 ],
                 p[t("md.create_lede", name=name, kind=what, where=where)],
+                div(class_="create-near")[
+                    p(class_="field-hint")[t("md.create_near")],
+                    ul(class_="create-near-list")[
+                        [
+                            li[a(href=url, class_="btn btn-sm")[icon("arrow-right", "sm"), found]]
+                            for found, url in near
+                        ]
+                    ],
+                ]
+                if near
+                else None,
                 form(method="post", action=NEW_OBJECT_URL)[
                     hidden("kind", kind),
                     hidden("name", name),

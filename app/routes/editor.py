@@ -18,6 +18,7 @@ from fastapi.responses import HTMLResponse, Response
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.models.gamestate import Scope
+from app.routes.adventures import near_objects
 from app.routes.auth import html, redirect, safe_next
 from app.services import scope as scopes
 from app.store.registry import StoreRegistry
@@ -114,6 +115,11 @@ async def ask_new(
     }
     if finders[kind](name, where) is not None:
         return redirect(_make(registry, kind, name, where))
+    # What the text probably meant, each opening the one that exists.
+    near = [
+        (found, _make(registry, kind, found, where))
+        for found in near_objects(registry, where, kind, name)
+    ]
     return html(
         new_object_page(
             page,
@@ -122,6 +128,7 @@ async def ask_new(
             scope=scopes.encode(where),
             where=_where(page, registry, where),
             back=safe_next(back) or "/gm/adventures",
+            near=near,
         )
     )
 

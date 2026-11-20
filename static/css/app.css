@@ -3111,3 +3111,13 @@ input[type=checkbox]:not(.sr-only), input[type=radio]:not(.sr-only){ width:18px;
 .img-tagrow{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .img-tagname{ flex:1 1 160px; min-width:0; min-height:36px; padding:0 8px; font:inherit; color:var(--text); background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-sm); }
 .img-tagcount{ font-size:13px; min-width:5.5em; }
+
+/* What a missing link probably meant, offered before creating it (the create page). */
+.create-near{ margin:4px 0 14px; }
+.create-near-list{ list-style:none; margin:6px 0 0; padding:0; display:flex; flex-wrap:wrap; gap:6px; }
+
+/* Every link of the world that leads nowhere (Check links). */
+.links-text{ margin-top:14px; }
+.links-text-head{ display:flex; flex-direction:column; gap:2px; margin-bottom:8px; }
+.links-text-title{ font-weight:600; }
+.links-page .check-fixes .inline-form{ display:inline-flex; }

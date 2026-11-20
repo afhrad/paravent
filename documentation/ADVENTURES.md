@@ -589,6 +589,15 @@ callbacks the page renders with, so the check and the page cannot disagree:
 | … in a book the world leaves out (`{@spell Fireball|XPHB}` in a 2014 world) | — declare the book, or name another |
 | `{@npc …}`, `{@place …}`, `{@encounter …}`, `{@treasure …}` naming nothing in the world | up to three names the text can reach that are written nearly alike or hold it as whole words ("Hob" → "Hob Wade", "Modira's Dank" → "Modiras Dank"), a press replacing it with its label kept (`close_names`, 2026-11-20); else "Create" — made where the chapter is |
 | `[[Chapter]]` naming no chapter | the nearest chapter titles of the world, one press replacing it |
+
+**The whole world at once** (2026-11-20, `app/routes/world_links.py`): **Check links** in the
+world menu (`/gm/world/links`) runs the same check over every text of the table's world — its
+description, adventures, chapters and the notes of its NPCs, places, treasure and encounters
+— and lists those with problems, each linked. A suggestion is written into its text on its
+line with one press (`POST /gm/world/links/fix`; a text changed meanwhile is left alone and
+the page says so); a missing object is offered through the create page, which comes back
+here. The create page itself (a dashed link clicked in a chapter) now also offers what the
+text probably meant, each opening the one that exists.
 | `{@character …}` naming nobody placed in the world | — place the character in the world |
 | An encounter alone on its line without creatures, an image that is not there; in older texts a `:::` block of an unknown kind or never closed | — |
 

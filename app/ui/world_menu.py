@@ -39,6 +39,7 @@ SETTINGS_URL = "/gm/world/settings"
 EXPORT_URL = "/gm/world/export"
 IMPORT_URL = "/gm/world/import"
 DUPLICATE_URL = "/gm/world/duplicate"
+LINKS_URL = "/gm/world/links"
 # The query field that brings an import or a duplicate back with what went wrong.
 TRANSFER_ERROR = "transfer_error"
 
@@ -113,6 +114,11 @@ def world_menu(page: Page) -> Node:
                 else None,
                 a(href=f"{WORLDS_URL}/{current[0]}/claude", class_="usermenu-link")[
                     icon("sparkles", "sm"), span[t("instructions.title")]
+                ]
+                if current
+                else None,
+                a(href=LINKS_URL, class_="usermenu-link")[
+                    icon("shield-check", "sm"), span[t("links.title")]
                 ]
                 if current
                 else None,
@@ -370,6 +376,7 @@ __all__ = [
     "DUPLICATE_URL",
     "EXPORT_URL",
     "IMPORT_URL",
+    "LINKS_URL",
     "SELECT_URL",
     "SETTINGS_URL",
     "TRANSFER_ERROR",

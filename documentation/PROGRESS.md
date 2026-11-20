@@ -719,7 +719,10 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         **Rename** writing every use again, **Delete** only while unused
   - [x] **Missing links offer to be made** (2026-11-20, ADVENTURES.md §5.2): a link to an
         NPC, place, treasure or encounter the world lacks shows as a dashed + link on the
-        gamemaster's pages; a click asks to create it where the text is and opens it
+        gamemaster's pages; a click asks to create it where the text is and opens it, or
+        offers what the text probably meant. The chapter check suggests the nearest names;
+        **Check links** in the world menu lists every broken link of the world, mended with
+        one press (§5.7)
   - [x] **Ready-made objects in an adventure** (2026-11-19, `app/services/holdings.py`):
         the world's own NPCs, places, encounters and treasure added to an adventure from
         a list (linked in its `uses`, staying the world's); taken out of it, never

@@ -4027,5 +4027,18 @@
   "md.create_back": "Back to the text",
   "md.create_in_chapter": "in the chapter “{name}”",
   "md.create_in_adventure": "in the adventure “{name}”",
-  "md.create_in_world": "in the world “{name}”"
+  "md.create_in_world": "in the world “{name}”",
+  "md.create_near": "Did you mean one of these? It opens; fix the link in the editor.",
+  "links.title": "Check links",
+  "links.lede": {"one": "{count} thing in this world's texts leads nowhere. A suggestion is written in with one press; what is missing can be created.", "other": "{count} things in this world's texts lead nowhere. A suggestion is written in with one press; what is missing can be created."},
+  "links.none": "Every link in this world's texts leads somewhere.",
+  "links.fixed": "Link fixed.",
+  "links.stale": "That text changed in the meantime; nothing was written. Check the list again.",
+  "links.kind.world": "World",
+  "links.kind.adventure": "Adventure",
+  "links.kind.chapter": "Chapter",
+  "links.kind.npc": "NPC notes",
+  "links.kind.place": "Place notes",
+  "links.kind.treasure": "Treasure notes",
+  "links.kind.encounter": "Encounter notes"
 }

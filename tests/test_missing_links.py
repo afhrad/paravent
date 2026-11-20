@@ -111,3 +111,55 @@ async def test_the_check_suggests_what_the_text_meant(
     assert 'data-to="{@npc Hob Wade}"' in panel
     assert 'data-to="[[Fog]]"' in panel
     assert 'data-kind="place" data-name="Landing"' in panel  # nothing near: create it
+
+
+async def test_the_create_page_offers_what_was_meant(
+    gm: AsyncClient, registry: StoreRegistry
+) -> None:
+    chapter_id = _chapter(registry)
+    chapter = registry.gamestate.chapters.get(chapter_id)
+    hob = registry.npcs.create("Hob Wade", f"w:{chapter.world_id}", chapter.world_id)
+    asked = (
+        await gm.get(
+            "/gm/editor/new", params={"kind": "npc", "name": "Hob", "scope": f"c:{chapter_id}"}
+        )
+    ).text
+    assert "Did you mean one of these?" in asked and f'href="/gm/npcs/{hob.id}"' in asked
+    assert len(registry.gamestate.npcs.list()) == 1  # offering made nothing
+
+
+async def test_the_world_lists_its_broken_links_and_mends_them(
+    gm: AsyncClient, registry: StoreRegistry
+) -> None:
+    chapter_id = _chapter(registry)
+    chapter = registry.gamestate.chapters.get(chapter_id)
+    registry.table.select(chapter.world_id)
+    registry.npcs.create("Hob Wade", f"w:{chapter.world_id}", chapter.world_id)
+    maren = registry.npcs.create("Maren", f"w:{chapter.world_id}", chapter.world_id)
+    registry.gamestate.npcs.update(maren.id, notes="Owes {@npc Hob} a favour.")
+    page = (await gm.get("/gm/world/links")).text
+    assert "3 things in this world" in page  # the purse and Hob in the chapter, Hob in notes
+    assert f'id="t-{chapter_id}"' in page and f'id="t-{maren.id}"' in page
+    assert 'name="new" value="{@npc Hob Wade}"' in page
+    assert "/gm/editor/new?kind=treasure" in page and "back=%2Fgm%2Fworld%2Flinks" in page
+    fixed = await gm.post(
+        "/gm/world/links/fix",
+        data={
+            "kind": "npc",
+            "id": maren.id,
+            "line": "1",
+            "old": "{@npc Hob}",
+            "new": "{@npc Hob Wade}",
+        },
+    )
+    assert fixed.headers["location"] == f"/gm/world/links?fixed=1#t-{maren.id}"
+    assert registry.gamestate.npcs.get(maren.id).notes == "Owes {@npc Hob Wade} a favour."
+    # Asked again for a text that changed meanwhile: nothing written.
+    stale = await gm.post(
+        "/gm/world/links/fix",
+        data={"kind": "npc", "id": maren.id, "line": "1", "old": "{@npc Hob}", "new": "{@npc X}"},
+    )
+    assert stale.headers["location"] == "/gm/world/links?fixed=stale"
+    assert registry.gamestate.npcs.get(maren.id).notes == "Owes {@npc Hob Wade} a favour."
+    page = (await gm.get("/gm/world/links?fixed=1")).text
+    assert "Link fixed." in page and f'id="t-{maren.id}"' not in page

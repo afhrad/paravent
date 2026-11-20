@@ -4027,5 +4027,18 @@
   "md.create_back": "Zurück zum Text",
   "md.create_in_chapter": "Im Kapitel „{name}“",
   "md.create_in_adventure": "Im Abenteuer „{name}“",
-  "md.create_in_world": "In der Welt „{name}“"
+  "md.create_in_world": "In der Welt „{name}“",
+  "md.create_near": "Meintest du eines davon? Es öffnet sich; den Link im Editor korrigieren.",
+  "links.title": "Links prüfen",
+  "links.lede": {"one": "{count} Stelle in den Texten dieser Welt führt ins Leere. Ein Vorschlag wird mit einem Druck eingetragen; was fehlt, lässt sich anlegen.", "other": "{count} Stellen in den Texten dieser Welt führen ins Leere. Ein Vorschlag wird mit einem Druck eingetragen; was fehlt, lässt sich anlegen."},
+  "links.none": "Jeder Link in den Texten dieser Welt führt irgendwohin.",
+  "links.fixed": "Link korrigiert.",
+  "links.stale": "Dieser Text hat sich inzwischen geändert; nichts wurde geschrieben. Prüfe die Liste erneut.",
+  "links.kind.world": "Welt",
+  "links.kind.adventure": "Abenteuer",
+  "links.kind.chapter": "Kapitel",
+  "links.kind.npc": "NSC-Notizen",
+  "links.kind.place": "Ort-Notizen",
+  "links.kind.treasure": "Schatz-Notizen",
+  "links.kind.encounter": "Begegnungsnotizen"
 }

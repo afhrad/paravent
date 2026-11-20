@@ -174,7 +174,8 @@ Players: unchanged (Characters, Books, Journal), all of it the current world's.
 
 ## 9. A world to take along (2026-11-20)
 
-The world menu offers **Export world**, **Import world** and **Duplicate world**
+The world menu also offers **Check links** (every broken link of the world, ADVENTURES.md
+§5.7). It offers **Export world**, **Import world** and **Duplicate world**
 (`app/services/world_transfer.py`, `app/routes/world_transfer.py`).
 
 - **Export** downloads the table's world as one zip (`<name>.paravent.zip`): a manifest

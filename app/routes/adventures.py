@@ -961,32 +961,38 @@ def _checks(registry: StoreRegistry, here: Scope, books: SourceSet) -> Checks:
         close = difflib.get_close_matches(name.lower(), list(names), n=3, cutoff=0.75)
         return [names[x] for x in close]
 
+    def near_object(kind: str, name: str) -> list[str]:
+        return near_objects(registry, here, kind, name)
+
+    return Checks(empty_encounter=empty, nearest=nearest, near_object=near_object)
+
+
+def near_objects(registry: StoreRegistry, here: Scope, kind: str, name: str) -> list[str]:
+    """Names written close to ``name`` among the NPCs, places, treasure, encounters or
+    chapters a text at ``here`` can reach (``close_names``)."""
+    world_id = here.world_id
+
     def seen(scope_: Scope | None) -> bool:
         return scope_ is not None and scope.nearness(scope_, here) is not None
 
-    def near_object(kind: str, name: str) -> list[str]:
-        """Names written close to ``name`` among what the text can reach from here."""
-        world_id = here.world_id
-        pool: list[str]
-        if kind == "npc":
-            pool = [n.name for n in registry.npcs.list(world_id) if seen(n.scope)]
-        elif kind == "place":
-            pool = [x.name for x in registry.locations.list(world_id) if seen(x.scope)]
-        elif kind == "treasure":
-            pool = [x.name for x in registry.treasure.list(world_id) if seen(x.scope)]
-        elif kind == "encounter":
-            pool = [e.name for e in registry.encounters.list(world_id) if seen(e.scope)]
-        elif kind == "chapter":
-            pool = [
-                c.title
-                for a in registry.adventures.adventures(world_id)
-                for c in registry.adventures.chapters(a.id)
-            ]
-        else:
-            return []
-        return close_names(name, pool)
-
-    return Checks(empty_encounter=empty, nearest=nearest, near_object=near_object)
+    pool: list[str]
+    if kind == "npc":
+        pool = [n.name for n in registry.npcs.list(world_id) if seen(n.scope)]
+    elif kind == "place":
+        pool = [x.name for x in registry.locations.list(world_id) if seen(x.scope)]
+    elif kind == "treasure":
+        pool = [x.name for x in registry.treasure.list(world_id) if seen(x.scope)]
+    elif kind == "encounter":
+        pool = [e.name for e in registry.encounters.list(world_id) if seen(e.scope)]
+    elif kind == "chapter":
+        pool = [
+            c.title
+            for a in registry.adventures.adventures(world_id)
+            for c in registry.adventures.chapters(a.id)
+        ]
+    else:
+        return []
+    return close_names(name, pool)
 
 
 def close_names(name: str, pool: Sequence[str], limit: int = 3) -> list[str]:
