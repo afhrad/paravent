@@ -1012,6 +1012,8 @@ class Place(Record):
     last: str = ""
     nav: dict[str, str] = Field(default_factory=dict)
     sheets: dict[str, SheetView] = Field(default_factory=dict)
+    # The newest "What's new" line the user has dismissed (its time, app/services/news.py).
+    news_seen: str = ""
 
 
 class KnownFact(GameStateModel):

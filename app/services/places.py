@@ -84,6 +84,12 @@ class PlaceService:
         if nav != place.nav:
             self._store.places.upsert(place.model_copy(update={"nav": nav}))
 
+    def mark_news(self, user_id: str, at: str) -> None:
+        """Remember the newest "What's new" line the user has dismissed."""
+        place = self.get(user_id)
+        if at > place.news_seen:
+            self._store.places.upsert(place.model_copy(update={"news_seen": at}))
+
     def forget(self, user_id: str) -> None:
         """Drop a user's place, as when the account is deleted."""
         if self._store.places.find(user_id) is not None:

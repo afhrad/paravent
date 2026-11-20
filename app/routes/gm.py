@@ -67,7 +67,9 @@ from app.ui.combat_pages import party_combats
 from app.ui.context import Page
 from app.ui.forms import alert, notice
 from app.ui.gm_pages import (
+    NEWS_SEEN_URL,
     WORLDS_URL,
+    news_panel,
     party_card,
     party_grid,
     party_page,
@@ -320,8 +322,19 @@ async def party(
             shop=_shop(page, registry, world_id),
             chase=_chase(page, registry, world_id),
             playing=_playing(page, registry, world_id),
+            news=news_panel(page, registry.news.unseen(registry.places.get(_gm.user.id).news_seen)),
         )
     )
+
+
+@router.post(NEWS_SEEN_URL)
+async def news_seen(
+    _gm: GamemasterDep, registry: RegistryDep, at: Annotated[str, Form()] = ""
+) -> Response:
+    """The gamemaster has read what's new up to ``at``; it shows no more."""
+    if at:
+        registry.places.mark_news(_gm.user.id, at)
+    return redirect("/gm")
 
 
 # -- the world's clock -------------------------------------------------------------------

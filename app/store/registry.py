@@ -101,6 +101,7 @@ from app.services.media_uses import MediaUses
 from app.services.name_suggestions import ApiRunner, NameSuggestions
 from app.services.naming import Naming
 from app.services.naming_workshop import NamingWorkshop
+from app.services.news import NewsFeed
 from app.services.npcs import NpcService, TreasureService
 from app.services.party_notes import PartyNotesService
 from app.services.places import PlaceService
@@ -2042,6 +2043,11 @@ class StoreRegistry:
     def worlds(self) -> WorldService:
         """Worlds and their declared books."""
         return WorldService(self.gamestate)
+
+    @cached_property
+    def news(self) -> NewsFeed:
+        """What changed in Paravent lately (``app/news.json``, from the commits)."""
+        return NewsFeed()
 
     @cached_property
     def trash(self) -> Trash:

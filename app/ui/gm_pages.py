@@ -29,6 +29,7 @@ from htpy import input as input_el
 
 from app.models.gamestate import Adventure, Chapter, World
 from app.services.experience import progress
+from app.services.news import NewsLine
 from app.services.sheet import Sheet
 from app.services.worlds import Book, BookCatalog
 from app.ui.affliction_pages import party_chips
@@ -396,8 +397,10 @@ def party_page(
     shop: Node = None,
     chase: Node = None,
     playing: Node = None,
+    news: Node = None,
 ) -> Element:
-    """The gamemaster's landing screen: every character at the table, live.
+    """The gamemaster's landing screen: every character at the table, live; above it,
+    ``news``, what changed in Paravent since the gamemaster last looked.
 
     ``combats`` is the strip of running fights above the cards, ``clock`` the world's
     time in the game, ``shop`` its shop, ``chase`` its chase, ``checks`` the panel that
@@ -431,6 +434,7 @@ def party_page(
                     _more_menu(page, world),
                 ],
             ),
+            news,
             _layout(
                 page,
                 [combats, party_grid(page, cards, world_id=world.id if world else None)],
@@ -441,6 +445,29 @@ def party_page(
         main_class="shell-main shell-wide party-page",
         world_id=world.id if world else None,
     )
+
+
+NEWS_SEEN_URL = "/gm/news/seen"
+
+
+def news_panel(page: Page, lines: Sequence[NewsLine]) -> Node:
+    """What changed in Paravent since the gamemaster last looked, until they say so."""
+    if not lines:
+        return None
+    t = page.t
+    return section(class_="panel news-panel", aria_labelledby="news-h")[
+        div(class_="news-head")[
+            icon("sparkles", "sm"),
+            b(id="news-h")[t("news.title")],
+            form(method="post", action=NEWS_SEEN_URL, class_="inline-form news-done")[
+                hidden("at", lines[0].at),
+                button(type="submit", class_="btn btn-sm btn-ghost")[
+                    icon("check", "sm"), span[t("news.seen")]
+                ],
+            ],
+        ],
+        ul(class_="news-list")[[li[line.text(page.lang)] for line in lines]],
+    ]
 
 
 # -- worlds ----------------------------------------------------------------------------
@@ -690,6 +717,8 @@ def world_not_found_page(page: Page) -> Element:
 
 
 __all__ = [
+    "NEWS_SEEN_URL",
+    "news_panel",
     "PARTY_URL",
     "WORLDS_URL",
     "party_card",

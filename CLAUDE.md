@@ -27,7 +27,8 @@ loaded automatically.
 - Read website/README.md before touching the website (paravent.org, `website/`). When a
   feature adds a new area to Paravent, update its entry in `website/content/en.json` and
   `de.json` in the same change and run `python website/build.py` (the pages are written from
-  them; "What's new" comes from the commits' `News:` trailers, the numbers from git)
+  them; "What's new" comes from the commits' `News:` trailers, the numbers from git; the
+  build also writes `app/news.json`, the app's own "What's new", committed with the pages)
 
 ## Environment
 

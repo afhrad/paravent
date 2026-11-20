@@ -365,6 +365,41 @@ def news(
     return rows
 
 
+APP_NEWS = ROOT / "app" / "news.json"
+APP_NEWS_COUNT = 60
+
+
+def app_news(log: str, limit: int = APP_NEWS_COUNT) -> list[dict[str, str]]:
+    """The newest ``News:`` lines for the app's own "What's new" (app/services/news.py):
+    when, and the line in English and German, newest first. Only commits with the trailer."""
+    rows: list[dict[str, str]] = []
+    for record in log.split("\x1e"):
+        parts = record.strip("\n").split("\x1f")
+        if len(parts) != 5:
+            continue
+        _commit, at, _subject, english, german = parts
+        en = next((x.strip() for x in english.split("\x1d") if x.strip()), "")
+        if not en:
+            continue
+        de = next((x.strip() for x in german.split("\x1d") if x.strip()), "") or en
+        rows.append({"at": at, "en": en, "de": de})
+        if len(rows) == limit:
+            break
+    return rows
+
+
+def write_app_news() -> bool:
+    """Write :data:`APP_NEWS` from git; True when it changed. Left alone without git."""
+    log = git("log", "--no-merges", "--date=iso-strict", NEWS_LOG)
+    if not log.strip():
+        return False
+    text = json.dumps(app_news(log), ensure_ascii=False, indent=1) + "\n"
+    if APP_NEWS.exists() and APP_NEWS.read_text(encoding="utf-8") == text:
+        return False
+    APP_NEWS.write_text(text, encoding="utf-8")
+    return True
+
+
 def news_lines(lang: str) -> dict[str, str]:
     """The content file's lines for commits made before the ``News:`` trailer."""
     entries = read_content(SITE / "content" / f"{lang}.json").get("updates.lines") or []
@@ -660,6 +695,8 @@ def main() -> int:
             stale.append(name)
             if not args.check:
                 page.write_text(after, encoding="utf-8")
+    if not args.check and write_app_news():
+        stale.append(str(APP_NEWS.relative_to(ROOT)))
     if args.check:
         if stale:
             print("Out of date:", ", ".join(stale), "— run python website/build.py")

@@ -51,7 +51,10 @@ python website/build.py --check    # exit 1 when the pages lag their text or tem
    commit changes `app/` or `static/` without `News:`, or has `News:` without
    `News-de:`. Followed by the hand-written items of `updates.pinned` in the content files (the first
    public release), and the facts strip: version, number of tests, date. Each lives
-   between `<!-- name:start/end -->` markers.
+   between `<!-- name:start/end -->` markers. The same lines, the newest 60 with their
+   time in English and German, go into `app/news.json`, which the app ships and shows the
+   gamemaster as *What's new in Paravent* on their home page (`app/services/news.py`), so
+   commit it with the rebuilt pages.
 3. **Pack** — `dist/site/` and the zip, without `build.py`, this README and dotfiles.
    Before zipping, the copy is checked as a visitor meets it: every link, picture and
    `url()` leads to a file, every `#anchor` to an element, every picture has an `alt`
