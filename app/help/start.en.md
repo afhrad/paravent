@@ -24,7 +24,8 @@ name, its language, and above all **the books in play**. The table plays in one 
 a time — the one in that menu, chosen there — and everything in Paravent plays in it: the
 top bar's adventures, NPCs, places, treasure and encounters, every character and every
 player. Its settings (books, language, the rest) are under **World settings** in the same
-menu.
+menu. **Export world** there saves the whole campaign as one file, **Import world** brings
+one back (here or at another table) and **Duplicate world** copies it for a second group.
 
 - **Tick the books your table uses.** Choosing *PHB* (2014) or *XPHB* (2024) decides
   the edition. Every reference then resolves to the right printing, and one into a book

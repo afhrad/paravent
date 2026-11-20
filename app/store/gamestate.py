@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import logging
 import threading
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Generic, TypeVar
 
@@ -166,6 +166,14 @@ class Collection(Generic[R]):
             self._items[record.id] = record
             self._flush()
             return record
+
+    def upsert_many(self, records: Iterable[R]) -> None:
+        """Insert or overwrite several in one write (a world brought in, say)."""
+        with self._lock, file_lock(self._path):
+            self._ensure_loaded()
+            for record in records:
+                self._items[record.id] = record
+            self._flush()
 
     def delete(self, record_id: str) -> None:
         """Remove a record, raising when it does not exist."""

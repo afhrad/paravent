@@ -26,7 +26,9 @@ ihr Name, ihre Sprache und vor allem **die Bücher, mit denen ihr spielt**. Der 
 immer in einer Welt – der im Menü, dort gewählt –, und alles in Paravent spielt in ihr: die
 Abenteuer, NSC, Orte, Schätze und Begegnungen der oberen Leiste, jeder Charakter und jeder
 Spieler. Ihre Einstellungen (Bücher, Sprache und der Rest) stehen unter
-**Welteinstellungen** im selben Menü.
+**Welteinstellungen** im selben Menü. **Welt exportieren** sichert dort die ganze Kampagne
+als eine Datei, **Welt importieren** holt eine zurück (hier oder an einem anderen Tisch) und
+**Welt duplizieren** kopiert sie für eine zweite Gruppe.
 
 - **Hake die Bücher an, die euer Tisch nutzt.** *PHB* (2014) oder *XPHB* (2024)
   entscheidet die Edition. Jeder Verweis findet dann die richtige Fassung, und einer in ein

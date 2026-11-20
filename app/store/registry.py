@@ -137,6 +137,7 @@ from app.services.traps import TrapService
 from app.services.travel import TravelService, Vessel
 from app.services.treasure_roll import roller_for
 from app.services.world_instructions import WorldInstructionService
+from app.services.world_transfer import WorldTransfer
 from app.services.worlds import BookCatalog, WorldService
 from app.store.compendium import CompendiumStore, LoadReport
 from app.store.creature_tables import CreatureTables
@@ -2042,6 +2043,15 @@ class StoreRegistry:
     def worlds(self) -> WorldService:
         """Worlds and their declared books."""
         return WorldService(self.gamestate)
+
+    @cached_property
+    def world_transfer(self) -> WorldTransfer:
+        """A world exported, imported or duplicated (documentation/CURRENT-WORLD.md §9)."""
+        return WorldTransfer(
+            self.gamestate,
+            self.settings.library_dir / "protocol",
+            self.settings.library_dir / "handouts",
+        )
 
     @cached_property
     def table(self) -> TableService:

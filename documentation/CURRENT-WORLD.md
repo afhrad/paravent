@@ -28,7 +28,11 @@ the pages, characters and players do with it. **Status:** planned and built 2026
   places that read `pc.world_id` — books for the sheet, the wizard and level-up, the party, the
   clock, rests, travel, the shop, quests, factions, the log — follow the current world without
   each being changed, and switching worlds re-derives every sheet (its cache key holds the world).
-  The derived field is cleaned out later, place by place, where it reads better.
+  Nothing writes it (2026-11-20: the wizard's new draft, the world delete's loop that
+  "moved" characters out and the unused `WorldService.place` went); the reads stay, as they
+  name the world a character plays in, which is the table's by construction. A filter
+  `pc.world_id == world_id` reads "the party of that world": every character for the table's
+  world, none for another.
 - **Everything else keeps its world.** Adventures, chapters, NPCs, places, treasure, encounters,
   quests, factions, session notes, the clock and the log stay filed under their world exactly as
   now; only *which world is shown* changes. Nothing is migrated.
@@ -167,4 +171,34 @@ Players: unchanged (Characters, Books, Journal), all of it the current world's.
   plays in …" with **Reload** (`static/js/table-world.js`). Nothing reloads by itself: a player
   may be typing. A choice is compared with the one kept, not the world played in, since a new
   world first by name is played in at once when none was ever chosen.
+
+## 9. A world to take along (2026-11-20)
+
+The world menu offers **Export world**, **Import world** and **Duplicate world**
+(`app/services/world_transfer.py`, `app/routes/world_transfer.py`).
+
+- **Export** downloads the table's world as one zip (`<name>.paravent.zip`): a manifest
+  (`paravent-world.json`, format 1), its folder under `world/` (the world, adventures and
+  chapters as Markdown, pictures, `tags.json`, tokens), every record filed under it in
+  `records.json` — NPCs, places and treasure by their scope; encounters, Claude's
+  instructions, factions, quests, creatures, combats, session notes, checks and handouts by
+  `world_id`; the safety tools, what the party learned, party notes, the clock, the chase,
+  the session and the shop by their id being the world's; naming styles made for it — its log
+  (`protocol.jsonl`) and its handouts' pictures (`handouts/`). Characters stay out: they
+  belong to the table.
+- **Import** makes a new world of such a file, here or at another table, and the table then
+  plays in it. Every id the file holds — the world's, its adventures' and chapters' from
+  their front matter, each record's — is given anew and replaced wherever it is written (front
+  matter, records naming each other, Markdown links, token file names), so an import never
+  clashes, not even with the world it came from; anything else shaped like an id (a
+  character's) is left. It takes the campaign; **Bring the play so far** adds the log, clock,
+  fights, checks, handouts, party notes, session notes, what the party learned and the shop.
+  Without it quests start open with nobody on them and factions with no renown. A creature
+  design whose name the table already has is not taken (one statblock per name in the
+  homebrew file); the others come unpublished. Refused: a file that is no zip, holds no
+  world, comes from a newer format, names paths outside itself, or is larger than the limits
+  (10,000 files, 200 MB a file, 4 GB in all); only Markdown, JSON and pictures (checked by
+  their content) are written. The dialog opens again saying why.
+- **Duplicate** is an export read straight back in under a new name ("… (copy)"), the play
+  optional: the same campaign for a second group.
 

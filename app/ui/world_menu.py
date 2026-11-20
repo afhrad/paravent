@@ -30,17 +30,28 @@ from htpy import (
 from htpy import input as input_el
 
 from app.ui.context import Page
+from app.ui.forms import alert
 from app.ui.icons import icon
 
 WORLDS_URL = "/gm/worlds"
 SELECT_URL = "/gm/world/select"
 SETTINGS_URL = "/gm/world/settings"
+EXPORT_URL = "/gm/world/export"
+IMPORT_URL = "/gm/world/import"
+DUPLICATE_URL = "/gm/world/duplicate"
+# The query field that brings an import or a duplicate back with what went wrong.
+TRANSFER_ERROR = "transfer_error"
 
 
 def _here(page: Page) -> str:
     """The page as it was asked for, without the settings dialog's own switch."""
     parts = urlsplit(page.path)
-    kept = [(k, v) for k, vs in parse_qs(parts.query).items() if k != "settings" for v in vs]
+    kept = [
+        (k, v)
+        for k, vs in parse_qs(parts.query).items()
+        if k not in ("settings", TRANSFER_ERROR)
+        for v in vs
+    ]
     return parts.path + (f"?{urlencode(kept)}" if kept else "")
 
 
@@ -85,6 +96,9 @@ def world_menu(page: Page) -> Node:
                 a(href=f"{WORLDS_URL}/new", class_="usermenu-link", data_dialog="new-world")[
                     icon("plus", "sm"), span[t("world.new")]
                 ],
+                button(type="button", class_="usermenu-link", data_dialog="import-world")[
+                    icon("upload", "sm"), span[t("transfer.import")]
+                ],
                 a(
                     href=f"{WORLDS_URL}/{current[0]}/edit",
                     class_="usermenu-link",
@@ -99,6 +113,16 @@ def world_menu(page: Page) -> Node:
                 else None,
                 a(href=f"{WORLDS_URL}/{current[0]}/claude", class_="usermenu-link")[
                     icon("sparkles", "sm"), span[t("instructions.title")]
+                ]
+                if current
+                else None,
+                button(type="button", class_="usermenu-link", data_dialog="duplicate-world")[
+                    icon("copy", "sm"), span[t("transfer.duplicate")]
+                ]
+                if current
+                else None,
+                a(href=EXPORT_URL, class_="usermenu-link", download="")[
+                    icon("download", "sm"), span[t("transfer.export")]
                 ]
                 if current
                 else None,
@@ -166,6 +190,112 @@ def no_world_button(page: Page) -> Element:
     ]
 
 
+def _dialog_head(page: Page, ident: str, title: str) -> Element:
+    return div(class_="place-dialog-head")[
+        b(id=f"{ident}-h")[title],
+        button(
+            type="button",
+            class_="btn btn-sm btn-ghost",
+            data_close="1",
+            aria_label=page.t("images.close"),
+        )[icon("x", "sm")],
+    ]
+
+
+def _play_box(page: Page, ident: str) -> Element:
+    """Whether the play so far comes along: log, clock, fights, journal, session notes."""
+    t = page.t
+    return div(class_="field field-check")[
+        input_el(id=f"{ident}-play", type="checkbox", name="play", value="1"),
+        div[
+            label(for_=f"{ident}-play")[t("transfer.play")],
+            p(class_="field-hint")[t("transfer.play_hint")],
+        ],
+    ]
+
+
+def _actions(page: Page, icon_name: str, submit: str) -> Element:
+    t = page.t
+    return div(class_="form-actions")[
+        button(type="submit", class_="btn btn-primary")[icon(icon_name), span[submit]],
+        button(type="button", class_="btn btn-ghost", data_close="1")[t("common.cancel")],
+    ]
+
+
+def _import_dialog(page: Page, here: str, error: str | None) -> Element:
+    """A world package (from **Export world**, here or at another table) made into a new
+    world the table then plays in."""
+    t = page.t
+    return dialog(
+        id="import-world",
+        class_="place-dialog",
+        aria_labelledby="import-world-h",
+        data_open_now="1" if error else None,
+    )[
+        form(method="post", action=IMPORT_URL, enctype="multipart/form-data", class_="stack-form")[
+            input_el(type="hidden", name="next", value=here),
+            _dialog_head(page, "import-world", t("transfer.import")),
+            p(class_="field-hint")[t("transfer.import_hint")],
+            alert(t(error) if error else None),
+            div(class_="field")[
+                label(for_="f-import-file")[t("transfer.file")],
+                input_el(
+                    id="f-import-file",
+                    type="file",
+                    name="file",
+                    accept=".zip,application/zip",
+                    required=True,
+                ),
+            ],
+            div(class_="field")[
+                label(for_="f-import-name")[
+                    t("worlds.name"), " ", span(class_="opt")[t("common.optional")]
+                ],
+                input_el(
+                    id="f-import-name",
+                    type="text",
+                    name="name",
+                    autocomplete="off",
+                    placeholder=t("transfer.name_as_exported"),
+                ),
+            ],
+            _play_box(page, "f-import"),
+            _actions(page, "upload", t("transfer.import_submit")),
+        ]
+    ]
+
+
+def _duplicate_dialog(page: Page, here: str, name: str, error: str | None) -> Element:
+    """A copy of the table's world, for another group: a new name, the play optional."""
+    t = page.t
+    return dialog(
+        id="duplicate-world",
+        class_="place-dialog",
+        aria_labelledby="duplicate-world-h",
+        data_open_now="1" if error else None,
+    )[
+        form(method="post", action=DUPLICATE_URL, class_="stack-form")[
+            input_el(type="hidden", name="next", value=here),
+            _dialog_head(page, "duplicate-world", t("transfer.duplicate")),
+            p(class_="field-hint")[t("transfer.duplicate_hint", world=name)],
+            alert(t(error) if error else None),
+            div(class_="field")[
+                label(for_="f-duplicate-name")[t("worlds.name")],
+                input_el(
+                    id="f-duplicate-name",
+                    type="text",
+                    name="name",
+                    required=True,
+                    autocomplete="off",
+                    value=t("transfer.copy_name", world=name),
+                ),
+            ],
+            _play_box(page, "f-duplicate"),
+            _actions(page, "copy", t("transfer.duplicate_submit")),
+        ]
+    ]
+
+
 def world_dialogs(page: Page) -> Node:
     """The dialogs the menu opens: a new world, and the current world's settings (open
     from the start with ``?settings=1``, as after making a world)."""
@@ -175,6 +305,11 @@ def world_dialogs(page: Page) -> Node:
     here = _here(page)
     current = page.world
     open_settings = "settings=1" in urlsplit(page.path).query.split("&")
+    error = (parse_qs(urlsplit(page.path).query).get(TRANSFER_ERROR) or [""])[0]
+    if not error.startswith("transfer.error."):
+        error = ""
+    # A duplicate's one error is its missing name; every other one is an import's.
+    error_for = "duplicate" if error == "transfer.error.no_name" else "import"
     return [
         dialog(id="new-world", class_="place-dialog", aria_labelledby="new-world-h")[
             form(method="post", action=WORLDS_URL, class_="stack-form")[
@@ -215,6 +350,10 @@ def world_dialogs(page: Page) -> Node:
                 ],
             ]
         ],
+        _import_dialog(page, here, error if error_for == "import" else None),
+        _duplicate_dialog(page, here, current[1], error if error_for == "duplicate" else None)
+        if current
+        else None,
         dialog(
             id="world-settings",
             class_="place-dialog world-settings",
@@ -228,8 +367,12 @@ def world_dialogs(page: Page) -> Node:
 
 
 __all__ = [
+    "DUPLICATE_URL",
+    "EXPORT_URL",
+    "IMPORT_URL",
     "SELECT_URL",
     "SETTINGS_URL",
+    "TRANSFER_ERROR",
     "no_world_button",
     "world_banner",
     "world_dialogs",

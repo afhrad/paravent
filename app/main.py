@@ -71,6 +71,7 @@ from app.routes import title_images as title_image_routes
 from app.routes import tokens as token_routes
 from app.routes import translate as translate_routes
 from app.routes import world_instructions as instruction_routes
+from app.routes import world_transfer as world_transfer_routes
 from app.services.adventures import AdventureNotFound
 from app.services.backup import BackupError
 from app.services.characters import CharacterNotFound
@@ -326,6 +327,7 @@ def create_app() -> FastAPI:
 
     app.include_router(auth_routes.router)
     app.include_router(current_world_routes.router)
+    app.include_router(world_transfer_routes.router)
     app.include_router(home_routes.router)
     app.include_router(players_routes.router)
     app.include_router(character_routes.router)

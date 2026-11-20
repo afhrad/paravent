@@ -3025,7 +3025,8 @@ dialog.img-zoom img{ max-width:100%; max-height:100%; object-fit:contain; border
 }
 .world-menu-panel{ left:0; right:auto; width:260px; }
 .world-menu-panel .usermenu-first{ border-top:0; padding-top:4px; }
-.world-menu-world{ width:100%; border:0; background:none; font:inherit; text-align:left; cursor:pointer; }
+.world-menu-world, :where(.world-menu-panel) button.usermenu-link{ width:100%; border:0; background:none; font:inherit; color:inherit; text-align:left; cursor:pointer; }
+:where(.world-menu-panel) button.usermenu-link:hover{ background:var(--surface-2); }
 .world-menu-world[aria-current]{ font-weight:600; }
 .world-menu-world[aria-current] svg{ color:var(--accent); }
 .world-menu-label{ padding:2px 10px 4px; margin:0; }
@@ -3099,3 +3100,4 @@ input[type=checkbox]:not(.sr-only), input[type=radio]:not(.sr-only){ width:18px;
 @media (max-width: 640px){
   .world-notice{ left:12px; right:12px; transform:none; width:auto; flex-wrap:wrap; }
 }
+
