@@ -587,7 +587,8 @@ callbacks the page renders with, so the check and the page cannot disagree:
 | --- | --- |
 | A `{@…}` tag no book has | the three nearest names the world's books do have, one press replacing it on its line |
 | … in a book the world leaves out (`{@spell Fireball|XPHB}` in a 2014 world) | — declare the book, or name another |
-| `{@npc …}`, `{@encounter …}`, `{@treasure …}` naming nothing in the world | "Create" — made where the chapter is |
+| `{@npc …}`, `{@place …}`, `{@encounter …}`, `{@treasure …}` naming nothing in the world | up to three names the text can reach that are written nearly alike or hold it as whole words ("Hob" → "Hob Wade", "Modira's Dank" → "Modiras Dank"), a press replacing it with its label kept (`close_names`, 2026-11-20); else "Create" — made where the chapter is |
+| `[[Chapter]]` naming no chapter | the nearest chapter titles of the world, one press replacing it |
 | `{@character …}` naming nobody placed in the world | — place the character in the world |
 | An encounter alone on its line without creatures, an image that is not there; in older texts a `:::` block of an unknown kind or never closed | — |
 

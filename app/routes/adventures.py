@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import difflib
 import re
+from collections.abc import Sequence
 from dataclasses import replace
 from typing import Annotated
 from urllib.parse import urlencode
@@ -107,7 +108,7 @@ def _holdings(
     adventure also the world's ready-made ones it uses, and those it could."""
     adventure_id = here.adventure_id if here.chapter_id is None else None
     used = holdings_of(registry.holdings, adventure_id) if adventure_id else None
-    ready = (
+    ready: dict[str, list[tuple[str, str]]] | None = (
         {kind: registry.holdings.ready(adventure_id, kind) for kind in HOLDING_KINDS}
         if adventure_id
         else None
@@ -960,7 +961,50 @@ def _checks(registry: StoreRegistry, here: Scope, books: SourceSet) -> Checks:
         close = difflib.get_close_matches(name.lower(), list(names), n=3, cutoff=0.75)
         return [names[x] for x in close]
 
-    return Checks(empty_encounter=empty, nearest=nearest)
+    def seen(scope_: Scope | None) -> bool:
+        return scope_ is not None and scope.nearness(scope_, here) is not None
+
+    def near_object(kind: str, name: str) -> list[str]:
+        """Names written close to ``name`` among what the text can reach from here."""
+        world_id = here.world_id
+        pool: list[str]
+        if kind == "npc":
+            pool = [n.name for n in registry.npcs.list(world_id) if seen(n.scope)]
+        elif kind == "place":
+            pool = [x.name for x in registry.locations.list(world_id) if seen(x.scope)]
+        elif kind == "treasure":
+            pool = [x.name for x in registry.treasure.list(world_id) if seen(x.scope)]
+        elif kind == "encounter":
+            pool = [e.name for e in registry.encounters.list(world_id) if seen(e.scope)]
+        elif kind == "chapter":
+            pool = [
+                c.title
+                for a in registry.adventures.adventures(world_id)
+                for c in registry.adventures.chapters(a.id)
+            ]
+        else:
+            return []
+        return close_names(name, pool)
+
+    return Checks(empty_encounter=empty, nearest=nearest, near_object=near_object)
+
+
+def close_names(name: str, pool: Sequence[str], limit: int = 3) -> list[str]:
+    """The names of ``pool`` that ``name`` probably meant: spelled nearly alike (a typo, an
+    apostrophe) or one holding the other as whole words ("Beutel" for "Beutel des
+    Hauptmanns"), closest first; never ``name`` itself."""
+    wanted = name.strip().casefold()
+    names: dict[str, str] = {}
+    for shown in pool:
+        names.setdefault(shown.casefold(), shown)
+    names.pop(wanted, None)
+    found = difflib.get_close_matches(wanted, list(names), n=limit, cutoff=0.6)
+    # One holding the other as whole words: "Hob" for "Hob Wade", never "ob" in "Robb".
+    if len(wanted) >= 3:
+        word = re.compile(rf"\b{re.escape(wanted)}\b")
+        found += [k for k in names if word.search(k)]
+    found += [k for k in names if len(k) >= 4 and re.search(rf"\b{re.escape(k)}\b", wanted)]
+    return [names[k] for k in dict.fromkeys(found)][:limit]
 
 
 @router.post(f"{CHAPTERS_URL}/{{chapter_id}}/creatures")

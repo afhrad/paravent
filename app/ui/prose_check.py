@@ -66,6 +66,9 @@ class Checks:
     empty_encounter: Callable[[str], bool | None] = lambda _name: None
     # ``(tag, name)`` → tags the world's books do have, nearest first.
     nearest: Callable[[str, str], Sequence[str]] = lambda _tag, _name: ()
+    # ``(kind, name)`` → names of the world's own NPCs, places, treasure, encounters or
+    # chapters the text may have meant ("Modiras Dank" for "Modira's Dank"), nearest first.
+    near_object: Callable[[str, str], Sequence[str]] = lambda _kind, _name: ()
 
 
 def check(text: str, ctx: MarkdownContext, checks: Checks | None = None) -> list[Problem]:
@@ -107,7 +110,12 @@ def check(text: str, ctx: MarkdownContext, checks: Checks | None = None) -> list
             chapter, heading, _label = wikilink_parts(link.group(2))
             if chapter:
                 if ctx.link is None or ctx.link("chapter", chapter) is None:
-                    out.append(Problem(number, "library", link.group(0), chapter))
+                    written = link.group(0)
+                    near = tuple(
+                        written.replace(chapter, found, 1)
+                        for found in checks.near_object("chapter", chapter)[:3]
+                    )
+                    out.append(Problem(number, "library", written, chapter, instead=near))
                 continue
             if anchors is None:
                 anchors = {h.anchor for h in headings_of(text)}
@@ -156,7 +164,11 @@ def _tag(number: int, tag: tags.Tag, ctx: MarkdownContext, checks: Checks) -> Pr
         if ctx.link is not None and ctx.link(tag.name, name) is not None:
             return None
         create = (tag.name, name) if tag.name in _CREATABLE and name else None
-        return Problem(number, "library", _written(tag), name, create=create)
+        near = tuple(
+            _written(tags.Tag(tag.name, (found, *tag.parts[1:])))
+            for found in checks.near_object(tag.name, name)[:3]
+        )
+        return Problem(number, "library", _written(tag), name, instead=near, create=create)
     if tag.name not in tags.ENTITY_CATEGORY:
         return None
     return _reference(number, tag.name, "|".join(tag.parts), _written(tag), ctx, checks)
@@ -201,7 +213,10 @@ def _embed(
             if kind == "encounter" and checks.empty_encounter(argument):
                 return [Problem(number, "empty", line, argument)]
             return []
-        return [Problem(number, "library", line, argument, create=(kind, argument))]
+        near = tuple(
+            line.replace(argument, found, 1) for found in checks.near_object(kind, argument)[:3]
+        )
+        return [Problem(number, "library", line, argument, instead=near, create=(kind, argument))]
     payload = argument[: -len(" open")].rstrip() if argument.lower().endswith(" open") else argument
     tag = "creature" if kind == "statblock" else kind
     found = _reference(number, tag, payload, line, ctx, checks)
