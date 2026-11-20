@@ -134,6 +134,7 @@ async def change_quests(
     quest_id = str(form.get("quest", ""))
     user = gm.user
     name = user.display_name or user.username
+    undo = ""  # the trash entry of something deleted, for its Undo
     try:
         if op == "save":
             quests.save(world.id, _values(registry, world, form), quest_id, user.username, name)
@@ -170,12 +171,13 @@ async def change_quests(
         elif op == "reopen":
             quests.reopen(quest_id, world.id)
         elif op == "delete":
-            quests.delete(quest_id, world.id)
+            undo = quests.delete(quest_id, world.id) or ""
         else:
             raise QuestError("quests.error.unknown")
     except (QuestError, FactionError) as exc:
         return _page(page, registry, world, page.t.error(exc))
-    return redirect(quests_url(world.id))
+    # After a delete, the page offers Undo (app/ui/world_menu.py, undo_notice).
+    return redirect(quests_url(world.id) + (f"&undo={undo}" if undo else ""))
 
 
 __all__ = ["router"]

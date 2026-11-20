@@ -18,6 +18,7 @@ from app.models.gamestate import Quest, QuestItem, QuestStep
 from app.models.protocol import EntryKind, ProtocolEntry, Scope, Visibility
 from app.services.i18n import Translatable
 from app.services.protocol import ProtocolService
+from app.services.trash import Trash
 from app.store.gamestate import GameStateStore
 
 
@@ -201,9 +202,12 @@ class QuestService:
         opened.touch()
         return self._store.quests.upsert(opened)
 
-    def delete(self, quest_id: str, world_id: str) -> None:
-        self.get(quest_id, world_id)
+    def delete(self, quest_id: str, world_id: str) -> str | None:
+        """Delete a quest, kept in the trash to restore; the trash entry's id."""
+        quest = self.get(quest_id, world_id)
+        kept = Trash(self._store).keep("quest", quest)
         self._store.quests.delete(quest_id)
+        return kept
 
     def party(self, quest: Quest) -> list[str]:
         """Those on a quest: its characters still in the world, or the world's party."""

@@ -51,6 +51,8 @@ class Page:
     # a chapter, a world's list); the gamemaster's banner offers to switch to it when it
     # is not the table's (documentation/CURRENT-WORLD.md §5).
     page_world: tuple[str, str] | None = None
+    # How many worlds were deleted lately, for the world menu's way back to them.
+    deleted_worlds: int = 0
 
     def token_of(self, kind: str, world_id: str | None, ident: str) -> Token:
         """An NPC's, character's, place's, encounter's or treasure's token."""

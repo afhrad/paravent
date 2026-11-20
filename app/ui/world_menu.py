@@ -49,6 +49,8 @@ TRANSFERRED = "transferred"
 # delete carries the trash entry in ``undo``, and offers it back (:func:`undo_notice`).
 TRASH_RESTORE_URL = f"{LINKS_URL}/restore"
 UNDO = "undo"
+# The worlds deleted lately, to restore (app/routes/world_links.py).
+DELETED_WORLDS_URL = "/gm/world/deleted"
 
 
 def _here(page: Page) -> str:
@@ -161,6 +163,12 @@ def world_menu(page: Page) -> Node:
                     icon("trash-2", "sm"), span[t("world.delete")]
                 ]
                 if current
+                else None,
+                a(href=DELETED_WORLDS_URL, class_="usermenu-link")[
+                    icon("rotate-ccw", "sm"),
+                    span[t.plural("world.deleted_n", page.deleted_worlds, n=page.deleted_worlds)],
+                ]
+                if page.deleted_worlds
                 else None,
             ],
         ],

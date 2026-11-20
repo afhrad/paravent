@@ -22,6 +22,7 @@ from app.services.book_tables import Rows
 from app.services.i18n import Translatable
 from app.services.protocol import ProtocolService
 from app.services.text import strip_tags
+from app.services.trash import Trash
 from app.store.gamestate import GameStateStore
 
 # The most renown a character can hold with a faction, and the least.
@@ -125,13 +126,23 @@ class FactionService:
         changed.touch()
         return self._store.factions.upsert(changed)
 
-    def delete(self, faction_id: str, world_id: str) -> None:
-        self.get(faction_id, world_id)
+    def delete(self, faction_id: str, world_id: str) -> str | None:
+        """Delete a faction, kept in the trash to restore with the quests and contacts it
+        is taken from; the trash entry's id."""
+        faction = self.get(faction_id, world_id)
+        contacts = self._store.contacts.list(lambda c: c.faction_id == faction_id)
+        quests = self._store.quests.list(lambda q: q.faction_id == faction_id)
+        kept = Trash(self._store).keep(
+            "faction",
+            faction,
+            links={"quests": [q.id for q in quests], "contacts": [c.id for c in contacts]},
+        )
         self._store.factions.delete(faction_id)
-        for contact in self._store.contacts.list(lambda c: c.faction_id == faction_id):
+        for contact in contacts:
             self._store.contacts.upsert(contact.model_copy(update={"faction_id": None}))
-        for quest in self._store.quests.list(lambda q: q.faction_id == faction_id):
+        for quest in quests:
             self._store.quests.upsert(quest.model_copy(update={"faction_id": None}))
+        return kept
 
     def adjust(
         self, faction_id: str, world_id: str, pc: PlayerCharacter, delta: int, by: str, by_name: str

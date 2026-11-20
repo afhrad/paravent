@@ -64,14 +64,6 @@ Nothing agreed is waiting; see the proposals below.
   `tests/test_glossary.py`, `tests/test_reference.py`, `tests/test_factions.py` (its
   corpus checks of the guide's example factions), `tests/test_published.py`,
   `tests/test_calendar.py`, `app/services/calendar.py`, `documentation/TECHSTACK.md`. M
-- **Restore deleted worlds** — a world's folder goes to `library/.trash/` (erased after 30
-  days) but nothing lists it; a short "Deleted worlds" list in the world menu, each with
-  Restore. S
-- **Quests and factions into the trash** — deleting either is still final; a quest's steps
-  and rewards take a while to type again. S
-- **Try the trash on a copy of the real library** — delete a chapter and an adventure with
-  their contents, restore them, compare the files and front matter; the file moves are the
-  riskiest part of the trash work. A check, not a change. S
 - **Encounter notes at a glance** — the builder's notes now read folded under their
   editor ("How the notes read"), as on the treasure page; before, they stood under the
   title. Put back above the plan if the gamemaster wants tactics in view while planning.

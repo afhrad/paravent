@@ -23,6 +23,7 @@ from typing import Any
 from app.models.gamestate import ONE_EDITION_SOURCES, SourceSet, World
 from app.services.auth import AuthError
 from app.services.table import TableService
+from app.services.trash import Trash
 from app.store.gamestate import GameStateStore
 
 logger = logging.getLogger(__name__)
@@ -217,17 +218,20 @@ class WorldService:
         """How many characters live in a world."""
         return len(self._store.characters.of_world(world_id))
 
-    def delete(self, world_id: str) -> None:
-        """Delete a world; characters belong to none, so they are not touched.
+    def delete(self, world_id: str) -> str:
+        """Delete a world; characters belong to none, so they are not touched. Returns
+        the trash entry's id.
 
-        The world's folder, media included, is moved to ``library/.trash/``, and erased
-        after 30 days (app/services/trash.py).
+        The world's folder, media included, is moved to ``library/.trash/``, kept 30 days
+        to restore and then erased (app/services/trash.py); its NPCs, places and other
+        records stay in the library, so a restored world has them again.
         """
-        self.get(world_id)
+        world = self.get(world_id)
         adventures = self._store.adventures.list(lambda a: a.world_id == world_id)
         if adventures:
             raise AuthError("error.world_has_adventures", count=len(adventures))
-        self._store.worlds.delete(world_id)
+        kept = self._store.worlds.delete(world_id)
+        return Trash(self._store).keep_file("world", world, kept)
 
 
 __all__ = ["GROUPS", "Book", "BookCatalog", "WorldInput", "WorldNotFound", "WorldService"]

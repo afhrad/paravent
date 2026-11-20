@@ -41,6 +41,7 @@ from app.store.registry import StoreRegistry
 from app.ui import tags
 from app.ui.context import Page
 from app.ui.encounter_pages import encounter_url
+from app.ui.faction_pages import factions_url
 from app.ui.forms import hidden, notice
 from app.ui.home_pages import page_head
 from app.ui.icons import icon
@@ -56,8 +57,9 @@ from app.ui.library_links import (
     world_url,
 )
 from app.ui.prose_check import Problem
+from app.ui.quest_pages import quests_url
 from app.ui.session_pages import SESSIONS_URL, day_text
-from app.ui.world_menu import LINKS_URL
+from app.ui.world_menu import DELETED_WORLDS_URL, LINKS_URL
 
 router = APIRouter(tags=["world links"])
 
@@ -260,6 +262,40 @@ def unused_objects(page: Page, registry: StoreRegistry, world_id: str) -> list[U
         ),
     ]
     return [u for u in found if u.id not in used]
+
+
+def deleted_worlds_page(page: Page, trashed: Sequence[TrashedObject]) -> Element:
+    """The worlds deleted lately: each with when it went and **Restore**."""
+    t = page.t
+    return app_shell(
+        page,
+        t("world.deleted_title"),
+        div(class_="links-page")[
+            page_head(t("gm.eyebrow"), t("world.deleted_title"), t("world.deleted_lede")),
+            section(class_="links-text links-unused panel")[
+                ul(class_="links-unused-list")[
+                    [
+                        li(class_="links-unused-row")[
+                            span(class_="muted links-unused-kind")[t("md.embed.world")],
+                            span[x.name],
+                            span(class_="muted")[
+                                x.deleted_at.astimezone().strftime("%Y-%m-%d %H:%M")
+                            ],
+                            form(method="post", action=RESTORE_URL, class_="inline-form")[
+                                hidden("id", x.id),
+                                button(type="submit", class_="btn btn-sm")[
+                                    icon("rotate-ccw", "sm"), span[t("trash.restore")]
+                                ],
+                            ],
+                        ]
+                        for x in trashed
+                    ]
+                ]
+                if trashed
+                else p(class_="muted")[t("world.deleted_none")],
+            ],
+        ],
+    )
 
 
 def links_page(
@@ -594,6 +630,12 @@ TRASH_ERRORS = frozenset(
 )
 
 
+@router.get(DELETED_WORLDS_URL, response_class=HTMLResponse)
+async def deleted_worlds(_gm: GamemasterDep, page: PageDep, registry: RegistryDep) -> Response:
+    """The worlds deleted lately, each to restore."""
+    return html(deleted_worlds_page(page, registry.trash.worlds()))
+
+
 @router.post(RESTORE_URL)
 async def restore_trashed(
     _gm: GamemasterDep,
@@ -619,6 +661,15 @@ async def restore_trashed(
         "chapter": chapter_url,
         "adventure": adventure_url,
     }
+    if kind == "world":
+        if registry.table.world_id() is None:  # a table with no world plays in it again
+            registry.table.select(record.id)
+            registry.table.announce()
+        return redirect(world_url(record.id))
+    if kind == "quest":
+        return redirect(quests_url(str(getattr(record, "world_id", ""))))
+    if kind == "faction":
+        return redirect(factions_url(str(getattr(record, "world_id", ""))))
     return redirect(urls[kind](record.id))
 
 

@@ -259,7 +259,7 @@ async def test_the_settings_hold_the_pictures_and_the_list_is_the_menus(
     # The old list of worlds leads to the table's world; deleting one too.
     assert (await gm.get("/gm/worlds")).headers["location"] == "/gm/adventures"
     gone = await gm.post(f"/gm/worlds/{grey.id}/delete")
-    assert gone.headers["location"] == "/gm/adventures"
+    assert gone.headers["location"].startswith("/gm/adventures?undo=")
 
 
 async def test_a_player_sees_the_world_the_table_plays_in(registry: StoreRegistry) -> None:

@@ -1450,17 +1450,32 @@ class CheckCall(Record):
 
 
 class TrashedObject(Record):
-    """An NPC, place, treasure or encounter deleted, kept for a while to restore
-    (app/services/trash.py): the record as it was, its world and when it went. A chapter
+    """An NPC, place, treasure, encounter, quest or faction deleted, kept for a while to
+    restore (app/services/trash.py): the record as it was, its world and when it went. A
+    faction also keeps the quests and contacts it was unlinked from (``links``). A chapter
     or an adventure keeps only where its file went in ``library/.trash/`` and its parent
     (``record``: ``kept``, ``parent_id``); what was deleted with it names it in
     ``part_of`` and comes back with it."""
 
-    kind: Literal["npc", "place", "treasure", "encounter", "chapter", "adventure"]
+    kind: Literal[
+        "npc",
+        "place",
+        "treasure",
+        "encounter",
+        "quest",
+        "faction",
+        "chapter",
+        "adventure",
+        "world",
+    ]
     world_id: str
     name: str
     record: dict[str, Any]
     part_of: str | None = None
+    links: dict[str, list[str]] = Field(default_factory=dict)
+    # What a chapter's or adventure's delete moved up to its adventure or world:
+    # ``collection``, ``id``, ``from`` and ``to`` scopes; put back on a restore.
+    lifted: list[dict[str, Any]] = Field(default_factory=list)
     deleted_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 

@@ -121,6 +121,9 @@ def build_page(request: Request, identity: Identity | None = None) -> Page:
         )
         if identity is not None and identity.is_gamemaster
         else (),
+        deleted_worlds=len(registry.trash.worlds())
+        if identity is not None and identity.is_gamemaster
+        else 0,
         reader=registry.player_reader(identity, as_player=as_player)
         if identity is not None
         else None,

@@ -463,7 +463,7 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
         record = trashed.record
         if trashed.kind == "chapter":
             adventure_id = record.get("parent_id")
-        elif trashed.kind == "encounter":
+        elif trashed.kind in ("encounter", "quest"):
             adventure_id = record.get("adventure_id")
         elif trashed.kind == "adventure":
             return None  # a whole draft comes back only by the gamemaster's hand

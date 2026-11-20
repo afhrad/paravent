@@ -70,6 +70,7 @@ async def change_factions(
     form = await request.form()
     factions = registry.factions
     faction_id = str(form.get("faction", ""))
+    undo = ""  # the trash entry of something deleted, for its Undo
     try:
         if op == "create":
             factions.create(world.id, str(form.get("name", "")))
@@ -101,7 +102,7 @@ async def change_factions(
                 faction_id, world.id, str(form.get("name", "")), str(form.get("note", ""))
             )
         elif op == "delete":
-            factions.delete(faction_id, world.id)
+            undo = factions.delete(faction_id, world.id) or ""
         elif op == "renown":
             pc = registry.gamestate.characters.find(str(form.get("character", "")))
             delta_text = str(form.get("delta", "0"))
@@ -116,7 +117,8 @@ async def change_factions(
             raise FactionError("factions.error.unknown")
     except FactionError as exc:
         return _page(page, registry, world, page.t.error(exc))
-    return redirect(factions_url(world.id))
+    # After a delete, the page offers Undo (app/ui/world_menu.py, undo_notice).
+    return redirect(factions_url(world.id) + (f"&undo={undo}" if undo else ""))
 
 
 __all__ = ["router"]

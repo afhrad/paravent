@@ -15,7 +15,7 @@ import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from app.models.gamestate import (
     Adventure,
@@ -327,11 +327,14 @@ class AdventureService:
         """
         adventure = self.get(adventure_id)
         kept = self._store.adventures.delete(adventure_id)
-        part_of = Trash(self._store).keep_file("adventure", adventure, kept) if keep else None
+        trash = Trash(self._store)
         if contents:
+            part_of = trash.keep_file("adventure", adventure, kept) if keep else None
             self._remove(adventure_id=adventure_id, part_of=part_of, keep=keep)
         else:
-            self._promote(adventure_id=adventure_id)
+            moved = self._promote(adventure_id=adventure_id)
+            if keep:  # a restore puts back what moved up, where it still is
+                trash.keep_file("adventure", adventure, kept, lifted=moved)
         for note in self._store.session_notes.list(lambda n: n.adventure_id == adventure_id):
             self._store.session_notes.update(note.id, adventure_id=None)
 
@@ -378,7 +381,12 @@ class AdventureService:
                 trash.keep("encounter", encounter, part_of)
             self._store.encounters.delete(encounter.id)
 
-    def _promote(self, *, adventure_id: str | None = None, chapter_id: str | None = None) -> None:
+    def _promote(
+        self, *, adventure_id: str | None = None, chapter_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        """Move what is placed in an adventure up to its world, or in a chapter up to its
+        adventure; what moved, from where to where, for a restore to put it back."""
+
         def lift(scope: Scope) -> Scope | None:
             if chapter_id is not None and scope.chapter_id == chapter_id:
                 return scope.model_copy(update={"chapter_id": None})
@@ -386,25 +394,37 @@ class AdventureService:
                 return Scope(world_id=scope.world_id)
             return None
 
-        for npc in self._store.npcs.list():
-            lifted = lift(npc.scope)
-            if lifted is not None:
-                self._store.npcs.update(npc.id, scope=lifted)
-        for treasure in self._store.treasures.list():
-            lifted = lift(treasure.scope)
-            if lifted is not None:
-                self._store.treasures.update(treasure.id, scope=lifted)
-        for location in self._store.locations.list():
-            lifted = lift(location.scope)
-            if lifted is not None:
-                self._store.locations.update(location.id, scope=lifted)
+        moved: list[dict[str, Any]] = []
+
+        def note(collection: str, ident: str, before: Scope, after: Scope) -> None:
+            moved.append(
+                {
+                    "collection": collection,
+                    "id": ident,
+                    "from": before.model_dump(mode="json"),
+                    "to": after.model_dump(mode="json"),
+                }
+            )
+
+        for name, collection in (
+            ("npcs", self._store.npcs),
+            ("treasures", self._store.treasures),
+            ("locations", self._store.locations),
+        ):
+            for record in collection.list():
+                lifted = lift(record.scope)
+                if lifted is not None:
+                    collection.update(record.id, scope=lifted)
+                    note(name, record.id, record.scope, lifted)
         for encounter in self._store.encounters.list():
             current = encounter.scope
             lifted = lift(current) if current is not None else None
-            if lifted is not None:
+            if current is not None and lifted is not None:
                 self._store.encounters.update(
                     encounter.id, adventure_id=lifted.adventure_id, chapter_id=lifted.chapter_id
                 )
+                note("encounters", encounter.id, current, lifted)
+        return moved
 
     # -- chapters --------------------------------------------------------------------
 
@@ -475,11 +495,12 @@ class AdventureService:
         moves up to the adventure, or with ``contents`` is deleted with it."""
         chapter = self.get_chapter(chapter_id)
         kept = self._store.chapters.delete(chapter_id)
-        part_of = Trash(self._store).keep_file("chapter", chapter, kept)
+        trash = Trash(self._store)
         if contents:
+            part_of = trash.keep_file("chapter", chapter, kept)
             self._remove(chapter_id=chapter_id, part_of=part_of)
         else:
-            self._promote(chapter_id=chapter_id)
+            trash.keep_file("chapter", chapter, kept, lifted=self._promote(chapter_id=chapter_id))
         return chapter
 
     # -- references ------------------------------------------------------------------

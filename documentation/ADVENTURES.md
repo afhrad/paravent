@@ -627,7 +627,17 @@ world, so **Restore** moves it back and reads it again, together with the NPCs, 
 treasure and encounters deleted with it (`part_of`); a chapter whose adventure is gone stays
 put. A revision's copy, written back onto its original, is not kept. **The create page offers
 it back**: a dashed link to a name deleted lately says when it went and offers **Restore**
-first, returning to the text, and **Create** then steps back to a plain button. **Undo** right
+first, returning to the text, and **Create** then steps back to a plain button.
+**Quests and factions** go to the trash too (2026-11-20), with Undo; a faction keeps the
+quests and contacts it is taken from (`links`) and points them at itself again when it
+comes back. A chapter or adventure deleted *without* its contents remembers what moved up
+a level (`lifted`), and a restore puts each back where it still is where the delete put
+it. **Deleted worlds** (an empty world's folder, its records staying in the library) are
+listed under *Deleted worlds* in the world menu while any are kept (`/gm/world/deleted`),
+offered back by Undo right after the delete, and restored as they were; a table left
+without a world plays in the one restored. Tried on a copy of the real library
+(2026-11-20): a chapter with its object, and an adventure with 6 files and 13 objects,
+deleted both ways and restored, came back byte for byte under the same names. **Undo** right
 after a delete: the page a delete lands on carries the trash entry (`undo=<id>`), and the
 gamemaster's shell shows "It waits under Check links → Recently deleted for 30 days" with
 **Undo**, which restores it and opens it again (`undo_notice`); the remembered page drops

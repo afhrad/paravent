@@ -1362,12 +1362,13 @@ async def delete_world(
     world = worlds.get(world_id)
     before = registry.table.world_id()
     try:
-        worlds.delete(world_id)
+        kept = worlds.delete(world_id)
     except AuthError as exc:
         return html(world_delete_page(page, world, error=page.t.error(exc)), status_code=409)
     if registry.table.world_id() != before:
         registry.table.announce()  # open pages follow the table into the next world
-    return redirect("/gm/adventures")  # the table plays in the next world, if any
+    # The table plays in the next world, if any; the page offers Undo.
+    return redirect(f"/gm/adventures?undo={kept}")
 
 
 __all__ = ["router"]

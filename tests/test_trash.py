@@ -12,7 +12,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.config import Settings
 from app.main import create_app
-from app.models.gamestate import Role, Scope
+from app.models.gamestate import Quest, Role, Scope
 from app.services.trash import KEEP_DAYS, TrashError
 from app.services.worlds import WorldInput
 from app.store.registry import StoreRegistry
@@ -202,3 +202,69 @@ def test_the_trash_folder_is_erased_after_its_days(registry: StoreRegistry) -> N
     later = datetime.now(UTC) + timedelta(days=KEEP_DAYS + 1)
     assert registry.trash.clear_old(later) == 1
     assert not kept.exists() and registry.trash.of_world(world) == []
+
+
+def test_quests_and_factions_come_back_with_their_links(registry: StoreRegistry) -> None:
+    world, _bell, _fog = _world(registry)
+    wardens = registry.factions.create(world, "Reed Wardens")
+    quest = registry.gamestate.quests.create(
+        Quest(world_id=world, name="Ring the bell", faction_id=wardens.id)
+    )
+    kept = registry.factions.delete(wardens.id, world)
+    assert kept and registry.gamestate.quests.get(quest.id).faction_id is None
+    registry.trash.restore(kept)
+    assert registry.gamestate.factions.get(wardens.id).name == "Reed Wardens"
+    assert registry.gamestate.quests.get(quest.id).faction_id == wardens.id  # linked again
+    gone = registry.quests.delete(quest.id, world)
+    assert gone and registry.gamestate.quests.find(quest.id) is None
+    kind, back = registry.trash.restore(gone)
+    assert kind == "quest" and registry.gamestate.quests.get(quest.id).name == "Ring the bell"
+
+
+async def test_deleting_a_quest_offers_undo(gm: AsyncClient, registry: StoreRegistry) -> None:
+    world, _bell, _fog = _world(registry)
+    quest = registry.gamestate.quests.create(Quest(world_id=world, name="Ring the bell"))
+    gone = await gm.post(f"/gm/quests/{world}/delete", data={"quest": quest.id})
+    kept = registry.trash.entry_of("quest", quest.id)
+    assert kept and f"undo={kept}" in gone.headers["location"]
+    back = await gm.post("/gm/world/links/restore", data={"id": kept})
+    assert back.headers["location"] == f"/gm/quests?world={world}"
+    assert registry.gamestate.quests.find(quest.id) is not None
+
+
+async def test_a_deleted_world_comes_back(gm: AsyncClient, registry: StoreRegistry) -> None:
+    moor = registry.worlds.create(WorldInput(name="Grey Moor"))
+    registry.table.select(moor.id)
+    hob = registry.npcs.create("Hob", f"w:{moor.id}", moor.id)
+    gone = await gm.post(f"/gm/worlds/{moor.id}/delete")
+    kept = registry.trash.worlds()[0]
+    assert gone.headers["location"] == f"/gm/adventures?undo={kept.id}"
+    assert (kept.kind, kept.name) == ("world", "Grey Moor")
+    assert registry.gamestate.worlds.find(moor.id) is None
+    # Listed under Deleted worlds, reached from the world menu.
+    menu = (await gm.get("/gm/adventures")).text
+    assert "/gm/world/deleted" in menu and "Deleted worlds: 1" in menu
+    listed = (await gm.get("/gm/world/deleted")).text
+    assert "Grey Moor" in listed and f'value="{kept.id}"' in listed
+    back = await gm.post("/gm/world/links/restore", data={"id": kept.id})
+    assert back.headers["location"] == f"/gm/worlds/{moor.id}"
+    assert registry.gamestate.worlds.get(moor.id).name == "Grey Moor"
+    assert registry.gamestate.npcs.get(hob.id).scope.world_id == moor.id  # its records too
+    assert registry.table.world_id() == moor.id  # the table had no world: it plays here
+    assert registry.trash.worlds() == []
+
+
+def test_what_moved_up_goes_back_with_its_adventure(registry: StoreRegistry) -> None:
+    world, bell, fog = _world(registry)
+    hob = registry.npcs.create("Hob", f"c:{fog}", world)
+    tam = registry.npcs.create("Tam", f"a:{bell}", world)
+    registry.adventures.delete(bell)  # its contents move up to the world
+    assert registry.gamestate.npcs.get(hob.id).scope == Scope(world_id=world)
+    # Tam is moved on meanwhile: it stays where it was put.
+    registry.gamestate.npcs.update(tam.id, scope=Scope(world_id=world, adventure_id="x"))
+    kept = next(t for t in registry.trash.of_world(world) if t.kind == "adventure")
+    registry.trash.restore(kept.id)
+    assert registry.gamestate.npcs.get(hob.id).scope == Scope(
+        world_id=world, adventure_id=bell, chapter_id=fog
+    )
+    assert registry.gamestate.npcs.get(tam.id).scope.adventure_id == "x"

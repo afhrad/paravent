@@ -756,7 +756,8 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         dialog from the page head, its labels like every other form's. **A new creature**
         in a dialog too: in the table's world, blank or begun from a creature picked in the
         world's books (the encounter builder's picker, `pick=new-creature`), at that
-        creature's own CR unless another is chosen
+        creature's own CR unless another is chosen. **An NPC's statblock** picked the
+        same way on its form (the picker fills the field, `SearchTarget.fill`)
   - [x] **Title images** (2026-11-18, TOKENS.md §6, `app/services/title_images.py`): tokens
         of the table's own only for NPCs, creatures, characters and treasure; places,
         encounters, quests and factions take a title image, dropped or chosen on their page,

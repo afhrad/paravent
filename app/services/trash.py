@@ -42,11 +42,14 @@ COLLECTIONS: dict[str, str] = {
     "place": "locations",
     "treasure": "treasures",
     "encounter": "encounters",
+    "quest": "quests",
+    "faction": "factions",
 }
 # The kinds kept as files: their collection, and the field naming their parent.
 FILES: dict[str, tuple[str, str]] = {
     "chapter": ("chapters", "adventure_id"),
     "adventure": ("adventures", "world_id"),
+    "world": ("worlds", ""),  # a world has no parent: it goes back into the worlds' folder
 }
 
 
@@ -65,9 +68,16 @@ class Trash:
         assert isinstance(collection, Collection)
         return collection
 
-    def keep(self, kind: str, record: Any, part_of: str | None = None) -> str | None:
+    def keep(
+        self,
+        kind: str,
+        record: Any,
+        part_of: str | None = None,
+        links: dict[str, list[str]] | None = None,
+    ) -> str | None:
         """Keep ``record`` (about to be deleted) to restore, ``part_of`` the chapter or
-        adventure deleted with it; clears what is too old. The entry's id."""
+        adventure deleted with it, ``links`` what pointed at it (a faction's quests and
+        contacts); clears what is too old. The entry's id."""
         scope = getattr(record, "scope", None)
         world_id = scope.world_id if isinstance(scope, Scope) else getattr(record, "world_id", None)
         if not world_id:
@@ -80,23 +90,38 @@ class Trash:
                 name=str(getattr(record, "name", "")),
                 record=record.model_dump(mode="json"),
                 part_of=part_of,
+                links=links or {},
             )
         )
         return kept.id
 
-    def keep_file(self, kind: str, record: Any, kept: Path) -> str:
-        """Keep a chapter or adventure :meth:`ProseStore.delete` moved to ``kept``."""
+    def keep_file(
+        self, kind: str, record: Any, kept: Path, lifted: list[dict[str, Any]] | None = None
+    ) -> str:
+        """Keep a chapter, adventure or world :meth:`ProseStore.delete` moved to ``kept``;
+        ``lifted`` what its delete moved up a level, to put back on a restore."""
         self.clear_old()
         parent = FILES[kind][1]
         entry = self._store.trash.create(
             TrashedObject(
                 kind=kind,
-                world_id=record.world_id,
+                # A world is filed under its own id: it is listed apart (:meth:`worlds`).
+                world_id=record.id if kind == "world" else record.world_id,
                 name=str(getattr(record, "title", None) or getattr(record, "name", "")),
-                record={"id": record.id, "kept": kept.name, "parent_id": getattr(record, parent)},
+                record={
+                    "id": record.id,
+                    "kept": kept.name,
+                    "parent_id": getattr(record, parent) if parent else "",
+                },
+                lifted=lifted or [],
             )
         )
         return entry.id
+
+    def worlds(self) -> list[TrashedObject]:
+        """The worlds deleted lately, newest first."""
+        found = self._store.trash.list(lambda t: t.kind == "world")
+        return sorted(found, key=lambda t: t.deleted_at, reverse=True)
 
     def entry_of(self, kind: str, record_id: str) -> str | None:
         """The trash entry keeping the ``kind`` record ``record_id``, newest; for the
@@ -116,7 +141,7 @@ class Trash:
         trashed = self._store.trash.find(trashed_id)
         if trashed is None:
             raise TrashError("trash.error.gone")
-        if self._store.worlds.find(trashed.world_id) is None:
+        if trashed.kind != "world" and self._store.worlds.find(trashed.world_id) is None:
             raise TrashError("trash.error.world")
         if trashed.kind in FILES:
             return self._put_back(trashed)
@@ -142,8 +167,22 @@ class Trash:
         except ValidationError as exc:
             raise TrashError("trash.error.unreadable") from exc
         collection.create(record)
+        self._relink(trashed)
         self._store.trash.delete(trashed_id)
         return trashed.kind, record
+
+    def _relink(self, trashed: TrashedObject) -> None:
+        """A faction back: the quests and contacts it was unlinked from point at it again,
+        those still there and still of no faction."""
+        if trashed.kind != "faction":
+            return
+        faction_id = str(trashed.record.get("id", ""))
+        for name in ("quests", "contacts"):
+            collection = getattr(self._store, name)
+            for ident in trashed.links.get(name, []):
+                found = collection.find(ident)
+                if found is not None and found.faction_id is None:
+                    collection.update(ident, faction_id=faction_id)
 
     def _put_back(self, trashed: TrashedObject) -> tuple[str, Record]:
         """A chapter's file or an adventure's folder back where it was, and what was
@@ -152,20 +191,47 @@ class Trash:
         collection = getattr(self._store, name)
         parent_id = str(trashed.record.get("parent_id") or "")
         parents = self._store.adventures if trashed.kind == "chapter" else self._store.worlds
-        if parents.find(parent_id) is None:
+        if trashed.kind != "world" and parents.find(parent_id) is None:
             raise TrashError("trash.error.adventure")
         if collection.find(str(trashed.record.get("id", ""))) is not None:
             raise TrashError("trash.error.taken")
-        record = collection.put_back(str(trashed.record.get("kept", "")), parent_id)
+        record = collection.put_back(str(trashed.record.get("kept", "")), parent_id or None)
         if record is None:
             raise TrashError("trash.error.file")
         self._store.trash.delete(trashed.id)
+        self._lower(trashed.lifted)
         for part in self._store.trash.list(lambda t: t.part_of == trashed.id):
             try:
                 self.restore(part.id)
             except TrashError:
                 continue  # taken meanwhile: it stays in the trash, to restore by hand
         return trashed.kind, record
+
+    def _lower(self, lifted: list[dict[str, Any]]) -> None:
+        """Put what a delete moved up a level back where it was, where it still is where
+        the delete put it (one moved since stays where it was moved)."""
+        for moved in lifted:
+            collection = getattr(self._store, str(moved.get("collection", "")), None)
+            if not isinstance(collection, Collection):
+                continue
+            record = collection.find(str(moved.get("id", "")))
+            if record is None:
+                continue
+            try:
+                before, after = (
+                    Scope.model_validate(moved["from"]),
+                    Scope.model_validate(moved["to"]),
+                )
+            except (KeyError, ValidationError):
+                continue
+            if record.scope != after:
+                continue
+            if moved.get("collection") == "encounters":
+                collection.update(
+                    record.id, adventure_id=before.adventure_id, chapter_id=before.chapter_id
+                )
+            else:
+                collection.update(record.id, scope=before)
 
     def _still_there(self, scope: Scope) -> Scope:
         """``scope``, or the widest part of it that still exists."""
