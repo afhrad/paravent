@@ -267,7 +267,7 @@ async def use_generator(
         notes = f"{notes}\n\n" if notes else ""
         notes += "\n".join(lines) + "\n"
     try:
-        registry.npcs.update(
+        saved = registry.npcs.update(
             npc_id,
             name=rolled.name if "name" in ticked and rolled.name else npc.name,
             scope_value=scope.encode(npc.scope),
@@ -275,6 +275,8 @@ async def use_generator(
             statblock=statblock or npc.statblock or "",
             notes=notes,
         )
+        if saved.statblock and saved.statblock != npc.statblock:
+            registry.copy_statblock_picture(npc_id)  # a copy of its creature's picture
         if "name" in ticked and rolled.name and rolled.parts:
             given = GivenName(text=rolled.name, parts=rolled.parts)
             registry.gamestate.npcs.update(

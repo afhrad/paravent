@@ -290,6 +290,7 @@ async def create_creature(
     try:
         wording = registry.creature_wording(world_id, page.t.code)
         design = registry.creatures.create(name, world_id, cr, based_on, wording)
+        registry.copy_base_picture(design)  # its own copy of the creature's picture
     except CreatureError as exc:
         draft = {"name": name, "world": world, "cr": cr, "based_on": based_on}
         return _list_page(page, registry, error=page.t.error(exc), draft=draft, status_code=422)

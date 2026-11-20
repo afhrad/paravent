@@ -28,6 +28,7 @@ from app.models.gamestate import (
     CheckCall,
     Combat,
     Combatant,
+    CreatureDesign,
     Faction,
     FactionRank,
     World,
@@ -68,7 +69,7 @@ from app.services.creature_builder import (
     Wording,
 )
 from app.services.creature_pictures import CreaturePictures, design_ref, slug
-from app.services.creature_sight import Sight, fluff_image, sight
+from app.services.creature_sight import Sight, fluff_image, image_file, sight
 from app.services.dice import Advantage, Dice
 from app.services.difficulty import DifficultyRules
 from app.services.downtime import DowntimeService
@@ -367,11 +368,74 @@ class StoreRegistry:
             )
         if combatant.ref:
             name, _, source = combatant.ref.partition("|")
-            found = self.encounters.monster(name, source)
-            extra = (getattr(found.entry, "model_extra", None) or {}) if found else {}
-            token = extra.get("token")
-            return self.monster_token(name, source, world_id, token)
+            return self.monster_token(name, source, world_id, self._token_field(name, source))
         return Token("creature")
+
+    def _token_field(self, name: str, source: str) -> object:
+        """A creature record's own ``token`` field (it may name another creature's)."""
+        found = self.encounters.monster(name, source)
+        extra = (getattr(found.entry, "model_extra", None) or {}) if found else {}
+        return extra.get("token")
+
+    def record_token(self, kind: str, world_id: str | None, ident: str) -> Token:
+        """An element's token as pages draw it (``Page.tokens``); a builder creature's
+        through :meth:`design_token`."""
+        if kind == "creature":
+            design = self.gamestate.creatures.find(ident)
+            if design is not None:
+                return self.design_token(design)
+        return self.tokens.of_record(kind, world_id, ident)
+
+    def design_token(self, design: CreatureDesign) -> Token:
+        """A builder creature's token: made from its own picture, else the creature disc."""
+        return self.tokens.own(design.world_id, "creature", design.id) or Token("creature")
+
+    def copy_base_picture(self, design: CreatureDesign) -> bool:
+        """Give a design begun from a book creature (``based_on``) a copy of that
+        creature's picture as its own, and so its token: the table's picture of it, else
+        the books' picture, else its 5eTools token. A copy, so the design goes its own way
+        from then on. False when there is nothing to copy or it has a picture already."""
+        if not design.based_on or self.tokens.picture("creature", design.id) is not None:
+            return False
+        found = self._creature_picture(design.world_id, design.based_on)
+        if found is None:
+            return False
+        try:
+            return self.set_own_picture("creature", design.id, found.name, found.read_bytes())
+        except (OSError, media.MediaError, FileNotFoundError):
+            return False
+
+    def copy_statblock_picture(self, npc_id: str) -> bool:
+        """Give an NPC without a portrait a copy of its statblock creature's picture as
+        its portrait, and so its token, as :meth:`copy_base_picture` does for a builder
+        creature. False when it has a portrait, no statblock or nothing to copy."""
+        npc = self.gamestate.npcs.find(npc_id)
+        if npc is None or npc.portrait or not npc.statblock:
+            return False
+        found = self._creature_picture(npc.scope.world_id, npc.statblock)
+        if found is None:
+            return False
+        try:
+            self.npcs.upload_portrait(npc_id, found.name, found.read_bytes())
+        except (OSError, media.MediaError):
+            return False
+        return True
+
+    def _creature_picture(self, world_id: str | None, ref: str) -> Path | None:
+        """The best picture of a book creature (``Name|SOURCE``) to copy: the table's
+        picture of it, else the books' picture, else its 5eTools token; None without any."""
+        name, _, source = ref.partition("|")
+        found = self.creature_pictures.find(world_id, ref)
+        images = self.settings.images_root
+        if found is None and images is not None:
+            fluff = self.fluff.get("monster", name, source)
+            path = fluff_image(fluff, images)
+            found = image_file(images, path) if path else None
+        if found is None:
+            found = self.tokens.path_of(
+                self.tokens.of_entry("monster", name, source, self._token_field(name, source))
+            )
+        return found
 
     def monster_token(
         self, name: str, source: str, world_id: str | None = None, token: object = None
@@ -381,9 +445,7 @@ class StoreRegistry:
         if source == HOMEBREW_SOURCE:
             design = self.creatures.named(name, world_id) or self.creatures.named(name)
             if design is not None:
-                own = self.tokens.own(design.world_id, "creature", design.id)
-                if own is not None:
-                    return own
+                return self.design_token(design)
         else:
             # The table's own picture of a book creature, set in the tracker, is its token.
             ref = f"{name}|{source}"

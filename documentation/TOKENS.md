@@ -76,6 +76,17 @@ point at the centre, cut round to the opening, the ring on top — and saved so,
   Paravent shows them — the head of its page (large), its card in a chapter, its edit
   form. The full picture is what the token is made from, and what players see of a
   creature in a fight's Details.
+- **A builder creature begun from a book creature** (2026-11-20, the user's request):
+  it gets a **copy** of that creature's picture as its own picture, and so its token —
+  the table's picture of that creature, else the books' picture, else its 5eTools token
+  (`StoreRegistry.copy_base_picture`, from the builder's new-creature dialog and Claude's
+  `create_creature`, unless a picture is given). A copy, so the design goes its own way:
+  a later picture of the original leaves it alone, and it can be replaced like any
+  picture. A blank design keeps the creature disc. **An NPC** the same way
+  (`copy_statblock_picture`): one without a portrait that gets a statblock — made with
+  one in the new-NPC dialog or by Claude's `create_npc`, given one by the NPC generator
+  or on its form — gets a copy of that creature's picture as its portrait. Only when the
+  statblock changes, so a portrait cleared on purpose stays cleared.
 
 ## 3. The table's own tokens
 

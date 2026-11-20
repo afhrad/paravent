@@ -169,6 +169,52 @@ class TestFinding:
         registry.npcs.clear_portrait(npc.id)
         assert registry.tokens.of_record("npc", world.id, npc.id) == Token("npc")
 
+    def test_a_builder_creature_begun_from_a_book_one_gets_a_copy_of_its_picture(
+        self, registry: StoreRegistry
+    ) -> None:
+        world = registry.gamestate.worlds.create(World(name="Moor", source_set=SourceSet()))
+        design = registry.creatures.create("", world.id, "", "Goblin|MM")
+        assert registry.record_token("creature", world.id, design.id) == Token("creature")
+        # The 5eTools token, copied: the design's own picture now, its token made from it.
+        assert registry.copy_base_picture(design)
+        picture = registry.tokens.picture("creature", design.id)
+        assert picture is not None and picture.is_relative_to(registry.settings.library_dir)
+        own = registry.record_token("creature", world.id, design.id)
+        assert own.src is not None and own.src.startswith(f"/tokens/{world.id}/creature/")
+        assert registry.monster_token(design.name, "Homebrew", world.id).src == own.src
+        # Disconnected: a later picture of the book creature leaves the design alone, and a
+        # design with a picture of its own is not copied over.
+        before = picture.read_bytes()
+        registry.creature_pictures.set(world.id, "Goblin|MM", "goblin.png", _picture())
+        assert not registry.copy_base_picture(design)
+        assert registry.tokens.picture("creature", design.id).read_bytes() == before
+        # The table's own picture of the book creature is what a new copy takes first.
+        second = registry.creatures.create("Goblin Scout", world.id, "", "Goblin|MM")
+        assert registry.copy_base_picture(second)
+        copied = registry.tokens.picture("creature", second.id)
+        assert copied is not None and copied.read_bytes() == _picture()
+        # A blank design has nothing to copy.
+        blank = registry.creatures.create("Mire Hound", world.id, "1")
+        assert not registry.copy_base_picture(blank)
+        assert registry.record_token("creature", world.id, blank.id) == Token("creature")
+
+    def test_an_npc_with_a_statblock_gets_a_copy_of_its_picture(
+        self, registry: StoreRegistry
+    ) -> None:
+        world = registry.gamestate.worlds.create(World(name="Moor", source_set=SourceSet()))
+        npc = registry.npcs.create("Snik", f"w:{world.id}", world.id)
+        assert not registry.copy_statblock_picture(npc.id)  # no statblock yet
+        registry.gamestate.npcs.update(npc.id, statblock="Goblin|MM")
+        assert registry.copy_statblock_picture(npc.id)
+        made = registry.gamestate.npcs.get(npc.id)
+        assert made.portrait is not None
+        token = registry.record_token("npc", world.id, npc.id)
+        assert token.src is not None and token.src.startswith(f"/tokens/{world.id}/npc/")
+        # A copy: a later picture of the goblin leaves the NPC's portrait alone.
+        registry.creature_pictures.set(world.id, "Goblin|MM", "goblin.png", _picture())
+        assert not registry.copy_statblock_picture(npc.id)
+        assert registry.gamestate.npcs.get(npc.id).portrait == made.portrait
+
     def test_the_table_s_picture_of_a_book_creature(self, registry: StoreRegistry) -> None:
         registry.creature_pictures.set(None, "Goblin|MM", "goblin.png", _picture())
         made = registry.monster_token("Goblin", "MM")
@@ -190,6 +236,21 @@ async def _login(ac: AsyncClient, name: str) -> None:
 
 
 class TestThePages:
+    async def test_an_npc_given_a_statblock_on_its_form_gets_the_picture(
+        self, client: tuple[AsyncClient, StoreRegistry]
+    ) -> None:
+        ac, registry = client
+        await _login(ac, "dm")
+        world = registry.gamestate.worlds.create(World(name="Moor", source_set=SourceSet()))
+        npc = registry.npcs.create("Snik", f"w:{world.id}", world.id)
+        form = {"name": "Snik", "place": f"w:{world.id}", "statblock": "Goblin|MM", "notes": ""}
+        await ac.post(f"/gm/npcs/{npc.id}/edit", data=form)
+        assert registry.gamestate.npcs.get(npc.id).portrait is not None
+        # A portrait cleared on purpose stays cleared when the NPC is saved again.
+        registry.npcs.clear_portrait(npc.id)
+        await ac.post(f"/gm/npcs/{npc.id}/edit", data={**form, "notes": "Sly."})
+        assert registry.gamestate.npcs.get(npc.id).portrait is None
+
     async def test_upload_show_and_remove(self, client: tuple[AsyncClient, StoreRegistry]) -> None:
         ac, registry = client
         await _login(ac, "dm")

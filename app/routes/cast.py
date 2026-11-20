@@ -189,6 +189,7 @@ async def create_npc(
             if creature.entry is not None:
                 ref = f"{creature.entry.name}|{creature.entry.source}"
                 npc = registry.gamestate.npcs.update(npc.id, statblock=ref)
+                registry.copy_statblock_picture(npc.id)  # its own copy of the picture
         if notes.strip():
             npc = npcs.update(
                 npc.id,
@@ -328,9 +329,11 @@ async def save_npc(
     culture: Annotated[str, Form()] = "",
 ) -> Response:
     """Save an NPC; notes changed elsewhere since the form opened are shown beside the
-    typed ones instead of being overwritten."""
+    typed ones instead of being overwritten. A statblock newly given to an NPC without a
+    portrait brings a copy of its creature's picture."""
+    before = registry.npcs.get(npc_id)
     try:
-        registry.npcs.update(
+        saved = registry.npcs.update(
             npc_id,
             name=name,
             scope_value=place,
@@ -362,6 +365,8 @@ async def save_npc(
             error=page.t.error(exc),
             status_code=409 if conflict is not None else 422,
         )
+    if saved.statblock and saved.statblock != before.statblock:
+        registry.copy_statblock_picture(npc_id)
     return redirect(f"{npc_url(npc_id)}?saved=1")
 
 

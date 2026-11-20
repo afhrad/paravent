@@ -448,6 +448,7 @@ def register_creatures(server: MCPServer, stores: Callable[[], StoreRegistry]) -
             design = registry.creatures.create(name, world.id, cr.strip(), base, wording)
         design = design.model_copy(update={"drafted_by": found[0].id})
         saved = apply(design, changes, fit, ready_made)
+        registry.copy_base_picture(saved)  # a copy of its base's picture, unless given one
         keep_picture(None, saved, image_url, picture)
         return answer(saved)
 

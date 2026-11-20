@@ -578,6 +578,7 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
             if name_parts:
                 given = GivenName(text=name, parts=name_parts)
                 npc = registry.gamestate.npcs.update(npc.id, given_name=given)
+        registry.copy_statblock_picture(npc.id)  # a copy of its statblock creature's picture
         return npc_info(npc)
 
     @server.tool()
