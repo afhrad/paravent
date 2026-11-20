@@ -12,7 +12,6 @@ from htpy import (
     Node,
     b,
     button,
-    details,
     div,
     form,
     label,
@@ -23,7 +22,6 @@ from htpy import (
     select,
     small,
     span,
-    summary,
     textarea,
 )
 from htpy import input as input_el
@@ -33,6 +31,7 @@ from app.services.chase import ENVIRONMENTS
 from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
+from app.ui.tool_dialog import tool_button, tool_dialog
 
 CHASE_URL = "/gm/chase"
 
@@ -84,65 +83,80 @@ def _post(
     ]
 
 
-def _start(
-    page: Page, base: str, htmx: dict[str, str], members: Sequence[tuple[str, str]]
-) -> Element:
+def _start(page: Page, base: str, htmx: dict[str, str], members: Sequence[tuple[str, str]]) -> Node:
+    """Who runs and who chases, the creatures on either side, where and how far apart:
+    in a dialog of its own."""
     t = page.t
-    return details(class_="party-clock-more")[
-        summary[t("chase.start")],
-        _post(
-            base,
-            "start",
-            htmx,
-            div(class_="chase-sides")[
-                [
-                    label(class_="party-clock-label")[
-                        span[name],
-                        select(name=f"side_{cid}")[
-                            option(value="")[t("chase.side.none")],
-                            option(value="quarry")[t("chase.side.quarry")],
-                            option(value="pursuer")[t("chase.side.pursuer")],
-                        ],
-                    ]
-                    for cid, name in members
-                ]
-            ],
-            label(class_="field")[
-                span[t("chase.quarry_creatures")],
-                textarea(name="quarry", rows="2", placeholder=t("chase.creatures_placeholder")),
-            ],
-            label(class_="field")[
-                span[t("chase.pursuer_creatures")],
-                textarea(name="pursuer", rows="2", placeholder=t("chase.creatures_placeholder")),
-            ],
-            div(class_="chase-start-row")[
-                label(class_="party-clock-label")[
-                    span[t("chase.environment")],
-                    select(name="environment")[
-                        [option(value=e)[t(f"chase.env.{e}")] for e in ENVIRONMENTS]
+    body = _post(
+        base,
+        "start",
+        htmx,
+        div(class_="tool-grid chase-sides")[
+            [
+                div(class_="field")[
+                    label(for_=f"ch-side-{cid}")[name],
+                    select(id=f"ch-side-{cid}", name=f"side_{cid}")[
+                        option(value="")[t("chase.side.none")],
+                        option(value="quarry")[t("chase.side.quarry")],
+                        option(value="pursuer")[t("chase.side.pursuer")],
                     ],
-                ],
-                label(class_="party-clock-label")[
-                    span[t("chase.distance")],
-                    input_el(
-                        type="number",
-                        name="distance",
-                        min="0",
-                        max="10000",
-                        step="any",
-                        value=_shown(page, 30),
-                        inputmode="numeric",
-                        class_="mono party-clock-amount",
-                    ),
-                    span[_unit(page)],
-                ],
-                button(type="submit", class_="btn btn-sm btn-primary")[
-                    icon("footprints", "sm"), span[t("chase.begin")]
+                ]
+                for cid, name in members
+            ]
+        ],
+        div(class_="tool-grid tool-grid-2")[
+            div(class_="field")[
+                label(for_="ch-quarry")[t("chase.quarry_creatures")],
+                textarea(
+                    id="ch-quarry",
+                    name="quarry",
+                    rows="3",
+                    placeholder=t("chase.creatures_placeholder"),
+                ),
+            ],
+            div(class_="field")[
+                label(for_="ch-pursuer")[t("chase.pursuer_creatures")],
+                textarea(
+                    id="ch-pursuer",
+                    name="pursuer",
+                    rows="3",
+                    placeholder=t("chase.creatures_placeholder"),
+                ),
+            ],
+        ],
+        div(class_="tool-grid")[
+            div(class_="field")[
+                label(for_="ch-env")[t("chase.environment")],
+                select(id="ch-env", name="environment")[
+                    [option(value=e)[t(f"chase.env.{e}")] for e in ENVIRONMENTS]
                 ],
             ],
-            small(class_="muted")[t("chase.start_hint")],
-            cls="chase-form",
-        ),
+            div(class_="field")[
+                label(for_="ch-distance")[f"{t('chase.distance')} ({_unit(page)})"],
+                input_el(
+                    id="ch-distance",
+                    type="number",
+                    name="distance",
+                    min="0",
+                    max="10000",
+                    step="any",
+                    value=_shown(page, 30),
+                    inputmode="numeric",
+                    class_="mono",
+                ),
+            ],
+        ],
+        p(class_="field-hint")[t("chase.start_hint")],
+        div(class_="form-actions")[
+            button(type="submit", class_="btn btn-primary")[
+                icon("footprints", "sm"), span[t("chase.begin")]
+            ]
+        ],
+        cls="tool-section chase-form",
+    )
+    return [
+        div(class_="tool-row")[tool_button(page, "chase", t("chase.start"), "footprints")],
+        tool_dialog(page, "chase", t("chase.start"), body),
     ]
 
 

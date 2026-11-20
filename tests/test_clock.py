@@ -160,6 +160,23 @@ async def table(
 
 @requires_corpus
 class TestAtTheTable:
+    async def test_the_tools_open_in_dialogs(
+        self, table: tuple[AsyncClient, StoreRegistry, str]
+    ) -> None:
+        ac, _registry, _lyra = table
+        page = (await ac.get("/gm")).text
+        for key in ("travel", "time", "shop", "shelf", "chase"):
+            assert f'data-dialog="tool-{key}"' in page and f'href="?tool={key}"' in page
+            assert f'<dialog id="tool-{key}"' in page
+        assert '<dialog id="tool-travel" class="place-dialog tool-dialog"' in page
+        assert 'id="tool-shelf" class="place-dialog tool-dialog" aria-labelledby' in page
+        assert 'data-keep-open="1"' in page.split('id="tool-shelf"', 1)[1].split(">", 1)[0]
+        # Without the script, the link reloads the page with that dialog open.
+        opened = (await ac.get("/gm?tool=travel")).text
+        head = opened.split('<dialog id="tool-travel"', 1)[1].split(">", 1)[0]
+        assert " open" in head
+        assert 'for="tv-pace"' in opened and 'name="pace"' in opened
+
     async def test_the_party_view_moves_the_clock_and_rests(
         self, table: tuple[AsyncClient, StoreRegistry, str]
     ) -> None:

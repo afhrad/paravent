@@ -12,11 +12,12 @@ from htpy import (
     a,
     b,
     button,
-    details,
     div,
+    fieldset,
     form,
     h2,
     label,
+    legend,
     li,
     option,
     p,
@@ -24,7 +25,6 @@ from htpy import (
     select,
     small,
     span,
-    summary,
     ul,
 )
 from htpy import input as input_el
@@ -42,6 +42,7 @@ from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.names import name_text
 from app.ui.tags import ref_url
+from app.ui.tool_dialog import tool_button, tool_dialog
 
 SHOP_URL = "/gm/shop"
 
@@ -83,48 +84,54 @@ def shop_panel(
     base = f"{SHOP_URL}/{quote(world_id)}"
     htmx = {"hx_target": "#party-shop", "hx_swap": "outerHTML"}
     settings = form(
-        method="post", action=f"{base}/open", hx_post=f"{base}/open", class_="shop-form", **htmx
+        method="post", action=f"{base}/open", hx_post=f"{base}/open", class_="tool-section", **htmx
     )[
-        label(class_="party-clock-label")[
-            span[t("shop.name")],
-            input_el(
-                type="text",
-                name="name",
-                value=shop.name,
-                maxlength="80",
-                placeholder=t("shop.name_placeholder"),
+        div(class_="tool-grid")[
+            _field(
+                "sh-name",
+                t("shop.name"),
+                input_el(
+                    id="sh-name",
+                    type="text",
+                    name="name",
+                    value=shop.name,
+                    maxlength="80",
+                    placeholder=t("shop.name_placeholder"),
+                ),
+            ),
+            _field(
+                "sh-markup",
+                t("shop.markup") + " (%)",
+                input_el(
+                    id="sh-markup",
+                    type="number",
+                    name="markup",
+                    min="10",
+                    max="1000",
+                    value=str(shop.markup),
+                    inputmode="numeric",
+                    class_="mono",
+                ),
+            ),
+            _field(
+                "sh-buys",
+                t("shop.buys") + " (%)",
+                input_el(
+                    id="sh-buys",
+                    type="number",
+                    name="buys",
+                    min="0",
+                    max="100",
+                    value=str(shop.buys),
+                    inputmode="numeric",
+                    class_="mono",
+                ),
             ),
         ],
-        label(class_="party-clock-label")[
-            span[t("shop.markup")],
-            input_el(
-                type="number",
-                name="markup",
-                min="10",
-                max="1000",
-                value=str(shop.markup),
-                inputmode="numeric",
-                class_="mono party-clock-amount",
-            ),
-            span[" %"],
-        ],
-        label(class_="party-clock-label")[
-            span[t("shop.buys")],
-            input_el(
-                type="number",
-                name="buys",
-                min="0",
-                max="100",
-                value=str(shop.buys),
-                inputmode="numeric",
-                class_="mono party-clock-amount",
-            ),
-            span[" %"],
-        ],
-        div(class_="shop-who")[
-            small(class_="muted")[t("shop.who")],
+        fieldset(class_="tool-checks")[
+            legend(class_="field-hint")[t("shop.who")],
             [
-                label(class_="party-clock-label")[
+                label(class_="check-inline")[
                     input_el(
                         type="checkbox",
                         name="characters",
@@ -138,10 +145,14 @@ def shop_panel(
         ]
         if members
         else None,
-        button(type="submit", class_="btn btn-sm btn-primary")[
-            icon("coins", "sm"), span[t("shop.change" if shop.open else "shop.open")]
+        div(class_="form-actions")[
+            button(type="submit", class_="btn btn-primary")[
+                icon("coins", "sm"), span[t("shop.change" if shop.open else "shop.open")]
+            ]
         ],
     ]
+    settings_title = t("shop.settings" if shop.open else "shop.open")
+    shelf_title = t.plural("shop.magic_n", len(shop.stock), n=len(shop.stock))
     return div(id="party-shop", class_="panel party-shop")[
         div(class_="party-clock-head")[
             icon("coins"),
@@ -159,14 +170,24 @@ def shop_panel(
             if shop.open
             else None,
         ],
-        details(class_="party-clock-more")[
-            summary[t("shop.settings" if shop.open else "shop.open")], settings
+        div(class_="tool-row")[
+            tool_button(page, "shop", settings_title, "coins"),
+            tool_button(page, "shelf", shelf_title, "gem"),
         ],
-        details(class_="party-clock-more")[
-            summary[t.plural("shop.magic_n", len(shop.stock), n=len(shop.stock))],
+        tool_dialog(page, "shop", settings_title, settings),
+        tool_dialog(
+            page,
+            "shelf",
+            shelf_title,
             _stock_forms(page, base, htmx, shop, treasures),
-        ],
+            keep_open=True,
+        ),
     ]
+
+
+def _field(ident: str, caption: str, control: Node) -> Element:
+    """A labelled field of a tool's dialog."""
+    return div(class_="field")[label(for_=ident)[caption], control]
 
 
 def _stock_forms(
@@ -235,55 +256,107 @@ def _stock_forms(
     ]
     return div(class_="shop-stock")[
         ul(class_="shop-list")[rows] if rows else p(class_="muted")[t("shop.no_magic")],
-        post(
-            "add",
-            input_el(
-                type="text",
-                name="item",
-                required=True,
-                maxlength="120",
-                placeholder=t("shop.item_name"),
-                aria_label=t("shop.item_name"),
-            ),
-            input_el(
-                type="number",
-                name="price",
-                min="0",
-                placeholder=t("shop.price_gp"),
-                inputmode="numeric",
-                class_="mono party-clock-amount",
-                aria_label=t("shop.price_gp"),
-            ),
-            count_field(),
-            button(type="submit", class_="btn btn-sm")[t("shop.add")],
-        ),
-        post(
-            "roll",
-            select(name="rarity", aria_label=t("shop.rarity"))[
-                [option(value=r)[t(f"downtime.rarity.{r}")] for r in RARITIES]
+        form(
+            method="post",
+            action=f"{base}/add",
+            hx_post=f"{base}/add",
+            class_="tool-section",
+            **htmx,
+        )[
+            div(class_="tool-grid")[
+                _field(
+                    "sh-item",
+                    t("shop.item_name"),
+                    input_el(
+                        id="sh-item", type="text", name="item", required=True, maxlength="120"
+                    ),
+                ),
+                _field(
+                    "sh-price",
+                    t("shop.price_gp"),
+                    input_el(
+                        id="sh-price",
+                        type="number",
+                        name="price",
+                        min="0",
+                        inputmode="numeric",
+                        class_="mono",
+                    ),
+                ),
+                _field(
+                    "sh-count",
+                    t("shop.count"),
+                    input_el(
+                        id="sh-count",
+                        type="number",
+                        name="count",
+                        min="1",
+                        max="999",
+                        placeholder="∞",
+                        inputmode="numeric",
+                        class_="mono",
+                    ),
+                ),
             ],
-            input_el(
-                type="number",
-                name="count",
-                min="1",
-                max="20",
-                value="3",
-                inputmode="numeric",
-                class_="mono party-clock-amount",
-                aria_label=t("shop.count"),
-            ),
-            button(type="submit", class_="btn btn-sm")[icon("dices", "sm"), span[t("shop.roll")]],
-        ),
-        post(
-            "treasure",
-            select(name="treasure", aria_label=t("shop.from_treasure"))[
-                [option(value=tid)[tname] for tid, tname in treasures]
+            div(class_="form-actions")[button(type="submit", class_="btn")[t("shop.add")]],
+        ],
+        form(
+            method="post",
+            action=f"{base}/roll",
+            hx_post=f"{base}/roll",
+            class_="tool-section",
+            **htmx,
+        )[
+            div(class_="tool-grid")[
+                _field(
+                    "sh-rarity",
+                    t("shop.rarity"),
+                    select(id="sh-rarity", name="rarity")[
+                        [option(value=r)[t(f"downtime.rarity.{r}")] for r in RARITIES]
+                    ],
+                ),
+                _field(
+                    "sh-rolls",
+                    t("shop.count"),
+                    input_el(
+                        id="sh-rolls",
+                        type="number",
+                        name="count",
+                        min="1",
+                        max="20",
+                        value="3",
+                        inputmode="numeric",
+                        class_="mono",
+                    ),
+                ),
             ],
-            button(type="submit", class_="btn btn-sm")[t("shop.from_treasure")],
-        )
+            div(class_="form-actions")[
+                button(type="submit", class_="btn")[icon("dices", "sm"), span[t("shop.roll")]]
+            ],
+        ],
+        form(
+            method="post",
+            action=f"{base}/treasure",
+            hx_post=f"{base}/treasure",
+            class_="tool-section",
+            **htmx,
+        )[
+            div(class_="tool-grid")[
+                _field(
+                    "sh-treasure",
+                    t("shop.from_treasure"),
+                    select(id="sh-treasure", name="treasure")[
+                        [option(value=tid)[tname] for tid, tname in treasures]
+                    ],
+                ),
+            ],
+            div(class_="form-actions")[
+                button(type="submit", class_="btn")[t("shop.from_treasure")]
+            ],
+        ]
         if treasures
         else None,
-        p(class_="muted")[t("shop.magic_hint")],
+        p(class_="field-hint")[t("shop.magic_hint")],
     ]
 
 

@@ -308,6 +308,29 @@
     }
   });
 
+  // A tool dialog worked with several times in a row (``data-keep-open``: a shop's
+  // shelf) sits in the panel its forms swap; the swap brings it back closed, so it opens
+  // again, with its scroll position.
+  var keep = [];
+  document.addEventListener('htmx:beforeSwap', function (e) {
+    var target = e.detail && e.detail.target;
+    if (!target || !target.querySelectorAll) return;
+    keep = [];
+    target.querySelectorAll('dialog[open][data-keep-open]').forEach(function (d) {
+      keep.push({ id: d.id, top: d.scrollTop });
+    });
+  });
+  document.addEventListener('htmx:afterSettle', function () {
+    keep.forEach(function (k) {
+      var d = document.getElementById(k.id);
+      if (d && !d.open && typeof d.showModal === 'function') {
+        d.showModal();
+        d.scrollTop = k.top;
+      }
+    });
+    keep = [];
+  });
+
   function openNow() {
     document.querySelectorAll('dialog[data-open-now]').forEach(function (d) {
       if (typeof d.showModal === 'function') show(d);

@@ -16,6 +16,7 @@ from htpy import (
     div,
     form,
     h2,
+    label,
     li,
     option,
     p,
@@ -101,26 +102,13 @@ def _faction(
         ul(class_="faction-renown")[
             [
                 li(class_="faction-member")[
-                    span[name],
-                    b(class_="mono")[str(faction.renown.get(cid, 0))],
-                    small(class_="muted")[title_of(faction, faction.renown.get(cid, 0))],
+                    span(class_="faction-name")[name],
                     div(class_="faction-steps")[
-                        [
-                            _post(
-                                base,
-                                "renown",
-                                hidden("faction", faction.id),
-                                hidden("character", cid),
-                                hidden("delta", str(delta)),
-                                button(
-                                    type="submit",
-                                    class_="btn btn-sm",
-                                    aria_label=t("factions.change", name=name, delta=f"{delta:+d}"),
-                                )[f"{delta:+d}"],
-                            )
-                            for delta in (-1, 1)
-                        ]
+                        _step(page, base, faction, cid, name, -1),
+                        b(class_="mono faction-score")[str(faction.renown.get(cid, 0))],
+                        _step(page, base, faction, cid, name, 1),
                     ],
+                    small(class_="muted")[title_of(faction, faction.renown.get(cid, 0))],
                 ]
                 for cid, name in members
             ]
@@ -133,19 +121,29 @@ def _faction(
                 base,
                 "edit",
                 hidden("faction", faction.id),
-                input_el(
-                    type="text",
-                    name="name",
-                    value=faction.name,
-                    maxlength="120",
-                    required=True,
-                    aria_label=t("factions.name"),
-                ),
-                textarea(name="note", rows="3", maxlength="4000", aria_label=t("factions.note"))[
-                    faction.note
+                div(class_="field")[
+                    label(for_=f"fe-name-{faction.id}")[t("factions.name")],
+                    input_el(
+                        id=f"fe-name-{faction.id}",
+                        type="text",
+                        name="name",
+                        value=faction.name,
+                        maxlength="120",
+                        required=True,
+                    ),
                 ],
-                button(type="submit", class_="btn btn-sm")[t("factions.save")],
-                cls="faction-form",
+                div(class_="field")[
+                    label(for_=f"fe-note-{faction.id}")[t("factions.note")],
+                    textarea(id=f"fe-note-{faction.id}", name="note", rows="4", maxlength="4000")[
+                        faction.note
+                    ],
+                ],
+                div(class_="form-actions")[
+                    button(type="submit", class_="btn btn-primary")[
+                        icon("check", "sm"), span[t("factions.save")]
+                    ]
+                ],
+                cls="stack-form faction-form",
             ),
             title_image_panel(
                 page, "faction", faction.id, found, owner=faction.world_id, heading=False
@@ -162,54 +160,75 @@ def _faction(
     ]
 
 
+def _step(page: Page, base: str, faction: Faction, cid: str, name: str, delta: int) -> Element:
+    """One step of a character's renown, down or up."""
+    return _post(
+        base,
+        "renown",
+        hidden("faction", faction.id),
+        hidden("character", cid),
+        hidden("delta", str(delta)),
+        button(
+            type="submit",
+            class_="btn btn-sm",
+            aria_label=page.t("factions.change", name=name, delta=f"{delta:+d}"),
+        )[f"{delta:+d}"],
+    )
+
+
 def _new(
     page: Page, base: str, tables: Sequence[tuple[str, str]], examples: Sequence[str]
 ) -> Element:
+    """A new faction three ways, each a row with its own label: by name, from a book's
+    renown table, or from the guide's examples."""
     t = page.t
+
+    def row(op: str, ident: str, caption: str, control: Node, submit: Node) -> Element:
+        return _post(
+            base,
+            op,
+            div(class_="field")[label(for_=ident)[caption], control],
+            submit,
+            cls="faction-new-row",
+        )
+
     return section(class_="panel faction-new")[
         div(class_="panel-head")[h2[t("factions.new")]],
-        _post(
-            base,
+        row(
             "create",
-            input_el(
-                type="text",
-                name="name",
-                maxlength="120",
-                required=True,
-                placeholder=t("factions.name"),
-                aria_label=t("factions.name"),
-            ),
-            button(type="submit", class_="btn btn-sm btn-primary")[
+            "fn-name",
+            t("factions.name"),
+            input_el(id="fn-name", type="text", name="name", maxlength="120", required=True),
+            button(type="submit", class_="btn btn-primary")[
                 icon("plus", "sm"), span[t("factions.create")]
             ],
-            cls="faction-form",
         ),
-        _post(
-            base,
+        row(
             "from_table",
-            select(name="table", aria_label=t("factions.table"))[
+            "fn-table",
+            t("factions.table"),
+            select(id="fn-table", name="table")[
                 [
                     option(value=f"{name}|{source}")[f"{name.removesuffix(' Renown')} ({source})"]
                     for name, source in tables
                 ]
             ],
-            button(type="submit", class_="btn btn-sm")[t("factions.from_book")],
-            cls="faction-form",
+            button(type="submit", class_="btn")[t("factions.from_book")],
         )
         if tables
         else None,
-        _post(
-            base,
+        row(
             "from_example",
-            select(name="example", aria_label=t("factions.example"))[
+            "fn-example",
+            t("factions.example"),
+            select(id="fn-example", name="example")[
                 [option(value=name)[name] for name in examples]
             ],
-            button(type="submit", class_="btn btn-sm")[t("factions.from_example")],
-            cls="faction-form",
+            button(type="submit", class_="btn")[t("factions.from_example")],
         )
         if examples
         else None,
-        p(class_="muted")[t("factions.new_hint")],
+        p(class_="field-hint")[t("factions.new_hint")],
     ]
 
 

@@ -13,7 +13,6 @@ from htpy import (
     a,
     b,
     button,
-    details,
     div,
     form,
     label,
@@ -23,7 +22,6 @@ from htpy import (
     select,
     small,
     span,
-    summary,
     ul,
 )
 from htpy import input as input_el
@@ -36,6 +34,7 @@ from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
 from app.ui.names import name_text
+from app.ui.tool_dialog import tool_button, tool_dialog
 
 CLOCK_URL = "/gm/clock"
 # The moves one tap makes, in minutes, with their labels' keys.
@@ -243,30 +242,92 @@ def clock_panel(
         if due
         else None,
         _journey(page, base, journey, world_id, hazards) if journey is not None else None,
-        details(class_="party-clock-more party-travel")[
-            summary[icon("footprints", "sm"), span[t("travel.heading")]],
-            _travel_form(page, post, environments, vessels, weather, mounted),
+        div(class_="tool-row")[
+            tool_button(page, "travel", t("travel.heading"), "footprints"),
+            tool_button(page, "time", t("clock.more_title"), "clock"),
         ],
-        details(class_="party-clock-more")[
-            summary[t("clock.more")],
-            post(
-                "advance",
-                _amount(page),
-                input_el(
-                    type="text",
-                    name="why",
-                    maxlength="60",
-                    placeholder=t("clock.why"),
-                    aria_label=t("clock.why"),
-                ),
-                button(type="submit", class_="btn btn-sm")[t("clock.pass")],
-                cls="party-clock-form",
+        tool_dialog(
+            page,
+            "travel",
+            t("travel.heading"),
+            _travel_form(page, post, environments, vessels, weather, mounted),
+        ),
+        tool_dialog(
+            page,
+            "time",
+            t("clock.more_title"),
+            _time_forms(page, post, minute, world_id, calendars, calendar, era),
+        ),
+    ]
+
+
+def _field(ident: str, caption: str, control: Node, *, wide: bool = False) -> Element:
+    """A labelled field of a tool's dialog; a ``wide`` one (a number with its unit) takes
+    two columns where there is room."""
+    return div(class_="field tool-span" if wide else "field")[label(for_=ident)[caption], control]
+
+
+def _how_long(page: Page, prefix: str, units: Node = None) -> Element:
+    """How long, as a number and its unit side by side; ``units`` replaces the unit
+    choice (travel's hours or travelling days)."""
+    t = page.t
+    return _field(
+        f"{prefix}-amount",
+        t("clock.amount"),
+        wide=True,
+        control=div(class_="tool-inline")[
+            input_el(
+                id=f"{prefix}-amount",
+                type="number",
+                name="amount",
+                min="1",
+                value="1",
+                inputmode="numeric",
+                class_="mono",
             ),
-            post(
-                "set",
-                label(class_="party-clock-label")[
-                    span[t("clock.day")],
+            units
+            if units is not None
+            else select(name="unit", aria_label=t("clock.unit"))[
+                [option(value=u, selected=u == "hour")[t(f"clock.unit.{u}")] for u in _UNITS]
+            ],
+        ],
+    )
+
+
+def _time_forms(
+    page: Page,
+    post: Callable[..., Element],
+    minute: int,
+    world_id: str,
+    calendars: Sequence[Calendar],
+    calendar: str,
+    era: str,
+) -> Node:
+    """Let time pass, set the clock, a reminder, downtime days and the calendar, each a
+    form of its own with labelled fields."""
+    t = page.t
+    return [
+        post(
+            "advance",
+            div(class_="tool-grid")[
+                _how_long(page, "tp"),
+                _field(
+                    "tp-why",
+                    t("clock.why"),
+                    input_el(id="tp-why", type="text", name="why", maxlength="60"),
+                ),
+            ],
+            div(class_="form-actions")[button(type="submit", class_="btn")[t("clock.pass")]],
+            cls="tool-section",
+        ),
+        post(
+            "set",
+            div(class_="tool-grid")[
+                _field(
+                    "ts-day",
+                    t("clock.day"),
                     input_el(
+                        id="ts-day",
                         type="number",
                         name="day",
                         min="1",
@@ -274,53 +335,64 @@ def clock_panel(
                         inputmode="numeric",
                         class_="mono",
                     ),
-                ],
-                label(class_="party-clock-label")[
-                    span[t("clock.time")],
-                    input_el(type="time", name="time", value=time_of(minute), class_="mono"),
-                ],
-                button(type="submit", class_="btn btn-sm")[t("clock.set")],
-                cls="party-clock-form",
-            ),
-            post(
-                "timer",
-                input_el(
-                    type="text",
-                    name="label",
-                    maxlength="200",
-                    required=True,
-                    placeholder=t("clock.timer_label"),
-                    aria_label=t("clock.timer_label"),
                 ),
-                _amount(page),
-                button(type="submit", class_="btn btn-sm")[
-                    icon("bell", "sm"), span[t("clock.add_timer")]
-                ],
-                cls="party-clock-form",
-            ),
-            post(
-                "downtime",
-                label(class_="party-clock-label")[
-                    span[t("downtime.grant_days")],
+                _field(
+                    "ts-time",
+                    t("clock.time"),
                     input_el(
+                        id="ts-time", type="time", name="time", value=time_of(minute), class_="mono"
+                    ),
+                ),
+            ],
+            div(class_="form-actions")[button(type="submit", class_="btn")[t("clock.set")]],
+            cls="tool-section",
+        ),
+        post(
+            "timer",
+            div(class_="tool-grid")[
+                _field(
+                    "tt-label",
+                    t("clock.timer_label"),
+                    input_el(
+                        id="tt-label", type="text", name="label", maxlength="200", required=True
+                    ),
+                ),
+                _how_long(page, "tt"),
+            ],
+            div(class_="form-actions")[
+                button(type="submit", class_="btn")[icon("bell", "sm"), span[t("clock.add_timer")]]
+            ],
+            cls="tool-section",
+        ),
+        post(
+            "downtime",
+            div(class_="tool-grid")[
+                _field(
+                    "td-days",
+                    t("downtime.grant_days"),
+                    input_el(
+                        id="td-days",
                         type="number",
                         name="days",
                         min="1",
                         max="365",
                         value="7",
                         inputmode="numeric",
-                        class_="mono party-clock-amount",
+                        class_="mono",
                     ),
-                ],
-                button(type="submit", class_="btn btn-sm", title=t("downtime.grant_hint"))[
+                ),
+            ],
+            p(class_="field-hint")[t("downtime.grant_hint")],
+            div(class_="form-actions")[
+                button(type="submit", class_="btn")[
                     icon("hourglass", "sm"), span[t("downtime.grant")]
-                ],
-                cls="party-clock-form",
-            ),
-            _calendar_form(page, post, minute, world_id, calendars, calendar, era)
-            if calendars
-            else None,
-        ],
+                ]
+            ],
+            cls="tool-section",
+        ),
+        _calendar_form(page, post, minute, world_id, calendars, calendar, era)
+        if calendars
+        else None,
     ]
 
 
@@ -340,58 +412,66 @@ def _calendar_form(
     months = dated[0].months if dated else calendars[0].months
     return post(
         "calendar",
-        label(class_="party-clock-label")[
-            span[t("clock.calendar")],
-            select(name="calendar")[
-                option(value="")[t("clock.calendar_none")],
-                [
-                    option(value=c.key, selected=c.key == chosen)[f"{c.key} ({c.source})"]
-                    for c in calendars
+        div(class_="tool-grid")[
+            _field(
+                "tc-calendar",
+                t("clock.calendar"),
+                select(id="tc-calendar", name="calendar")[
+                    option(value="")[t("clock.calendar_none")],
+                    [
+                        option(value=c.key, selected=c.key == chosen)[f"{c.key} ({c.source})"]
+                        for c in calendars
+                    ],
                 ],
-            ],
-        ],
-        label(class_="party-clock-label")[
-            span[t("clock.calendar_day")],
-            input_el(
-                type="number",
-                name="cday",
-                min="1",
-                max="31",
-                value=str(today.day if today else 1),
-                inputmode="numeric",
-                class_="mono party-clock-amount",
+            ),
+            _field(
+                "tc-day",
+                t("clock.calendar_day"),
+                wide=True,
+                control=div(class_="tool-inline")[
+                    input_el(
+                        id="tc-day",
+                        type="number",
+                        name="cday",
+                        min="1",
+                        max="31",
+                        value=str(today.day if today else 1),
+                        inputmode="numeric",
+                        class_="mono",
+                    ),
+                    select(name="cmonth", aria_label=t("clock.calendar_month"))[
+                        [
+                            option(value=str(n), selected=today is not None and today.month == m)[
+                                m.name
+                            ]
+                            for n, m in enumerate(months)
+                        ]
+                    ],
+                ],
+            ),
+            _field(
+                "tc-year",
+                t("clock.calendar_year"),
+                input_el(
+                    id="tc-year",
+                    type="number",
+                    name="cyear",
+                    min="0",
+                    max="99999",
+                    value=str(today.year if today else 1),
+                    inputmode="numeric",
+                    class_="mono",
+                ),
+            ),
+            _field(
+                "tc-era",
+                t("clock.calendar_era"),
+                input_el(id="tc-era", type="text", name="era", value=era, maxlength="12"),
             ),
         ],
-        select(name="cmonth", aria_label=t("clock.calendar_month"))[
-            [
-                option(value=str(n), selected=today is not None and today.month == m)[m.name]
-                for n, m in enumerate(months)
-            ]
-        ],
-        label(class_="party-clock-label")[
-            span[t("clock.calendar_year")],
-            input_el(
-                type="number",
-                name="cyear",
-                min="0",
-                max="99999",
-                value=str(today.year if today else 1),
-                inputmode="numeric",
-                class_="mono",
-            ),
-        ],
-        input_el(
-            type="text",
-            name="era",
-            value=era,
-            maxlength="12",
-            placeholder=t("clock.calendar_era"),
-            aria_label=t("clock.calendar_era"),
-            class_="party-clock-amount",
-        ),
-        button(type="submit", class_="btn btn-sm")[t("clock.set")],
-        small(class_="muted")[t("clock.calendar_hint")],
-        cls="party-clock-form",
+        p(class_="field-hint")[t("clock.calendar_hint")],
+        div(class_="form-actions")[button(type="submit", class_="btn")[t("clock.set")]],
+        cls="tool-section",
     )
 
 
@@ -405,84 +485,96 @@ def _travel_form(
 ) -> Element:
     """How long, how fast, through what, how watchful, with what."""
     t = page.t
+
+    def check(name: str, caption: str, *, on: bool = False, title: str | None = None) -> Element:
+        return label(class_="check-inline", title=title)[
+            input_el(type="checkbox", name=name, value="1", checked=on), span[caption]
+        ]
+
     return post(
         "travel",
-        input_el(
-            type="number",
-            name="amount",
-            min="1",
-            value="1",
-            inputmode="numeric",
-            class_="mono party-clock-amount",
-            aria_label=t("clock.amount"),
-        ),
-        select(name="unit", aria_label=t("clock.unit"))[
-            option(value="hour")[t("clock.unit.hour")],
-            option(value="day", selected=True)[t("travel.unit.day")],
+        div(class_="tool-grid")[
+            _how_long(
+                page,
+                "tv",
+                select(name="unit", aria_label=t("clock.unit"))[
+                    option(value="hour")[t("clock.unit.hour")],
+                    option(value="day", selected=True)[t("travel.unit.day")],
+                ],
+            ),
+            _field(
+                "tv-pace",
+                t("travel.pace"),
+                select(id="tv-pace", name="pace")[
+                    [
+                        option(
+                            value=pace,
+                            selected=pace == "normal",
+                            title=t(f"travel.pace.{pace}_hint"),
+                        )[t(f"travel.pace.{pace}")]
+                        for pace in PACES
+                    ]
+                ],
+            ),
+            _field(
+                "tv-by",
+                t("travel.by"),
+                select(id="tv-by", name="vessel")[
+                    option(value="")[t("travel.on_foot")],
+                    # Chosen first when every character of the world has a mount.
+                    option(value="mounted", selected=mounted)[t("travel.mounted")],
+                    [option(value=name)[t("travel.aboard", name=name)] for name in vessels],
+                ],
+            ),
+            _field(
+                "tv-env",
+                t("travel.environment"),
+                select(id="tv-env", name="environment")[
+                    option(value="")[t("travel.no_table")],
+                    [option(value=key)[name] for key, name in environments],
+                ],
+            ),
+            _field(
+                "tv-checks",
+                t("travel.checks"),
+                select(id="tv-checks", name="checks")[
+                    [
+                        option(value=str(n), selected=n == 1)[t.plural("travel.checks_n", n, n=n)]
+                        for n in range(4)
+                    ]
+                ],
+            ),
+            _field(
+                "tv-water",
+                t("travel.water"),
+                select(id="tv-water", name="water")[
+                    [option(value=w)[t(f"travel.water.{w}")] for w in WATER]
+                ],
+            ),
+            _field(
+                "tv-climate",
+                t("travel.climate"),
+                select(id="tv-climate", name="climate")[
+                    [option(value=c)[t(f"travel.climate.{c or 'mild'}")] for c in CLIMATES]
+                ],
+            ),
         ],
-        select(name="pace", aria_label=t("travel.pace"))[
-            [
-                option(value=pace, selected=pace == "normal", title=t(f"travel.pace.{pace}_hint"))[
-                    t(f"travel.pace.{pace}")
-                ]
-                for pace in PACES
+        div(class_="tool-checks")[
+            check("difficult", t("travel.difficult")),
+            check("altitude", t("travel.altitude"), title=t("travel.altitude_hint")),
+            check("rations", t("travel.rations"), on=True),
+            check("rest", t("travel.rest"), on=True),
+            check("night", t("travel.night_check")),
+            check("around", t("travel.around"), title=t("travel.around_hint")) if vessels else None,
+            check("weather", t("travel.weather"), on=True) if weather else None,
+        ],
+        p(class_="field-hint")[t("travel.hint")],
+        div(class_="form-actions")[
+            button(type="submit", class_="btn btn-primary")[
+                icon("footprints", "sm"), span[t("travel.go")]
             ]
         ],
-        select(name="environment", aria_label=t("travel.environment"))[
-            option(value="")[t("travel.no_table")],
-            [option(value=key)[name] for key, name in environments],
-        ],
-        select(name="checks", aria_label=t("travel.checks"))[
-            [
-                option(value=str(n), selected=n == 1)[t.plural("travel.checks_n", n, n=n)]
-                for n in range(4)
-            ]
-        ],
-        select(name="vessel", aria_label=t("travel.by"))[
-            option(value="")[t("travel.on_foot")],
-            # Chosen first when every character of the world has a mount.
-            option(value="mounted", selected=mounted)[t("travel.mounted")],
-            [option(value=name)[t("travel.aboard", name=name)] for name in vessels],
-        ],
-        select(name="water", aria_label=t("travel.water"))[
-            [option(value=w)[t(f"travel.water.{w}")] for w in WATER]
-        ],
-        label(class_="party-clock-label")[
-            input_el(type="checkbox", name="difficult", value="1"), span[t("travel.difficult")]
-        ],
-        select(name="climate", aria_label=t("travel.climate"))[
-            [option(value=c)[t(f"travel.climate.{c or 'mild'}")] for c in CLIMATES]
-        ],
-        label(class_="party-clock-label", title=t("travel.altitude_hint"))[
-            input_el(type="checkbox", name="altitude", value="1"), span[t("travel.altitude")]
-        ],
-        label(class_="party-clock-label")[
-            input_el(type="checkbox", name="rations", value="1", checked=True),
-            span[t("travel.rations")],
-        ],
-        label(class_="party-clock-label")[
-            input_el(type="checkbox", name="rest", value="1", checked=True),
-            span[t("travel.rest")],
-        ],
-        label(class_="party-clock-label")[
-            input_el(type="checkbox", name="night", value="1"), span[t("travel.night_check")]
-        ],
-        label(class_="party-clock-label", title=t("travel.around_hint"))[
-            input_el(type="checkbox", name="around", value="1"), span[t("travel.around")]
-        ]
-        if vessels
-        else None,
-        label(class_="party-clock-label")[
-            input_el(type="checkbox", name="weather", value="1", checked=True),
-            span[t("travel.weather")],
-        ]
-        if weather
-        else None,
-        button(type="submit", class_="btn btn-sm btn-primary")[
-            icon("footprints", "sm"), span[t("travel.go")]
-        ],
-        p(class_="muted party-travel-hint")[t("travel.hint")],
-        cls="party-clock-form party-travel-form",
+        cls="tool-section party-travel-form",
     )
 
 
@@ -674,24 +766,6 @@ def _journey(
                 title=t("travel.clear"),
                 aria_label=t("travel.clear"),
             )[icon("x", "sm")]
-        ],
-    ]
-
-
-def _amount(page: Page) -> list[Node]:
-    t = page.t
-    return [
-        input_el(
-            type="number",
-            name="amount",
-            min="1",
-            value="1",
-            inputmode="numeric",
-            class_="mono party-clock-amount",
-            aria_label=t("clock.amount"),
-        ),
-        select(name="unit", aria_label=t("clock.unit"))[
-            [option(value=u, selected=u == "hour")[t(f"clock.unit.{u}")] for u in _UNITS]
         ],
     ]
 

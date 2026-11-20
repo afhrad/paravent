@@ -2815,10 +2815,19 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .faction-head{ display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
 .faction-head h2{ margin:0; font-size:1.05rem; }
 .faction-renown, .faction-list, .faction-rewards{ list-style:none; margin:0; padding:0; display:grid; gap:6px; }
-.faction-member{ display:grid; grid-template-columns:1fr auto auto auto; align-items:center; gap:8px; }
-.faction-steps{ display:flex; gap:4px; }
-.faction-form{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px; }
-.faction-form textarea{ flex-basis:100%; }
+/* A character's renown: the name, then −1 · score · +1 right beside it, then the title. */
+.faction-member{ display:grid; grid-template-columns:minmax(0, 13em) auto minmax(0, 1fr); align-items:center; gap:10px; }
+.faction-steps{ display:flex; align-items:center; gap:4px; }
+.faction-score{ min-width:2.5ch; text-align:center; }
+.faction-form{ margin:8px 0; }
+.faction-new{ display:grid; gap:12px; }
+.faction-new-row{ display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:10px; align-items:end; max-width:640px; }
+.faction-new-row .field{ margin:0; }
+@media (max-width: 480px){
+  .faction-member{ grid-template-columns:minmax(0, 1fr) auto; }
+  .faction-member > small{ grid-column:1 / -1; }
+  .faction-new-row{ grid-template-columns:minmax(0, 1fr); }
+}
 .faction-row{ display:grid; gap:6px; }
 .quest-list{ display:grid; grid-template-columns:repeat(auto-fit, minmax(320px, 1fr)); gap:16px; align-items:start; margin-bottom:16px; }
 .quest-panel, .quest-row{ display:grid; gap:8px; }
@@ -3076,6 +3085,24 @@ dialog.img-zoom img{ max-width:100%; max-height:100%; object-fit:contain; border
 .world-menu-label{ padding:2px 10px 4px; margin:0; }
 .world-delete{ color:var(--dmg); }
 /* The settings dialog holds the whole world form */
+/* A tool's form in a dialog of its own (app/ui/tool_dialog.py): the party view's travel,
+   time and calendar, shop and chase. The panel keeps a row of openers. */
+.tool-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+.tool-dialog{ width:min(94vw, 720px); overflow:auto; }
+.tool-dialog-body{ display:grid; gap:0; margin-top:6px; }
+.tool-section{ display:grid; gap:12px; padding:14px 0; }
+.tool-section + .tool-section, .tool-dialog-body > * + .tool-section{ border-top:1px solid var(--border); }
+.tool-section .field{ margin:0; }
+.tool-section .form-actions{ margin:0; }
+.tool-grid{ display:grid; grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); gap:12px; align-items:start; }
+.tool-grid-2{ grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); }
+@media (min-width: 560px){ .tool-grid > .tool-span{ grid-column:span 2; } }
+.tool-inline{ display:flex; gap:8px; }
+.tool-inline > input{ flex:0 0 96px; }
+.tool-inline > select{ flex:1 1 auto; min-width:0; }
+.tool-checks{ display:flex; flex-wrap:wrap; gap:8px 18px; border:0; margin:0; padding:0; }
+.tool-checks > legend{ padding:0; margin-bottom:6px; }
+.tool-dialog .shop-list{ margin:0 0 4px; }
 .place-dialog.world-settings{ width:min(94vw, 860px); max-height:92vh; overflow:auto; }
 .world-settings .panel{ border:0; box-shadow:none; padding:0; background:none; }
 .world-settings .panel.images-panel{ margin-top:24px; padding-top:18px; border-top:1px solid var(--border); border-radius:0; }
