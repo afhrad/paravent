@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-20T14:14:52+01:00",
+  "en": "Right after deleting something, Undo brings it back; what lies in the trash longer than 30 days is now erased.",
+  "de": "Direkt nach dem Löschen holt „Rückgängig“ es zurück; was länger als 30 Tage im Papierkorb liegt, wird nun endgültig entfernt."
+ },
+ {
   "at": "2026-11-20T13:50:20+01:00",
   "en": "Claude can see what was deleted lately and restore what it removed from its own drafts.",
   "de": "Claude sieht, was kürzlich gelöscht wurde, und kann wiederherstellen, was es aus seinen eigenen Entwürfen entfernt hat."
@@ -293,10 +298,5 @@
   "at": "2026-11-15T18:54:05+01:00",
   "en": "Travel with encounter checks and rations, downtime for crafting, training and recuperating, a shop the gamemaster opens during play, and bastion defenders and events.",
   "de": "Reisen mit Begegnungswürfen und Rationen, Auszeit zum Herstellen, Lernen und Erholen, ein Laden, den die Spielleitung im Spiel öffnet, sowie Verteidiger und Ereignisse für Bastionen."
- },
- {
-  "at": "2026-11-15T16:26:31+01:00",
-  "en": "Every world now has a clock: move time on, rest the whole party at once, and watch torches, lanterns and spells run out on their own.",
-  "de": "Jede Welt hat jetzt eine Uhr: Zeit vorstellen, die ganze Gruppe auf einmal rasten lassen, und Fackeln, Laternen und Zauber laufen von selbst ab."
  }
 ]
