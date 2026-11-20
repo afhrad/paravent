@@ -53,6 +53,7 @@ from app.ui.protocol_pages import log_button, log_dialog, toast_layer
 from app.ui.sound_panel import sound_button, sound_dialog
 from app.ui.world_menu import (
     transfer_notice,
+    undo_notice,
     world_banner,
     world_dialogs,
     world_menu,
@@ -527,7 +528,9 @@ def app_shell(
                 settings_menu(page),
                 user_menu(page, name, user.username),
             ],
-            main(class_=main_class, id="main")[world_banner(page), transfer_notice(page), content],
+            main(class_=main_class, id="main")[
+                world_banner(page), transfer_notice(page), undo_notice(page), content
+            ],
             _player_bar(page) if bar else None,
             palette(page, world_id) if palette_layer else None,
             insert_palette(page, world_id) if insert_layer else None,

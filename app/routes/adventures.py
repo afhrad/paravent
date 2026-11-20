@@ -573,7 +573,8 @@ async def delete_adventure(
     )
     if adventure.revision_of:
         return redirect(adventure_url(adventure.revision_of))
-    return redirect(_with(world_url(world_id), deleted="1"))
+    undo = registry.trash.entry_of("adventure", adventure_id) or ""
+    return redirect(_with(world_url(world_id), deleted="1", undo=undo))
 
 
 @router.post(f"{ADVENTURES_URL}/{{adventure_id}}/holdings")
@@ -1089,7 +1090,8 @@ async def delete_chapter(
     """Move the chapter to the trash; with ``contents=all`` what is placed in it goes
     too, else it moves up to the adventure."""
     chapter = registry.adventures.delete_chapter(chapter_id, contents=contents == "all")
-    return redirect(_with(adventure_url(chapter.adventure_id), deleted="1"))
+    undo = registry.trash.entry_of("chapter", chapter_id) or ""
+    return redirect(_with(adventure_url(chapter.adventure_id), deleted="1", undo=undo))
 
 
 @router.post(f"{ADVENTURES_URL}/{{adventure_id}}/start")

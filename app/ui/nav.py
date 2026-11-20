@@ -14,7 +14,7 @@ import re
 from collections.abc import Mapping
 from dataclasses import dataclass
 from http.cookies import CookieError, SimpleCookie
-from urllib.parse import quote, unquote, urlsplit
+from urllib.parse import parse_qsl, quote, unquote, urlencode, urlsplit
 
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
@@ -214,6 +214,21 @@ def _record_for_user(scope: Scope, cookies: SimpleCookie, url: str, status: int)
     registry.places.visited_by_token(session.value if session else None, url, status)
 
 
+# What a page says once, after a delete: not part of the place to come back to.
+ONE_OFF_PARAMS = frozenset({"deleted", "undo"})
+
+
+def _without_one_offs(url: str) -> str:
+    """``url`` without :data:`ONE_OFF_PARAMS` (a returning visit would offer an Undo
+    already used)."""
+    parts = urlsplit(url)
+    kept = [
+        (k, v) for k, v in parse_qsl(parts.query, keep_blank_values=True) if k not in ONE_OFF_PARAMS
+    ]
+    query = urlencode(kept)
+    return f"{parts.path}?{query}" if query else parts.path
+
+
 class NavMemoryMiddleware:
     """Records the page each navigation section was left on, in :data:`NAV_COOKIE`.
 
@@ -249,6 +264,7 @@ class NavMemoryMiddleware:
             url = f"{shown.path}?{shown.query}" if shown.query else shown.path
         else:
             url = f"{scope['path']}?{query}" if query else scope["path"]
+        url = _without_one_offs(url)
         cookies = SimpleCookie()
         try:
             cookies.load(headers.get("cookie", ""))

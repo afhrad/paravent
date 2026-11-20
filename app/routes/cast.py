@@ -401,7 +401,8 @@ async def confirm_delete_npc(
 async def delete_npc(_gm: GamemasterDep, registry: RegistryDep, npc_id: str) -> Response:
     """Delete an NPC."""
     npc = registry.npcs.delete(npc_id)
-    return redirect(f"{world_npcs_url(npc.scope.world_id)}?deleted=1")
+    undo = registry.trash.entry_of("npc", npc.id) or ""
+    return redirect(f"{world_npcs_url(npc.scope.world_id)}?deleted=1&undo={undo}")
 
 
 # -- treasure ----------------------------------------------------------------------------
@@ -737,7 +738,8 @@ async def confirm_delete_treasure(
 async def delete_treasure(_gm: GamemasterDep, registry: RegistryDep, treasure_id: str) -> Response:
     """Delete a treasure."""
     treasure = registry.treasure.delete(treasure_id)
-    return redirect(f"{world_treasure_url(treasure.scope.world_id)}?deleted=1")
+    undo = registry.trash.entry_of("treasure", treasure.id) or ""
+    return redirect(f"{world_treasure_url(treasure.scope.world_id)}?deleted=1&undo={undo}")
 
 
 __all__ = ["router"]

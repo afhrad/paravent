@@ -323,4 +323,5 @@ async def confirm_delete_location(
 async def delete_location(_gm: GamemasterDep, registry: RegistryDep, location_id: str) -> Response:
     """Delete a place."""
     location = registry.locations.delete(location_id)
-    return redirect(f"{world_locations_url(location.scope.world_id)}?deleted=1")
+    undo = registry.trash.entry_of("place", location.id) or ""
+    return redirect(f"{world_locations_url(location.scope.world_id)}?deleted=1&undo={undo}")

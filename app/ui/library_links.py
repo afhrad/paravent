@@ -38,6 +38,7 @@ from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
 from app.ui.layout import app_shell
+from app.ui.world_menu import TRASH_RESTORE_URL
 
 WORLDS_URL = "/gm/worlds"
 ADVENTURES_URL = "/gm/adventures"
@@ -52,9 +53,6 @@ MEDIA_URL = "/media"
 NEW_OBJECT_URL = "/gm/editor/new"
 RELINK_URL = "/gm/editor/relink"
 RENAME_BACK_URL = "/gm/editor/rename-back"
-# Check links' restore from the trash (app/routes/world_links.py), offered on the create
-# page too when the name was deleted lately.
-TRASH_RESTORE_URL = "/gm/world/links/restore"
 CREATABLE = frozenset({"npc", "encounter", "treasure", "place"})
 
 
@@ -335,7 +333,8 @@ def new_object_page(
                     hidden("name", name),
                     hidden("scope", scope),
                     div(class_="form-actions")[
-                        button(type="submit", class_="btn btn-primary")[
+                        # With the deleted one on offer, making a new one is the quieter way.
+                        button(type="submit", class_="btn" if trashed else "btn btn-primary")[
                             icon("plus"), span[t("md.create_submit", kind=what)]
                         ],
                         a(href=back, class_="btn btn-ghost")[t("common.cancel")],

@@ -627,7 +627,15 @@ world, so **Restore** moves it back and reads it again, together with the NPCs, 
 treasure and encounters deleted with it (`part_of`); a chapter whose adventure is gone stays
 put. A revision's copy, written back onto its original, is not kept. **The create page offers
 it back**: a dashed link to a name deleted lately says when it went and offers **Restore**
-first, returning to the text. Every rename — on an object's page, here, in
+first, returning to the text, and **Create** then steps back to a plain button. **Undo** right
+after a delete: the page a delete lands on carries the trash entry (`undo=<id>`), and the
+gamemaster's shell shows "It waits under Check links → Recently deleted for 30 days" with
+**Undo**, which restores it and opens it again (`undo_notice`); the remembered page drops
+`deleted` and `undo`, so a later visit offers nothing used up. **The trash folder no longer
+grows**: what lies in `library/.trash/` longer than 30 days (by the time stamp the delete
+gives its name; a deleted world's folder too) is erased with its entry, at start, daily and
+on each delete (`Trash.clear_old`), so backups stop carrying it; anything else put there by
+hand is left alone. Every rename — on an object's page, here, in
 the editor or on the create page — now also rewrites the notes of the world's NPCs, places,
 treasure and encounters and its session notes, and for an NPC the giver of its quests
 (`rewrite_references`, `reference_fix`); quest texts and faction, contact and party notes are

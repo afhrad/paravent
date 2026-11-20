@@ -45,6 +45,10 @@ TRANSFER_ERROR = "transfer_error"
 # And the one that tells, on the new world's first page, what came along:
 # ``import|duplicate:records:files:creatures kept:left out``.
 TRANSFERRED = "transferred"
+# Check links' restore from the trash (app/routes/world_links.py); a page reached after a
+# delete carries the trash entry in ``undo``, and offers it back (:func:`undo_notice`).
+TRASH_RESTORE_URL = f"{LINKS_URL}/restore"
+UNDO = "undo"
 
 
 def _here(page: Page) -> str:
@@ -229,6 +233,27 @@ def transfer_notice(page: Page) -> Node:
     if skipped:
         parts.append(t.plural("transfer.done.skipped", skipped))
     return div(class_="notice", role="status")[icon("check"), span[" ".join(parts)]]
+
+
+def undo_notice(page: Page) -> Node:
+    """After a delete, the gamemaster's way to take it back: what went waits in the trash,
+    and **Undo** restores it and opens it again."""
+    if page.identity is None or not page.identity.is_gamemaster:
+        return None
+    kept = (parse_qs(urlsplit(page.path).query).get(UNDO) or [""])[0]
+    if not kept.isalnum() or len(kept) > 32:
+        return None
+    t = page.t
+    return div(class_="notice undo-notice", role="status")[
+        icon("trash-2"),
+        span[t("trash.undo_hint")],
+        form(method="post", action=TRASH_RESTORE_URL, class_="inline-form")[
+            input_el(type="hidden", name="id", value=kept),
+            button(type="submit", class_="btn btn-sm")[
+                icon("rotate-ccw", "sm"), span[t("trash.undo")]
+            ],
+        ],
+    ]
 
 
 def no_world_button(page: Page) -> Element:

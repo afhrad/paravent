@@ -8,12 +8,17 @@ its world — under its old id. Chapters and adventures are files, moved to
 ``library/.trash/`` (a world's folder goes there too, but has no world to be listed in);
 their entry here names that file and the adventure or world it came from, and restoring
 moves it back, with whatever was deleted together with it. One whose world is gone cannot
-come back and is cleared with the rest of the old ones; the files stay in the trash
-folder, nothing is erased.
+come back and is cleared with the rest of the old ones. The trash folder's files are
+erased once they are ``KEEP_DAYS`` old too (:meth:`Trash.clear_old`, by the time stamp
+:meth:`ProseStore.delete` gives their name), a deleted world's folder among them, so the
+folder and every backup holding it stop growing; a backup made before still has them.
 """
 
 from __future__ import annotations
 
+import logging
+import re
+import shutil
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -25,6 +30,11 @@ from app.services.i18n import Translatable
 from app.store.gamestate import Collection, GameStateStore
 
 KEEP_DAYS = 30
+# How :meth:`ProseStore.delete` names what it moves to the trash folder: the moment, then
+# the file's or folder's own name. Nothing else there is ever erased.
+_STAMPED = re.compile(r"^(\d{8}-\d{6})-.")
+
+logger = logging.getLogger(__name__)
 
 # Where each kind lives on the game-state store.
 COLLECTIONS: dict[str, str] = {
@@ -87,6 +97,14 @@ class Trash:
             )
         )
         return entry.id
+
+    def entry_of(self, kind: str, record_id: str) -> str | None:
+        """The trash entry keeping the ``kind`` record ``record_id``, newest; for the
+        **Undo** after a delete."""
+        found = self._store.trash.list(
+            lambda t: t.kind == kind and str(t.record.get("id", "")) == record_id
+        )
+        return max(found, key=lambda t: t.deleted_at).id if found else None
 
     def of_world(self, world_id: str) -> list[TrashedObject]:
         """What the world's trash holds, newest first."""
@@ -164,11 +182,41 @@ class Trash:
             self._store.trash.delete(trashed_id)
         return len(gone)
 
-    def clear_old(self, now: datetime | None = None) -> None:
-        """Forget what was deleted more than ``KEEP_DAYS`` ago."""
+    def clear_old(self, now: datetime | None = None) -> int:
+        """Forget what was deleted more than ``KEEP_DAYS`` ago, and erase the trash
+        folder's files of that age; how many files went."""
         limit = (now or datetime.now(UTC)) - timedelta(days=KEEP_DAYS)
         for trashed in self._store.trash.list(lambda t: t.deleted_at < limit):
             self._store.trash.delete(trashed.id)
+        return self._erase_files(limit)
+
+    def _erase_files(self, limit: datetime) -> int:
+        folder = self._store.prose.trash
+        if not folder.is_dir():
+            return 0
+        erased = 0
+        for path in folder.iterdir():
+            stamped = _STAMPED.match(path.name)
+            if stamped is None or path.is_symlink():
+                continue
+            try:
+                went = datetime.strptime(stamped.group(1), "%Y%m%d-%H%M%S").replace(tzinfo=UTC)
+            except ValueError:
+                continue
+            if went >= limit:
+                continue
+            try:
+                if path.is_dir():
+                    shutil.rmtree(path)
+                else:
+                    path.unlink()
+            except OSError as exc:  # a file that will not go stays until the next time
+                logger.warning("Could not erase %s from the trash: %s", path, exc)
+                continue
+            erased += 1
+        if erased:
+            logger.info("Erased %d item(s) older than %d days from %s", erased, KEEP_DAYS, folder)
+        return erased
 
 
 __all__ = ["COLLECTIONS", "FILES", "KEEP_DAYS", "Trash", "TrashError"]

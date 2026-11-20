@@ -1498,7 +1498,7 @@
   "adventures.delete": "Delete adventure",
   "adventures.delete_heading": "Delete {name}?",
   "adventures.delete_lede": {"one": "Its {count} chapter and its images go with it.", "other": "Its {count} chapters and its images go with it."},
-  "adventures.trash_hint": "Nothing is erased: for 30 days it can be restored under Check links → Recently deleted, with whatever is deleted along with it.",
+  "adventures.trash_hint": "It goes to the trash: for 30 days it can be restored under Check links → Recently deleted, with whatever is deleted along with it; then it is erased.",
   "delete.contents": "Placed in it: {held}.",
   "delete.keep_world": "Keep them — they move up to the world",
   "delete.keep_adventure": "Keep them — they move up to the adventure",
@@ -4081,5 +4081,7 @@
   "trash.error.file": "Its file is no longer in library/.trash/.",
   "md.embed.chapter": "Chapter",
   "md.embed.adventure": "Adventure",
-  "md.create_deleted": "“{name}” was deleted on {when} and is still in the trash. Restore it as it was, with its notes, and every link to it works again."
+  "md.create_deleted": "“{name}” was deleted on {when} and is still in the trash. Restore it as it was, with its notes, and every link to it works again.",
+  "trash.undo_hint": "It waits under Check links → Recently deleted for 30 days.",
+  "trash.undo": "Undo"
 }

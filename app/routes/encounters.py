@@ -646,7 +646,8 @@ async def delete_encounter(
 ) -> Response:
     """Delete the encounter."""
     registry.encounters.delete(encounter_id)
-    return redirect(f"{ENCOUNTERS_URL}?deleted=1")
+    undo = registry.trash.entry_of("encounter", encounter_id) or ""
+    return redirect(f"{ENCOUNTERS_URL}?deleted=1&undo={undo}")
 
 
 __all__ = ["router"]

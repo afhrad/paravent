@@ -332,7 +332,7 @@ class TestPages:
         assert [c.title for c in registry.adventures.chapters(adventure.id)] == ["b", "a"]
         assert (await ac.get(f"/gm/chapters/{a.id}/delete")).status_code == 200
         gone = await ac.post(f"/gm/chapters/{a.id}/delete")
-        assert gone.headers["location"] == f"/gm/adventures/{adventure.id}?deleted=1"
+        assert gone.headers["location"].startswith(f"/gm/adventures/{adventure.id}?deleted=1&undo=")
         assert (await ac.get(f"/gm/chapters/{a.id}")).status_code == 404
         await ac.post(f"/gm/adventures/{adventure.id}/delete")
         assert (await ac.get(f"/gm/adventures/{adventure.id}")).status_code == 404

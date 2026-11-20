@@ -158,3 +158,47 @@ async def test_check_links_restores_a_chapter(gm: AsyncClient, registry: StoreRe
     kept = registry.trash.of_world(world)[0]
     back = await gm.post("/gm/world/links/restore", data={"id": kept.id})
     assert back.headers["location"] == f"/gm/chapters/{fog}"
+
+
+async def test_a_delete_offers_undo(gm: AsyncClient, registry: StoreRegistry) -> None:
+    world, _bell, fog = _world(registry)
+    hob = registry.npcs.create("Hob", f"c:{fog}", world)
+    gone = await gm.post(f"/gm/npcs/{hob.id}/delete")
+    landed = gone.headers["location"]
+    kept = registry.trash.entry_of("npc", hob.id)
+    assert kept and f"undo={kept}" in landed
+    page = (await gm.get(landed)).text
+    assert "undo-notice" in page and f'name="id" value="{kept}"' in page
+    back = await gm.post("/gm/world/links/restore", data={"id": kept})
+    assert back.headers["location"] == f"/gm/npcs/{hob.id}"
+    # A chapter too, back on its own page.
+    gone = await gm.post(f"/gm/chapters/{fog}/delete", data={"contents": "keep"})
+    kept = registry.trash.entry_of("chapter", fog)
+    assert f"undo={kept}" in gone.headers["location"]
+    back = await gm.post("/gm/world/links/restore", data={"id": kept})
+    assert back.headers["location"] == f"/gm/chapters/{fog}"
+
+
+def test_the_nav_forgets_a_used_undo() -> None:
+    from app.ui.nav import _without_one_offs
+
+    assert _without_one_offs("/gm/npcs?world=w1&deleted=1&undo=abc") == "/gm/npcs?world=w1"
+    assert _without_one_offs("/gm/npcs?undo=abc") == "/gm/npcs"
+
+
+def test_the_trash_folder_is_erased_after_its_days(registry: StoreRegistry) -> None:
+    world, bell, fog = _world(registry)
+    registry.adventures.delete_chapter(fog)
+    folder = registry.gamestate.prose.trash
+    (kept,) = [p for p in folder.iterdir()]
+    old = folder / "20200101-120000-old-world"
+    (old / "media").mkdir(parents=True)
+    (old / "media" / "map.png").write_bytes(b"x")
+    stray = folder / "notes.txt"  # not named by a delete: never touched
+    stray.write_text("mine")
+    assert registry.trash.clear_old() == 1
+    assert not old.exists() and kept.exists() and stray.exists()
+    # Thirty days on, the chapter's file and its entry go too.
+    later = datetime.now(UTC) + timedelta(days=KEEP_DAYS + 1)
+    assert registry.trash.clear_old(later) == 1
+    assert not kept.exists() and registry.trash.of_world(world) == []

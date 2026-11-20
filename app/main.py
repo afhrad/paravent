@@ -189,6 +189,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     registry.start_watching()
     backups = _schedule_backups(registry)
+    trash = asyncio.create_task(_clear_trash_daily(registry), name="trash")
     app.state.stores = registry
     # Open sheets hold a streaming connection that uvicorn would wait on forever before
     # running the shutdown below; end those streams the moment a stop signal arrives.
@@ -202,7 +203,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         restore_signals()
         if backups is not None:
             backups.cancel()
+        trash.cancel()
         await registry.stop_watching()
+
+
+async def _clear_trash_daily(registry: StoreRegistry) -> None:
+    """Forget and erase what was deleted more than 30 days ago (app/services/trash.py):
+    at the start, then once a day."""
+    while True:
+        try:
+            await asyncio.to_thread(registry.trash.clear_old)
+        except OSError as exc:
+            logger.warning("Could not clear the trash: %s", exc)
+        await asyncio.sleep(24 * 60 * 60)
 
 
 def _schedule_backups(registry: StoreRegistry) -> asyncio.Task[None] | None:

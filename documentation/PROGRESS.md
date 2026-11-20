@@ -725,7 +725,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         one press, renamed or created, and what nothing uses, to delete together (§5.7).
         **Deleted objects wait 30 days** (`app/services/trash.py`) under *Recently deleted*,
         to restore where they were — chapters and adventures with what went with them, and
-        from the create page of a link to one; Claude lists them over MCP and restores what
+        from the create page of a link to one, or with **Undo** right after the delete, then erased from `library/.trash/`; Claude lists them over MCP and restores what
         it deleted from its own drafts. Every rename reaches the notes and quest givers. **What's new in Paravent** (2026-11-20,
         `app/services/news.py`): the commits' `News:` lines, written to `app/news.json` by
         the website build, on the gamemaster's home page until read

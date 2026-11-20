@@ -1498,7 +1498,7 @@
   "adventures.delete": "Abenteuer löschen",
   "adventures.delete_heading": "{name} löschen?",
   "adventures.delete_lede": {"one": "Sein {count} Kapitel und seine Bilder gehen mit.", "other": "Seine {count} Kapitel und seine Bilder gehen mit."},
-  "adventures.trash_hint": "Nichts wird gelöscht: 30 Tage lang lässt es sich unter Links prüfen → Kürzlich gelöscht wiederherstellen, mit allem, was mit ihm gelöscht wird.",
+  "adventures.trash_hint": "Es kommt in den Papierkorb: 30 Tage lang lässt es sich unter Links prüfen → Kürzlich gelöscht wiederherstellen, mitsamt dem, was mit ihm gelöscht wird; danach wird es endgültig entfernt.",
   "delete.contents": "Darin platziert: {held}.",
   "delete.keep_world": "Behalten — sie wandern in die Welt",
   "delete.keep_adventure": "Behalten — sie wandern ins Abenteuer",
@@ -4081,5 +4081,7 @@
   "trash.error.file": "Seine Datei liegt nicht mehr in library/.trash/.",
   "md.embed.chapter": "Kapitel",
   "md.embed.adventure": "Abenteuer",
-  "md.create_deleted": "„{name}“ wurde am {when} gelöscht und liegt noch im Papierkorb. Stelle es wieder her, wie es war, mit seinen Notizen, und jeder Link darauf funktioniert wieder."
+  "md.create_deleted": "„{name}“ wurde am {when} gelöscht und liegt noch im Papierkorb. Stelle es wieder her, wie es war, mit seinen Notizen, und jeder Link darauf funktioniert wieder.",
+  "trash.undo_hint": "Es wartet 30 Tage unter Links prüfen → Kürzlich gelöscht.",
+  "trash.undo": "Rückgängig"
 }

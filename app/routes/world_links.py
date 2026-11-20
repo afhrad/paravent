@@ -603,8 +603,7 @@ async def restore_trashed(
 ) -> Response:
     """Put a deleted object back where it was (its world, at least) and open it, or go
     ``back`` to the text whose link asked for it (the create page)."""
-    trashed = registry.gamestate.trash.find(id)
-    if trashed is None or trashed.world_id != registry.table.world_id():
+    if registry.gamestate.trash.find(id) is None:
         raise HTTPException(status_code=404)
     try:
         kind, record = registry.trash.restore(id)

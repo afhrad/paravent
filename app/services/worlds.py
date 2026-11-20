@@ -220,7 +220,8 @@ class WorldService:
     def delete(self, world_id: str) -> None:
         """Delete a world; characters belong to none, so they are not touched.
 
-        The world's folder, media included, is moved to ``library/.trash/``, not erased.
+        The world's folder, media included, is moved to ``library/.trash/``, and erased
+        after 30 days (app/services/trash.py).
         """
         self.get(world_id)
         adventures = self._store.adventures.list(lambda a: a.world_id == world_id)
