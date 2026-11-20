@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-20T14:36:09+01:00",
+  "en": "The encounter builder's settings are open beside the monsters, with a wide notes editor; the title image has its own panel.",
+  "de": "Die Einstellungen des Begegnungsbaukastens stehen offen neben den Monstern, mit breitem Notizeditor; das Titelbild hat ein eigenes Feld."
+ },
+ {
   "at": "2026-11-20T14:27:17+01:00",
   "en": "The treasure page is laid out for editing: items and coins together, a wide notes editor, sharing out and rolling beside them.",
   "de": "Die Schatzseite ist zum Bearbeiten neu geordnet: Gegenstände und Münzen zusammen, ein breiter Notizeditor, Verteilen und Auswürfeln daneben."
@@ -293,10 +298,5 @@
   "at": "2026-11-16T12:20:47+01:00",
   "en": "Characters pay for their lifestyle each day, chases and traps run from the party view and chapters, the clock reads dates in your setting's calendar, and downtime brings allies, rivals and favours to call on.",
   "de": "Charaktere zahlen täglich für ihren Lebensstil, Verfolgungsjagden und Fallen laufen von der Gruppenansicht und aus Kapiteln, die Uhr zeigt Daten im Kalender eures Settings, und Auszeit bringt Verbündete, Rivalen und Gefallen, auf die man zurückgreifen kann."
- },
- {
-  "at": "2026-11-15T19:41:20+01:00",
-  "en": "Travel with water, weather, mounts and ships; downtime activities from carousing to crime; magic items in the shop; bastion orders that bring defenders, coins and goods.",
-  "de": "Reisen mit Wasser, Wetter, Reittieren und Schiffen; Auszeit-Tätigkeiten vom Feiern bis zum Verbrechen; magische Gegenstände im Laden; Bastionsbefehle, die Verteidiger, Münzen und Waren bringen."
  }
 ]
