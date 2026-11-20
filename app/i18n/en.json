@@ -1498,7 +1498,7 @@
   "adventures.delete": "Delete adventure",
   "adventures.delete_heading": "Delete {name}?",
   "adventures.delete_lede": {"one": "Its {count} chapter and its images go with it.", "other": "Its {count} chapters and its images go with it."},
-  "adventures.trash_hint": "Nothing is erased: it is moved to library/.trash/, from where it can be moved back by hand.",
+  "adventures.trash_hint": "Nothing is erased: for 30 days it can be restored under Check links → Recently deleted, with whatever is deleted along with it.",
   "delete.contents": "Placed in it: {held}.",
   "delete.keep_world": "Keep them — they move up to the world",
   "delete.keep_adventure": "Keep them — they move up to the adventure",
@@ -4065,7 +4065,7 @@
   "links.unused_label": "Objects nothing uses",
   "session.broken_links": {"one": "{count} link in this world's texts leads nowhere", "other": "{count} links in this world's texts lead nowhere"},
   "trash.title": "Recently deleted",
-  "trash.hint": "NPCs, places, treasure and encounters deleted in this world stay here for {days} days. Restore puts one back where it was, or in the world when its chapter or adventure is gone.",
+  "trash.hint": "NPCs, places, treasure, encounters, chapters and adventures deleted in this world stay here for {days} days. Restore puts one back where it was (an NPC, place, treasure or encounter in the world when its chapter or adventure is gone); a chapter or adventure brings back what was deleted with it.",
   "trash.restore": "Restore",
   "trash.empty": "Empty",
   "trash.emptied": "The trash is empty.",
@@ -4076,5 +4076,10 @@
   "trash.named": {"one": "named in {count} text, whose link works again once it is back", "other": "named in {count} texts, whose links work again once it is back"},
   "md.create_relink": "Change the link to “{name}”",
   "news.title": "What's new in Paravent",
-  "news.seen": "Got it"
+  "news.seen": "Got it",
+  "trash.error.adventure": "Its adventure or world is gone, so it cannot come back.",
+  "trash.error.file": "Its file is no longer in library/.trash/.",
+  "md.embed.chapter": "Chapter",
+  "md.embed.adventure": "Adventure",
+  "md.create_deleted": "“{name}” was deleted on {when} and is still in the trash. Restore it as it was, with its notes, and every link to it works again."
 }

@@ -621,9 +621,18 @@ an NPC, place, treasure or encounter deleted anywhere is kept for 30 days and li
 **Recently deleted** on Check links; **Restore** puts it back under its old id where it was,
 or in its adventure or world when its chapter or adventure is gone (one whose world is gone
 cannot return); **Empty** forgets the world's trash. Each row says how many texts still
-name it, whose links work again once it is back. A rename (here, in the editor or on the
-create page) now also rewrites the notes of the world's NPCs, places, treasure and
-encounters and its session notes (`reference_fix`); the create page can also point the one
+name it, whose links work again once it is back. **Chapters and adventures too**: their file
+or folder still goes to `library/.trash/`, but the trash now notes it with its adventure or
+world, so **Restore** moves it back and reads it again, together with the NPCs, places,
+treasure and encounters deleted with it (`part_of`); a chapter whose adventure is gone stays
+put. A revision's copy, written back onto its original, is not kept. **The create page offers
+it back**: a dashed link to a name deleted lately says when it went and offers **Restore**
+first, returning to the text. Every rename — on an object's page, here, in
+the editor or on the create page — now also rewrites the notes of the world's NPCs, places,
+treasure and encounters and its session notes, and for an NPC the giver of its quests
+(`rewrite_references`, `reference_fix`); quest texts and faction, contact and party notes are
+plain text and hold no links. Claude lists the trash over MCP (`list_trash`) and may restore
+what was deleted from its own drafts (`restore`). The create page can also point the one
 link at the object meant (`POST /gm/editor/relink`), or rename it and go back to the text.
 Claude reads the same list over MCP (`check_world`, MCP.md), and its instructions say when:
 after a revision, or when asked to look over a world. Front matter reads twelve hex

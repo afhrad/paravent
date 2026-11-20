@@ -1451,12 +1451,16 @@ class CheckCall(Record):
 
 class TrashedObject(Record):
     """An NPC, place, treasure or encounter deleted, kept for a while to restore
-    (app/services/trash.py): the record as it was, its world and when it went."""
+    (app/services/trash.py): the record as it was, its world and when it went. A chapter
+    or an adventure keeps only where its file went in ``library/.trash/`` and its parent
+    (``record``: ``kept``, ``parent_id``); what was deleted with it names it in
+    ``part_of`` and comes back with it."""
 
-    kind: Literal["npc", "place", "treasure", "encounter"]
+    kind: Literal["npc", "place", "treasure", "encounter", "chapter", "adventure"]
     world_id: str
     name: str
     record: dict[str, Any]
+    part_of: str | None = None
     deleted_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 

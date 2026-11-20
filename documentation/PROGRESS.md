@@ -724,7 +724,9 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         **Check links** in the world menu lists every broken link of the world, mended with
         one press, renamed or created, and what nothing uses, to delete together (§5.7).
         **Deleted objects wait 30 days** (`app/services/trash.py`) under *Recently deleted*,
-        to restore where they were. **What's new in Paravent** (2026-11-20,
+        to restore where they were — chapters and adventures with what went with them, and
+        from the create page of a link to one; Claude lists them over MCP and restores what
+        it deleted from its own drafts. Every rename reaches the notes and quest givers. **What's new in Paravent** (2026-11-20,
         `app/services/news.py`): the commits' `News:` lines, written to `app/news.json` by
         the website build, on the gamemaster's home page until read
   - [x] **Ready-made objects in an adventure** (2026-11-19, `app/services/holdings.py`):
@@ -1238,7 +1240,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 - [x] Player management and language switching — `tests/test_players.py`; catalogues and
       negotiation — `tests/test_i18n.py`
 
-2448 tests, about seven minutes for the whole suite (14 before 2026-11-12). What made it
+2543 tests, about seven minutes for the whole suite in one process (14 before 2026-11-12). What made it
 slow, found by profiling: a character sheet dumped every class and subclass feature to
 plain data for each build (now `CompendiumStore.dumps`, once per load — a sheet takes
 5 ms instead of 21, which the tracker and party cards feel too); every test app built the

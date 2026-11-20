@@ -64,7 +64,7 @@ def test_what_is_deleted_comes_back_where_it_was(registry: StoreRegistry) -> Non
     assert [t.name for t in trash.of_world(world)] == ["Ambush"]
     # Its chapter gone meanwhile: the encounter comes back into its adventure.
     registry.adventures.delete_chapter(fog)
-    kind, again = trash.restore(trash.of_world(world)[0].id)
+    kind, again = trash.restore(next(t for t in trash.of_world(world) if t.name == "Ambush").id)
     encounter = registry.gamestate.encounters.get(ambush.id)
     assert encounter.adventure_id == bell and encounter.chapter_id is None
     with pytest.raises(TrashError):
@@ -110,3 +110,51 @@ async def test_the_trash_says_which_texts_still_name_it(
     registry.npcs.delete(hob.id)
     page = (await gm.get("/gm/world/links")).text
     assert "named in 1 text, whose link works again once it is back" in page
+
+
+def test_a_deleted_chapter_comes_back_with_what_went_with_it(registry: StoreRegistry) -> None:
+    world, bell, fog = _world(registry)
+    registry.gamestate.chapters.update(fog, body="The ferry waits.")
+    hob = registry.npcs.create("Hob", f"c:{fog}", world)
+    registry.adventures.delete_chapter(fog, contents=True)
+    assert registry.gamestate.chapters.find(fog) is None
+    assert registry.gamestate.npcs.find(hob.id) is None
+    trash = registry.trash
+    kept = next(t for t in trash.of_world(world) if t.kind == "chapter")
+    assert kept.name == "Fog"
+    kind, back = trash.restore(kept.id)
+    chapter = registry.gamestate.chapters.get(fog)
+    assert kind == "chapter" and back.id == fog
+    assert chapter.adventure_id == bell and chapter.body.strip() == "The ferry waits."
+    # The NPC deleted with it is back in it.
+    assert registry.gamestate.npcs.get(hob.id).scope.chapter_id == fog
+    assert trash.of_world(world) == []
+
+
+def test_a_deleted_adventure_comes_back_into_its_world(registry: StoreRegistry) -> None:
+    world, bell, fog = _world(registry)
+    registry.adventures.delete(bell)
+    kept = registry.trash.of_world(world)[0]
+    assert (kept.kind, kept.name) == ("adventure", "The Drowned Bell")
+    registry.trash.restore(kept.id)
+    assert registry.gamestate.adventures.get(bell).world_id == world
+    assert registry.gamestate.chapters.get(fog).adventure_id == bell
+
+
+def test_a_chapter_whose_adventure_is_gone_stays(registry: StoreRegistry) -> None:
+    world, bell, fog = _world(registry)
+    registry.adventures.delete_chapter(fog)
+    registry.adventures.delete(bell)
+    chapter = next(t for t in registry.trash.of_world(world) if t.kind == "chapter")
+    with pytest.raises(TrashError):
+        registry.trash.restore(chapter.id)
+
+
+async def test_check_links_restores_a_chapter(gm: AsyncClient, registry: StoreRegistry) -> None:
+    world, _bell, fog = _world(registry)
+    registry.adventures.delete_chapter(fog)
+    page = (await gm.get("/gm/world/links")).text
+    assert "Recently deleted" in page and "Chapter" in page and "Fog" in page
+    kept = registry.trash.of_world(world)[0]
+    back = await gm.post("/gm/world/links/restore", data={"id": kept.id})
+    assert back.headers["location"] == f"/gm/chapters/{fog}"

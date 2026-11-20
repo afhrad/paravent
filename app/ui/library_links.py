@@ -8,6 +8,7 @@ other's links without importing each other.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import datetime
 from urllib.parse import urlencode
 
 from htpy import (
@@ -51,6 +52,9 @@ MEDIA_URL = "/media"
 NEW_OBJECT_URL = "/gm/editor/new"
 RELINK_URL = "/gm/editor/relink"
 RENAME_BACK_URL = "/gm/editor/rename-back"
+# Check links' restore from the trash (app/routes/world_links.py), offered on the create
+# page too when the name was deleted lately.
+TRASH_RESTORE_URL = "/gm/world/links/restore"
 CREATABLE = frozenset({"npc", "encounter", "treasure", "place"})
 
 
@@ -250,13 +254,36 @@ def new_object_page(
     back: str,
     near: Sequence[tuple[str, str, str]] = (),
     text: str = "",
+    trashed: tuple[str, datetime] | None = None,
 ) -> Element:
     """Ask before making what a link names but the world lacks: what, and where it goes
     (the text's chapter, adventure or world, where the link looks first). ``near`` are
     ``(id, name, url)`` of what the text probably meant, offered first: to open, to point
-    the link at (in ``text``, when known), or to rename to the name written."""
+    the link at (in ``text``, when known), or to rename to the name written. ``trashed``
+    (the trash entry's id and when it went) offers it back first, when it was deleted
+    lately under that name."""
     t = page.t
     what = t(f"md.embed.{kind}")
+    restore = (
+        div(class_="create-near create-restore")[
+            p[
+                t(
+                    "md.create_deleted",
+                    name=name,
+                    when=trashed[1].astimezone().strftime("%Y-%m-%d %H:%M"),
+                )
+            ],
+            form(method="post", action=TRASH_RESTORE_URL, class_="inline-form")[
+                hidden("id", trashed[0]),
+                hidden("back", back),
+                button(type="submit", class_="btn btn-primary")[
+                    icon("rotate-ccw"), span[t("trash.restore")]
+                ],
+            ],
+        ]
+        if trashed
+        else None
+    )
     return app_shell(
         page,
         t("md.create_title", name=name),
@@ -267,6 +294,7 @@ def new_object_page(
                     span(class_="eyebrow")[what], b[t("md.create_title", name=name)]
                 ],
                 p[t("md.create_lede", name=name, kind=what, where=where)],
+                restore,
                 div(class_="create-near")[
                     p(class_="field-hint")[t("md.create_near")],
                     ul(class_="create-near-list create-near-rows")[
@@ -321,6 +349,7 @@ def new_object_page(
 __all__ = [
     "CREATABLE",
     "NEW_OBJECT_URL",
+    "TRASH_RESTORE_URL",
     "new_object_page",
     "new_object_url",
     "confirm_page",

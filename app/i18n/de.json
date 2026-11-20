@@ -1498,7 +1498,7 @@
   "adventures.delete": "Abenteuer löschen",
   "adventures.delete_heading": "{name} löschen?",
   "adventures.delete_lede": {"one": "Sein {count} Kapitel und seine Bilder gehen mit.", "other": "Seine {count} Kapitel und seine Bilder gehen mit."},
-  "adventures.trash_hint": "Nichts wird gelöscht: Es wird nach library/.trash/ verschoben und kann von dort von Hand zurückgeholt werden.",
+  "adventures.trash_hint": "Nichts wird gelöscht: 30 Tage lang lässt es sich unter Links prüfen → Kürzlich gelöscht wiederherstellen, mit allem, was mit ihm gelöscht wird.",
   "delete.contents": "Darin platziert: {held}.",
   "delete.keep_world": "Behalten — sie wandern in die Welt",
   "delete.keep_adventure": "Behalten — sie wandern ins Abenteuer",
@@ -4065,7 +4065,7 @@
   "links.unused_label": "Objekte, die nichts verwendet",
   "session.broken_links": {"one": "{count} Link in den Texten dieser Welt führt ins Leere", "other": "{count} Links in den Texten dieser Welt führen ins Leere"},
   "trash.title": "Kürzlich gelöscht",
-  "trash.hint": "In dieser Welt gelöschte NSC, Orte, Schätze und Begegnungen bleiben {days} Tage hier. Wiederherstellen bringt eines dorthin zurück, wo es war, oder in die Welt, wenn sein Kapitel oder Abenteuer fehlt.",
+  "trash.hint": "In dieser Welt gelöschte NSC, Orte, Schätze, Begegnungen, Kapitel und Abenteuer bleiben {days} Tage hier. Wiederherstellen bringt eines dorthin zurück, wo es war (einen NSC, Ort, Schatz oder eine Begegnung in die Welt, wenn sein Kapitel oder Abenteuer fehlt); ein Kapitel oder Abenteuer bringt mit, was mit ihm gelöscht wurde.",
   "trash.restore": "Wiederherstellen",
   "trash.empty": "Leeren",
   "trash.emptied": "Der Papierkorb ist leer.",
@@ -4076,5 +4076,10 @@
   "trash.named": {"one": "in {count} Text genannt, dessen Link nach dem Wiederherstellen wieder geht", "other": "in {count} Texten genannt, deren Links nach dem Wiederherstellen wieder gehen"},
   "md.create_relink": "Link auf „{name}“ ändern",
   "news.title": "Neu in Paravent",
-  "news.seen": "Verstanden"
+  "news.seen": "Verstanden",
+  "trash.error.adventure": "Sein Abenteuer oder seine Welt gibt es nicht mehr, darum kann es nicht zurückkommen.",
+  "trash.error.file": "Seine Datei liegt nicht mehr in library/.trash/.",
+  "md.embed.chapter": "Kapitel",
+  "md.embed.adventure": "Abenteuer",
+  "md.create_deleted": "„{name}“ wurde am {when} gelöscht und liegt noch im Papierkorb. Stelle es wieder her, wie es war, mit seinen Notizen, und jeder Link darauf funktioniert wieder."
 }

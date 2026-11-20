@@ -17,9 +17,19 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Literal
 
-from app.models.gamestate import Adventure, Chapter, LevelRange, Scope, SourceSet, Status, World
+from app.models.gamestate import (
+    Adventure,
+    Chapter,
+    Encounter,
+    LevelRange,
+    Scope,
+    SourceSet,
+    Status,
+    World,
+)
 from app.services import image_effects, media
 from app.services.i18n import Translatable
+from app.services.trash import Trash
 from app.store.gamestate import GameStateStore
 from app.store.prose import MEDIA_DIR
 from app.store.published import AdventureBody, PublishedAdventure, PublishedAdventures, Section
@@ -305,18 +315,21 @@ class AdventureService:
         chosen = [i for i in dict.fromkeys(character_ids) if i in present]
         return self._store.adventures.update(adventure_id, party=chosen or None)
 
-    def delete(self, adventure_id: str, *, contents: bool = False) -> None:
+    def delete(self, adventure_id: str, *, contents: bool = False, keep: bool = True) -> None:
         """Move an adventure's folder, chapters and images included, to the trash.
 
         NPCs, places, treasure and encounters placed in it move up to the world, so
         deleting the text never deletes the things the text placed — unless
         ``contents``, which deletes them with it (cleaning up a generated adventure).
         Fights already run stay as history; session notes lose the adventure's name.
+        Listed under *Recently deleted* to restore, its contents with it, unless not
+        ``keep`` (a revision's copy, written back onto its original).
         """
-        self.get(adventure_id)
-        self._store.adventures.delete(adventure_id)
+        adventure = self.get(adventure_id)
+        kept = self._store.adventures.delete(adventure_id)
+        part_of = Trash(self._store).keep_file("adventure", adventure, kept) if keep else None
         if contents:
-            self._remove(adventure_id=adventure_id)
+            self._remove(adventure_id=adventure_id, part_of=part_of, keep=keep)
         else:
             self._promote(adventure_id=adventure_id)
         for note in self._store.session_notes.list(lambda n: n.adventure_id == adventure_id):
@@ -335,8 +348,17 @@ class AdventureService:
             "treasure": len(store.treasures.list(lambda x: _within(x.scope, here))),
         }
 
-    def _remove(self, *, adventure_id: str | None = None, chapter_id: str | None = None) -> None:
-        """Delete what is placed in an adventure or a chapter."""
+    def _remove(
+        self,
+        *,
+        adventure_id: str | None = None,
+        chapter_id: str | None = None,
+        part_of: str | None = None,
+        keep: bool = True,
+    ) -> None:
+        """Delete what is placed in an adventure or a chapter, kept in the trash as
+        ``part_of`` it unless not ``keep``."""
+        trash = Trash(self._store)
 
         def inside(where: Scope | None) -> bool:
             if where is None:
@@ -345,10 +367,15 @@ class AdventureService:
                 return where.chapter_id == chapter_id
             return adventure_id is not None and where.adventure_id == adventure_id
 
-        for collection in (self._store.npcs, self._store.locations, self._store.treasures):
+        kinds = (("npc", self._store.npcs), ("place", self._store.locations))
+        for kind, collection in (*kinds, ("treasure", self._store.treasures)):
             for record in collection.list(lambda r: inside(r.scope)):
+                if keep:
+                    trash.keep(kind, record, part_of)
                 collection.delete(record.id)
         for encounter in self._store.encounters.list(lambda e: inside(e.scope)):
+            if keep:
+                trash.keep("encounter", encounter, part_of)
             self._store.encounters.delete(encounter.id)
 
     def _promote(self, *, adventure_id: str | None = None, chapter_id: str | None = None) -> None:
@@ -447,9 +474,10 @@ class AdventureService:
         """Move a chapter's file to the trash; returns what it was. What is placed in it
         moves up to the adventure, or with ``contents`` is deleted with it."""
         chapter = self.get_chapter(chapter_id)
-        self._store.chapters.delete(chapter_id)
+        kept = self._store.chapters.delete(chapter_id)
+        part_of = Trash(self._store).keep_file("chapter", chapter, kept)
         if contents:
-            self._remove(chapter_id=chapter_id)
+            self._remove(chapter_id=chapter_id, part_of=part_of)
         else:
             self._promote(chapter_id=chapter_id)
         return chapter
@@ -462,7 +490,9 @@ class AdventureService:
         """After a rename, point ``{@kind old…}`` and ``::: kind old`` at the new name.
 
         Every text in the world is checked — its description, its adventures, their
-        chapters — and only the ones that change are written. Returns how many. ``within``
+        chapters, the notes of its NPCs, places, treasure and encounters and its session
+        notes, and for an NPC the quests it gives — and only the ones that change are
+        written. Returns how many. ``within``
         is the adventure the renamed record lies in: a rename in a revision stays in it
         until it is accepted (documentation/MCP.md §9).
         """
@@ -472,7 +502,43 @@ class AdventureService:
         copy = self._store.adventures.find(within) if within else None
         if copy is not None and copy.revision_of:
             return self._rewrite_adventure(copy, fix)
-        return self._rewrite_world(world_id, fix)
+        changed = self._rewrite_world(world_id, fix) + self._rewrite_notes(world_id, fix)
+        return changed + (self._rewrite_givers(world_id, old, new) if kind == "npc" else 0)
+
+    def _rewrite_givers(self, world_id: str, old: str, new: str) -> int:
+        """Quests whose giver is the renamed NPC, by name (a quest's text is plain, and
+        holds no links)."""
+        givers = self._store.quests.list(
+            lambda q: q.world_id == world_id and q.giver.strip().casefold() == old.casefold()
+        )
+        for quest in givers:
+            self._store.quests.update(quest.id, giver=new)
+        return len(givers)
+
+    def _rewrite_notes(self, world_id: str, fix: Callable[[str], str]) -> int:
+        """The notes of the world's NPCs, places, treasure and encounters, and its session
+        notes: links live there too."""
+        changed = 0
+        for collection in (
+            self._store.npcs,
+            self._store.locations,
+            self._store.treasures,
+            self._store.encounters,
+        ):
+            for record in collection.list():
+                scope = record.scope
+                if scope is not None:
+                    own_world: str | None = scope.world_id
+                else:  # only an encounter may have no scope; its world is its own field
+                    own_world = record.world_id if isinstance(record, Encounter) else None
+                if own_world == world_id and fix(record.notes) != record.notes:
+                    collection.update(record.id, notes=fix(record.notes))
+                    changed += 1
+        for note in self._store.session_notes.list(lambda n: n.world_id == world_id):
+            if fix(note.text) != note.text:
+                self._store.session_notes.update(note.id, text=fix(note.text))
+                changed += 1
+        return changed
 
     def rewrite_all_texts(self, fix: Callable[[str], str]) -> int:
         """Apply ``fix`` to every text of every world — descriptions, adventures, chapters,

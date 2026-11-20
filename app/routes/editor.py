@@ -109,19 +109,6 @@ def rename_object(
     collection.update(object_id, name=new)
     adventure_id = where.adventure_id if where is not None else None
     registry.adventures.rewrite_references(str(record_world), kind, old, new, adventure_id)
-    # The world's notes and session notes follow too: rewrite_references reads the prose.
-    fix = reference_fix(kind, old, new)
-    store = registry.gamestate
-    for name in RENAMEABLE.values():
-        notes = getattr(store, name)
-        for other in notes.list():
-            other_scope = getattr(other, "scope", None)
-            other_world = other_scope.world_id if other_scope else other.world_id
-            if other_world == record_world and fix(other.notes) != other.notes:
-                notes.update(other.id, notes=fix(other.notes))
-    for note in store.session_notes.list(lambda n: n.world_id == record_world):
-        if fix(note.text) != note.text:
-            store.session_notes.update(note.id, text=fix(note.text))
     return True
 
 
@@ -239,6 +226,17 @@ async def ask_new(
     }
     if finders[kind](name, where) is not None:
         return redirect(_make(registry, kind, name, where))
+    # Deleted lately under that name: offered back first, its links working again.
+    trashed = next(
+        (
+            (x.id, x.deleted_at)
+            for x in registry.trash.of_world(where.world_id)
+            if x.kind == kind and x.name.casefold() == name.strip().casefold()
+        ),
+        None,
+    )
+    if where.world_id != registry.table.world_id():
+        trashed = None  # restored only in the table's world (Check links)
     # What the text probably meant: each to open, to point the link at, or to rename.
     near = [
         (ident, found, _make(registry, kind, found, where))
@@ -254,6 +252,7 @@ async def ask_new(
             back=safe_next(back) or "/gm/adventures",
             near=near,
             text=text,
+            trashed=trashed,
         )
     )
 

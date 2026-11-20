@@ -33,7 +33,7 @@ from htpy import input as input_el
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.models.gamestate import Scope, TrashedObject
 from app.routes.adventures import chapter_problems, notes_problems
-from app.routes.auth import html, redirect
+from app.routes.auth import html, redirect, safe_next
 from app.routes.editor import RENAMEABLE, rename_object
 from app.services import scope as scopes
 from app.services.trash import KEEP_DAYS, TrashError
@@ -46,6 +46,7 @@ from app.ui.home_pages import page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.library_links import (
+    TRASH_RESTORE_URL,
     adventure_url,
     chapter_url,
     location_url,
@@ -63,7 +64,7 @@ router = APIRouter(tags=["world links"])
 FIX_URL = f"{LINKS_URL}/fix"
 RENAME_URL = f"{LINKS_URL}/rename"
 UNUSED_URL = f"{LINKS_URL}/unused"
-RESTORE_URL = f"{LINKS_URL}/restore"
+RESTORE_URL = TRASH_RESTORE_URL
 EMPTY_URL = f"{LINKS_URL}/empty-trash"
 
 # Where each kind of text is kept: its collection on the game-state store and its field.
@@ -582,7 +583,14 @@ async def delete_unused(
 
 
 TRASH_ERRORS = frozenset(
-    {"trash.error.gone", "trash.error.world", "trash.error.taken", "trash.error.unreadable"}
+    {
+        "trash.error.gone",
+        "trash.error.world",
+        "trash.error.taken",
+        "trash.error.unreadable",
+        "trash.error.adventure",
+        "trash.error.file",
+    }
 )
 
 
@@ -591,8 +599,10 @@ async def restore_trashed(
     _gm: GamemasterDep,
     registry: RegistryDep,
     id: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
+    back: Annotated[str, Form()] = "",
 ) -> Response:
-    """Put a deleted object back where it was (its world, at least) and open it."""
+    """Put a deleted object back where it was (its world, at least) and open it, or go
+    ``back`` to the text whose link asked for it (the create page)."""
     trashed = registry.gamestate.trash.find(id)
     if trashed is None or trashed.world_id != registry.table.world_id():
         raise HTTPException(status_code=404)
@@ -600,11 +610,15 @@ async def restore_trashed(
         kind, record = registry.trash.restore(id)
     except TrashError as exc:
         return redirect(f"{LINKS_URL}?{urlencode({'fixed': exc.key})}#trash")
+    if safe_next(back):
+        return redirect(str(safe_next(back)))
     urls = {
         "npc": npc_url,
         "place": location_url,
         "treasure": treasure_url,
         "encounter": encounter_url,
+        "chapter": chapter_url,
+        "adventure": adventure_url,
     }
     return redirect(urls[kind](record.id))
 

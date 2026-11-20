@@ -335,7 +335,7 @@ class Revisions:
                 level=copy.level,
                 party=copy.party,
             )
-        self._adventures.delete(copy.id, contents=True)
+        self._adventures.delete(copy.id, contents=True, keep=False)
         return changes
 
     def _written(self, kind: Kind, record: Any, where: Scope) -> dict[str, Any]:

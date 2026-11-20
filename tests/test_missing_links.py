@@ -13,7 +13,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.config import Settings
 from app.main import create_app
-from app.models.gamestate import Combat, Role, Scope, SessionNote
+from app.models.gamestate import Combat, Quest, Role, Scope, SessionNote
 from app.routes.adventures import close_names
 from app.services.worlds import WorldInput
 from app.store.registry import StoreRegistry
@@ -325,3 +325,53 @@ async def test_a_rename_reaches_notes_and_session_notes(
     assert back.headers["location"] == "/gm/npcs"
     assert registry.gamestate.npcs.get(maren.id).notes == "Owes {@npc Hob|him} a favour."
     assert registry.gamestate.session_notes.get(note.id).text == "{@npc Hob} rowed."
+
+
+def test_a_rename_on_the_object_page_reaches_notes(registry: StoreRegistry) -> None:
+    chapter_id = _chapter(registry)
+    world = registry.gamestate.chapters.get(chapter_id).world_id
+    hob = registry.npcs.create("Hob Wade", f"w:{world}", world)
+    maren = registry.npcs.create("Maren", f"w:{world}", world)
+    registry.gamestate.npcs.update(maren.id, notes="Owes {@npc Hob Wade} a favour.")
+    note = registry.gamestate.session_notes.create(
+        SessionNote(world_id=world, day=date(2026, 11, 20), text="{@npc Hob Wade|He} rowed.")
+    )
+    errand = registry.gamestate.quests.create(Quest(world_id=world, name="Bell", giver="hob wade"))
+    other = registry.gamestate.quests.create(Quest(world_id=world, name="Reed", giver="Anyone"))
+    registry.npcs.update(
+        hob.id, name="Hob", scope_value=f"w:{world}", roles=[], statblock="", notes=""
+    )
+    assert registry.gamestate.npcs.get(maren.id).notes == "Owes {@npc Hob} a favour."
+    assert registry.gamestate.session_notes.get(note.id).text == "{@npc Hob|He} rowed."
+    assert registry.gamestate.quests.get(errand.id).giver == "Hob"  # the quest it gives
+    assert registry.gamestate.quests.get(other.id).giver == "Anyone"
+
+
+async def test_the_create_page_offers_back_what_was_deleted(
+    gm: AsyncClient, registry: StoreRegistry
+) -> None:
+    chapter_id = _chapter(registry)
+    world = registry.gamestate.chapters.get(chapter_id).world_id
+    registry.table.select(world)
+    hob = registry.npcs.create("Hob", f"c:{chapter_id}", world)
+    registry.gamestate.npcs.update(hob.id, notes="Rows the ferry.")
+    registry.npcs.delete(hob.id)
+    back = f"/gm/chapters/{chapter_id}"
+    page = (
+        await gm.get(
+            "/gm/editor/new",
+            params={"kind": "npc", "name": "hob", "scope": f"c:{chapter_id}", "back": back},
+        )
+    ).text
+    assert "was deleted on" in page and "/gm/world/links/restore" in page
+    kept = registry.trash.of_world(world)[0]
+    done = await gm.post("/gm/world/links/restore", data={"id": kept.id, "back": back})
+    assert done.headers["location"] == back
+    assert registry.gamestate.npcs.get(hob.id).notes == "Rows the ferry."
+    # Nothing deleted under that name: no offer.
+    page = (
+        await gm.get(
+            "/gm/editor/new", params={"kind": "npc", "name": "Tam", "scope": f"c:{chapter_id}"}
+        )
+    ).text
+    assert "was deleted on" not in page

@@ -662,6 +662,28 @@ class ProseStore:
             self._drop_orphans(notify=True)
             return target
 
+    def put_back(self, kind: Kind, kept: str, parent_id: str) -> str | None:
+        """Move a chapter's file or an adventure's folder that :meth:`delete` put in the
+        trash (``kept``, its name there) back under its adventure or world, and read it;
+        the record's id, or None when it is no longer in the trash or does not read."""
+        with self._lock:
+            self._ensure_loaded()
+            source = self.trash / Path(kept).name
+            if not source.exists():
+                return None
+            parent = self._doc(parent_id, "adventure" if kind == "chapter" else "world")
+            if kind == "chapter":
+                stem = source.stem.split("-", 2)[-1] or "chapter"
+                target = self._free(parent.path.parent / CHAPTERS_DIR, stem, ".md")
+            else:
+                stem = source.name.split("-", 2)[-1] or "adventure"
+                target = self._free(parent.path.parent / ADVENTURES_DIR, stem)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(source), str(target))
+            self._reconcile(notify=True)
+            main = target if kind == "chapter" else target / ADVENTURE_FILE
+            return self._owner_of(main.resolve())
+
     # -- migration ---------------------------------------------------------------
 
     def adopt_json(self, library_dir: Path) -> int:
@@ -839,9 +861,14 @@ class ProseCollection(Generic[R]):
             raise InvalidEntry(self.name, describe_error(exc)) from exc
         return cast(R, self._store.save(self._kind, checked))
 
-    def delete(self, record_id: str) -> None:
-        """Move the record to the trash."""
-        self._store.delete(self._kind, record_id)
+    def delete(self, record_id: str) -> Path:
+        """Move the record to the trash; where it went."""
+        return self._store.delete(self._kind, record_id)
+
+    def put_back(self, kept: str, parent_id: str) -> R | None:
+        """A record :meth:`delete` moved to the trash, back under ``parent_id``."""
+        found = self._store.put_back(self._kind, kept, parent_id)
+        return self.find(found)
 
     def __len__(self) -> int:
         """How many records there are."""
