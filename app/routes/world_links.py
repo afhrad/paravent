@@ -8,6 +8,8 @@
 * ``POST /gm/world/links/rename`` — or the object renamed to the name the text uses, every
   link to its old name following
 * ``POST /gm/world/links/unused`` — unused objects ticked: asked, then deleted
+* ``POST /gm/world/links/restore`` — a deleted object back from the trash (app/services/trash.py)
+* ``POST /gm/world/links/empty-trash`` — the world's trash forgotten
 
 A missing NPC, place, treasure or encounter is offered to create through the same page as a
 dashed link in a chapter (``/gm/editor/new``), coming back here.
@@ -28,11 +30,12 @@ from htpy import Element, a, b, button, code, div, form, li, p, section, span, u
 from htpy import input as input_el
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
-from app.models.gamestate import Scope
+from app.models.gamestate import Scope, TrashedObject
 from app.routes.adventures import chapter_problems, notes_problems
 from app.routes.auth import html, redirect
 from app.routes.editor import RENAMEABLE, rename_object
 from app.services import scope as scopes
+from app.services.trash import KEEP_DAYS, TrashError
 from app.store.registry import StoreRegistry
 from app.ui import tags
 from app.ui.context import Page
@@ -59,6 +62,8 @@ router = APIRouter(tags=["world links"])
 FIX_URL = f"{LINKS_URL}/fix"
 RENAME_URL = f"{LINKS_URL}/rename"
 UNUSED_URL = f"{LINKS_URL}/unused"
+RESTORE_URL = f"{LINKS_URL}/restore"
+EMPTY_URL = f"{LINKS_URL}/empty-trash"
 
 # Where each kind of text is kept: its collection on the game-state store and its field.
 FIELDS: dict[str, tuple[str, str]] = {
@@ -253,6 +258,7 @@ def links_page(
     checked: Sequence[Checked],
     message: str | None = None,
     unused: Sequence[Unused] = (),
+    trashed: Sequence[TrashedObject] = (),
 ) -> Element:
     """The world's texts with their problems, each mendable from here; then what nothing
     uses, to open or delete."""
@@ -270,8 +276,42 @@ def links_page(
             notice(message),
             [_text_section(page, c) for c in checked],
             _unused_section(page, unused) if unused else None,
+            _trash_section(page, trashed) if trashed else None,
         ],
     )
+
+
+def _trash_section(page: Page, trashed: Sequence[TrashedObject]) -> Element:
+    """What was deleted lately, to restore."""
+    t = page.t
+    return section(class_="links-text links-unused panel", id="trash")[
+        div(class_="links-text-head")[
+            span(class_="eyebrow")[t.plural("links.unused_count", len(trashed))],
+            b(class_="links-text-title")[t("trash.title")],
+            p(class_="field-hint")[t("trash.hint", days=KEEP_DAYS)],
+        ],
+        ul(class_="links-unused-list")[
+            [
+                li(class_="links-unused-row")[
+                    span(class_="muted links-unused-kind")[t(f"md.embed.{x.kind}")],
+                    span[x.name],
+                    span(class_="muted")[x.deleted_at.astimezone().strftime("%Y-%m-%d %H:%M")],
+                    form(method="post", action=RESTORE_URL, class_="inline-form")[
+                        hidden("id", x.id),
+                        button(type="submit", class_="btn btn-sm")[
+                            icon("rotate-ccw", "sm"), span[t("trash.restore")]
+                        ],
+                    ],
+                ]
+                for x in trashed
+            ]
+        ],
+        form(method="post", action=EMPTY_URL, class_="form-actions")[
+            button(type="submit", class_="btn btn-sm btn-ghost btn-danger")[
+                icon("trash-2", "sm"), span[t("trash.empty")]
+            ]
+        ],
+    ]
 
 
 def _unused_section(page: Page, unused: Sequence[Unused]) -> Element:
@@ -417,10 +457,14 @@ async def world_links(
         "stale": page.t("links.stale"),
         "renamed": page.t("links.renamed"),
         "deleted": page.t.plural("links.deleted", int(n) if n.isdigit() else 0),
+        "emptied": page.t("trash.emptied"),
     }.get(fixed)
+    if fixed.startswith("trash."):  # a restore refused, by its key
+        message = page.t(fixed) if fixed in TRASH_ERRORS else None
     checked = await asyncio.to_thread(world_problems, page, registry, world.id)
     unused = await asyncio.to_thread(unused_objects, page, registry, world.id)
-    return html(links_page(page, world.name, checked, message, unused))
+    trashed = registry.trash.of_world(world.id)
+    return html(links_page(page, world.name, checked, message, unused, trashed))
 
 
 @router.get(f"{LINKS_URL}/count", response_class=PlainTextResponse)
@@ -431,6 +475,15 @@ async def count_links(_gm: GamemasterDep, page: PageDep, registry: RegistryDep) 
         return "0"
     checked = await asyncio.to_thread(world_problems, page, registry, world.id)
     return str(sum(len(c.problems) for c in checked))
+
+
+@router.get(f"{LINKS_URL}/unused-count", response_class=PlainTextResponse)
+async def count_unused(_gm: GamemasterDep, page: PageDep, registry: RegistryDep) -> str:
+    """How many objects of the table's world nothing uses, for the world menu."""
+    world = registry.table.world()
+    if world is None:
+        return "0"
+    return str(len(await asyncio.to_thread(unused_objects, page, registry, world.id)))
 
 
 @router.post(FIX_URL)
@@ -507,6 +560,44 @@ async def delete_unused(
     for u in picked:
         deleters[u.kind](u.id)
     return redirect(f"{LINKS_URL}?{urlencode({'fixed': 'deleted', 'n': len(picked)})}#unused")
+
+
+TRASH_ERRORS = frozenset(
+    {"trash.error.gone", "trash.error.world", "trash.error.taken", "trash.error.unreadable"}
+)
+
+
+@router.post(RESTORE_URL)
+async def restore_trashed(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    id: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
+) -> Response:
+    """Put a deleted object back where it was (its world, at least) and open it."""
+    trashed = registry.gamestate.trash.find(id)
+    if trashed is None or trashed.world_id != registry.table.world_id():
+        raise HTTPException(status_code=404)
+    try:
+        kind, record = registry.trash.restore(id)
+    except TrashError as exc:
+        return redirect(f"{LINKS_URL}?{urlencode({'fixed': exc.key})}#trash")
+    urls = {
+        "npc": npc_url,
+        "place": location_url,
+        "treasure": treasure_url,
+        "encounter": encounter_url,
+    }
+    return redirect(urls[kind](record.id))
+
+
+@router.post(EMPTY_URL)
+async def empty_trash(_gm: GamemasterDep, registry: RegistryDep) -> Response:
+    """Forget what the table's world's trash holds."""
+    world_id = registry.table.world_id()
+    if world_id is None:
+        raise HTTPException(status_code=404)
+    registry.trash.empty(world_id)
+    return redirect(f"{LINKS_URL}?fixed=emptied")
 
 
 def _world_of(kind: str, record: object) -> str | None:

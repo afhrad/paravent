@@ -3127,7 +3127,9 @@ form[aria-busy="true"] .is-busy{ cursor:progress; opacity:.85; }
 form[aria-busy="true"] .is-busy svg{ animation:busy-spin 1s linear infinite; }
 @keyframes busy-spin{ to{ transform:rotate(360deg); } }
 @media (prefers-reduced-motion: reduce){ form[aria-busy="true"] .is-busy svg{ animation:none; } }
-.world-menu-count{ margin-left:auto; }
+.world-menu-counts{ margin-left:auto; display:inline-flex; gap:4px; }
+.world-menu-count[hidden]{ display:none; }
+.world-menu-unused{ background:transparent; color:var(--text-3); border:1px dashed var(--border-strong); }
 .links-unused-list{ list-style:none; margin:0; padding:0; display:grid; gap:6px; }
 .links-unused-row{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .links-unused-kind{ font-size:13px; min-width:6.5em; }

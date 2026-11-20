@@ -79,7 +79,8 @@ einfaches Markdown: Schreib es wie eine Notiz, den Rest macht Paravent.
   Notizen, Sitzungsnotizen —, jeder mit einem Druck korrigiert, angelegt oder das Objekt
   auf den Namen im Text umbenannt. Die Zahl daneben sagt, wie viele; unter der Liste
   stehen die NSC, Orte, Schätze und Begegnungen, die nichts verwendet, zum Anhaken und
-  gemeinsamen Löschen.
+  gemeinsamen Löschen. Alles Gelöschte wartet dort 30 Tage unter *Kürzlich gelöscht*, zum
+  Wiederherstellen.
 - Leitest du ein gekauftes Abenteuer? **Mit dem Buch beginnen** legt für jeden Abschnitt
   ein Kapitel an, und deine Notizen kommen dazwischen.
 

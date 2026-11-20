@@ -4059,7 +4059,18 @@
   "links.delete_ticked": "Delete ticked",
   "links.delete_title": "Delete {count} objects?",
   "links.delete_heading": {"one": "Delete this object?", "other": "Delete these {count} objects?"},
-  "links.delete_hint": "Nothing in the world uses them. Their notes go with them; pictures stay in the world's folder.",
+  "links.delete_hint": "Nothing in the world uses them. They wait under Recently deleted for 30 days; pictures stay in the world's folder.",
   "links.delete_n": {"one": "Delete {count} object", "other": "Delete {count} objects"},
-  "links.deleted": {"one": "{count} object deleted.", "other": "{count} objects deleted."}
+  "links.deleted": {"one": "{count} object deleted.", "other": "{count} objects deleted."},
+  "links.unused_label": "Objects nothing uses",
+  "session.broken_links": {"one": "{count} link in this world's texts leads nowhere", "other": "{count} links in this world's texts lead nowhere"},
+  "trash.title": "Recently deleted",
+  "trash.hint": "NPCs, places, treasure and encounters deleted in this world stay here for {days} days. Restore puts one back where it was, or in the world when its chapter or adventure is gone.",
+  "trash.restore": "Restore",
+  "trash.empty": "Empty",
+  "trash.emptied": "The trash is empty.",
+  "trash.error.gone": "That is no longer in the trash.",
+  "trash.error.world": "Its world is gone; it cannot come back.",
+  "trash.error.taken": "Something with its id exists again; it was not restored.",
+  "trash.error.unreadable": "It could not be read back; it stays in the trash."
 }

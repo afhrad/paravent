@@ -83,6 +83,7 @@ class Brief:
     shop: str | None = None
     calls: int = 0
     quests: int = 0  # quests still open
+    broken_links: int = 0  # links of the table's world that lead nowhere (Check links)
 
 
 class PlaySessionService:

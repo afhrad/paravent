@@ -76,6 +76,7 @@ write it like a note, and Paravent adds the rest.
   chapters, notes, session notes — each fixed with one press, created, or the object
   renamed to the name the text uses. The number beside it says how many; below the list
   stand the NPCs, places, treasure and encounters nothing uses, to tick and delete together.
+  Anything deleted waits there under *Recently deleted* for 30 days, to restore.
 - Running a published adventure you own? **Start from the book** makes a chapter for
   each of its sections, and your notes go between them.
 

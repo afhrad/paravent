@@ -123,13 +123,23 @@ def world_menu(page: Page) -> Node:
                 a(href=LINKS_URL, class_="usermenu-link")[
                     icon("shield-check", "sm"),
                     span[t("links.title")],
-                    # How many lead nowhere, asked when the menu opens (ui.js).
-                    span(
-                        class_="pill cond world-menu-count",
-                        data_count_src=f"{LINKS_URL}/count",
-                        aria_label=t("links.count_label"),
-                        hidden=True,
-                    ),
+                    span(class_="world-menu-counts")[
+                        # How many lead nowhere, asked when the menu opens (ui.js).
+                        span(
+                            class_="pill cond world-menu-count",
+                            data_count_src=f"{LINKS_URL}/count",
+                            aria_label=t("links.count_label"),
+                            hidden=True,
+                        ),
+                        # And, quieter, how many objects nothing uses.
+                        span(
+                            class_="pill world-menu-count world-menu-unused",
+                            data_count_src=f"{LINKS_URL}/unused-count",
+                            title=t("links.unused_label"),
+                            aria_label=t("links.unused_label"),
+                            hidden=True,
+                        ),
+                    ],
                 ]
                 if current
                 else None,

@@ -258,3 +258,18 @@ async def test_unused_objects_go_together(gm: AsyncClient, registry: StoreRegist
     assert registry.gamestate.locations.list() == []
     page = (await gm.get(done.headers["location"])).text
     assert "2 objects deleted." in page
+
+
+async def test_the_session_brief_and_the_menu_count_what_to_tidy(
+    gm: AsyncClient, registry: StoreRegistry
+) -> None:
+    chapter_id = _chapter(registry)  # two links that lead nowhere
+    world = registry.gamestate.chapters.get(chapter_id).world_id
+    registry.table.select(world)
+    registry.npcs.create("Spare", f"w:{world}", world)
+    assert (await gm.get("/gm/world/links/unused-count")).text == "1"
+    page = (await gm.get("/gm/session")).text
+    assert "2 links in this world" in page and "lead nowhere" in page
+    assert 'href="/gm/world/links"' in page
+    menu = (await gm.get("/gm/adventures")).text
+    assert 'data-count-src="/gm/world/links/unused-count"' in menu

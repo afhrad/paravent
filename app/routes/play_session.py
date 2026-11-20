@@ -7,6 +7,8 @@
 
 from __future__ import annotations
 
+import asyncio
+from dataclasses import replace
 from datetime import date
 
 from fastapi import APIRouter
@@ -16,6 +18,7 @@ from app.dependencies import GamemasterDep, PageDep, RegistryDep, WorldsDep
 from app.models.gamestate import Scope
 from app.routes.auth import html, redirect
 from app.routes.paravent_markdown import paravent_markdown
+from app.routes.world_links import world_problems
 from app.services.recap import recap, session_combats
 from app.ui.play_session_pages import SESSION_URL, happened_lines, session_page, session_url
 from app.ui.recap_pages import recap_text
@@ -34,6 +37,10 @@ async def show_session(
         return redirect("/gm/worlds")
     sessions = registry.play_sessions
     brief = sessions.brief(chosen.id)
+    if chosen.id == registry.table.world_id():
+        # What leads nowhere, before the evening rather than during it (Check links).
+        checked = await asyncio.to_thread(world_problems, page, registry, chosen.id)
+        brief = replace(brief, broken_links=sum(len(c.problems) for c in checked))
     note = brief.last_note
     rendered = (
         paravent_markdown(

@@ -4059,7 +4059,18 @@
   "links.delete_ticked": "Angehakte löschen",
   "links.delete_title": "{count} Objekte löschen?",
   "links.delete_heading": {"one": "Dieses Objekt löschen?", "other": "Diese {count} Objekte löschen?"},
-  "links.delete_hint": "Nichts in der Welt verwendet sie. Ihre Notizen gehen mit; Bilder bleiben im Ordner der Welt.",
+  "links.delete_hint": "Nichts in der Welt verwendet sie. Sie warten 30 Tage unter Kürzlich gelöscht; Bilder bleiben im Ordner der Welt.",
   "links.delete_n": {"one": "{count} Objekt löschen", "other": "{count} Objekte löschen"},
-  "links.deleted": {"one": "{count} Objekt gelöscht.", "other": "{count} Objekte gelöscht."}
+  "links.deleted": {"one": "{count} Objekt gelöscht.", "other": "{count} Objekte gelöscht."},
+  "links.unused_label": "Objekte, die nichts verwendet",
+  "session.broken_links": {"one": "{count} Link in den Texten dieser Welt führt ins Leere", "other": "{count} Links in den Texten dieser Welt führen ins Leere"},
+  "trash.title": "Kürzlich gelöscht",
+  "trash.hint": "In dieser Welt gelöschte NSC, Orte, Schätze und Begegnungen bleiben {days} Tage hier. Wiederherstellen bringt eines dorthin zurück, wo es war, oder in die Welt, wenn sein Kapitel oder Abenteuer fehlt.",
+  "trash.restore": "Wiederherstellen",
+  "trash.empty": "Leeren",
+  "trash.emptied": "Der Papierkorb ist leer.",
+  "trash.error.gone": "Das liegt nicht mehr im Papierkorb.",
+  "trash.error.world": "Seine Welt gibt es nicht mehr; es kann nicht zurück.",
+  "trash.error.taken": "Etwas mit seiner Kennung gibt es wieder; es wurde nicht wiederhergestellt.",
+  "trash.error.unreadable": "Es ließ sich nicht zurücklesen; es bleibt im Papierkorb."
 }

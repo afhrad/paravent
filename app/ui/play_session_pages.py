@@ -21,6 +21,7 @@ from app.ui.names import ITEM, name_text
 from app.ui.quest_pages import quests_url
 from app.ui.session_pages import day_text, note_url, sessions_url
 from app.ui.shop_pages import coin_text
+from app.ui.world_menu import LINKS_URL
 
 SESSION_URL = "/gm/session"
 
@@ -177,6 +178,8 @@ def _now(page: Page, world_id: str, brief: Brief, party: str) -> Element:
         )
     if brief.calls:
         still.append(li[a(href=party)[t.plural("session.open_calls", brief.calls)]])
+    if brief.broken_links:
+        still.append(li[a(href=LINKS_URL)[t.plural("session.broken_links", brief.broken_links)]])
     return _panel(
         t("session.now"),
         "clock",

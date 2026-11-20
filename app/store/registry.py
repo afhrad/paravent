@@ -134,6 +134,7 @@ from app.services.translation_coverage import TranslationCoverage, TranslationJo
 from app.services.translation_targets import FLUFF_OF, TranslationTargets, fluff_category
 from app.services.translations import TranslationStore, record_key
 from app.services.traps import TrapService
+from app.services.trash import Trash
 from app.services.travel import TravelService, Vessel
 from app.services.treasure_roll import roller_for
 from app.services.world_instructions import WorldInstructionService
@@ -2041,6 +2042,11 @@ class StoreRegistry:
     def worlds(self) -> WorldService:
         """Worlds and their declared books."""
         return WorldService(self.gamestate)
+
+    @cached_property
+    def trash(self) -> Trash:
+        """Deleted NPCs, places, treasure and encounters, kept a while to restore."""
+        return Trash(self.gamestate)
 
     @cached_property
     def world_transfer(self) -> WorldTransfer:
