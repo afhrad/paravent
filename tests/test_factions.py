@@ -19,14 +19,14 @@ def test_reading_the_tables() -> None:
     rewards = rewards_of([["3+", "Friendly {@b citizens}"], ["10", "A house"], ["—", "x"]])
     assert [(r.renown, r.text) for r in rewards] == [(3, "Friendly citizens"), (10, "A house")]
     assert [r.renown for r in granted(rewards, 5)] == [3]
-    ranks = ranks_from(["Renown", "Harpers", "Zhentarim"], [["1", "Watcher", "Fang"]])
-    assert ranks["Zhentarim"][0].title == "Fang"
+    ranks = ranks_from(["Renown", "Reed Wardens", "Lantern Court"], [["1", "Ferryhand", "Wick"]])
+    assert ranks["Lantern Court"][0].title == "Wick"
     faction = Faction(
         world_id="w",
-        name="Harpers",
-        ranks=[FactionRank(renown=1, title="Watcher"), FactionRank(renown=3, title="Harpshadow")],
+        name="Reed Wardens",
+        ranks=[FactionRank(renown=1, title="Ferryhand"), FactionRank(renown=3, title="Bellkeeper")],
     )
-    assert title_of(faction, 0) == "" and title_of(faction, 4) == "Harpshadow"
+    assert title_of(faction, 0) == "" and title_of(faction, 4) == "Bellkeeper"
 
 
 @requires_corpus

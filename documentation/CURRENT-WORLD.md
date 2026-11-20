@@ -209,7 +209,7 @@ The world menu also offers **Check links** (every broken link of the world, ADVE
 - **Ids with a letter**: front matter is rewritten as text, and YAML reads an id of digits
   alone (one in about 270) as a number, which lost the record; an import gives out only ids
   with a letter in them.
-- **A name the table has** gets a number, from an import or a duplicate alike ("Azeroth (2)"),
+- **A name the table has** gets a number, from an import or a duplicate alike ("Grey Reed (2)"),
   so the world menu tells the worlds apart.
 - **Tried on the real library** (2026-11-20, on a copy): a world of 18 chapters, 11 MB of
   pictures and 261 log entries exported in 0.3 s and came back in 0.1–0.5 s, imported and

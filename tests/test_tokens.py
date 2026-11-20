@@ -39,9 +39,9 @@ def _picture(size: tuple[int, int] = (300, 200), fmt: str = "PNG") -> bytes:
 
 class TestTheParts:
     def test_a_name_as_5etools_writes_its_token(self) -> None:
-        assert token_name('Drow "Mage"') == "Drow Mage"
-        assert token_name("Jarlaxle Baenre") == "Jarlaxle Baenre"
-        assert token_name("Zhentarim Thug (Kültür)") == "Zhentarim Thug (Kultur)"
+        assert token_name('Reed "Mage"') == "Reed Mage"
+        assert token_name("Hob Wade") == "Hob Wade"
+        assert token_name("Ferry Thug (Kültür)") == "Ferry Thug (Kultur)"
 
     def test_any_picture_is_cropped_round(self) -> None:
         token = Image.open(io.BytesIO(crop_round(_picture())))
