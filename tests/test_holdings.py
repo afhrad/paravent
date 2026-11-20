@@ -139,22 +139,13 @@ async def test_npcs_and_treasure_are_made_in_a_dialog_as_places_are(
     gm: AsyncClient, registry: StoreRegistry
 ) -> None:
     world = registry.worlds.create(WorldInput(name="Grey Reed"))
-    for kind, dialog_id in (
-        ("npcs", "new-npc"),
-        ("treasure", "new-treasure"),
-        ("places", "new-place"),
-    ):
+    for kind, key in (("npcs", "npc"), ("treasure", "treasure"), ("places", "place")):
+        dialog_id = f"tool-{key}"
         url = f"/gm/worlds/{world.id}/{kind}"
         page = (await gm.get(url)).text
         assert f'data-dialog="{dialog_id}"' in page and f'id="{dialog_id}"' in page
-        assert (
-            f'<dialog id="{dialog_id}" class="place-dialog" aria-labelledby="{dialog_id}-h">'
-            in page
-        )
-        assert (
-            f'id="{dialog_id}" class="place-dialog" aria-labelledby="{dialog_id}-h" open'
-            in (await gm.get(f"{url}?new=1")).text
-        )
+        assert f'aria-labelledby="{dialog_id}-h" open' not in page
+        assert f'aria-labelledby="{dialog_id}-h" open' in (await gm.get(f"{url}?tool={key}")).text
     # A first note is kept; a refused one reopens the dialog with its reason.
     made = await gm.post(
         f"/gm/worlds/{world.id}/npcs", data={"name": "Maren", "notes": "Keeps the inn."}
@@ -169,7 +160,7 @@ async def test_npcs_and_treasure_are_made_in_a_dialog_as_places_are(
     chest = next(x for x in registry.gamestate.treasures.list() if x.name == "Toll chest")
     assert chest.notes == "Under the bridge."
     refused = await gm.post(f"/gm/worlds/{world.id}/treasure", data={"name": ""})
-    assert refused.status_code == 422 and 'aria-labelledby="new-treasure-h" open' in refused.text
+    assert refused.status_code == 422 and 'aria-labelledby="tool-treasure-h" open' in refused.text
 
 
 async def test_a_new_npc_is_the_worlds_named_for_its_people(
@@ -177,7 +168,7 @@ async def test_a_new_npc_is_the_worlds_named_for_its_people(
 ) -> None:
     world = registry.worlds.create(WorldInput(name="Grey Reed"))
     page = (await gm.get("/gm/npcs")).text
-    dialog = page.split('id="new-npc"', 1)[1].split("</dialog>", 1)[0]
+    dialog = page.split('id="tool-npc"', 1)[1].split("</dialog>", 1)[0]
     # No place to choose: the table's world. The people first, then the name and its dice.
     assert (
         'name="place" value="w:' + world.id + '"' in dialog
@@ -204,7 +195,7 @@ async def test_new_treasure_and_places_go_to_the_tables_world(
     gm: AsyncClient, registry: StoreRegistry
 ) -> None:
     world = registry.worlds.create(WorldInput(name="Grey Reed"))
-    for address, dialog_id in (("/gm/treasure", "new-treasure"), ("/gm/places", "new-place")):
+    for address, dialog_id in (("/gm/treasure", "tool-treasure"), ("/gm/places", "tool-place")):
         page = (await gm.get(address)).text
         dialog = page.split(f'id="{dialog_id}"', 1)[1].split("</dialog>", 1)[0]
         assert '<select id="f-place"' not in dialog, address  # no "belongs to"

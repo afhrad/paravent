@@ -1,5 +1,5 @@
 """Every list makes its new things the same way: a **New …** button that opens a dialog
-(app/ui/tool_dialog.py, app/ui/library_links.py)."""
+(app/ui/tool_dialog.py)."""
 
 from __future__ import annotations
 
@@ -52,9 +52,9 @@ async def test_every_list_has_a_new_button_and_its_dialog(
         "/gm/sessions": "tool-session-note",
         "/gm/sounds": "tool-sound",
         "/gm/mcp": "tool-key",
-        "/gm/places": "new-place",
-        "/gm/npcs": "new-npc",
-        "/gm/treasure": "new-treasure",
+        "/gm/places": "tool-place",
+        "/gm/npcs": "tool-npc",
+        "/gm/treasure": "tool-treasure",
     }
     for url, dialog_id in lists.items():
         page = (await client.get(url, follow_redirects=True)).text

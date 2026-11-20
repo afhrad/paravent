@@ -301,8 +301,8 @@ checkbox — the 5e rule has three states and the UI must not imply two.
 Every list makes its new things one way (2026-11-20): a **New …** button in the list's
 head (beside its heading where the page head belongs to something else, as a chapter list
 under its adventure) opens a dialog with labelled fields, **Create …** and **Cancel**
-(`new_button`, `create_form`, `tool_dialog` in `app/ui/tool_dialog.py`; places, NPCs and
-treasure through `app/ui/library_links.py`'s twins). Without the script the button
+(`new_button`, `create_form`, `tool_dialog` in `app/ui/tool_dialog.py`, the one helper
+since the older `library_links` pair went). Without the script the button
 reloads the page with the dialog open (`?tool=<key>`); a refused create comes back with
 it open and the error inside. Adventures, chapters, characters, encounters, factions,
 quests, creatures, players, session notes, sounds, Claude's keys, places, NPCs, treasure,

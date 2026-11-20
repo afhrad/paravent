@@ -67,8 +67,6 @@ from app.ui.library_links import (
     crumbs,
     delete_link,
     location_url,
-    new_button,
-    new_dialog,
     npc_url,
     saved_version,
     treasure_url,
@@ -80,7 +78,7 @@ from app.ui.palette import SearchTarget, search_form
 from app.ui.ref_pages import statblock
 from app.ui.tags import RenderContext, ref_url
 from app.ui.tokens import token, token_panel
-from app.ui.tool_dialog import create_form, tool_button, tool_dialog
+from app.ui.tool_dialog import create_form, new_button, tool_button, tool_dialog
 
 DENOMINATIONS = ("pp", "gp", "ep", "sp", "cp")
 # The delete button's name per kind of object (the holdings panel's rows).
@@ -432,31 +430,33 @@ def _create_dialog(
     """A new treasure of the table's world in one dialog, as a new place: its name and a
     first note (moved into an adventure or chapter on its page if wanted)."""
     t = page.t
-    return new_dialog(
+    return tool_dialog(
         page,
-        dialog_id,
-        title=title,
-        action=action,
-        back=action,
-        submit=submit,
-        is_open=is_open,
-        fields=[
-            alert(error),
-            hidden("place", f"w:{world_id}"),
-            text_field("name", t("adventures.name"), value="", autocomplete="off"),
-            div(class_="field")[
-                label(for_=f"{dialog_id}-notes")[
-                    t("npcs.notes"), " ", span(class_="opt")[t("common.optional")]
+        "treasure",
+        title,
+        create_form(
+            page,
+            action=action,
+            submit=submit,
+            body=[
+                alert(error),
+                hidden("place", f"w:{world_id}"),
+                text_field("name", t("adventures.name"), value="", autocomplete="off"),
+                div(class_="field")[
+                    label(for_=f"{dialog_id}-notes")[
+                        t("npcs.notes"), " ", span(class_="opt")[t("common.optional")]
+                    ],
+                    textarea(
+                        id=f"{dialog_id}-notes",
+                        name="notes",
+                        rows="4",
+                        class_="prose-editor",
+                        data_scope=f"w:{world_id}",
+                    ),
                 ],
-                textarea(
-                    id=f"{dialog_id}-notes",
-                    name="notes",
-                    rows="4",
-                    class_="prose-editor",
-                    data_scope=f"w:{world_id}",
-                ),
             ],
-        ],
+        ),
+        is_open=is_open,
     )
 
 
@@ -495,57 +495,59 @@ def _new_npc_dialog(
     note, or a whole NPC rolled instead."""
     t = page.t
     action = world_npcs_url(world.id)
-    return new_dialog(
+    return tool_dialog(
         page,
-        "new-npc",
-        title=t("npcs.new"),
-        action=action,
-        back=action,
-        submit=t("npcs.create"),
+        "npc",
+        t("npcs.new"),
+        create_form(
+            page,
+            action=action,
+            submit=t("npcs.create"),
+            body=[
+                alert(error),
+                hidden("place", f"w:{world.id}"),
+                div(class_="field")[
+                    label(for_="f-new-npc-race")[t("npcs.race")],
+                    input_el(
+                        id="f-new-npc-race",
+                        name="race",
+                        type="text",
+                        list="known-new-npc-race",
+                        autocomplete="off",
+                        aria_describedby="f-new-npc-race-hint",
+                    ),
+                    datalist(id="known-new-npc-race")[[option(value=r) for r in races]],
+                    p(class_="field-hint", id="f-new-npc-race-hint")[t("npcs.race_hint")],
+                    label(class_="check-inline")[
+                        input_el(type="checkbox", name="statblock_from", value="1"),
+                        t("npcs.statblock_from"),
+                    ],
+                ],
+                div(class_="field")[
+                    label(for_="f-new-npc-name")[t("adventures.name")],
+                    new_npc_name_field(page, "", styles),
+                ],
+                div(class_="field")[
+                    label(for_="new-npc-notes")[
+                        t("npcs.notes"), " ", span(class_="opt")[t("common.optional")]
+                    ],
+                    textarea(
+                        id="new-npc-notes",
+                        name="notes",
+                        rows="4",
+                        class_="prose-editor",
+                        data_scope=f"w:{world.id}",
+                    ),
+                ],
+            ],
+            more=button(
+                type="submit",
+                formaction=f"{action}/generate",
+                formnovalidate=True,
+                class_="btn",
+            )[icon("dices", "sm"), span[t("npcgen.new")]],
+        ),
         is_open=is_open,
-        fields=[
-            alert(error),
-            hidden("place", f"w:{world.id}"),
-            div(class_="field")[
-                label(for_="f-new-npc-race")[t("npcs.race")],
-                input_el(
-                    id="f-new-npc-race",
-                    name="race",
-                    type="text",
-                    list="known-new-npc-race",
-                    autocomplete="off",
-                    aria_describedby="f-new-npc-race-hint",
-                ),
-                datalist(id="known-new-npc-race")[[option(value=r) for r in races]],
-                p(class_="field-hint", id="f-new-npc-race-hint")[t("npcs.race_hint")],
-                label(class_="check-inline")[
-                    input_el(type="checkbox", name="statblock_from", value="1"),
-                    t("npcs.statblock_from"),
-                ],
-            ],
-            div(class_="field")[
-                label(for_="f-new-npc-name")[t("adventures.name")],
-                new_npc_name_field(page, "", styles),
-            ],
-            div(class_="field")[
-                label(for_="new-npc-notes")[
-                    t("npcs.notes"), " ", span(class_="opt")[t("common.optional")]
-                ],
-                textarea(
-                    id="new-npc-notes",
-                    name="notes",
-                    rows="4",
-                    class_="prose-editor",
-                    data_scope=f"w:{world.id}",
-                ),
-            ],
-        ],
-        more=button(
-            type="submit",
-            formaction=f"{action}/generate",
-            formnovalidate=True,
-            class_="btn",
-        )[icon("dices", "sm"), span[t("npcgen.new")]],
     )
 
 
@@ -593,7 +595,7 @@ def npcs_page(
                 t("adventures.world_eyebrow"),
                 t("npcs.heading"),
                 t("npcs.lede"),
-                new_button(page, "new-npc", t("npcs.new")),
+                new_button(page, "npc", t("npcs.new")),
             ),
             notice(notice_text),
             alert(error) if not new else None,
@@ -665,7 +667,7 @@ def treasures_page(
                 t("adventures.world_eyebrow"),
                 t("treasure.heading"),
                 t("treasure.lede"),
-                new_button(page, "new-treasure", t("treasure.new")),
+                new_button(page, "treasure", t("treasure.new")),
             ),
             notice(notice_text),
             alert(error) if not new else None,

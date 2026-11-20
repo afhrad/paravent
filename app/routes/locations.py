@@ -77,13 +77,10 @@ async def list_locations(
     world_id: str,
     place: str = "",
     deleted: str = "",
-    new: str = "",
 ) -> HTMLResponse:
-    """A world's places; ``new`` opens the dialog for a new one (without the script)."""
+    """A world's places (``?tool=place`` opens the dialog for a new one)."""
     notice_text = page.t("places.deleted") if deleted else None
-    return _locations(
-        page, registry, world_id, selected=place, notice_text=notice_text, new=bool(new)
-    )
+    return _locations(page, registry, world_id, selected=place, notice_text=notice_text)
 
 
 @router.post(f"{WORLDS_URL}/{{world_id}}/places", response_class=HTMLResponse)

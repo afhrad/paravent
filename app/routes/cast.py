@@ -143,7 +143,7 @@ async def roll_new_npc_name(
     except NamingError:
         rolled = []
     if request.headers.get("HX-Request") != "true":
-        return redirect("/gm/npcs?new=1")
+        return redirect("/gm/npcs?tool=npc")
     return html(new_npc_name_field(page, rolled[0] if rolled else name, naming.entries(), style))
 
 
@@ -155,11 +155,10 @@ async def list_npcs(
     world_id: str,
     place: str = "",
     deleted: str = "",
-    new: str = "",
 ) -> HTMLResponse:
-    """A world's NPCs; ``new`` opens the dialog for a new one (without the script)."""
+    """A world's NPCs (``?tool=npc`` opens the dialog for a new one, without the script)."""
     notice_text = page.t("npcs.deleted") if deleted else None
-    return _npcs(page, registry, world_id, selected=place, notice_text=notice_text, new=bool(new))
+    return _npcs(page, registry, world_id, selected=place, notice_text=notice_text)
 
 
 @router.post(f"{WORLDS_URL}/{{world_id}}/npcs", response_class=HTMLResponse)
@@ -480,13 +479,10 @@ async def list_treasure(
     world_id: str,
     place: str = "",
     deleted: str = "",
-    new: str = "",
 ) -> HTMLResponse:
-    """A world's treasure; ``new`` opens the dialog for a new one (without the script)."""
+    """A world's treasure (``?tool=treasure`` opens the dialog for a new one)."""
     notice_text = page.t("treasure.deleted") if deleted else None
-    return _treasures(
-        page, registry, world_id, selected=place, notice_text=notice_text, new=bool(new)
-    )
+    return _treasures(page, registry, world_id, selected=place, notice_text=notice_text)
 
 
 @router.post(f"{WORLDS_URL}/{{world_id}}/treasure", response_class=HTMLResponse)

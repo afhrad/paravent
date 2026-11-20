@@ -46,8 +46,6 @@ from app.ui.library_links import (
     crumbs,
     delete_link,
     location_url,
-    new_button,
-    new_dialog,
     saved_version,
     world_url,
 )
@@ -55,6 +53,7 @@ from app.ui.markdown import Rendered
 from app.ui.name_roller import name_roller
 from app.ui.title_images import title_image, title_image_panel, title_thumb
 from app.ui.tokens import token
+from app.ui.tool_dialog import create_form, new_button, tool_dialog
 
 
 @dataclass(frozen=True)
@@ -151,7 +150,7 @@ def locations_page(
                 t("adventures.world_eyebrow"),
                 t("places.heading"),
                 t("places.lede"),
-                new_button(page, "new-place", t("places.new")),
+                new_button(page, "place", t("places.new")),
             ),
             notice(notice_text),
             alert(error) if not new else None,
@@ -168,46 +167,48 @@ def _new_place_dialog(page: Page, world: World, error: str | None, is_open: bool
     """A new place of the table's world in one go: its name, its tags, a first note and
     its picture (framed later on its page, in the image dialog)."""
     t = page.t
-    return new_dialog(
+    return tool_dialog(
         page,
-        "new-place",
-        title=t("places.new"),
-        action=world_locations_url(world.id),
-        back=world_locations_url(world.id),
-        submit=t("places.create"),
-        is_open=is_open,
-        upload=True,
-        fields=[
-            alert(error),
-            # In the table's world (documentation/CURRENT-WORLD.md); moved into an
-            # adventure or chapter on its form if wanted.
-            hidden("place", f"w:{world.id}"),
-            text_field("name", t("adventures.name"), value="", autocomplete="off"),
-            text_field(
-                "tags",
-                t("places.tags"),
-                value="",
-                autocomplete="off",
-                required=False,
-                optional_text=t("common.optional"),
-                hint=t("places.tags_hint"),
-            ),
-            div(class_="field")[
-                label(for_="f-new-notes")[t("places.notes")],
-                textarea(
-                    id="f-new-notes",
-                    name="notes",
-                    rows="4",
-                    class_="prose-editor",
-                    data_scope=f"w:{world.id}",
+        "place",
+        t("places.new"),
+        create_form(
+            page,
+            action=world_locations_url(world.id),
+            submit=t("places.create"),
+            upload=True,
+            body=[
+                alert(error),
+                # In the table's world (documentation/CURRENT-WORLD.md); moved into an
+                # adventure or chapter on its form if wanted.
+                hidden("place", f"w:{world.id}"),
+                text_field("name", t("adventures.name"), value="", autocomplete="off"),
+                text_field(
+                    "tags",
+                    t("places.tags"),
+                    value="",
+                    autocomplete="off",
+                    required=False,
+                    optional_text=t("common.optional"),
+                    hint=t("places.tags_hint"),
                 ),
+                div(class_="field")[
+                    label(for_="f-new-notes")[t("places.notes")],
+                    textarea(
+                        id="f-new-notes",
+                        name="notes",
+                        rows="4",
+                        class_="prose-editor",
+                        data_scope=f"w:{world.id}",
+                    ),
+                ],
+                label(for_="f-new-picture", class_="tok-drop img-drop")[
+                    icon("upload"),
+                    span[t("places.picture_drop")],
+                    input_el(id="f-new-picture", type="file", name="picture", accept="image/*"),
+                ],
             ],
-            label(for_="f-new-picture", class_="tok-drop img-drop")[
-                icon("upload"),
-                span[t("places.picture_drop")],
-                input_el(id="f-new-picture", type="file", name="picture", accept="image/*"),
-            ],
-        ],
+        ),
+        is_open=is_open,
     )
 
 
