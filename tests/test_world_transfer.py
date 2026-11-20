@@ -101,6 +101,12 @@ def test_a_duplicate_is_the_campaign_with_new_ids(registry: StoreRegistry) -> No
     # The original is untouched.
     assert store.factions.get(t["faction"]).renown == {"pc000000001": 4}
     assert len(store.npcs.list(lambda n: n.id == t["npc"])) == 1
+    # A name the table has already gets a number, so the menu tells them apart.
+    data = registry.world_transfer.export(t["world"])
+    assert registry.world_transfer.import_world(data).world.name == "Grey Reed (2)"
+    assert registry.world_transfer.import_world(data).world.name == "Grey Reed (3)"
+    again = registry.world_transfer.duplicate(t["world"], name="grey reed, second table")
+    assert again.world.name == "grey reed, second table (2)"
 
 
 def test_an_export_comes_back_with_its_play(registry: StoreRegistry, tmp_path: Path) -> None:

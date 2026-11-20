@@ -201,4 +201,11 @@ The world menu offers **Export world**, **Import world** and **Duplicate world**
   their content) are written. The dialog opens again saying why.
 - **Duplicate** is an export read straight back in under a new name ("… (copy)"), the play
   optional: the same campaign for a second group.
+- **A name the table has** gets a number, from an import or a duplicate alike ("Azeroth (2)"),
+  so the world menu tells the worlds apart.
+- **Tried on the real library** (2026-11-20, on a copy): a world of 18 chapters, 11 MB of
+  pictures and 261 log entries exported in 0.3 s and came back in 0.1–0.5 s, imported and
+  duplicated, with and without the play: every chapter, picture and token there, no old id
+  left, the log in the new world, the chapter check reporting what the original reports once
+  the table plays in it (a character link resolves only in the table's world).
 

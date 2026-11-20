@@ -4000,7 +4000,7 @@
   "transfer.import_hint": "Eine hier oder an einem anderen Tisch exportierte Welt wird zu einer neuen Welt, alles darin mit neuen Kennungen. Der Tisch spielt dann in ihr.",
   "transfer.duplicate_hint": "Eine Kopie von {world} für eine andere Gruppe: Abenteuer, Kapitel, Bilder, NSC, Orte, Schätze, Begegnungen, Fraktionen und Aufträge. Der Tisch spielt dann in der Kopie.",
   "transfer.file": "Welt-Datei (.zip)",
-  "transfer.name_as_exported": "Wie exportiert",
+  "transfer.name_as_exported": "Wie in der Datei, nummeriert, wenn der Name vergeben ist",
   "transfer.copy_name": "{world} (Kopie)",
   "transfer.play": "Das bisherige Spiel mitnehmen",
   "transfer.play_hint": "Protokoll, Uhr, Kämpfe, Proben, Handouts und Gruppennotizen, Sitzungsnotizen, was die Gruppe über Kreaturen weiß, Fortschritt der Aufträge und Ansehen. Ohne beginnen Aufträge offen und Fraktionen ohne Ansehen.",

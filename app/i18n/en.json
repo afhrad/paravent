@@ -4000,7 +4000,7 @@
   "transfer.import_hint": "A world exported here or at another table becomes a new world, with everything in it given new ids. The table then plays in it.",
   "transfer.duplicate_hint": "A copy of {world} for another group: adventures, chapters, pictures, NPCs, places, treasure, encounters, factions and quests. The table then plays in the copy.",
   "transfer.file": "World file (.zip)",
-  "transfer.name_as_exported": "As it was exported",
+  "transfer.name_as_exported": "As in the file, numbered if the name is taken",
   "transfer.copy_name": "{world} (copy)",
   "transfer.play": "Bring the play so far",
   "transfer.play_hint": "The log, the clock, fights, checks, handouts and party notes, session notes, what the party learned of creatures, quests' progress and renown. Without it quests start open and factions without renown.",

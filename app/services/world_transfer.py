@@ -220,13 +220,24 @@ class WorldTransfer:
                 if not isinstance(found, World):
                     raise WorldTransferError("transfer.error.not_world")
                 world = found
-            if name.strip():
-                world = self._store.worlds.update(world.id, name=name.strip())
+            wanted = self._free_name(name.strip() or world.name, world.id)
+            if wanted != world.name:
+                world = self._store.worlds.update(world.id, name=wanted)
             self._write_records(raw_records, remap, world.id, play, done)
             if play:
                 self._write_play_files(pack, members, remap, world.id, done)
         done.world = world
         return done
+
+    def _free_name(self, name: str, own_id: str) -> str:
+        """``name``, or ``name (2)``, ``(3)`` … when another world has it: two worlds of one
+        name could not be told apart in the world menu."""
+        taken = {w.name.casefold() for w in self._store.worlds.list() if w.id != own_id}
+        candidate, number = name, 2
+        while candidate.casefold() in taken:
+            candidate = f"{name} ({number})"
+            number += 1
+        return candidate
 
     def duplicate(self, world_id: str, *, name: str, play: bool = False) -> Imported:
         """A copy of the world with new ids, under ``name``."""
