@@ -738,7 +738,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         **New NPC** and **New treasure** beside a world's lists open it — name, where it is
         placed, a first note (a place's tags and picture, an NPC's roll). The places,
         NPCs, treasure, creature builder and sound library had their "new" form floating
-        off the page's corner (a drop-down menu's style), out of sight
+        off the page's corner (a drop-down menu's style), out of sight. **The treasure page
+        laid out for editing** (2026-11-20): what it holds (items, the picker, the coins
+        saved on their own) and its details (name and place side by side, the notes at the
+        column's full width, how they read folded beneath) in the wide column; sharing out,
+        rolling and the token beside them
   - [x] **Title images** (2026-11-18, TOKENS.md §6, `app/services/title_images.py`): tokens
         of the table's own only for NPCs, creatures, characters and treasure; places,
         encounters, quests and factions take a title image, dropped or chosen on their page,

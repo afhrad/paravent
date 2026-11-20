@@ -569,7 +569,11 @@ async def show_treasure(
     cr: int = 0,
 ) -> HTMLResponse:
     """A treasure, with the item picker and the roll form (``kind``/``cr`` prefill it)."""
-    notice_text = page.t("treasure.saved") if saved else None
+    notice_text = (
+        (page.t("treasure.coins_saved") if saved == "coins" else page.t("treasure.saved"))
+        if saved
+        else None
+    )
     return _treasure(
         page,
         registry,
@@ -658,6 +662,7 @@ async def save_treasure(
     page: PageDep,
     registry: RegistryDep,
     treasure_id: str,
+    part: Annotated[str, Form()] = "",
     name: Annotated[str, Form()] = "",
     place: Annotated[str, Form()] = "",
     notes: Annotated[str, Form()] = "",
@@ -668,9 +673,20 @@ async def save_treasure(
     cp: Annotated[str, Form()] = "0",
     base: Annotated[str, Form()] = "",
 ) -> Response:
-    """Save a treasure's name, place, coins and notes; notes changed elsewhere since the
-    form opened are shown beside the typed ones instead of being overwritten."""
+    """Save a treasure's coins (``part=coins``), or its name, place and notes
+    (``part=details``), or all of them; notes changed elsewhere since the form opened are
+    shown beside the typed ones instead of being overwritten."""
+    treasure = registry.treasure.get(treasure_id)
     coins = Coins(pp=_count(pp), gp=_count(gp), ep=_count(ep), sp=_count(sp), cp=_count(cp))
+    if part == "coins":
+        name, place, notes, base = (
+            treasure.name,
+            scope.encode(treasure.scope),
+            treasure.notes,
+            text_version(treasure.notes),
+        )
+    elif part == "details":
+        coins = treasure.coins
     try:
         registry.treasure.update(
             treasure_id, name=name, scope_value=place, coins=coins, notes=notes, base=base or None
@@ -687,6 +703,8 @@ async def save_treasure(
             base=text_version(conflict) if conflict is not None else base,
             conflict=conflict,
         )
+    if part == "coins":
+        return redirect(f"{treasure_url(treasure_id)}?saved=coins#coins")
     return redirect(f"{treasure_url(treasure_id)}?saved=1")
 
 

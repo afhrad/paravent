@@ -120,8 +120,8 @@ async def test_pictures_are_changed_only_in_an_edit_mode(
     assert "img-editor" not in shown and f"/gm/title-image/place/{landing.id}" not in shown
     edited = (await gm.get(f"/gm/places/{landing.id}/edit")).text
     assert "img-editor" in edited and f"/gm/title-image/place/{landing.id}" in edited
-    # A treasure's page is its own builder: its token sits in the settings.
+    # A treasure's page is its own builder: its token has a panel beside it.
     hoard = registry.treasure.create("Hoard", f"w:{world.id}", world.id)
     page = (await gm.get(f"/gm/treasure/{hoard.id}")).text
-    settings = page.split('class="panel enc-settings"', 1)[1]
-    assert f'action="/tokens/treasure/{hoard.id}"' in settings
+    side = page.split('class="tr-side"', 1)[1]
+    assert f'action="/tokens/treasure/{hoard.id}"' in side

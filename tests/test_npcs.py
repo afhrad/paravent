@@ -420,6 +420,41 @@ class TestPages:
         empty = (await ac.get(f"/gm/treasure/{chest.id}")).text
         assert "Search the items in this world" in empty
 
+    async def test_coins_and_details_save_apart(
+        self, client: tuple[AsyncClient, StoreRegistry]
+    ) -> None:
+        ac, registry = client
+        world = registry.gamestate.worlds.create(World(name="W"))
+        chest = registry.treasure.create("Chest", f"w:{world.id}", world.id)
+        registry.gamestate.treasures.update(chest.id, notes="Under the bunk.")
+        page = (await ac.get(f"/gm/treasure/{chest.id}")).text
+        assert 'name="part" value="coins"' in page and 'name="part" value="details"' in page
+        # The coins alone: name, place and notes stay as they were.
+        saved = await ac.post(
+            f"/gm/treasure/{chest.id}", data={"part": "coins", "gp": "60", "sp": "40"}
+        )
+        assert saved.headers["location"] == f"/gm/treasure/{chest.id}?saved=coins#coins"
+        after = registry.treasure.get(chest.id)
+        assert after.coins == Coins(gp=60, sp=40)
+        assert (after.name, after.notes) == ("Chest", "Under the bunk.")
+        assert "Coins saved." in (await ac.get(saved.headers["location"])).text
+        # The details alone: the coins stay.
+        await ac.post(
+            f"/gm/treasure/{chest.id}",
+            data={
+                "part": "details",
+                "name": "Toll box",
+                "place": f"w:{world.id}",
+                "notes": "Locked.",
+            },
+        )
+        after = registry.treasure.get(chest.id)
+        assert (after.name, after.notes, after.coins) == (
+            "Toll box",
+            "Locked.",
+            Coins(gp=60, sp=40),
+        )
+
     async def test_encounter_scope_setting(self, client: tuple[AsyncClient, StoreRegistry]) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.create(World(name="W"))

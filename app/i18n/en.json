@@ -4083,5 +4083,9 @@
   "md.embed.adventure": "Adventure",
   "md.create_deleted": "“{name}” was deleted on {when} and is still in the trash. Restore it as it was, with its notes, and every link to it works again.",
   "trash.undo_hint": "It waits under Check links → Recently deleted for 30 days.",
-  "trash.undo": "Undo"
+  "trash.undo": "Undo",
+  "treasure.coins_save": "Save coins",
+  "treasure.notes_read": "How the notes read",
+  "treasure.coins_saved": "Coins saved.",
+  "treasure.contents": "Contents"
 }

@@ -26,6 +26,7 @@ from htpy import (
     form,
     h1,
     h2,
+    h3,
     label,
     legend,
     li,
@@ -883,9 +884,11 @@ def _treasure_line(page: Page, treasure: Treasure, line: TreasureLine, world_id:
         span(class_="res-ico magic", aria_hidden="true")[icon("gem")],
         div(class_="enc-line-main")[
             b[
-                a(href=ref_url(entry.category, item.name, item.source, world_id), class_="ref")[
-                    item.name
-                ]
+                a(
+                    href=ref_url(entry.category, item.name, item.source, world_id),
+                    class_="ref",
+                    title=item.name,
+                )[page.t.term(entry.category, item.name) or item.name]
                 if entry is not None
                 else span(class_="ref missing")[item.name],
                 " ",
@@ -1013,8 +1016,10 @@ def treasure_page(
     roll: RollForm | None = None,
     characters: Sequence[tuple[str, str]] = (),
 ) -> Element:
-    """A treasure: its items with the picker to add more, its coins, notes and settings;
-    ``characters`` (the world's) are whom it can be shared out to.
+    """A treasure, laid out for editing: what it holds (items, coins, the picker to add
+    more) and its details (name, place, notes) in the wide column; sharing it out, rolling
+    more and its token beside them. ``characters`` (the world's) are whom it can be shared
+    out to.
 
     ``notes_text`` is the notes as typed when a save was refused; ``base`` the fingerprint
     of the notes the form opened, ``conflict`` the notes saved meanwhile."""
@@ -1028,11 +1033,11 @@ def treasure_page(
         pick_hint="treasure.hint_pick",
         swap="#plan",
     )
-    coins = treasure.coins
+    tok = page.token_of("treasure", treasure.scope.world_id, treasure.id)
     return app_shell(
         page,
         treasure.name,
-        div(class_="enc-page")[
+        div(class_="enc-page tr-edit")[
             crumbs(
                 page,
                 (t("nav.worlds"), WORLDS_URL),
@@ -1040,104 +1045,135 @@ def treasure_page(
                 (t("treasure.heading"), world_treasure_url(world.id)),
                 (treasure.name, None),
             ),
-            div(class_="enc-head")[
-                span(class_="eyebrow")[_place_text(place)],
-                div(class_="enc-title")[
+            div(class_="npc-head tr-head")[
+                token(tok, "lg"),
+                div(class_="npc-head-main")[
+                    span(class_="eyebrow")[_place_text(place)],
                     h1[treasure.name],
-                    delete_link(
-                        page, f"{treasure_url(treasure.id)}/delete", t("treasure.delete"), text=True
-                    ),
+                    p(class_="field-hint")[
+                        t("holdings.paste"), " ", _snippet(page, "treasure", treasure.name)
+                    ],
                 ],
-                p(class_="field-hint")[
-                    t("holdings.paste"), " ", _snippet(page, "treasure", treasure.name)
+                div(class_="npc-head-actions")[
+                    delete_link(page, f"{url}/delete", t("treasure.delete"), text=True),
                 ],
             ],
             alert(error),
             notice(notice_text),
-            div(class_="enc-grid")[
-                div(class_="enc-main")[
-                    section(class_="panel enc-plan", id="plan", aria_labelledby="plan-h")[
-                        div(class_="panel-head")[h2(id="plan-h")[t("treasure.items")]],
-                        ul(class_="enc-lines")[
-                            [_treasure_line(page, treasure, line, world.id) for line in lines]
-                        ]
-                        if lines
-                        else p(class_="enc-empty")[t("treasure.none_yet")],
-                        div(class_="enc-total")[
-                            span[t("treasure.coins")], b(class_="mono")[coins_text(page, coins)]
-                        ]
-                        if not coins.empty
-                        else None,
+            div(class_="tr-grid")[
+                div(class_="tr-main")[
+                    section(class_="panel tr-contents", aria_labelledby="plan-h")[
+                        div(class_="panel-head")[
+                            h2(id="plan-h")[icon("gem", "sm"), " ", t("treasure.contents")]
+                        ],
+                        div(id="plan")[
+                            ul(class_="enc-lines")[
+                                [_treasure_line(page, treasure, line, world.id) for line in lines]
+                            ]
+                            if lines
+                            else p(class_="enc-empty")[t("treasure.none_yet")],
+                        ],
+                        div(class_="tr-add", id="picker")[
+                            h3(class_="tr-sub")[t("treasure.add_heading")],
+                            search_form(
+                                page,
+                                result,
+                                world.id,
+                                in_dialog=False,
+                                target=target,
+                                autofocus=bool(result.query),
+                            ),
+                        ],
+                        _coins_form(page, url, treasure.coins),
                     ],
-                    section(class_="panel enc-picker", id="picker", aria_labelledby="picker-h")[
-                        div(class_="panel-head")[h2(id="picker-h")[t("treasure.add_heading")]],
-                        search_form(
-                            page,
-                            result,
-                            world.id,
-                            in_dialog=False,
-                            target=target,
-                            autofocus=bool(result.query),
-                        ),
-                    ],
-                    div(class_="md-body")[notes.html] if notes.html.strip() else None,
+                    _details_panel(
+                        page,
+                        treasure,
+                        scopes,
+                        notes,
+                        notes_text=notes_text,
+                        base=base,
+                        conflict=conflict,
+                    ),
                 ],
-                div(class_="enc-side")[
+                div(class_="tr-side")[
                     _share_panel(page, treasure, lines, characters),
                     _roll_panel(page, url, roll) if roll is not None else None,
-                    details(class_="panel enc-settings", open=True)[
-                        summary(class_="panel-head")[icon("pencil"), b[t("encounters.settings")]],
-                        form(method="post", action=url, class_="stack-form")[
-                            text_field(
-                                "name",
-                                t("adventures.name"),
-                                value=treasure.name,
-                                autocomplete="off",
-                            ),
-                            scope_select(
-                                "place",
-                                t("scope.label"),
-                                scopes,
-                                selected=encode(treasure.scope),
-                            ),
-                            div(class_="field-row coin-row")[
-                                [
-                                    _coin_field(d, t(f"treasure.coin.{d}"), getattr(coins, d))
-                                    for d in DENOMINATIONS
-                                ]
-                            ],
-                            div(class_="field")[
-                                label(for_="f-notes")[t("npcs.notes")],
-                                textarea(
-                                    id="f-notes",
-                                    name="notes",
-                                    rows="5",
-                                    class_="prose-editor",
-                                    data_scope=encode(treasure.scope),
-                                )[treasure.notes if notes_text is None else notes_text],
-                                hidden("base", base),
-                            ],
-                            saved_version(page, conflict),
-                            div(class_="form-actions")[
-                                button(type="submit", class_="btn btn-primary")[
-                                    icon("check"), span[t("worlds.save")]
-                                ],
-                            ],
-                        ],
-                        token_panel(
-                            page,
-                            page.token_of("treasure", treasure.scope.world_id, treasure.id),
-                            "treasure",
-                            treasure.id,
-                            heading=False,
-                        ),
-                    ],
+                    token_panel(page, tok, "treasure", treasure.id),
                 ],
             ],
         ],
         world_id=world.id,
         insert_layer=True,
+        main_class="shell-main shell-wide",
     )
+
+
+def _coins_form(page: Page, url: str, coins: Coins) -> Element:
+    """The coins it holds, each kind in a box of its own, saved on their own."""
+    t = page.t
+    return form(method="post", action=url, class_="tr-coins", id="coins")[
+        hidden("part", "coins"),
+        div(class_="tr-coins-head")[
+            h3(class_="tr-sub")[t("treasure.coins")],
+            b(class_="mono muted")[coins_text(page, coins)] if not coins.empty else None,
+        ],
+        div(class_="field-row coin-row")[
+            [_coin_field(d, t(f"treasure.coin.{d}"), getattr(coins, d)) for d in DENOMINATIONS],
+            button(type="submit", class_="btn tr-coins-save")[
+                icon("check", "sm"), span[t("treasure.coins_save")]
+            ],
+        ],
+    ]
+
+
+def _details_panel(
+    page: Page,
+    treasure: Treasure,
+    scopes: Sequence[tuple[str, str, int]],
+    notes: Rendered,
+    *,
+    notes_text: str | None,
+    base: str,
+    conflict: str | None,
+) -> Element:
+    """Name and place side by side, the notes below at the column's full width; how
+    the saved notes read, folded beneath."""
+    t = page.t
+    return section(class_="panel tr-details", id="details", aria_labelledby="details-h")[
+        div(class_="panel-head")[
+            h2(id="details-h")[icon("pencil", "sm"), " ", t("encounters.settings")]
+        ],
+        form(method="post", action=treasure_url(treasure.id), class_="stack-form")[
+            hidden("part", "details"),
+            div(class_="field-row")[
+                text_field("name", t("adventures.name"), value=treasure.name, autocomplete="off"),
+                scope_select("place", t("scope.label"), scopes, selected=encode(treasure.scope)),
+            ],
+            div(class_="field")[
+                label(for_="f-notes")[t("npcs.notes")],
+                textarea(
+                    id="f-notes",
+                    name="notes",
+                    rows="12",
+                    class_="prose-editor",
+                    data_scope=encode(treasure.scope),
+                )[treasure.notes if notes_text is None else notes_text],
+                hidden("base", base),
+            ],
+            saved_version(page, conflict),
+            div(class_="form-actions")[
+                button(type="submit", class_="btn btn-primary")[
+                    icon("check"), span[t("worlds.save")]
+                ],
+            ],
+        ],
+        details(class_="tr-preview")[
+            summary[t("treasure.notes_read")], div(class_="md-body")[notes.html]
+        ]
+        if notes.html.strip()
+        else None,
+    ]
 
 
 def _share_panel(

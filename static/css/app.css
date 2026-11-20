@@ -1943,6 +1943,38 @@ div.cg-stat{ display:flex; justify-content:space-between; align-items:baseline; 
 .tr-kinds{ display:flex; flex-wrap:wrap; gap:12px; }
 .tr-kind{ display:inline-flex; align-items:center; gap:6px; font-size:14px; }
 .tr-roll input[type="number"]{ width:90px; }
+
+/* A treasure, laid out for editing: what it holds and its details in the wide column,
+   sharing out, rolling and the token beside them. */
+.tr-head{ align-items:center; }
+.tr-grid{ display:grid; grid-template-columns:minmax(0,1.7fr) minmax(280px,1fr); gap:16px; align-items:start; }
+.tr-main, .tr-side{ display:grid; gap:16px; min-width:0; }
+.tr-main > *, .tr-side > *{ min-width:0; }
+.panel .panel-head h2{ display:flex; align-items:center; gap:6px; }
+.tr-sub{ font-size:13px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; color:var(--text-2); margin:0 0 8px; }
+.tr-add, .tr-coins{ margin-top:16px; padding-top:14px; border-top:1px solid var(--border); }
+.tr-coins-head{ display:flex; align-items:baseline; justify-content:space-between; gap:8px; }
+.tr-coins .coin-row{ align-items:end; }
+.tr-coins .coin-row > .field{ margin:0; }
+.tr-coins-save{ flex:0 0 auto; }
+.tr-details .prose-editor{ min-height:16em; }
+.tr-preview{ margin-top:14px; padding-top:12px; border-top:1px solid var(--border); }
+.tr-preview > summary{ cursor:pointer; color:var(--text-2); font-size:14px; }
+.tr-preview[open] > summary{ margin-bottom:8px; }
+.tr-side > .token-panel{ margin:0; }
+.tr-contents .enc-line:last-child{ border-bottom:0; }
+.enc-share > summary{ display:flex; align-items:center; gap:8px; cursor:pointer; list-style:none; }
+.enc-share > summary::-webkit-details-marker{ display:none; }
+.enc-share[open] > summary{ margin-bottom:12px; }
+@media (max-width: 900px){
+  .tr-grid{ grid-template-columns:minmax(0,1fr); }
+}
+@media (max-width: 640px){
+  /* The five coins in a row of their own, Save beneath them. */
+  .tr-coins .coin-row{ flex-wrap:wrap; }
+  .tr-coins .coin-row > .field-narrow{ flex:1 1 0; min-width:52px; }
+  .tr-coins-save{ flex:1 1 100%; justify-content:center; }
+}
 .cb-treasure{ margin:6px 0; }
 
 /* The reference screens */

@@ -4083,5 +4083,9 @@
   "md.embed.adventure": "Abenteuer",
   "md.create_deleted": "„{name}“ wurde am {when} gelöscht und liegt noch im Papierkorb. Stelle es wieder her, wie es war, mit seinen Notizen, und jeder Link darauf funktioniert wieder.",
   "trash.undo_hint": "Es wartet 30 Tage unter Links prüfen → Kürzlich gelöscht.",
-  "trash.undo": "Rückgängig"
+  "trash.undo": "Rückgängig",
+  "treasure.coins_save": "Münzen speichern",
+  "treasure.notes_read": "So lesen sich die Notizen",
+  "treasure.coins_saved": "Münzen gespeichert.",
+  "treasure.contents": "Inhalt"
 }
