@@ -341,6 +341,39 @@ def _form(design: CreatureDesign, **extra: object) -> dict[str, object]:
 
 
 class TestPages:
+    async def test_a_new_creature_begins_in_the_world_from_a_picked_one(
+        self, client: tuple[AsyncClient, StoreRegistry]
+    ) -> None:
+        ac, registry = client
+        world = registry.gamestate.worlds.create(
+            World(name="Grey Reed", source_set=SourceSet(sources=["MM"]))
+        )
+        registry.table.select(world.id)
+        listed = (await ac.get("/gm/creatures")).text
+        # The table's world, no choice of it; a picker of the world's creatures.
+        assert 'data-dialog="tool-creature"' in listed
+        assert f'name="world" value="{world.id}"' in listed and 'name="pick"' in listed
+        assert '<select id="f-world"' not in listed
+        found = (
+            await ac.get(
+                "/search",
+                params={"q": "goblin", "pick": "new-creature", "partial": "1", "world": world.id},
+            )
+        ).text
+        assert 'formaction="/gm/creatures"' in found and 'value="Goblin|MM"' in found
+        # A picked creature keeps its own CR when none is chosen.
+        made = await ac.post(
+            "/gm/creatures", data={"name": "", "cr": "", "world": world.id, "ref": "Goblin|MM"}
+        )
+        assert made.status_code == 303
+        design = registry.creatures.list()[0]
+        assert design.based_on == "Goblin|MM" and design.cr == "1/4"
+        assert design.world_id == world.id and design.name == "Goblin (variant)"
+        # A blank one with no CR chosen is CR 1.
+        await ac.post("/gm/creatures", data={"name": "Mire Hound", "cr": "", "world": world.id})
+        blank = next(d for d in registry.creatures.list() if d.name == "Mire Hound")
+        assert blank.cr == "1" and blank.based_on is None
+
     async def test_the_builder_round_trip(self, client: tuple[AsyncClient, StoreRegistry]) -> None:
         ac, registry = client
         listed = await ac.get("/gm/creatures")

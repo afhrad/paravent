@@ -751,7 +751,12 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         its magic-item shelf (open while stocking) and starting a chase each open a roomy
         dialog with labelled fields, the panels keeping their summaries (`?tool=` opens one
         without the script). **Factions' forms** styled like the rest, renown −1 · score ·
-        +1 beside each name
+        +1 beside each name. **The creature builder** on the wide page, the live
+        statblock right under the CR estimate, roomier action texts; **a new quest** in a
+        dialog from the page head, its labels like every other form's. **A new creature**
+        in a dialog too: in the table's world, blank or begun from a creature picked in the
+        world's books (the encounter builder's picker, `pick=new-creature`), at that
+        creature's own CR unless another is chosen
   - [x] **Title images** (2026-11-18, TOKENS.md §6, `app/services/title_images.py`): tokens
         of the table's own only for NPCs, creatures, characters and treasure; places,
         encounters, quests and factions take a title image, dropped or chosen on their page,

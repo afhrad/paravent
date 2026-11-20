@@ -23,6 +23,7 @@ from app.services.search import GROUPS, Row, SearchHit, SearchResult
 from app.store.registry import StoreRegistry
 from app.ui.combat_pages import combat_url
 from app.ui.context import Page
+from app.ui.creature_pages import NEW_CREATURE, new_creature_target
 from app.ui.editor_suggest import CALLOUT, INLINE, kind_suggestions
 from app.ui.encounter_pages import encounter_url
 from app.ui.insert import campaign_group, tag_maker
@@ -67,7 +68,8 @@ async def search(
 
     ``pick=<encounter id>`` asks for the encounter builder's monster picker instead:
     creatures only, each an "add" button; ``pick=<combat id>`` the same for a running
-    fight; ``pick=<treasure id>`` the treasure's item picker. Only the gamemaster
+    fight; ``pick=<treasure id>`` the treasure's item picker; ``pick=new-creature`` the
+    creature builder's, each creature beginning a new design. Only the gamemaster
     picks, so for anyone else — or an id that names nothing — it is ignored.
 
     ``insert=1`` asks for the Markdown editors' insert pop-up: each result inserts its
@@ -77,7 +79,11 @@ async def search(
     references = registry.references
     world_id = references.known_world(world or page.home_world or None)
     target = PALETTE
-    if pick and _identity.is_gamemaster:
+    if pick == NEW_CREATURE and _identity.is_gamemaster:
+        # The creature builder's new design, begun from a creature of the world's books.
+        target = new_creature_target()
+        group = "bestiary"
+    elif pick and _identity.is_gamemaster:
         encounter = registry.gamestate.encounters.find(pick)
         treasure = registry.gamestate.treasures.find(pick)
         combat = registry.gamestate.combats.find(pick)

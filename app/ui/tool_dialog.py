@@ -33,16 +33,23 @@ def tool_button(page: Page, key: str, label: str, icon_name: str | None = None) 
 
 
 def tool_dialog(
-    page: Page, key: str, title: str, body: Node, *, keep_open: bool = False
+    page: Page,
+    key: str,
+    title: str,
+    body: Node,
+    *,
+    keep_open: bool = False,
+    is_open: bool = False,
 ) -> Element:
-    """The dialog itself: a head with its title and ×, then ``body``."""
+    """The dialog itself: a head with its title and ×, then ``body``; open from the
+    start with ``is_open`` (a form refused, shown again) or ``?tool=<key>``."""
     ident = f"tool-{key}"
     back = urlsplit(page.path).path
     return dialog(
         id=ident,
         class_="place-dialog tool-dialog",
         aria_labelledby=f"{ident}-h",
-        open=tool_open(page, key),
+        open=is_open or tool_open(page, key),
         data_keep_open="1" if keep_open else None,
     )[
         div(class_="place-dialog-head")[

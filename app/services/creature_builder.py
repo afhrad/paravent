@@ -974,6 +974,8 @@ class CreatureService:
                 raise CreatureError("creatures.error.base", ref=ref)
             row = self._tables.row(_cr_text(raw.get("cr")))
             fields = from_monster(raw, row.pb if row else 2)
+            if row is not None:  # its own CR, unless another is chosen below
+                fields.setdefault("cr", row.cr)
             ref = f"{raw.get('name')}|{raw.get('source')}"
             name = name.strip() or f"{raw.get('name')} (variant)"
         if cr.strip() and self._tables.row(cr.strip()) is not None:

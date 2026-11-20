@@ -2008,6 +2008,13 @@ main:has(.undo-notice) .notice:not(.undo-notice){ display:none; }
 
 /* Creature builder (app/ui/creature_pages.py). Scoped to its page: the combat tracker
    shares the cb- prefix (cb-page, cb-form, cb-name, cb-side, cb-grid). */
+/* The new-creature dialog: the name, CR and "Begin blank" first, the creature search
+   under them (the search form's own field comes first in its markup). */
+#tool-creature .palette-form{ display:flex; flex-direction:column; }
+#tool-creature .cb-new-pick{ order:-1; display:grid; gap:10px; padding:4px 4px 12px; }
+#tool-creature .cb-new-pick .field{ margin:0; }
+#tool-creature .cb-new-pick .form-actions{ margin:0; }
+#tool-creature .cb-new-pick .tr-sub{ margin:6px 0 0; }
 .cb-new-fields{ display:grid; gap:12px; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); align-items:start; }
 .creature-builder.cb-page{ max-width:1280px; margin:0 auto; display:grid; gap:12px; min-width:0; }
 .cb-title{ display:flex; flex-wrap:wrap; align-items:baseline; gap:8px 12px; }
@@ -2015,7 +2022,7 @@ main:has(.undo-notice) .notice:not(.undo-notice){ display:none; }
 .creature-builder .cb-name{ margin:0; font-size:1.6rem; }
 .cb-layout{ display:grid; gap:16px; grid-template-columns:minmax(0, 1fr); align-items:start; }
 @media (min-width: 1100px){
-  .cb-layout{ grid-template-columns:minmax(0, 1fr) minmax(0, 460px); }
+  .cb-layout{ grid-template-columns:minmax(0, 1fr) minmax(360px, 460px); }
   .creature-builder .cb-side{ position:sticky; top:12px; max-height:calc(100vh - 24px); overflow:auto; }
 }
 .creature-builder .cb-side{ display:grid; gap:12px; min-width:0; }
@@ -2032,8 +2039,14 @@ main:has(.undo-notice) .notice:not(.undo-notice){ display:none; }
 .cb-abilities .field-hint{ text-align:center; font-weight:600; }
 .cb-block{ display:grid; gap:6px; padding:10px; border:1px solid var(--border); border-radius:var(--r); min-width:0; }
 .cb-block-head{ display:flex; gap:8px; align-items:center; }
-.cb-block-head input{ flex:1 1 auto; min-width:0; font-weight:600; }
-.cb-text{ width:100%; min-height:72px; font-family:var(--font-mono); font-size:13px; resize:vertical; }
+.cb-block-head input{ flex:1 1 auto; min-width:0; min-height:40px; padding:0 10px; font:inherit; font-weight:600;
+  color:var(--text); background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-sm); }
+.cb-block-head input:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+/* An action's text: tags and placeholders stay in a monospaced face, at a size to read
+   and edit, with room for a few lines. */
+.cb-text{ width:100%; min-height:7.5em; padding:8px 10px; font-family:var(--font-mono); font-size:16px; line-height:1.55; resize:vertical;
+  color:var(--text); background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-sm); }
+.cb-text:focus{ outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
 .cb-add-group{ display:grid; gap:8px; padding-top:8px; border-top:1px solid var(--border); }
 .cb-pick{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
 .cb-pick select{ flex:1 1 220px; min-width:0; }

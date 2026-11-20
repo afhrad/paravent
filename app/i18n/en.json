@@ -4088,5 +4088,9 @@
   "treasure.notes_read": "How the notes read",
   "treasure.coins_saved": "Coins saved.",
   "treasure.contents": "Contents",
-  "clock.more_title": "Time and calendar"
+  "clock.more_title": "Time and calendar",
+  "creatures.cr_own": "Its own",
+  "creatures.begin_hint": "In this world. Begin blank (at CR 1 unless you choose one), or pick a creature of the world's books below to begin from it, at its own CR unless you choose one.",
+  "creatures.create_blank": "Begin blank",
+  "creatures.hint_pick": "Search the creatures in this world's books — Enter begins with the highlighted one."
 }

@@ -24,6 +24,7 @@ from htpy import (
     dt,
     form,
     h2,
+    h3,
     label,
     li,
     option,
@@ -51,6 +52,7 @@ from app.services.creature_builder import (
     signed,
 )
 from app.services.references import ReferenceEntry
+from app.services.search import SearchResult
 from app.services.translation_targets import BUILDER_FIELDS, builder_key
 from app.store.creature_tables import BlockTemplate, CrRow, MonsterFeature
 from app.ui.auth_pages import message_panel
@@ -61,10 +63,12 @@ from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.library_links import delete_link
+from app.ui.palette import SearchTarget, search_form
 from app.ui.ref_pages import statblock
 from app.ui.rules_text import senses_shown
 from app.ui.tags import RenderContext, ref_url
 from app.ui.tokens import token, token_panel
+from app.ui.tool_dialog import tool_dialog
 from app.ui.translations_pages import BUILDER_URL
 
 
@@ -94,12 +98,14 @@ def creatures_page(
     rows: Sequence[DesignRow],
     worlds: Sequence[World],
     crs: Sequence[CrRow],
+    result: SearchResult,
     *,
     notice_text: str | None = None,
     error: str | None = None,
     draft: dict[str, str] | None = None,
 ) -> Element:
-    """Every design, and a form to start one."""
+    """Every design, and **New creature**: a dialog that begins one in the table's world,
+    blank or from a creature picked in its books (``result``, the picker's first view)."""
     t = page.t
     draft = draft or {}
     items = [
@@ -133,10 +139,64 @@ def creatures_page(
         ]
         for r in rows
     ]
-    create = form(method="post", action=CREATURES_URL, class_="panel stack-form create-form")[
-        div(class_="panel-head")[b[t("creatures.new")]],
+    create = tool_dialog(
+        page,
+        "creature",
+        t("creatures.new"),
+        _new_form(page, result, crs, draft, error),
+        is_open=error is not None,
+    )
+    return app_shell(
+        page,
+        t("creatures.page_title"),
+        [
+            page_head(
+                t("gm.eyebrow"),
+                t("creatures.heading"),
+                t("creatures.lede"),
+                a(href="?tool=creature", class_="btn btn-primary", data_dialog="tool-creature")[
+                    icon("plus"), span[t("creatures.new")]
+                ],
+            ),
+            notice(notice_text),
+            ul(class_="list")[items]
+            if items
+            else empty_state("skull", t("creatures.empty_heading"), t("creatures.empty_text")),
+            create,
+        ],
+    )
+
+
+# The search's pick target for a new design (app/routes/search.py): each creature found
+# begins one, taking the dialog's name and CR with it.
+NEW_CREATURE = "new-creature"
+
+
+def new_creature_target() -> SearchTarget:
+    """The monster picker of the new-creature dialog."""
+    return SearchTarget(
+        action=CREATURES_URL,
+        dom_id="picker-results",
+        pick_action=CREATURES_URL,
+        pick=NEW_CREATURE,
+        pick_hint="creatures.hint_pick",
+    )
+
+
+def _new_form(
+    page: Page,
+    result: SearchResult,
+    crs: Sequence[CrRow],
+    draft: dict[str, str],
+    error: str | None,
+) -> Node:
+    """The name and CR first, then the creatures of the world's books to begin with, or
+    a blank design. One form: a picked creature's button takes the name and CR along."""
+    t = page.t
+    world_id = page.world[0] if page.world else ""
+    fields = div(class_="cb-new-pick")[
         alert(error),
-        div(class_="cb-new-fields")[
+        div(class_="tool-grid")[
             text_field(
                 "name",
                 t("creatures.name"),
@@ -146,39 +206,33 @@ def creatures_page(
                 optional_text=t("common.optional"),
             ),
             select_field(
-                "world",
-                t("creatures.world"),
-                _world_choices(page, worlds),
-                selected=draft.get("world", page.world[0] if page.world else ""),
-            ),
-            select_field("cr", t("creatures.cr"), _cr_choices(crs), selected=draft.get("cr", "1")),
-            text_field(
-                "based_on",
-                t("creatures.start_from"),
-                value=draft.get("based_on", ""),
-                autocomplete="off",
-                required=False,
-                optional_text=t("common.optional"),
-                hint=t("creatures.start_from_hint"),
+                "cr",
+                t("creatures.cr"),
+                [("", t("creatures.cr_own")), *_cr_choices(crs)],
+                selected=draft.get("cr", ""),
             ),
         ],
+        p(class_="field-hint")[t("creatures.begin_hint")],
         div(class_="form-actions")[
-            button(type="submit", class_="btn btn-primary")[
-                icon("plus"), span[t("creatures.create")]
-            ]
+            button(
+                type="submit",
+                formaction=CREATURES_URL,
+                formmethod="post",
+                class_="btn",
+            )[icon("plus", "sm"), span[t("creatures.create_blank")]]
         ],
+        h3(class_="tr-sub")[t("creatures.start_from")],
     ]
-    return app_shell(
+    # The table's world (documentation/CURRENT-WORLD.md): the search form carries it as
+    # ``world``, which the new design takes; none without one.
+    return search_form(
         page,
-        t("creatures.page_title"),
-        [
-            page_head(t("gm.eyebrow"), t("creatures.heading"), t("creatures.lede")),
-            notice(notice_text),
-            ul(class_="list")[items]
-            if items
-            else empty_state("skull", t("creatures.empty_heading"), t("creatures.empty_text")),
-            create,
-        ],
+        result,
+        world_id or None,
+        in_dialog=False,
+        target=new_creature_target(),
+        autofocus=False,
+        extra=fields,
     )
 
 
@@ -525,7 +579,7 @@ def _block(page: Page, kind: str, index: int, block: CreatureBlock) -> Element:
             )[icon("x", "sm")],
         ],
         label(for_=f"f-{base}-text", class_="sr-only")[t("creatures.block_text")],
-        textarea(id=f"f-{base}-text", name=f"{kind}_text", rows="3", class_="cb-text")[block.text],
+        textarea(id=f"f-{base}-text", name=f"{kind}_text", rows="5", class_="cb-text")[block.text],
     ]
 
 
@@ -816,8 +870,13 @@ def builder_page(
                     actions,
                     p(class_="field-hint")[t("creatures.publish_hint")],
                 ],
+                # The CR it plays at and the live statblock first, where the eye checks
+                # each change; the picture and token below them.
                 div(class_="cb-side")[
                     _estimate(page, view),
+                    section(class_="cb-preview", aria_label=t("creatures.preview"))[
+                        statblock(page, view.preview, ctx)
+                    ],
                     _picture(page, view, picture_error),
                     token_panel(
                         page,
@@ -827,12 +886,10 @@ def builder_page(
                         world_id=view.design.world_id,
                         has_picture=bool(view.picture),
                     ),
-                    section(class_="cb-preview", aria_label=t("creatures.preview"))[
-                        statblock(page, view.preview, ctx)
-                    ],
                 ],
             ],
         ],
+        main_class="shell-main shell-wide",
         world_id=d.world_id,
         extra_scripts=("/static/js/roll.js",),
     )

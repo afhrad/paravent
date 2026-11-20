@@ -48,6 +48,11 @@ async def test_a_quest_from_start_to_reward(table: tuple[AsyncClient, StoreRegis
     assert [s.done for s in quest.steps] == [False, True]
     assert quest.items[0].ref.startswith("Potion of Healing|") and quest.items[0].count == 2
     page = html.unescape((await ac.get(f"/gm/quests?world={world}")).text)
+    # A new quest is made in a dialog, opened from the page head (or ?tool=quest).
+    assert 'data-dialog="tool-quest"' in page and '<dialog id="tool-quest"' in page
+    opened = (await ac.get(f"/gm/quests?world={world}&tool=quest")).text
+    assert " open" in opened.split('<dialog id="tool-quest"', 1)[1].split(">", 1)[0]
+    assert 'class="field-label"' in opened
     assert "300 XP each · 50 gp · Potion of Healing ×2 · renown +2" in page
     journal = html.unescape((await ac.get("/journal")).text)
     assert "The Drowned Bell" in journal and "Given by Mother Ilse" in journal

@@ -4088,5 +4088,9 @@
   "treasure.notes_read": "So lesen sich die Notizen",
   "treasure.coins_saved": "Münzen gespeichert.",
   "treasure.contents": "Inhalt",
-  "clock.more_title": "Zeit und Kalender"
+  "clock.more_title": "Zeit und Kalender",
+  "creatures.cr_own": "Sein eigener",
+  "creatures.begin_hint": "In dieser Welt. Leer beginnen (mit HG 1, wenn du keinen wählst), oder unten eine Kreatur aus den Büchern der Welt als Ausgangspunkt wählen, mit ihrem eigenen HG, wenn du keinen wählst.",
+  "creatures.create_blank": "Leer beginnen",
+  "creatures.hint_pick": "Kreaturen aus den Büchern dieser Welt suchen – Enter beginnt mit der markierten."
 }

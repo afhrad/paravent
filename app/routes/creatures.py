@@ -191,12 +191,17 @@ def _list_page(
                 service.unpublished(design),
             )
         )
+    world_id = registry.table.world_id()
+    result = registry.search.search(
+        "", registry.references.source_set(world_id), group="bestiary", term=page.t.terms()
+    )
     return html(
         creatures_page(
             page,
             rows,
             worlds,
             registry.creature_tables.rows(),
+            result,
             notice_text=notice_text,
             error=error,
             draft=draft,
@@ -271,11 +276,17 @@ async def create_creature(
     registry: RegistryDep,
     name: Annotated[str, Form()] = "",
     world: Annotated[str, Form()] = "",
-    cr: Annotated[str, Form()] = "1",
+    cr: Annotated[str, Form()] = "",
     based_on: Annotated[str, Form()] = "",
+    ref: Annotated[str, Form()] = "",
 ) -> Response:
-    """Start a design and open it."""
+    """Start a design and open it: blank, or from the creature picked in the dialog
+    (``ref``, ``Name|SOURCE``) or typed (``based_on``). An empty ``cr`` keeps the
+    creature's own, and is 1 for a blank design."""
     world_id = world if registry.worlds.find(world) else None
+    based_on = ref.strip() or based_on
+    if not cr.strip() and not based_on.strip():
+        cr = "1"
     try:
         wording = registry.creature_wording(world_id, page.t.code)
         design = registry.creatures.create(name, world_id, cr, based_on, wording)

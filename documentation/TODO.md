@@ -14,13 +14,7 @@ Sizes are rough — **S** a day's change, **M** a few, **L** a feature of its ow
 
 ## Next, agreed or recommended
 
-- **The creature builder** (audit 2026-11-20). Still the narrow page width, so its long
-  form is a slim column; action texts are edited in a box with tiny type. To check: the
-  statblock preview looked cut off after "Armor Class", and the floating Save/Publish bar
-  over the Armor Class labels (perhaps only the full-page screenshot). M
-- **Quests** (audit 2026-11-20). *New quest* is a big form always open at the foot of the
-  list, where other lists have a **New …** dialog; its labels are a large serif face, not
-  the small bold labels of other forms. S
+Nothing agreed is waiting; see the proposals below.
 
 ## Proposed, not yet chosen
 

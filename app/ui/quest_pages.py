@@ -10,6 +10,7 @@ from urllib.parse import quote, urlencode
 from htpy import (
     Element,
     Node,
+    a,
     b,
     button,
     details,
@@ -39,6 +40,7 @@ from app.ui.layout import app_shell
 from app.ui.names import name_text
 from app.ui.shop_pages import coin_text
 from app.ui.title_images import title_image, title_image_panel
+from app.ui.tool_dialog import tool_dialog
 
 QUESTS_URL = "/gm/quests"
 STATUS_TONE = {"open": "accent", "done": "heal", "failed": "dmg"}
@@ -87,7 +89,14 @@ def quests_page(
         page,
         t("quests.page_title", world=world.name),
         [
-            page_head(t("quests.eyebrow"), world.name, t("quests.lede")),
+            page_head(
+                t("quests.eyebrow"),
+                world.name,
+                t("quests.lede"),
+                a(href="?tool=quest", class_="btn btn-primary", data_dialog="tool-quest")[
+                    icon("plus"), span[t("quests.new")]
+                ],
+            ),
             alert(error),
             div(class_="quest-list")[
                 [
@@ -99,10 +108,13 @@ def quests_page(
                 if quests
                 else p(class_="muted")[t("quests.empty")],
             ],
-            section(class_="panel quest-new")[
-                div(class_="panel-head")[h2[t("quests.new")]],
+            # A new quest in a dialog, as the world's other lists make their new objects.
+            tool_dialog(
+                page,
+                "quest",
+                t("quests.new"),
                 _fields(page, base, None, members, factions, milestone),
-            ],
+            ),
         ],
         main_class="shell-main shell-wide",
         world_id=world.id,
@@ -249,7 +261,7 @@ def _fields(
         "save",
         hidden("quest", quest.id if quest else ""),
         label(class_="field")[
-            span[t("quests.name")],
+            span(class_="field-label")[t("quests.name")],
             input_el(
                 type="text",
                 name="name",
@@ -259,13 +271,13 @@ def _fields(
             ),
         ],
         label(class_="field")[
-            span[t("quests.giver")],
+            span(class_="field-label")[t("quests.giver")],
             input_el(
                 type="text", name="giver", value=quest.giver if quest else "", maxlength="160"
             ),
         ],
         label(class_="field")[
-            span[t("quests.faction")],
+            span(class_="field-label")[t("quests.faction")],
             select(name="faction_id")[
                 option(value="")[t("factions.none")],
                 [
@@ -277,15 +289,15 @@ def _fields(
         if factions
         else None,
         label(class_="field quest-wide")[
-            span[t("quests.text")],
+            span(class_="field-label")[t("quests.text")],
             textarea(name="text", rows="3", maxlength="8000")[quest.text if quest else ""],
         ],
         label(class_="field quest-wide")[
-            span[t("quests.steps")],
+            span(class_="field-label")[t("quests.steps")],
             textarea(name="steps", rows="3", placeholder=t("quests.steps_hint"))[steps],
         ],
         div(class_="field quest-wide")[
-            span[t("quests.characters")],
+            span(class_="field-label")[t("quests.characters")],
             div(class_="quest-who")[
                 [
                     label(class_="cs-heal-pick")[
@@ -303,7 +315,7 @@ def _fields(
             small(class_="muted")[t("quests.characters_hint")],
         ],
         label(class_="field")[
-            span[t("quests.xp")],
+            span(class_="field-label")[t("quests.xp")],
             input_el(
                 type="number",
                 name="xp",
@@ -315,7 +327,7 @@ def _fields(
         if not milestone
         else None,
         label(class_="field")[
-            span[t("quests.coins")],
+            span(class_="field-label")[t("quests.coins")],
             input_el(
                 type="number",
                 name="gold",
@@ -325,7 +337,7 @@ def _fields(
             ),
         ],
         label(class_="field")[
-            span[t("quests.renown")],
+            span(class_="field-label")[t("quests.renown")],
             input_el(
                 type="number",
                 name="renown",
@@ -338,7 +350,7 @@ def _fields(
         if factions
         else None,
         label(class_="field quest-wide")[
-            span[t("quests.items")],
+            span(class_="field-label")[t("quests.items")],
             textarea(name="items", rows="2", placeholder=t("quests.items_hint"))[items],
         ],
         label(class_="cs-heal-pick")[
