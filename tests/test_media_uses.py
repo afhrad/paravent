@@ -136,3 +136,25 @@ async def test_the_browser_shows_uses_and_renames_and_deletes(
     )
     assert "ferry.png" in renamed.text
     assert registry.gamestate.npcs.get(t["npc"]).portrait == "media/ferry.png"
+
+
+def test_a_tag_is_renamed_merged_and_removed_everywhere(registry: StoreRegistry) -> None:
+    t = _table(registry)
+    tags = registry.media_tags
+    tags.set(t["world"], "media/spare.png", ["river", "ruin"])
+    assert tags.rename_tag(t["world"], "river", "Water") == 2
+    assert tags.vocabulary(t["world"]) == {"water": 2, "ruin": 1}
+    tags.rename_tag(t["world"], "ruin", "water")  # merged: one tag, once
+    assert tags.of(t["world"], "media/spare.png") == ["water"]
+    assert tags.rename_tag(t["world"], "water", "") == 2  # removed, the pictures stay
+    assert tags.all(t["world"]) == {}
+    assert registry.gamestate.prose.world_folder(t["world"]) is not None
+
+
+async def test_the_browser_lists_and_renames_tags(gm: AsyncClient, registry: StoreRegistry) -> None:
+    t = _table(registry)
+    url = f"/gm/images/{t['chapter']}"
+    page = (await gm.get(url)).text
+    assert 'class="img-tagrow" data-tag="river"' in page and "1 picture" in page
+    renamed = (await gm.post(f"{url}/tags/rename", data={"old": "river", "new": "ford"})).text
+    assert 'data-tag="ford"' in renamed and 'data-tag="river"' not in renamed

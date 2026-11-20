@@ -3993,6 +3993,7 @@
   "npcs.statblock_from": "Take this creature's statblock (when the world's books have it)",
   "world.notice": "The table now plays in {world}.",
   "world.notice_none": "The table no longer plays in a world.",
+  "world.notice_reload": "Reload",
   "transfer.export": "Export world",
   "transfer.import": "Import world",
   "transfer.duplicate": "Duplicate world",
@@ -4012,5 +4013,11 @@
   "transfer.error.unsafe": "That file names places outside itself and was not read.",
   "transfer.error.too_big": "That file is too large to import.",
   "transfer.error.no_file": "Choose a world file to import.",
-  "transfer.error.no_name": "Give the copy a name."
+  "transfer.error.no_name": "Give the copy a name.",
+  "images.manage_tags": "Tags",
+  "images.manage_tags_hint": "Rename a tag on every picture of the world; a name another tag has merges the two.",
+  "images.tag_name": "New name for {tag}",
+  "images.tag_count": {"one": "{count} picture", "other": "{count} pictures"},
+  "images.tag_delete": "Delete the tag {tag}",
+  "images.tag_delete_confirm": "Remove the tag “{tag}” from {count} pictures? The pictures stay."
 }

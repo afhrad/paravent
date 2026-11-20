@@ -116,6 +116,20 @@ class MediaTags:
             {p: sorted((set(current.get(p, [])) | set(plus)) - minus) for p in world_paths},
         )
 
+    def rename_tag(self, record_id: str, old: str, new: str) -> int:
+        """Call a tag something else on every picture of the world that carries it; a name
+        another tag has merges the two, none removes it. Returns how many pictures."""
+        before, after = clean_tag(old), clean_tag(new)
+        if not before or before == after:
+            return 0
+        changes = {
+            path: sorted((set(tags) - {before}) | ({after} if after else set()))
+            for path, tags in self.all(record_id).items()
+            if before in tags
+        }
+        self._write(record_id, changes)
+        return len(changes)
+
     def _write(self, record_id: str, changes: Mapping[str, list[str]]) -> None:
         path = self._file(record_id)
         world = self._prose.world_folder(record_id)

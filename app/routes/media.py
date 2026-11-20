@@ -154,6 +154,22 @@ async def tag_images(
     return await asyncio.to_thread(_browser, page, registry, record_id)
 
 
+@router.post(f"{IMAGES_URL}/{{record_id}}/tags/rename", response_class=HTMLResponse)
+async def rename_tag(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    record_id: str,
+    old: Annotated[str, Form()] = "",
+    new: Annotated[str, Form()] = "",
+) -> Response:
+    """A tag of the world renamed on every picture (merged into a tag of that name), or
+    removed with no name; answered with the browser again."""
+    _world_of(registry, record_id)
+    registry.media_tags.rename_tag(record_id, old, new)
+    return await asyncio.to_thread(_browser, page, registry, record_id)
+
+
 def _world_of(registry: StoreRegistry, record_id: str) -> str:
     """The id of the world a record belongs to (the browser is opened from any record)."""
     store = registry.gamestate.prose

@@ -3993,6 +3993,7 @@
   "npcs.statblock_from": "Werte dieser Kreatur übernehmen (wenn die Bücher der Welt sie haben)",
   "world.notice": "Der Tisch spielt jetzt in {world}.",
   "world.notice_none": "Der Tisch spielt in keiner Welt mehr.",
+  "world.notice_reload": "Neu laden",
   "transfer.export": "Welt exportieren",
   "transfer.import": "Welt importieren",
   "transfer.duplicate": "Welt duplizieren",
@@ -4012,5 +4013,11 @@
   "transfer.error.unsafe": "Diese Datei verweist auf Orte außerhalb ihrer selbst und wurde nicht gelesen.",
   "transfer.error.too_big": "Diese Datei ist zu groß zum Importieren.",
   "transfer.error.no_file": "Wähle eine Welt-Datei zum Importieren.",
-  "transfer.error.no_name": "Gib der Kopie einen Namen."
+  "transfer.error.no_name": "Gib der Kopie einen Namen.",
+  "images.manage_tags": "Tags",
+  "images.manage_tags_hint": "Benenne einen Tag auf allen Bildern der Welt um; der Name eines anderen Tags führt beide zusammen.",
+  "images.tag_name": "Neuer Name für {tag}",
+  "images.tag_count": {"one": "{count} Bild", "other": "{count} Bilder"},
+  "images.tag_delete": "Tag {tag} löschen",
+  "images.tag_delete_confirm": "Den Tag „{tag}“ von {count} Bildern entfernen? Die Bilder bleiben."
 }

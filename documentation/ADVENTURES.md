@@ -491,6 +491,10 @@ notes may name the place itself).
   **Rename** gives it a new name in its folder, its file type kept, its tags moved and every
   use written again with its frame and effects; **Delete** removes it only while nothing uses
   it (`POST /gm/images/{id}/rename`, `/delete`).
+- **The world's tags kept tidy** (2026-11-20): **Tags** beside **Select** lists every tag of
+  the world with how many pictures carry it; a new name renames it on all of them (the name of
+  another tag merges the two into one), the bin removes it from every picture, the pictures
+  staying (`MediaTags.rename_tag`, `POST /gm/images/{id}/tags/rename`).
 - **A picture in a text enlarges** (2026-11-19, the user's request): a click or tap on a
   picture of a chapter, a note, a handout, the books' pictures or their illustrations
   beside an entry shows it over the page, as large as the window allows, until a click or

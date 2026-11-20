@@ -302,6 +302,35 @@
           }
         });
     }
+    // A tag of the world renamed everywhere (merged into one of that name), or removed.
+    function retag(row, remove) {
+      const browser = slot.querySelector(".img-browser");
+      if (!browser || !browser.dataset.tagsUrl) return;
+      const before = row.dataset.tag;
+      const after = remove ? "" : row.querySelector(".img-tagname").value.trim();
+      if (!remove && (!after || after === before)) return;
+      if (remove) {
+        const ask = row.querySelector(".img-tagdelete").dataset.confirm || "";
+        if (ask && !window.confirm(ask)) return;
+      }
+      const body = new FormData();
+      body.append("old", before);
+      body.append("new", after);
+      fetch(`${browser.dataset.tagsUrl}/rename`, { method: "POST", body, credentials: "same-origin" })
+        .then((r) => (r.ok ? r.text() : null))
+        .then((html) => {
+          if (html === null) return;
+          fill(html);
+          loading = Promise.resolve();
+          // The list stays open for the next tag.
+          const tools = slot.querySelector(".img-tagtools");
+          const panel = slot.querySelector(".img-tagmanage");
+          if (tools && panel) {
+            tools.setAttribute("aria-pressed", "true");
+            panel.hidden = false;
+          }
+        });
+    }
     function bulk(op) {
       const browser = slot.querySelector(".img-browser");
       const field = slot.querySelector(".img-bulk-tags");
@@ -336,6 +365,16 @@
         counted();
         return;
       }
+      const tools = event.target.closest(".img-tagtools");
+      if (tools) {
+        const on = tools.getAttribute("aria-pressed") !== "true";
+        tools.setAttribute("aria-pressed", on ? "true" : "false");
+        slot.querySelector(".img-tagmanage").hidden = !on;
+        return;
+      }
+      const tagRow = event.target.closest(".img-tagrow");
+      if (tagRow && event.target.closest(".img-tagrename")) return retag(tagRow, false);
+      if (tagRow && event.target.closest(".img-tagdelete")) return retag(tagRow, true);
       if (event.target.closest(".img-rename")) return manage("rename");
       if (event.target.closest(".img-delete")) return manage("delete");
       if (event.target.closest(".img-bulk-add")) return bulk("add");
@@ -356,6 +395,11 @@
     });
     slot.addEventListener("input", (event) => {
       if (event.target.matches(".img-filter")) filter();
+    });
+    slot.addEventListener("keydown", (event) => {
+      if (event.key !== "Enter" || !event.target.matches(".img-tagname")) return;
+      event.preventDefault();  // not the dialog's form
+      retag(event.target.closest(".img-tagrow"), false);
     });
     // The selection's tags field comes with the browser, drawn anew after each change.
     slot.addEventListener("focusin", (event) => {

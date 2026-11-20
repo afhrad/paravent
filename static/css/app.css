@@ -3101,3 +3101,9 @@ input[type=checkbox]:not(.sr-only), input[type=radio]:not(.sr-only){ width:18px;
   .world-notice{ left:12px; right:12px; transform:none; width:auto; flex-wrap:wrap; }
 }
 
+/* The world's tags, renamed or deleted on every picture (the image browser's Tags). */
+.img-tagmanage{ margin:4px 0 12px; padding:10px 12px; border:1px solid var(--border); border-radius:var(--r); background:var(--surface-2); }
+.img-tagrows{ list-style:none; margin:6px 0 0; padding:0; display:grid; gap:6px; }
+.img-tagrow{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.img-tagname{ flex:1 1 160px; min-width:0; min-height:36px; padding:0 8px; font:inherit; color:var(--text); background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-sm); }
+.img-tagcount{ font-size:13px; min-width:5.5em; }

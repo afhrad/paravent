@@ -28,6 +28,7 @@ from htpy import (
     img,
     label,
     legend,
+    li,
     p,
     script,
     small,
@@ -281,7 +282,42 @@ def image_browser(
             ]
             if tags_url
             else None,
+            button(type="button", class_="btn btn-sm img-tagtools", aria_pressed="false")[
+                icon("tag", "sm"), span[t("images.manage_tags")]
+            ]
+            if tags_url and vocabulary
+            else None,
         ],
+        # The world's tags to rename (merging into one of that name) or delete everywhere.
+        div(class_="img-tagmanage", hidden=True)[
+            p(class_="field-hint")[t("images.manage_tags_hint")],
+            ul(class_="img-tagrows")[
+                [
+                    li(class_="img-tagrow", data_tag=tag)[
+                        input_el(
+                            type="text",
+                            class_="img-tagname",
+                            value=tag,
+                            aria_label=t("images.tag_name", tag=tag),
+                            autocomplete="off",
+                        ),
+                        span(class_="muted img-tagcount")[t.plural("images.tag_count", count)],
+                        button(type="button", class_="btn btn-sm img-tagrename")[
+                            t("images.rename")
+                        ],
+                        button(
+                            type="button",
+                            class_="btn btn-sm btn-ghost btn-danger img-tagdelete",
+                            data_confirm=t("images.tag_delete_confirm", tag=tag, count=count),
+                            aria_label=t("images.tag_delete", tag=tag),
+                        )[icon("trash-2", "sm")],
+                    ]
+                    for tag, count in vocabulary
+                ]
+            ],
+        ]
+        if tags_url and vocabulary
+        else None,
         div(class_="chips img-tagstrip", role="group", aria_label=t("images.tags"))[
             [
                 button(
