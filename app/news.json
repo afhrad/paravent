@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-20T15:47:13+01:00",
+  "en": "The party view's travel, clock, shop and chase forms open in roomy dialogs; factions show renown buttons beside each name.",
+  "de": "Reisen, Uhr, Laden und Verfolgung öffnen sich in der Spielübersicht in geräumigen Dialogen; Fraktionen zeigen die Ruhm-Knöpfe neben jedem Namen."
+ },
+ {
   "at": "2026-11-20T15:30:10+01:00",
   "en": "After a delete, one banner says it and offers Undo.",
   "de": "Nach dem Löschen sagt es ein einziges Banner und bietet „Rückgängig“ an."
@@ -293,10 +298,5 @@
   "at": "2026-11-16T14:45:11+01:00",
   "en": "Quests with rewards handed out in one press, hirelings, companions, mounts and sidekicks, every bastion event carried out, spell scrolls cast and copied into spellbooks, and milestone levelling.",
   "de": "Aufträge mit Belohnungen auf einen Klick, Angestellte, Gefährten, Reittiere und Sidekicks, alle Bastionsereignisse ausgeführt, Zauberschriftrollen wirken und ins Zauberbuch übertragen, und Stufenaufstieg nach Meilensteinen."
- },
- {
-  "at": "2026-11-16T13:42:46+01:00",
-  "en": "Start and end a session with a briefing and an automatic session note, track factions and renown, and let players take their chase turns and roll trap saves on their own sheets.",
-  "de": "Beginne und beende eine Sitzung mit einer Übersicht und einer automatischen Sitzungsnotiz, verfolge Fraktionen und Ansehen, und lass Spieler ihre Züge in Verfolgungsjagden und Rettungswürfe gegen Fallen auf ihren eigenen Bögen machen."
  }
 ]
