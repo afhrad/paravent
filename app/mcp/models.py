@@ -545,6 +545,21 @@ class WorldProblem(AdventureProblem):
     )
 
 
+class TrashedInfo(BaseModel):
+    """Something deleted lately in a world, kept to restore (``list_trash``)."""
+
+    id: str = Field(description="What ``restore`` takes")
+    kind: str = Field(description="npc, place, treasure, encounter, chapter or adventure")
+    name: str
+    deleted_at: str = Field(description="When, as an ISO time")
+    named_in: int = Field(description="How many texts of the world still name it")
+    draft: str | None = Field(
+        default=None,
+        description="The draft adventure it was deleted from, when that is one of yours "
+        "still there: then ``restore`` can bring it back",
+    )
+
+
 class SoundInfo(BaseModel):
     """Something ``{@sound Name}`` can play."""
 

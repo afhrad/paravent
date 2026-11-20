@@ -915,6 +915,24 @@ class TestWholeAdventure:
             herald = next(p for p in world if p["name"] == "Heral")
             assert herald["where"] == "npc Crier" and herald["create"] is True
             assert herald["meant"] == ["Herald"] and herald["instead"] == ["{@npc Herald}"]
+            # Deleted lately, still named by the Crier's notes: the trash says so.
+            registry = facts["app"].state.stores
+            later = next(x for x in registry.gamestate.locations.list() if x.name == "Later")
+            registry.locations.delete(later.id)
+            trash = await call(mcp, "list_trash", world_id=facts["world"].id)
+            assert [(x["kind"], x["name"], x["named_in"]) for x in trash] == [("place", "Later", 2)]
+            # Deleted from Claude's own draft: Claude may bring it back.
+            assert trash[0]["draft"] == draft["id"]
+            done = await call(mcp, "restore", id=trash[0]["id"])
+            assert "Restored the place" in str(done)
+            assert registry.gamestate.locations.find(later.id) is not None
+            # Something of the world's own stays the gamemaster's.
+            mill = registry.locations.create("Mill", f"w:{facts['world'].id}", facts["world"].id)
+            registry.locations.delete(mill.id)
+            trash = await call(mcp, "list_trash", world_id=facts["world"].id)
+            assert trash[0]["name"] == "Mill" and trash[0]["draft"] is None
+            refused = await mcp.call_tool("restore", {"id": trash[0]["id"]})
+            assert refused.is_error and "only the gamemaster" in str(refused.content)
 
     async def test_sounds_can_be_listed(self, table: tuple[httpx.AsyncClient, Any]) -> None:
         _raw, facts = table

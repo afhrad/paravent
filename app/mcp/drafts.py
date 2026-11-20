@@ -35,6 +35,7 @@ from app.mcp.models import (
     QuestInfo,
     ReadyMadeObject,
     RevisionChange,
+    TrashedInfo,
     TreasureInfo,
     TreasureLine,
     WorldProblem,
@@ -56,6 +57,7 @@ from app.models.gamestate import (
     QuestStep,
     Scope,
     SourceSet,
+    TrashedObject,
     Treasure,
     TreasureItem,
     World,
@@ -67,6 +69,7 @@ from app.services.holdings import KINDS as HELD_KINDS
 from app.services.i18n import english
 from app.services.naming import sample_notes
 from app.services.naming_workshop import style_from_raw
+from app.services.trash import TrashError
 from app.services.treasure_roll import TreasureRollError, roller_for, tables_for
 from app.ui.context import Page
 from app.ui.library_links import adventure_url, chapter_url
@@ -430,7 +433,8 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
         """Everything in a world's texts that leads nowhere — its description, adventures,
         chapters, session notes and the notes of its NPCs, places, encounters and treasure —
         as the gamemaster's Check links shows it. Empty ``world_id``: the table's world.
-        Reading only: mend a draft's texts with ``write_chapter`` and the update tools."""
+        Reading only: mend a draft's texts with ``write_chapter`` and the update tools. A
+        missing object may have been deleted lately: ``list_trash`` says."""
         from app.routes.world_links import world_problems
 
         registry = stores()
@@ -453,6 +457,73 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
                     )
                 )
         return found
+
+    def trashed_draft(trashed: TrashedObject) -> Adventure | None:
+        """The draft of yours something in the trash was deleted from, if still there."""
+        record = trashed.record
+        if trashed.kind == "chapter":
+            adventure_id = record.get("parent_id")
+        elif trashed.kind == "encounter":
+            adventure_id = record.get("adventure_id")
+        elif trashed.kind == "adventure":
+            return None  # a whole draft comes back only by the gamemaster's hand
+        else:
+            adventure_id = (record.get("scope") or {}).get("adventure_id")
+        if not adventure_id:
+            return None
+        try:
+            return writable(str(adventure_id))
+        except ToolError:
+            return None
+
+    @server.tool()
+    def list_trash(world_id: str = "") -> list[TrashedInfo]:
+        """The NPCs, places, treasure, encounters, chapters and adventures deleted in a
+        world lately, newest first, kept 30 days for the gamemaster to restore under Check
+        links. A broken link that ``check_world`` reports may name one of them. What was
+        deleted from a draft of yours names it in ``draft``, and ``restore`` brings it
+        back. Empty ``world_id``: the table's world. Reading only."""
+        from app.routes.world_links import names_in_texts
+
+        registry = stores()
+        with tool_errors():
+            world = registry.adventures.world(current_or(registry, world_id))
+        naming = names_in_texts(english_page(), registry, world.id)
+        found = []
+        for x in registry.trash.of_world(world.id):
+            draft = trashed_draft(x)
+            found.append(
+                TrashedInfo(
+                    id=x.id,
+                    kind=x.kind,
+                    name=x.name,
+                    deleted_at=x.deleted_at.isoformat(),
+                    named_in=naming[(x.kind, x.name.casefold())],
+                    draft=draft.id if draft else None,
+                )
+            )
+        return found
+
+    @server.tool()
+    def restore(id: str) -> str:  # noqa: A002
+        """Bring back an NPC, place, treasure, encounter or chapter deleted from a draft of
+        yours (``list_trash``, where ``draft`` is set), as it was, into the draft; a chapter
+        with what was deleted with it. Nothing else can be restored here: the world's own
+        things and whole adventures are the gamemaster's, under Check links."""
+        registry = stores()
+        trashed = registry.gamestate.trash.find(id)
+        if trashed is None:
+            raise ToolError(f"There is nothing in the trash with the id {id}.")
+        if trashed_draft(trashed) is None:
+            raise ToolError(
+                f"“{trashed.name}” was not deleted from a draft of yours that is still there: "
+                "only the gamemaster can restore it, under Check links."
+            )
+        try:
+            kind, record = registry.trash.restore(id)
+        except TrashError as exc:
+            raise ToolError(str(exc)) from exc
+        return f"Restored the {kind} “{trashed.name}” (id {record.id})."
 
     # -- NPCs -----------------------------------------------------------------------
 
