@@ -4040,5 +4040,14 @@
   "links.kind.npc": "NSC-Notizen",
   "links.kind.place": "Ort-Notizen",
   "links.kind.treasure": "Schatz-Notizen",
-  "links.kind.encounter": "Begegnungsnotizen"
+  "links.kind.encounter": "Begegnungsnotizen",
+  "transfer.importing": "Wird importiert … das kann einen Moment dauern",
+  "transfer.duplicating": "Wird dupliziert … das kann einen Moment dauern",
+  "transfer.done.import": "„{world}“ wurde importiert: {records} Einträge und {files} Dateien. Der Tisch spielt jetzt in ihr.",
+  "transfer.done.duplicate": "„{world}“ wurde als Kopie angelegt: {records} Einträge und {files} Dateien. Der Tisch spielt jetzt in ihr.",
+  "transfer.done.kept": {"one": "{count} Kreaturen-Entwurf wurde ausgelassen, weil der Tisch schon einen dieses Namens hat.", "other": "{count} Kreaturen-Entwürfe wurden ausgelassen, weil der Tisch schon welche dieser Namen hat."},
+  "transfer.done.skipped": {"one": "{count} Datei oder Eintrag war nicht lesbar und wurde ausgelassen.", "other": "{count} Dateien oder Einträge waren nicht lesbar und wurden ausgelassen."},
+  "links.kind.session": "Sitzungsnotiz",
+  "links.session_title": "Sitzung vom {day}",
+  "links.count_label": "Links, die ins Leere führen"
 }

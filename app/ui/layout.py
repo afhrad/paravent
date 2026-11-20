@@ -51,7 +51,13 @@ from app.ui.nav import NAV, NavItem, nav_href
 from app.ui.palette import insert_palette, palette, search_trigger
 from app.ui.protocol_pages import log_button, log_dialog, toast_layer
 from app.ui.sound_panel import sound_button, sound_dialog
-from app.ui.world_menu import world_banner, world_dialogs, world_menu, world_notice
+from app.ui.world_menu import (
+    transfer_notice,
+    world_banner,
+    world_dialogs,
+    world_menu,
+    world_notice,
+)
 
 STYLESHEETS = (
     "/static/css/tokens.css",
@@ -521,7 +527,7 @@ def app_shell(
                 settings_menu(page),
                 user_menu(page, name, user.username),
             ],
-            main(class_=main_class, id="main")[world_banner(page), content],
+            main(class_=main_class, id="main")[world_banner(page), transfer_notice(page), content],
             _player_bar(page) if bar else None,
             palette(page, world_id) if palette_layer else None,
             insert_palette(page, world_id) if insert_layer else None,

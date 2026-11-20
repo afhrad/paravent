@@ -20,11 +20,17 @@ from starlette.datastructures import UploadFile
 
 from app.dependencies import GamemasterDep, RegistryDep
 from app.routes.auth import redirect, safe_next
-from app.services.world_transfer import WorldTransferError
+from app.services.world_transfer import Imported, WorldTransferError
 from app.store.prose import slugify
 from app.store.registry import StoreRegistry
 from app.ui.nav import WORLD_SECTIONS
-from app.ui.world_menu import DUPLICATE_URL, EXPORT_URL, IMPORT_URL, TRANSFER_ERROR
+from app.ui.world_menu import (
+    DUPLICATE_URL,
+    EXPORT_URL,
+    IMPORT_URL,
+    TRANSFER_ERROR,
+    TRANSFERRED,
+)
 
 router = APIRouter(tags=["world transfer"])
 
@@ -36,11 +42,13 @@ def _with_error(back: str, key: str) -> str:
     return f"{parts.path}?{query}{urlencode({TRANSFER_ERROR: key})}"
 
 
-def _play_in(registry: StoreRegistry, user_id: str, world_id: str) -> Response:
-    """The table plays in the world just made, starting from its adventures."""
-    registry.table.select(world_id)
+def _play_in(registry: StoreRegistry, user_id: str, made: Imported, how: str) -> Response:
+    """The table plays in the world just made, starting from its adventures, which say
+    what came along and what was left out (``TRANSFERRED``)."""
+    registry.table.select(made.world.id)
     registry.places.forget_sections(user_id, WORLD_SECTIONS)
-    return redirect("/gm/adventures")
+    report = f"{how}:{made.records}:{made.files}:{len(made.creatures_kept)}:{len(made.skipped)}"
+    return redirect(f"/gm/adventures?{urlencode({TRANSFERRED: report})}")
 
 
 @router.get(EXPORT_URL)
@@ -84,7 +92,7 @@ async def import_world(request: Request, _gm: GamemasterDep, registry: RegistryD
             )
         except WorldTransferError as exc:
             return redirect(_with_error(back, exc.key))
-    return _play_in(registry, _gm.user.id, made.world.id)
+    return _play_in(registry, _gm.user.id, made, "import")
 
 
 @router.post(DUPLICATE_URL)
@@ -105,7 +113,7 @@ async def duplicate_world(
     made = await run_in_threadpool(
         registry.world_transfer.duplicate, world.id, name=name.strip(), play=play == "1"
     )
-    return _play_in(registry, _gm.user.id, made.world.id)
+    return _play_in(registry, _gm.user.id, made, "duplicate")
 
 
 __all__ = ["router"]

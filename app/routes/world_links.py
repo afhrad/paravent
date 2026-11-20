@@ -1,8 +1,9 @@
 """Every link of the table's world that leads nowhere, on one page (ADVENTURES.md §5.7).
 
 * ``GET  /gm/world/links``     — the chapter check over every text of the world: its
-  description, adventures, chapters and the notes of its NPCs, places, encounters and
-  treasure, each problem with what would mend it
+  description, adventures, chapters, session notes and the notes of its NPCs, places,
+  encounters and treasure, each problem with what would mend it (a quest's text, a
+  faction's note and Claude's instructions are plain text, where a tag is never a link)
 * ``POST /gm/world/links/fix`` — one suggested replacement written into its text, on its line
 
 A missing NPC, place, treasure or encounter is offered to create through the same page as a
@@ -11,13 +12,14 @@ dashed link in a chapter (``/gm/editor/new``), coming back here.
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Annotated
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Form, HTTPException
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, PlainTextResponse, Response
 from htpy import Element, a, button, code, div, form, li, section, span, ul
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
@@ -42,6 +44,7 @@ from app.ui.library_links import (
     world_url,
 )
 from app.ui.prose_check import Problem
+from app.ui.session_pages import SESSIONS_URL, day_text
 from app.ui.world_menu import LINKS_URL
 
 router = APIRouter(tags=["world links"])
@@ -57,6 +60,7 @@ FIELDS: dict[str, tuple[str, str]] = {
     "place": ("locations", "notes"),
     "treasure": ("treasures", "notes"),
     "encounter": ("encounters", "notes"),
+    "session": ("session_notes", "text"),
 }
 
 
@@ -154,6 +158,19 @@ def world_problems(page: Page, registry: StoreRegistry, world_id: str) -> list[C
             at,
             _notes(page, registry, at, encounter.notes),
         )
+    for note in sorted(
+        registry.gamestate.session_notes.list(lambda n: n.world_id == world_id),
+        key=lambda n: n.day,
+    ):
+        at = Scope(world_id=world_id, adventure_id=note.adventure_id)
+        add(
+            "session",
+            note.id,
+            page.t("links.session_title", day=day_text(page, note.day)),
+            f"{SESSIONS_URL}#note-{note.id}",
+            at,
+            _notes(page, registry, at, note.text),
+        )
     return found
 
 
@@ -239,6 +256,16 @@ async def world_links(
         raise HTTPException(status_code=404)
     message = {"1": page.t("links.fixed"), "stale": page.t("links.stale")}.get(fixed)
     return html(links_page(page, world.name, world_problems(page, registry, world.id), message))
+
+
+@router.get(f"{LINKS_URL}/count", response_class=PlainTextResponse)
+async def count_links(_gm: GamemasterDep, page: PageDep, registry: RegistryDep) -> str:
+    """How many things in the table's world lead nowhere, for the world menu's badge."""
+    world = registry.table.world()
+    if world is None:
+        return "0"
+    checked = await asyncio.to_thread(world_problems, page, registry, world.id)
+    return str(sum(len(c.problems) for c in checked))
 
 
 @router.post(FIX_URL)

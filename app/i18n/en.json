@@ -4040,5 +4040,14 @@
   "links.kind.npc": "NPC notes",
   "links.kind.place": "Place notes",
   "links.kind.treasure": "Treasure notes",
-  "links.kind.encounter": "Encounter notes"
+  "links.kind.encounter": "Encounter notes",
+  "transfer.importing": "Importing… this can take a moment",
+  "transfer.duplicating": "Duplicating… this can take a moment",
+  "transfer.done.import": "“{world}” was imported: {records} records and {files} files. The table now plays in it.",
+  "transfer.done.duplicate": "“{world}” was made as a copy: {records} records and {files} files. The table now plays in it.",
+  "transfer.done.kept": {"one": "{count} creature design was left out, as the table has one of that name already.", "other": "{count} creature designs were left out, as the table has designs of those names already."},
+  "transfer.done.skipped": {"one": "{count} file or record could not be read and was left out.", "other": "{count} files or records could not be read and were left out."},
+  "links.kind.session": "Session note",
+  "links.session_title": "Session of {day}",
+  "links.count_label": "Links that lead nowhere"
 }

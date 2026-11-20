@@ -4,6 +4,7 @@ to make it where the text is (app/ui/markdown.py, app/routes/editor.py)."""
 from __future__ import annotations
 
 from collections.abc import AsyncIterator
+from datetime import date
 from pathlib import Path
 from urllib.parse import parse_qs, urlsplit
 
@@ -12,7 +13,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.config import Settings
 from app.main import create_app
-from app.models.gamestate import Role
+from app.models.gamestate import Role, SessionNote
 from app.routes.adventures import close_names
 from app.services.worlds import WorldInput
 from app.store.registry import StoreRegistry
@@ -137,8 +138,15 @@ async def test_the_world_lists_its_broken_links_and_mends_them(
     registry.npcs.create("Hob Wade", f"w:{chapter.world_id}", chapter.world_id)
     maren = registry.npcs.create("Maren", f"w:{chapter.world_id}", chapter.world_id)
     registry.gamestate.npcs.update(maren.id, notes="Owes {@npc Hob} a favour.")
+    note = registry.gamestate.session_notes.create(
+        SessionNote(world_id=chapter.world_id, day=date(2026, 11, 20), text="Met {@npc Marn}.")
+    )
+    assert (await gm.get("/gm/world/links/count")).text == "4"
     page = (await gm.get("/gm/world/links")).text
-    assert "3 things in this world" in page  # the purse and Hob in the chapter, Hob in notes
+    # The purse and Hob in the chapter, Hob in Maren's notes, Marn in the session note.
+    assert "4 things in this world" in page
+    assert f'href="/gm/sessions#note-{note.id}"' in page and 'value="{@npc Maren}"' in page
+    assert 'data-count-src="/gm/world/links/count"' in page
     assert f'id="t-{chapter_id}"' in page and f'id="t-{maren.id}"' in page
     assert 'name="new" value="{@npc Hob Wade}"' in page
     assert "/gm/editor/new?kind=treasure" in page and "back=%2Fgm%2Fworld%2Flinks" in page

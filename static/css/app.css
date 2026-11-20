@@ -3121,3 +3121,10 @@ input[type=checkbox]:not(.sr-only), input[type=radio]:not(.sr-only){ width:18px;
 .links-text-head{ display:flex; flex-direction:column; gap:2px; margin-bottom:8px; }
 .links-text-title{ font-weight:600; }
 .links-page .check-fixes .inline-form{ display:inline-flex; }
+
+/* A form sent and waiting (ui.js, data-busy). */
+form[aria-busy="true"] .is-busy{ cursor:progress; opacity:.85; }
+form[aria-busy="true"] .is-busy svg{ animation:busy-spin 1s linear infinite; }
+@keyframes busy-spin{ to{ transform:rotate(360deg); } }
+@media (prefers-reduced-motion: reduce){ form[aria-busy="true"] .is-busy svg{ animation:none; } }
+.world-menu-count{ margin-left:auto; }

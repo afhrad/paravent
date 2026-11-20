@@ -202,6 +202,13 @@ The world menu also offers **Check links** (every broken link of the world, ADVE
   their content) are written. The dialog opens again saying why.
 - **Duplicate** is an export read straight back in under a new name ("… (copy)"), the play
   optional: the same campaign for a second group.
+- **What came along** (2026-11-20): the new world's first page says it, "… was imported: 52
+  records and 68 files", naming creature designs left out and anything unreadable
+  (`transferred` in the address, `transfer_notice`). While a file uploads or a copy is made,
+  the dialog's button says so and waits (`data-busy`, `ui.js`), so nothing is sent twice.
+- **Ids with a letter**: front matter is rewritten as text, and YAML reads an id of digits
+  alone (one in about 270) as a number, which lost the record; an import gives out only ids
+  with a letter in them.
 - **A name the table has** gets a number, from an import or a duplicate alike ("Azeroth (2)"),
   so the world menu tells the worlds apart.
 - **Tried on the real library** (2026-11-20, on a copy): a world of 18 chapters, 11 MB of

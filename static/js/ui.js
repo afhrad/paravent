@@ -394,3 +394,41 @@
     copy(el);
   });
 })();
+
+// A form that takes a while (a world imported or duplicated): once sent, its buttons wait
+// and the submit button says what is happening (data-busy), so nobody sends it twice.
+(function () {
+  document.addEventListener('submit', function (e) {
+    var form = e.target;
+    if (!form.matches || !form.matches('form[data-busy]') || e.defaultPrevented) return;
+    form.setAttribute('aria-busy', 'true');
+    var submit = form.querySelector('button[type=submit]');
+    if (submit) {
+      var label = submit.querySelector('span') || submit;
+      label.textContent = form.dataset.busy;
+      submit.classList.add('is-busy');
+    }
+    // After the browser has taken the form, so the submit button's own value still goes.
+    setTimeout(function () {
+      form.querySelectorAll('button').forEach(function (b) { b.disabled = true; });
+    }, 0);
+  });
+})();
+
+// Counts beside a menu's links (the world menu's Check links), asked each time the menu
+// opens rather than with every page: data-count-src answers a number, 0 hides it.
+(function () {
+  document.addEventListener('toggle', function (e) {
+    var menu = e.target;
+    if (!menu.open || !menu.querySelectorAll) return;
+    menu.querySelectorAll('[data-count-src]').forEach(function (badge) {
+      fetch(badge.dataset.countSrc, { credentials: 'same-origin' })
+        .then(function (r) { return r.ok ? r.text() : ''; })
+        .then(function (text) {
+          var n = parseInt(text, 10);
+          badge.hidden = !(n > 0);
+          if (n > 0) badge.textContent = String(n);
+        });
+    });
+  }, true);
+})();

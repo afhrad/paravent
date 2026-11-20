@@ -42,6 +42,9 @@ DUPLICATE_URL = "/gm/world/duplicate"
 LINKS_URL = "/gm/world/links"
 # The query field that brings an import or a duplicate back with what went wrong.
 TRANSFER_ERROR = "transfer_error"
+# And the one that tells, on the new world's first page, what came along:
+# ``import|duplicate:records:files:creatures kept:left out``.
+TRANSFERRED = "transferred"
 
 
 def _here(page: Page) -> str:
@@ -118,7 +121,15 @@ def world_menu(page: Page) -> Node:
                 if current
                 else None,
                 a(href=LINKS_URL, class_="usermenu-link")[
-                    icon("shield-check", "sm"), span[t("links.title")]
+                    icon("shield-check", "sm"),
+                    span[t("links.title")],
+                    # How many lead nowhere, asked when the menu opens (ui.js).
+                    span(
+                        class_="pill cond world-menu-count",
+                        data_count_src=f"{LINKS_URL}/count",
+                        aria_label=t("links.count_label"),
+                        hidden=True,
+                    ),
                 ]
                 if current
                 else None,
@@ -189,6 +200,27 @@ def world_notice(page: Page) -> Element:
     ]
 
 
+def transfer_notice(page: Page) -> Node:
+    """After an import or a duplicate, what came along and what was left out."""
+    raw = (parse_qs(urlsplit(page.path).query).get(TRANSFERRED) or [""])[0]
+    how, *numbers = raw.split(":")
+    if (
+        how not in ("import", "duplicate")
+        or len(numbers) != 4
+        or not all(n.isdigit() for n in numbers)
+    ):
+        return None
+    records, files, kept, skipped = (int(n) for n in numbers)
+    t = page.t
+    world = page.world[1] if page.world else ""
+    parts = [t(f"transfer.done.{how}", world=world, records=records, files=files)]
+    if kept:
+        parts.append(t.plural("transfer.done.kept", kept))
+    if skipped:
+        parts.append(t.plural("transfer.done.skipped", skipped))
+    return div(class_="notice", role="status")[icon("check"), span[" ".join(parts)]]
+
+
 def no_world_button(page: Page) -> Element:
     """**Create a world**, opening the new-world dialog (its page without the script)."""
     return a(href=f"{WORLDS_URL}/new", class_="btn btn-primary", data_dialog="new-world")[
@@ -238,7 +270,13 @@ def _import_dialog(page: Page, here: str, error: str | None) -> Element:
         aria_labelledby="import-world-h",
         data_open_now="1" if error else None,
     )[
-        form(method="post", action=IMPORT_URL, enctype="multipart/form-data", class_="stack-form")[
+        form(
+            method="post",
+            action=IMPORT_URL,
+            enctype="multipart/form-data",
+            class_="stack-form",
+            data_busy=t("transfer.importing"),
+        )[
             input_el(type="hidden", name="next", value=here),
             _dialog_head(page, "import-world", t("transfer.import")),
             p(class_="field-hint")[t("transfer.import_hint")],
@@ -280,7 +318,12 @@ def _duplicate_dialog(page: Page, here: str, name: str, error: str | None) -> El
         aria_labelledby="duplicate-world-h",
         data_open_now="1" if error else None,
     )[
-        form(method="post", action=DUPLICATE_URL, class_="stack-form")[
+        form(
+            method="post",
+            action=DUPLICATE_URL,
+            class_="stack-form",
+            data_busy=t("transfer.duplicating"),
+        )[
             input_el(type="hidden", name="next", value=here),
             _dialog_head(page, "duplicate-world", t("transfer.duplicate")),
             p(class_="field-hint")[t("transfer.duplicate_hint", world=name)],
@@ -380,8 +423,10 @@ __all__ = [
     "SELECT_URL",
     "SETTINGS_URL",
     "TRANSFER_ERROR",
+    "TRANSFERRED",
     "no_world_button",
     "world_banner",
     "world_dialogs",
+    "transfer_notice",
     "world_menu",
 ]

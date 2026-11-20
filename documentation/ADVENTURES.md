@@ -592,8 +592,11 @@ callbacks the page renders with, so the check and the page cannot disagree:
 
 **The whole world at once** (2026-11-20, `app/routes/world_links.py`): **Check links** in the
 world menu (`/gm/world/links`) runs the same check over every text of the table's world — its
-description, adventures, chapters and the notes of its NPCs, places, treasure and encounters
-— and lists those with problems, each linked. A suggestion is written into its text on its
+description, adventures, chapters, session notes and the notes of its NPCs, places, treasure
+and encounters — and lists those with problems, each linked. (A quest's text, a faction's
+note and Claude's instructions are plain text: a tag there is never a link.) The menu shows
+how many beside **Check links**, counted when it opens (`/gm/world/links/count`), not with
+every page. A suggestion is written into its text on its
 line with one press (`POST /gm/world/links/fix`; a text changed meanwhile is left alone and
 the page says so); a missing object is offered through the create page, which comes back
 here. The create page itself (a dashed link clicked in a chapter) now also offers what the
