@@ -724,7 +724,9 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         **Check links** in the world menu lists every broken link of the world, mended with
         one press, renamed or created, and what nothing uses, to delete together (§5.7).
         **Deleted objects wait 30 days** (`app/services/trash.py`) under *Recently deleted*,
-        to restore where they were
+        to restore where they were. **What's new in Paravent** (2026-11-20,
+        `app/services/news.py`): the commits' `News:` lines, written to `app/news.json` by
+        the website build, on the gamemaster's home page until read
   - [x] **Ready-made objects in an adventure** (2026-11-19, `app/services/holdings.py`):
         the world's own NPCs, places, encounters and treasure added to an adventure from
         a list (linked in its `uses`, staying the world's); taken out of it, never

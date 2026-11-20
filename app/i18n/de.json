@@ -4028,7 +4028,7 @@
   "md.create_in_chapter": "Im Kapitel „{name}“",
   "md.create_in_adventure": "Im Abenteuer „{name}“",
   "md.create_in_world": "In der Welt „{name}“",
-  "md.create_near": "Meintest du eines davon? Es öffnet sich; den Link im Editor korrigieren.",
+  "md.create_near": "Meintest du eines davon? Öffne es, richte diesen Link darauf, oder gib ihm den Namen, der hier steht.",
   "links.title": "Links prüfen",
   "links.lede": {"one": "{count} Stelle in den Texten dieser Welt führt ins Leere. Ein Vorschlag wird mit einem Druck eingetragen; was fehlt, lässt sich anlegen.", "other": "{count} Stellen in den Texten dieser Welt führen ins Leere. Ein Vorschlag wird mit einem Druck eingetragen; was fehlt, lässt sich anlegen."},
   "links.none": "Jeder Link in den Texten dieser Welt führt irgendwohin.",
@@ -4072,5 +4072,9 @@
   "trash.error.gone": "Das liegt nicht mehr im Papierkorb.",
   "trash.error.world": "Seine Welt gibt es nicht mehr; es kann nicht zurück.",
   "trash.error.taken": "Etwas mit seiner Kennung gibt es wieder; es wurde nicht wiederhergestellt.",
-  "trash.error.unreadable": "Es ließ sich nicht zurücklesen; es bleibt im Papierkorb."
+  "trash.error.unreadable": "Es ließ sich nicht zurücklesen; es bleibt im Papierkorb.",
+  "trash.named": {"one": "in {count} Text genannt, dessen Link nach dem Wiederherstellen wieder geht", "other": "in {count} Texten genannt, deren Links nach dem Wiederherstellen wieder gehen"},
+  "md.create_relink": "Link auf „{name}“ ändern",
+  "news.title": "Neu in Paravent",
+  "news.seen": "Verstanden"
 }

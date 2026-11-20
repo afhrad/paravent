@@ -344,7 +344,7 @@ def prose_context(
         # Made where this text looks first, so the link finds it at once.
         if not gamemaster or kind not in CREATABLE:
             return None
-        return new_object_url(kind, name, scopes.encode(here), page.path)
+        return new_object_url(kind, name, scopes.encode(here), page.path, record_id)
 
     return MarkdownContext(
         tags=tag_ctx,

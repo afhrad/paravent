@@ -99,3 +99,14 @@ async def test_check_links_lists_and_restores(gm: AsyncClient, registry: StoreRe
     emptied = await gm.post("/gm/world/links/empty-trash")
     assert emptied.headers["location"] == "/gm/world/links?fixed=emptied"
     assert registry.trash.of_world(world) == []
+
+
+async def test_the_trash_says_which_texts_still_name_it(
+    gm: AsyncClient, registry: StoreRegistry
+) -> None:
+    world, _bell, fog = _world(registry)
+    hob = registry.npcs.create("Hob", f"w:{world}", world)
+    registry.gamestate.chapters.update(fog, body="{@npc Hob} rows, {@npc hob|he} waits.")
+    registry.npcs.delete(hob.id)
+    page = (await gm.get("/gm/world/links")).text
+    assert "named in 1 text, whose link works again once it is back" in page

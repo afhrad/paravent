@@ -620,7 +620,11 @@ than during it. **Deleted objects wait** (`app/services/trash.py`, `library/tras
 an NPC, place, treasure or encounter deleted anywhere is kept for 30 days and listed under
 **Recently deleted** on Check links; **Restore** puts it back under its old id where it was,
 or in its adventure or world when its chapter or adventure is gone (one whose world is gone
-cannot return); **Empty** forgets the world's trash.
+cannot return); **Empty** forgets the world's trash. Each row says how many texts still
+name it, whose links work again once it is back. A rename (here, in the editor or on the
+create page) now also rewrites the notes of the world's NPCs, places, treasure and
+encounters and its session notes (`reference_fix`); the create page can also point the one
+link at the object meant (`POST /gm/editor/relink`), or rename it and go back to the text.
 Claude reads the same list over MCP (`check_world`, MCP.md), and its instructions say when:
 after a revision, or when asked to look over a world. Front matter reads twelve hex
 digits as text (`_FrontLoader`), so an id of digits alone survives a hand edit that lost

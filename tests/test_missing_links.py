@@ -273,3 +273,55 @@ async def test_the_session_brief_and_the_menu_count_what_to_tidy(
     assert 'href="/gm/world/links"' in page
     menu = (await gm.get("/gm/adventures")).text
     assert 'data-count-src="/gm/world/links/unused-count"' in menu
+
+
+async def test_the_create_page_changes_the_link_or_renames(
+    gm: AsyncClient, registry: StoreRegistry
+) -> None:
+    chapter_id = _chapter(registry)  # "{@npc Hob}" alone on a line
+    chapter = registry.gamestate.chapters.get(chapter_id)
+    registry.table.select(chapter.world_id)
+    hob = registry.npcs.create("Hob Wade", f"w:{chapter.world_id}", chapter.world_id)
+    page = (await gm.get(f"/gm/chapters/{chapter_id}")).text
+    href = next(
+        part.split('"')[0]
+        for part in page.split('href="')[1:]
+        if part.startswith("/gm/editor/new") and "kind=npc" in part.split('"')[0]
+    ).replace("&amp;", "&")
+    assert f"text={chapter_id}" in href
+    asked = (await gm.get(href)).text
+    assert "Change the link to “Hob Wade”" in asked and "Rename “Hob Wade” to “Hob”" in asked
+    done = await gm.post(
+        "/gm/editor/relink",
+        data={
+            "text": chapter_id,
+            "kind": "npc",
+            "old": "Hob",
+            "new": "Hob Wade",
+            "back": f"/gm/chapters/{chapter_id}",
+        },
+    )
+    assert done.headers["location"] == f"/gm/chapters/{chapter_id}"
+    assert "{@npc Hob Wade}" in registry.gamestate.chapters.get(chapter_id).body
+    assert registry.gamestate.npcs.get(hob.id).name == "Hob Wade"
+
+
+async def test_a_rename_reaches_notes_and_session_notes(
+    gm: AsyncClient, registry: StoreRegistry
+) -> None:
+    chapter_id = _chapter(registry)
+    world = registry.gamestate.chapters.get(chapter_id).world_id
+    registry.table.select(world)
+    hob = registry.npcs.create("Hob Wade", f"w:{world}", world)
+    maren = registry.npcs.create("Maren", f"w:{world}", world)
+    registry.gamestate.npcs.update(maren.id, notes="Owes {@npc Hob Wade|him} a favour.")
+    note = registry.gamestate.session_notes.create(
+        SessionNote(world_id=world, day=date(2026, 11, 20), text="{@npc Hob Wade} rowed.")
+    )
+    back = await gm.post(
+        "/gm/editor/rename-back",
+        data={"kind": "npc", "id": hob.id, "name": "Hob", "back": "/gm/npcs"},
+    )
+    assert back.headers["location"] == "/gm/npcs"
+    assert registry.gamestate.npcs.get(maren.id).notes == "Owes {@npc Hob|him} a favour."
+    assert registry.gamestate.session_notes.get(note.id).text == "{@npc Hob} rowed."

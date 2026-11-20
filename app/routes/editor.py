@@ -8,7 +8,9 @@ chapter names, from the drop-down (static/js/complete.js).
   to make it where the text is
 * ``POST /gm/editor/new``    — makes it (or finds it, made meanwhile) and opens its page
 * ``POST /gm/editor/rename`` — ``kind``, ``id``, ``name``, ``scope``: the object takes the
-  name the text uses, every link to its old name following; 204
+  name the text uses, every link to its old name following (notes too); 204
+* ``POST /gm/editor/relink`` — the create page: one text's links to a name pointed at another
+* ``POST /gm/editor/rename-back`` — the create page: the rename, then back to the text
 """
 
 from __future__ import annotations
@@ -20,9 +22,10 @@ from fastapi.responses import HTMLResponse, Response
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.models.gamestate import Scope
-from app.routes.adventures import near_objects
+from app.routes.adventures import meant_objects
 from app.routes.auth import html, redirect, safe_next
 from app.services import scope as scopes
+from app.services.adventures import reference_fix
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
 from app.ui.encounter_pages import encounter_url
@@ -106,7 +109,45 @@ def rename_object(
     collection.update(object_id, name=new)
     adventure_id = where.adventure_id if where is not None else None
     registry.adventures.rewrite_references(str(record_world), kind, old, new, adventure_id)
+    # The world's notes and session notes follow too: rewrite_references reads the prose.
+    fix = reference_fix(kind, old, new)
+    store = registry.gamestate
+    for name in RENAMEABLE.values():
+        notes = getattr(store, name)
+        for other in notes.list():
+            other_scope = getattr(other, "scope", None)
+            other_world = other_scope.world_id if other_scope else other.world_id
+            if other_world == record_world and fix(other.notes) != other.notes:
+                notes.update(other.id, notes=fix(other.notes))
+    for note in store.session_notes.list(lambda n: n.world_id == record_world):
+        if fix(note.text) != note.text:
+            store.session_notes.update(note.id, text=fix(note.text))
     return True
+
+
+# The texts a link may be changed in, one at a time: where each keeps its Markdown.
+PROSE_FIELDS: dict[str, str] = {"worlds": "description", "adventures": "body", "chapters": "body"}
+
+
+def relink_text(
+    registry: StoreRegistry, text_id: str, kind: str, old: str, new: str, world_id: str | None
+) -> bool:
+    """Point the links to ``old`` in one world, adventure or chapter text at ``new``, their
+    labels kept. False when there is no such text of ``world_id``, or nothing to change."""
+    store = registry.gamestate
+    for name, field in PROSE_FIELDS.items():
+        collection = getattr(store, name)
+        record = collection.find(text_id)
+        if record is None:
+            continue
+        own_world = record.id if name == "worlds" else record.world_id
+        text = getattr(record, field)
+        fixed = reference_fix(kind, old, new)(text)
+        if own_world != world_id or fixed == text:
+            return False
+        collection.update(text_id, **{field: fixed})
+        return True
+    return False
 
 
 @router.post("/gm/editor/rename", status_code=204)
@@ -124,6 +165,40 @@ async def rename(
     if not rename_object(registry, kind, id, name, _scope(registry, scope).world_id):
         raise HTTPException(status_code=404)
     return Response(status_code=204)
+
+
+@router.post("/gm/editor/relink")
+async def relink(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    text: Annotated[str, Form()],
+    kind: Annotated[str, Form()],
+    old: Annotated[str, Form()],
+    new: Annotated[str, Form()],
+    back: Annotated[str, Form()] = "",
+) -> Response:
+    """The create page: change the link in the text it came from to the object meant."""
+    if kind not in CREATABLE or not old.strip() or not new.strip():
+        raise HTTPException(status_code=400, detail="kind or name")
+    relink_text(registry, text, kind, old, new.strip(), registry.table.world_id())
+    return redirect(safe_next(back) or "/gm/adventures")
+
+
+@router.post("/gm/editor/rename-back")
+async def rename_back(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    kind: Annotated[str, Form()],
+    id: Annotated[str, Form()],  # noqa: A002 — the form field's name
+    name: Annotated[str, Form()],
+    back: Annotated[str, Form()] = "",
+) -> Response:
+    """The create page: the object takes the name the text uses, then back to the text."""
+    if kind not in RENAMEABLE or not name.strip():
+        raise HTTPException(status_code=400, detail="kind or name")
+    if not rename_object(registry, kind, id, name, registry.table.world_id()):
+        raise HTTPException(status_code=404)
+    return redirect(safe_next(back) or "/gm/adventures")
 
 
 def _where(page: Page, registry: StoreRegistry, where: Scope) -> str:
@@ -149,6 +224,7 @@ async def ask_new(
     name: str = "",
     scope: str = "",
     back: str = "",
+    text: str = "",
 ) -> Response:
     """A link to something the world lacks: make it where the text is? Something of that
     name found there meanwhile opens at once."""
@@ -163,10 +239,10 @@ async def ask_new(
     }
     if finders[kind](name, where) is not None:
         return redirect(_make(registry, kind, name, where))
-    # What the text probably meant, each opening the one that exists.
+    # What the text probably meant: each to open, to point the link at, or to rename.
     near = [
-        (found, _make(registry, kind, found, where))
-        for found in near_objects(registry, where, kind, name)
+        (ident, found, _make(registry, kind, found, where))
+        for ident, found in meant_objects(registry, where, kind, name)
     ]
     return html(
         new_object_page(
@@ -177,6 +253,7 @@ async def ask_new(
             where=_where(page, registry, where),
             back=safe_next(back) or "/gm/adventures",
             near=near,
+            text=text,
         )
     )
 

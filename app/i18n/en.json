@@ -4028,7 +4028,7 @@
   "md.create_in_chapter": "in the chapter “{name}”",
   "md.create_in_adventure": "in the adventure “{name}”",
   "md.create_in_world": "in the world “{name}”",
-  "md.create_near": "Did you mean one of these? It opens; fix the link in the editor.",
+  "md.create_near": "Did you mean one of these? Open it, point this link at it, or give it the name written here.",
   "links.title": "Check links",
   "links.lede": {"one": "{count} thing in this world's texts leads nowhere. A suggestion is written in with one press; what is missing can be created.", "other": "{count} things in this world's texts lead nowhere. A suggestion is written in with one press; what is missing can be created."},
   "links.none": "Every link in this world's texts leads somewhere.",
@@ -4072,5 +4072,9 @@
   "trash.error.gone": "That is no longer in the trash.",
   "trash.error.world": "Its world is gone; it cannot come back.",
   "trash.error.taken": "Something with its id exists again; it was not restored.",
-  "trash.error.unreadable": "It could not be read back; it stays in the trash."
+  "trash.error.unreadable": "It could not be read back; it stays in the trash.",
+  "trash.named": {"one": "named in {count} text, whose link works again once it is back", "other": "named in {count} texts, whose links work again once it is back"},
+  "md.create_relink": "Change the link to “{name}”",
+  "news.title": "What's new in Paravent",
+  "news.seen": "Got it"
 }

@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import asyncio
 import re
+from collections import Counter
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from typing import Annotated
@@ -211,6 +212,14 @@ def _named(body: str) -> Iterator[tuple[str, str]]:
             yield block.group(1).lower(), block.group(2)
 
 
+def names_in_texts(page: Page, registry: StoreRegistry, world_id: str) -> Counter[tuple[str, str]]:
+    """How many texts of the world name each ``(kind, name)``, the name in lower case."""
+    found: Counter[tuple[str, str]] = Counter()
+    for text in world_texts(page, registry, world_id):
+        found.update({(kind, name.casefold()) for kind, name in _named(text.body)})
+    return found
+
+
 def unused_objects(page: Page, registry: StoreRegistry, world_id: str) -> list[Unused]:
     """The world's NPCs, places, treasure and encounters that no text names (as the page
     resolves the name, nearest scope first), no adventure lists as ready-made and, for an
@@ -259,6 +268,7 @@ def links_page(
     message: str | None = None,
     unused: Sequence[Unused] = (),
     trashed: Sequence[TrashedObject] = (),
+    naming: Counter[tuple[str, str]] | None = None,
 ) -> Element:
     """The world's texts with their problems, each mendable from here; then what nothing
     uses, to open or delete."""
@@ -276,13 +286,16 @@ def links_page(
             notice(message),
             [_text_section(page, c) for c in checked],
             _unused_section(page, unused) if unused else None,
-            _trash_section(page, trashed) if trashed else None,
+            _trash_section(page, trashed, naming or Counter()) if trashed else None,
         ],
     )
 
 
-def _trash_section(page: Page, trashed: Sequence[TrashedObject]) -> Element:
-    """What was deleted lately, to restore."""
+def _trash_section(
+    page: Page, trashed: Sequence[TrashedObject], naming: Counter[tuple[str, str]]
+) -> Element:
+    """What was deleted lately, to restore; how many texts still name each, whose links
+    work again once it is back."""
     t = page.t
     return section(class_="links-text links-unused panel", id="trash")[
         div(class_="links-text-head")[
@@ -296,6 +309,11 @@ def _trash_section(page: Page, trashed: Sequence[TrashedObject]) -> Element:
                     span(class_="muted links-unused-kind")[t(f"md.embed.{x.kind}")],
                     span[x.name],
                     span(class_="muted")[x.deleted_at.astimezone().strftime("%Y-%m-%d %H:%M")],
+                    span(class_="muted")[
+                        t.plural("trash.named", naming[(x.kind, x.name.casefold())])
+                    ]
+                    if naming[(x.kind, x.name.casefold())]
+                    else None,
                     form(method="post", action=RESTORE_URL, class_="inline-form")[
                         hidden("id", x.id),
                         button(type="submit", class_="btn btn-sm")[
@@ -464,7 +482,8 @@ async def world_links(
     checked = await asyncio.to_thread(world_problems, page, registry, world.id)
     unused = await asyncio.to_thread(unused_objects, page, registry, world.id)
     trashed = registry.trash.of_world(world.id)
-    return html(links_page(page, world.name, checked, message, unused, trashed))
+    naming = await asyncio.to_thread(names_in_texts, page, registry, world.id) if trashed else None
+    return html(links_page(page, world.name, checked, message, unused, trashed, naming))
 
 
 @router.get(f"{LINKS_URL}/count", response_class=PlainTextResponse)

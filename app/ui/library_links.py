@@ -49,15 +49,19 @@ MEDIA_URL = "/media"
 # A missing NPC, place, treasure or encounter a text names, made on the gamemaster's word
 # (app/routes/editor.py); the kinds it may make.
 NEW_OBJECT_URL = "/gm/editor/new"
+RELINK_URL = "/gm/editor/relink"
+RENAME_BACK_URL = "/gm/editor/rename-back"
 CREATABLE = frozenset({"npc", "encounter", "treasure", "place"})
 
 
-def new_object_url(kind: str, name: str, scope: str, back: str) -> str:
+def new_object_url(kind: str, name: str, scope: str, back: str, text: str = "") -> str:
     """The page asking whether to make ``name`` of ``kind`` in ``scope`` (``c:``, ``a:``,
-    ``w:`` and an id), returning to ``back`` if not."""
-    return f"{NEW_OBJECT_URL}?" + urlencode(
-        {"kind": kind, "name": name, "scope": scope, "back": back}
-    )
+    ``w:`` and an id), returning to ``back`` if not; ``text`` is the world, adventure or
+    chapter whose link it is, where the link can be changed instead."""
+    query = {"kind": kind, "name": name, "scope": scope, "back": back}
+    if text:
+        query["text"] = text
+    return f"{NEW_OBJECT_URL}?" + urlencode(query)
 
 
 def media_url(record_id: str, relative: str) -> str:
@@ -244,11 +248,13 @@ def new_object_page(
     scope: str,
     where: str,
     back: str,
-    near: Sequence[tuple[str, str]] = (),
+    near: Sequence[tuple[str, str, str]] = (),
+    text: str = "",
 ) -> Element:
     """Ask before making what a link names but the world lacks: what, and where it goes
     (the text's chapter, adventure or world, where the link looks first). ``near`` are
-    ``(name, url)`` of what the text probably meant, offered first."""
+    ``(id, name, url)`` of what the text probably meant, offered first: to open, to point
+    the link at (in ``text``, when known), or to rename to the name written."""
     t = page.t
     what = t(f"md.embed.{kind}")
     return app_shell(
@@ -263,10 +269,34 @@ def new_object_page(
                 p[t("md.create_lede", name=name, kind=what, where=where)],
                 div(class_="create-near")[
                     p(class_="field-hint")[t("md.create_near")],
-                    ul(class_="create-near-list")[
+                    ul(class_="create-near-list create-near-rows")[
                         [
-                            li[a(href=url, class_="btn btn-sm")[icon("arrow-right", "sm"), found]]
-                            for found, url in near
+                            li(class_="create-near-row")[
+                                a(href=url, class_="btn btn-sm")[icon("arrow-right", "sm"), found],
+                                form(method="post", action=RELINK_URL, class_="inline-form")[
+                                    hidden("text", text),
+                                    hidden("kind", kind),
+                                    hidden("old", name),
+                                    hidden("new", found),
+                                    hidden("back", back),
+                                    button(type="submit", class_="btn btn-sm")[
+                                        icon("pencil", "sm"),
+                                        span[t("md.create_relink", name=found)],
+                                    ],
+                                ]
+                                if text
+                                else None,
+                                form(method="post", action=RENAME_BACK_URL, class_="inline-form")[
+                                    hidden("kind", kind),
+                                    hidden("id", ident),
+                                    hidden("name", name),
+                                    hidden("back", back),
+                                    button(type="submit", class_="btn btn-sm btn-ghost")[
+                                        span[t("links.rename", old=found, new=name)]
+                                    ],
+                                ],
+                            ]
+                            for ident, found, url in near
                         ]
                     ],
                 ]

@@ -1,0 +1,302 @@
+[
+ {
+  "at": "2026-11-20T11:59:33+01:00",
+  "en": "The session page names the world's broken links before play, and the world menu counts unused objects.",
+  "de": "Die Sitzungsseite nennt vor dem Spiel die kaputten Links der Welt, und das Weltmenü zählt unbenutzte Objekte."
+ },
+ {
+  "at": "2026-11-20T11:59:29+01:00",
+  "en": "Deleted NPCs, places, treasure and encounters wait 30 days under Recently deleted on Check links, to restore.",
+  "de": "Gelöschte NSC, Orte, Schätze und Begegnungen warten 30 Tage unter Kürzlich gelöscht bei Links prüfen, zum Wiederherstellen."
+ },
+ {
+  "at": "2026-11-20T11:41:38+01:00",
+  "en": "The editor's check can rename an object to the name the text uses, and unused objects can be deleted together.",
+  "de": "Die Prüfung im Editor kann ein Objekt auf den Namen im Text umbenennen, und unbenutzte Objekte lassen sich gemeinsam löschen."
+ },
+ {
+  "at": "2026-11-20T11:26:05+01:00",
+  "en": "Check links also lists the NPCs, places, treasure and encounters nothing uses, to open or delete.",
+  "de": "Links prüfen listet auch die NSC, Orte, Schätze und Begegnungen, die nichts verwendet, zum Öffnen oder Löschen."
+ },
+ {
+  "at": "2026-11-20T11:16:38+01:00",
+  "en": "Check links can rename an NPC, place, treasure or encounter to the name the text uses, and Claude can check a whole world.",
+  "de": "Links prüfen kann einen NSC, Ort, Schatz oder eine Begegnung auf den Namen im Text umbenennen, und Claude kann eine ganze Welt prüfen."
+ },
+ {
+  "at": "2026-11-20T11:04:58+01:00",
+  "en": "After an import the new world says what came along, and the world menu counts the world's broken links.",
+  "de": "Nach einem Import sagt die neue Welt, was mitkam, und das Weltmenü zählt die kaputten Links der Welt."
+ },
+ {
+  "at": "2026-11-20T11:04:55+01:00",
+  "en": "Importing or duplicating a world no longer fails now and then with \"That file holds no Paravent world\".",
+  "de": "Eine Welt zu importieren oder zu duplizieren scheitert nicht mehr gelegentlich mit „Diese Datei enthält keine Paravent-Welt“."
+ },
+ {
+  "at": "2026-11-20T10:49:35+01:00",
+  "en": "Check links in the world menu lists every broken link of the world, each fixed with one press or created.",
+  "de": "Links prüfen im Weltmenü listet jeden kaputten Link der Welt, jeder mit einem Druck korrigiert oder angelegt."
+ },
+ {
+  "at": "2026-11-20T10:33:39+01:00",
+  "en": "The chapter check suggests the NPC, place, treasure or chapter a broken link probably meant, fixed with one press.",
+  "de": "Die Kapitelprüfung schlägt vor, welchen NSC, Ort, Schatz oder welches Kapitel ein kaputter Link wohl meinte, mit einem Druck behoben."
+ },
+ {
+  "at": "2026-11-20T10:09:39+01:00",
+  "en": "A link to an NPC, place, treasure or encounter that does not exist yet offers to create it with a click.",
+  "de": "Ein Link auf einen NSC, Ort, Schatz oder eine Begegnung, die es noch nicht gibt, bietet an, sie mit einem Klick anzulegen."
+ },
+ {
+  "at": "2026-11-20T09:56:47+01:00",
+  "en": "An imported or duplicated world whose name is taken gets a number, so the world menu tells them apart.",
+  "de": "Eine importierte oder duplizierte Welt mit vergebenem Namen bekommt eine Nummer, damit das Weltmenü sie unterscheidet."
+ },
+ {
+  "at": "2026-11-20T09:36:30+01:00",
+  "en": "The image browser renames, merges and removes a world's picture tags in one place.",
+  "de": "Der Bilderbrowser benennt die Bild-Tags einer Welt an einer Stelle um, führt sie zusammen oder entfernt sie."
+ },
+ {
+  "at": "2026-11-20T09:36:20+01:00",
+  "en": "The world menu exports a whole campaign as one file, imports one, and duplicates a world for a second group.",
+  "de": "Das Weltmenü exportiert eine ganze Kampagne als eine Datei, importiert eine und dupliziert eine Welt für eine zweite Gruppe."
+ },
+ {
+  "at": "2026-11-20T09:12:04+01:00",
+  "en": "When the game master switches worlds, open pages on players' phones say so and offer to reload.",
+  "de": "Wechselt die Spielleitung die Welt, sagen es offene Seiten auf den Handys der Spieler und bieten Neuladen an."
+ },
+ {
+  "at": "2026-11-19T23:49:26+01:00",
+  "en": "New treasure and places go straight into your world, and a new NPC can take the statblock of the creature it is.",
+  "de": "Neue Schätze und Orte landen direkt in deiner Welt, und ein neuer NSC kann die Werte der Kreatur übernehmen, die er ist."
+ },
+ {
+  "at": "2026-11-19T23:49:26+01:00",
+  "en": "Tagging a picture offers the world's tags as you type, so one place is not tagged two ways.",
+  "de": "Beim Verschlagworten eines Bildes werden die Schlagworte der Welt beim Tippen angeboten, damit nichts doppelt verschlagwortet wird."
+ },
+ {
+  "at": "2026-11-19T23:49:25+01:00",
+  "en": "Claude can reuse your world's existing NPCs, places, encounters and treasure in the adventures it drafts.",
+  "de": "Claude kann die vorhandenen NSC, Orte, Begegnungen und Schätze deiner Welt in seinen Abenteuerentwürfen wiederverwenden."
+ },
+ {
+  "at": "2026-11-19T23:34:47+01:00",
+  "en": "The image browser shows where each picture is used; rename one and every use follows, or delete one nothing uses.",
+  "de": "Der Bildbrowser zeigt, wo jedes Bild verwendet wird; benenne eins um, und jede Verwendung folgt, oder lösche eins, das nichts verwendet."
+ },
+ {
+  "at": "2026-11-19T23:11:01+01:00",
+  "en": "Links and checkboxes now follow the theme's colours everywhere, and all checkboxes are the same size.",
+  "de": "Links und Ankreuzfelder folgen jetzt überall den Farben des Themes, und alle Ankreuzfelder sind gleich groß."
+ },
+ {
+  "at": "2026-11-19T23:11:01+01:00",
+  "en": "A new NPC asks for its people or creature first, and the dice beside its name roll a name that fits.",
+  "de": "Ein neuer NSC fragt zuerst nach Volk oder Kreatur, und die Würfel neben dem Namen würfeln einen passenden Namen."
+ },
+ {
+  "at": "2026-11-19T22:22:04+01:00",
+  "en": "A world made from the world menu starts in your language.",
+  "de": "Eine Welt aus dem Weltmenü beginnt in deiner Sprache."
+ },
+ {
+  "at": "2026-11-19T21:46:46+01:00",
+  "en": "World settings now include the cover and pictures, and players see which world the table plays in.",
+  "de": "Die Welteinstellungen enthalten jetzt Titelbild und Bilder, und Spieler sehen, in welcher Welt der Tisch spielt."
+ },
+ {
+  "at": "2026-11-19T21:33:39+01:00",
+  "en": "Choose the world your table plays in from the new world menu; everything, characters included, then plays in it, and the top bar links that world's adventures, NPCs, places, treasure and more.",
+  "de": "Wähle im neuen Weltmenü die Welt, in der dein Tisch spielt; alles, auch die Charaktere, spielt dann in ihr, und die obere Leiste führt zu ihren Abenteuern, NSC, Orten, Schätzen und mehr."
+ },
+ {
+  "at": "2026-11-19T19:00:22+01:00",
+  "en": "A new encounter goes straight into the world you are working in, and NPCs and treasure are created in a dialog like places.",
+  "de": "Eine neue Begegnung landet direkt in der Welt, in der du gerade arbeitest, und NSC und Schätze werden wie Orte in einem Dialog angelegt."
+ },
+ {
+  "at": "2026-11-19T18:39:49+01:00",
+  "en": "Pictures in texts open large with a click, tags such as {@npc …} copy with a click to paste into a text, and images and tokens are now changed only in edit mode.",
+  "de": "Bilder in Texten öffnen sich groß per Klick, Tags wie {@npc …} lassen sich per Klick kopieren und in einen Text einfügen, und Bilder und Spielmarken werden nur noch im Bearbeitungsmodus geändert."
+ },
+ {
+  "at": "2026-11-19T17:47:27+01:00",
+  "en": "Taking an NPC, place, encounter or treasure out of a chapter now moves it up to the adventure instead of deleting it, and the image browser loads quickly with small previews.",
+  "de": "Ein NSC, Ort, Begegnung oder Schatz, der aus einem Kapitel genommen wird, wandert jetzt ins Abenteuer, statt gelöscht zu werden, und der Bildbrowser lädt mit kleinen Vorschauen schnell."
+ },
+ {
+  "at": "2026-11-19T16:06:48+01:00",
+  "en": "A new image dialog frames covers and pictures without cutting them, finds the world's pictures by name, tag or shape, places are created in their own dialog, and adventures take the world's ready-made NPCs, places, encounters and treasure from a list",
+  "de": "Ein neuer Bilddialog rahmt Titelbilder und Bilder, ohne sie zu beschneiden, findet die Bilder der Welt nach Name, Schlagwort oder Format, Orte entstehen in einem eigenen Dialog, und Abenteuer übernehmen die fertigen NSC, Orte, Begegnungen und Schätze der Welt aus einer Liste"
+ },
+ {
+  "at": "2026-11-19T13:21:07+01:00",
+  "en": "Players have a guide in the app: how the sheet, rolls, fights and magic items work.",
+  "de": "Spieler haben eine Anleitung in der App: wie Bogen, Würfe, Kämpfe und magische Gegenstände funktionieren."
+ },
+ {
+  "at": "2026-11-19T13:10:33+01:00",
+  "en": "Magic items cast at their own save DC, a wand can spend more charges for a higher level, and attunement follows who the item is for.",
+  "de": "Magische Gegenstände wirken mit ihrem eigenen Rettungswurf-SG, ein Zauberstab kann mehr Ladungen für einen höheren Grad ausgeben, und die Einstimmung folgt dem, für wen der Gegenstand gedacht ist."
+ },
+ {
+  "at": "2026-11-19T12:56:30+01:00",
+  "en": "Spells from magic items: a Staff of Fire's Fireball or a wand's Magic Missile is cast from the sheet, spending the item's charges.",
+  "de": "Zauber aus magischen Gegenständen: Der Feuerball eines Zauberstecken des Feuers oder das Magische Geschoss eines Zauberstabs wird vom Bogen gewirkt und verbraucht die Ladungen des Gegenstands."
+ },
+ {
+  "at": "2026-11-19T12:33:33+01:00",
+  "en": "Magic items on the sheet: attune up to three, spend charges with a tap, and they come back at dawn by the world's clock.",
+  "de": "Magische Gegenstände auf dem Bogen: bis zu drei einstimmen, Ladungen per Tippen verbrauchen, und sie kehren bei Sonnenaufgang nach der Uhr der Welt zurück."
+ },
+ {
+  "at": "2026-11-19T11:59:39+01:00",
+  "en": "Players can roll a disease's or poison's save on their own sheets, and Claude can place diseases and poisons in its draft adventures.",
+  "de": "Spieler können den Rettungswurf gegen eine Krankheit oder ein Gift auf ihrem Bogen würfeln, und Claude kann Krankheiten und Gifte in seine Abenteuerentwürfe setzen."
+ },
+ {
+  "at": "2026-11-19T11:19:11+01:00",
+  "en": "The glossary's given names are searchable and shown 100 to a page.",
+  "de": "Die vergebenen Namen im Glossar lassen sich durchsuchen und erscheinen zu 100 je Seite."
+ },
+ {
+  "at": "2026-11-19T10:54:18+01:00",
+  "en": "The character wizard fits a phone: choices two to a row, the skills table on the screen, and the summary in German abbreviations and metres.",
+  "de": "Der Charakterassistent passt aufs Handy: Auswahlen zu zweit in einer Reihe, die Fertigkeitentabelle auf dem Bildschirm und die Übersicht mit deutschen Kürzeln und in Metern."
+ },
+ {
+  "at": "2026-11-19T10:38:16+01:00",
+  "en": "The world, adventure, NPC and treasure pages fit a phone, and the encounter builder shows the monsters and the difficulty first there.",
+  "de": "Welt, Abenteuer, NSC und Schätze passen aufs Handy, und der Begegnungsbaukasten zeigt dort zuerst die Monster und die Schwierigkeit."
+ },
+ {
+  "at": "2026-11-19T10:06:55+01:00",
+  "en": "Preparing spells, level-up and the shop fit a phone: no sideways scrolling, long spell lists in their own box, one row per ware, and a quick way to selling.",
+  "de": "Zauber vorbereiten, Stufenaufstieg und der Laden passen aufs Handy: kein seitliches Scrollen, lange Zauberlisten in eigenem Kasten, eine Zeile je Ware und ein schneller Weg zum Verkaufen."
+ },
+ {
+  "at": "2026-11-19T09:39:18+01:00",
+  "en": "On a phone the table opens with what is in play; the road's weather reads in German, temperatures in °C.",
+  "de": "Auf dem Handy beginnt der Spieltisch mit dem, was gerade läuft; das Wetter unterwegs steht auf Deutsch, Temperaturen in °C."
+ },
+ {
+  "at": "2026-11-19T09:27:42+01:00",
+  "en": "A chapter lists its NPCs, encounters (with Run), places and treasure beside the text, and names the previous and next chapter, the next one with Start.",
+  "de": "Ein Kapitel listet seine NSC, Begegnungen (mit Starten), Orte und Schätze neben dem Text und nennt das vorige und nächste Kapitel, das nächste mit Starten."
+ },
+ {
+  "at": "2026-11-19T09:03:26+01:00",
+  "en": "The combat tracker fits laptop, iPad and phone: one-line rows, the round pinned on a phone, and the statblock of whoever's turn it is opens by itself; the players' sheet and fight view take less room on a phone.",
+  "de": "Der Kampftracker passt auf Laptop, iPad und Handy: einzeilige Reihen, die Runde bleibt auf dem Handy oben, und die Werte dessen, der am Zug ist, öffnen sich von selbst; Charakterbogen und Kampfansicht der Spieler brauchen auf dem Handy weniger Platz."
+ },
+ {
+  "at": "2026-11-18T22:52:19+01:00",
+  "en": "Places, encounters, quests and factions have a title image you can drop on their page; tokens are for NPCs, monsters, characters and treasure.",
+  "de": "Orte, Begegnungen, Aufträge und Fraktionen haben ein Titelbild, das sich auf ihre Seite ziehen lässt; Token gibt es für NSC, Monster, Figuren und Schätze."
+ },
+ {
+  "at": "2026-11-18T22:27:27+01:00",
+  "en": "The table shows what is in play: the running adventures and chapters, one tap away.",
+  "de": "Der Spieltisch zeigt, was im Spiel ist: die laufenden Abenteuer und Kapitel, einen Tipp entfernt."
+ },
+ {
+  "at": "2026-11-18T22:27:26+01:00",
+  "en": "Saving a chapter with an encounter or a box in it works again.",
+  "de": "Ein Kapitel mit Begegnung oder Kasten lässt sich wieder speichern."
+ },
+ {
+  "at": "2026-11-18T22:06:15+01:00",
+  "en": "The table shows the party first, with the world's clock, checks, shop and chase beside it, and tidier character cards.",
+  "de": "Der Spieltisch zeigt zuerst die Gruppe, daneben Uhr, Proben, Laden und Verfolgung der Welt, und aufgeräumtere Figurenkarten."
+ },
+ {
+  "at": "2026-11-18T21:34:16+01:00",
+  "en": "Diseases, poisons and curses: put them on characters from the books, and the world's clock runs their course: symptoms, saves at each rest or dawn, and the cure.",
+  "de": "Krankheiten, Gifte und Flüche: aus den Büchern auf Figuren legen, und die Uhr der Welt lässt sie verlaufen: Symptome, Rettungswürfe bei jeder Rast oder jedem Morgengrauen, die Heilung."
+ },
+ {
+  "at": "2026-11-16T19:59:41+01:00",
+  "en": "The session note now lists XP, levels, what each character received, bastion turns and downtime; phone layouts and German texts on the sheet, clock and session pages are tidied; character sheets load faster.",
+  "de": "Die Sitzungsnotiz nennt jetzt auch EP, Stufenaufstiege, was jeder Charakter erhielt, Bastionszüge und Auszeit; Handy-Ansichten und deutsche Texte auf Bogen, Uhr und Sitzungsseite sind aufgeräumt; Charakterbögen laden schneller."
+ },
+ {
+  "at": "2026-11-16T19:02:19+01:00",
+  "en": "Double presses no longer sell twice or run a bastion turn twice; supper comes after an encounter at day's end; chases count existing exhaustion; players can no longer add strong creatures as followers or free defenders.",
+  "de": "Doppelte Klicks verkaufen nicht mehr doppelt und starten keinen zweiten Bastionszug; nach einer Begegnung am Tagesende gibt es trotzdem Abendessen; Verfolgungsjagden zählen vorhandene Erschöpfung; Spieler können keine starken Kreaturen als Gefolge oder kostenlose Verteidiger mehr hinzufügen."
+ },
+ {
+  "at": "2026-11-16T16:13:07+01:00",
+  "en": "Companions and mounts keep the wounds they took in a fight, and several ways to be paid or rewarded twice are closed, among them springing a trap twice and taking any item from a bastion's magical discovery.",
+  "de": "Gefährten und Reittiere behalten die Wunden aus einem Kampf, und mehrere Wege, doppelt bezahlt oder belohnt zu werden, sind geschlossen, darunter eine Falle zweimal auszulösen und beliebige Gegenstände aus einer magischen Entdeckung der Bastion zu nehmen."
+ },
+ {
+  "at": "2026-11-16T15:55:24+01:00",
+  "en": "Each character has a story page of its quests, factions, contacts and the moments that changed it, and session notes sent to the players keep your secrets out.",
+  "de": "Jede Figur hat eine Geschichtsseite mit ihren Aufträgen, Fraktionen, Kontakten und den Momenten, die sie geprägt haben, und an die Spieler gesendete Sitzungsnotizen lassen deine Geheimnisse weg."
+ },
+ {
+  "at": "2026-11-16T15:27:33+01:00",
+  "en": "A new help page walks through everything between the fights, and the party view loads more than twice as fast.",
+  "de": "Eine neue Hilfeseite erklärt alles zwischen den Kämpfen, und die Gruppenansicht lädt mehr als doppelt so schnell."
+ },
+ {
+  "at": "2026-11-16T15:10:56+01:00",
+  "en": "Extreme cold, heat and high altitude on the road, Claude writes quests into its drafts, the session note goes to the players' journal in one press, and sidekicks take Tasha's sidekick classes.",
+  "de": "Extreme Kälte, Hitze und große Höhe unterwegs, Claude schreibt Aufträge in seine Entwürfe, die Sitzungsnotiz landet mit einem Klick im Journal der Spieler, und Sidekicks erhalten die Sidekick-Klassen aus Tasha."
+ },
+ {
+  "at": "2026-11-16T14:45:11+01:00",
+  "en": "Quests with rewards handed out in one press, hirelings, companions, mounts and sidekicks, every bastion event carried out, spell scrolls cast and copied into spellbooks, and milestone levelling.",
+  "de": "Aufträge mit Belohnungen auf einen Klick, Angestellte, Gefährten, Reittiere und Sidekicks, alle Bastionsereignisse ausgeführt, Zauberschriftrollen wirken und ins Zauberbuch übertragen, und Stufenaufstieg nach Meilensteinen."
+ },
+ {
+  "at": "2026-11-16T13:42:46+01:00",
+  "en": "Start and end a session with a briefing and an automatic session note, track factions and renown, and let players take their chase turns and roll trap saves on their own sheets.",
+  "de": "Beginne und beende eine Sitzung mit einer Übersicht und einer automatischen Sitzungsnotiz, verfolge Fraktionen und Ansehen, und lass Spieler ihre Züge in Verfolgungsjagden und Rettungswürfe gegen Fallen auf ihren eigenen Bögen machen."
+ },
+ {
+  "at": "2026-11-16T12:20:47+01:00",
+  "en": "Characters pay for their lifestyle each day, chases and traps run from the party view and chapters, the clock reads dates in your setting's calendar, and downtime brings allies, rivals and favours to call on.",
+  "de": "Charaktere zahlen täglich für ihren Lebensstil, Verfolgungsjagden und Fallen laufen von der Gruppenansicht und aus Kapiteln, die Uhr zeigt Daten im Kalender eures Settings, und Auszeit bringt Verbündete, Rivalen und Gefallen, auf die man zurückgreifen kann."
+ },
+ {
+  "at": "2026-11-15T19:41:20+01:00",
+  "en": "Travel with water, weather, mounts and ships; downtime activities from carousing to crime; magic items in the shop; bastion orders that bring defenders, coins and goods.",
+  "de": "Reisen mit Wasser, Wetter, Reittieren und Schiffen; Auszeit-Tätigkeiten vom Feiern bis zum Verbrechen; magische Gegenstände im Laden; Bastionsbefehle, die Verteidiger, Münzen und Waren bringen."
+ },
+ {
+  "at": "2026-11-15T18:54:05+01:00",
+  "en": "Travel with encounter checks and rations, downtime for crafting, training and recuperating, a shop the gamemaster opens during play, and bastion defenders and events.",
+  "de": "Reisen mit Begegnungswürfen und Rationen, Auszeit zum Herstellen, Lernen und Erholen, ein Laden, den die Spielleitung im Spiel öffnet, sowie Verteidiger und Ereignisse für Bastionen."
+ },
+ {
+  "at": "2026-11-15T16:26:31+01:00",
+  "en": "Every world now has a clock: move time on, rest the whole party at once, and watch torches, lanterns and spells run out on their own.",
+  "de": "Jede Welt hat jetzt eine Uhr: Zeit vorstellen, die ganze Gruppe auf einmal rasten lassen, und Fackeln, Laternen und Zauber laufen von selbst ab."
+ },
+ {
+  "at": "2026-11-15T14:39:18+01:00",
+  "en": "Call for checks outside a fight (asked or secret), share out treasure to the party, ammunition that runs down, Use for potions and scrolls, editable notes and shared party notes, lines and veils with an anonymous X-card, and bastions from level 5.",
+  "de": "Proben außerhalb des Kampfes anfordern (offen oder verdeckt), Schätze an die Gruppe verteilen, Munition, die sich verbraucht, „Benutzen“ für Tränke und Schriftrollen, bearbeitbare Notizen und gemeinsame Gruppennotizen, Grenzen und Schleier mit anonymer X-Karte sowie Bastionen ab Stufe 5."
+ },
+ {
+  "at": "2026-11-15T11:52:48+01:00",
+  "en": "Summon Beast and the other summoning spells put their creature into the fight beside the caster, scaled to the slot, until the concentration ends.",
+  "de": "Beschwörungszauber wie Summon Beast bringen ihre Kreatur neben den Zaubernden in den Kampf, passend zum Grad, bis die Konzentration endet."
+ },
+ {
+  "at": "2026-11-15T11:32:25+01:00",
+  "en": "Shapechange lets a caster take any creature's shape and keep casting; players see their own character's shape hit points on the fight view; the combat guide explains shapes and concentration.",
+  "de": "Gestaltwandel lässt den Zaubernden die Gestalt jeder Kreatur annehmen und weiter zaubern; Spieler sehen die Trefferpunkte der Gestalt ihres eigenen Charakters in der Kampfansicht; die Kampfanleitung erklärt Gestalten und Konzentration."
+ },
+ {
+  "at": "2026-11-15T11:21:36+01:00",
+  "en": "What the players learn about a polymorphed creature counts for the creature it was turned into.",
+  "de": "Was die Spieler über eine verwandelte Kreatur erfahren, gilt für die Kreatur, in die sie verwandelt wurde."
+ }
+]

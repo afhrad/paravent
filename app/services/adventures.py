@@ -117,6 +117,19 @@ def clean_name(name: str) -> str:
     return cleaned
 
 
+def reference_fix(kind: str, old: str, new: str) -> Callable[[str], str]:
+    """What points ``{@kind old…}`` (its label kept) and ``::: kind old`` at ``new`` in a
+    text, any case of ``old``."""
+    name = re.escape(old.strip())
+    tag = re.compile(rf"(\{{@{kind}\s+){name}(?=\s*[|}}])", re.IGNORECASE)
+    block = re.compile(rf"^(\s*:{{3,}}\s*{kind}\s+){name}\s*$", re.IGNORECASE | re.MULTILINE)
+
+    def fix(text: str) -> str:
+        return block.sub(lambda m: m.group(1) + new, tag.sub(lambda m: m.group(1) + new, text))
+
+    return fix
+
+
 class AdventureService:
     """Adventures and chapters, over the library's Markdown files."""
 
@@ -455,13 +468,7 @@ class AdventureService:
         """
         if not old.strip() or old == new:
             return 0
-        name = re.escape(old.strip())
-        tag = re.compile(rf"(\{{@{kind}\s+){name}(?=\s*[|}}])", re.IGNORECASE)
-        block = re.compile(rf"^(\s*:{{3,}}\s*{kind}\s+){name}\s*$", re.IGNORECASE | re.MULTILINE)
-
-        def fix(text: str) -> str:
-            return block.sub(lambda m: m.group(1) + new, tag.sub(lambda m: m.group(1) + new, text))
-
+        fix = reference_fix(kind, old, new)
         copy = self._store.adventures.find(within) if within else None
         if copy is not None and copy.revision_of:
             return self._rewrite_adventure(copy, fix)
