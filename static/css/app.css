@@ -491,6 +491,10 @@ a.ref:hover{ border-bottom-style:solid; }
 a.ref.rule{ color:var(--accent-text); }
 .ref.inert{ color:inherit; border-bottom:0; }
 .ref.missing{ color:var(--text-3); border-bottom:1px dotted var(--text-3); cursor:help; }
+/* A link to something the world lacks, which the gamemaster may create with a click. */
+a.ref.missing.creatable{ cursor:pointer; text-decoration:none; color:var(--text-3); border-bottom:1px dashed var(--accent-text); }
+a.ref.missing.creatable svg{ color:var(--accent-text); vertical-align:-1px; margin-right:1px; }
+a.ref.missing.creatable:hover{ color:var(--accent-text); border-bottom-style:solid; }
 button.ref.dice{
   font:inherit; font-family:var(--font-mono); font-size:.92em; font-weight:600;
   display:inline-flex; align-items:center; gap:3px; padding:0 5px; margin:0 1px;

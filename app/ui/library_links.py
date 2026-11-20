@@ -7,6 +7,8 @@ other's links without importing each other.
 
 from __future__ import annotations
 
+from urllib.parse import urlencode
+
 from htpy import (
     Element,
     Node,
@@ -30,6 +32,7 @@ from htpy import (
 
 from app.services import image_effects
 from app.ui.context import Page
+from app.ui.forms import hidden
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 
@@ -41,6 +44,18 @@ TREASURE_URL = "/gm/treasure"
 LOCATIONS_URL = "/gm/places"
 MEDIA_UPLOAD_URL = "/gm/media"
 MEDIA_URL = "/media"
+# A missing NPC, place, treasure or encounter a text names, made on the gamemaster's word
+# (app/routes/editor.py); the kinds it may make.
+NEW_OBJECT_URL = "/gm/editor/new"
+CREATABLE = frozenset({"npc", "encounter", "treasure", "place"})
+
+
+def new_object_url(kind: str, name: str, scope: str, back: str) -> str:
+    """The page asking whether to make ``name`` of ``kind`` in ``scope`` (``c:``, ``a:``,
+    ``w:`` and an id), returning to ``back`` if not."""
+    return f"{NEW_OBJECT_URL}?" + urlencode(
+        {"kind": kind, "name": name, "scope": scope, "back": back}
+    )
 
 
 def media_url(record_id: str, relative: str) -> str:
@@ -219,7 +234,44 @@ def confirm_page(
     )
 
 
+def new_object_page(
+    page: Page, *, kind: str, name: str, scope: str, where: str, back: str
+) -> Element:
+    """Ask before making what a link names but the world lacks: what, and where it goes
+    (the text's chapter, adventure or world, where the link looks first)."""
+    t = page.t
+    what = t(f"md.embed.{kind}")
+    return app_shell(
+        page,
+        t("md.create_title", name=name),
+        div(class_="formpage")[
+            a(href=back, class_="backlink")[icon("arrow-left"), span[t("md.create_back")]],
+            div(class_="panel")[
+                div(class_="panel-head")[
+                    span(class_="eyebrow")[what], b[t("md.create_title", name=name)]
+                ],
+                p[t("md.create_lede", name=name, kind=what, where=where)],
+                form(method="post", action=NEW_OBJECT_URL)[
+                    hidden("kind", kind),
+                    hidden("name", name),
+                    hidden("scope", scope),
+                    div(class_="form-actions")[
+                        button(type="submit", class_="btn btn-primary")[
+                            icon("plus"), span[t("md.create_submit", kind=what)]
+                        ],
+                        a(href=back, class_="btn btn-ghost")[t("common.cancel")],
+                    ],
+                ],
+            ],
+        ],
+    )
+
+
 __all__ = [
+    "CREATABLE",
+    "NEW_OBJECT_URL",
+    "new_object_page",
+    "new_object_url",
     "confirm_page",
     "copy_snippet",
     "delete_link",

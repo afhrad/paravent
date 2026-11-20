@@ -364,6 +364,9 @@ class MarkdownContext:
     # For players: a campaign link that leads nowhere they may go is its words alone,
     # never the gamemaster's "not found" mark.
     plain: bool = False
+    # For the gamemaster: ``create(kind, name)`` is where a link to an NPC, place, treasure
+    # or encounter that is not there offers to make it, or None where it cannot.
+    create: Callable[[str, str], str | None] | None = None
 
 
 # -- parsing ---------------------------------------------------------------------------
@@ -658,6 +661,19 @@ def _missing(label: Node, title: str) -> Node:
     return span(class_="ref missing", title=title)[label]
 
 
+def _creatable(ctx: MarkdownContext, kind: str, name: str, label: Node) -> Node:
+    """A link to something not there: the gamemaster's offer to make it where it may be
+    made, else the inert "not found" mark."""
+    url = ctx.create(kind, name) if ctx.create is not None and name else None
+    if url is None:
+        return _missing(label, ctx.t("md.missing_library", name=name))
+    return a(
+        href=url,
+        class_="ref missing creatable",
+        title=ctx.t("md.missing_create", name=name, kind=ctx.t(f"md.embed.{kind}")),
+    )[icon("plus", "xs"), label]
+
+
 def _icon(name: str | None) -> Node:
     return icon(name, "xs") if name else None
 
@@ -672,7 +688,7 @@ def render_tag(raw: str, ctx: MarkdownContext) -> Node:
     label = tags.render(node.part(1) or name, ctx.tags)
     found = ctx.link(node.name, name) if ctx.link is not None and name else None
     if found is None:
-        return label if ctx.plain else _missing(label, ctx.t("md.missing_library", name=name))
+        return label if ctx.plain else _creatable(ctx, node.name, name, label)
     if node.name == "sound":
         # Not a link: a press plays it on the speaker (sound-panel.js).
         return button(
@@ -856,7 +872,9 @@ class _Renderer(RendererHTML):
             card = div(class_="md-embed-head")[
                 span(class_="md-embed-kind")[ctx.t(f"md.embed.{kind}") if library else kind],
                 " ",
-                _missing(
+                _creatable(ctx, kind, argument, argument)
+                if library and argument
+                else _missing(
                     argument or "—",
                     ctx.t(
                         "md.missing_library" if library else "md.missing_reference",

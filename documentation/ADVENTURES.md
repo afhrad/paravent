@@ -288,6 +288,14 @@ the sheet.
   §6c): a shared parser must know that slot 2 is the label for these kinds.
 - Resolved **by name, nearest scope first**. None found is the designed inert state ("not in
   this world"), never an error. Previews come from the same tooltip layer.
+- **A missing one offers itself** (2026-11-20, the user's request): on the gamemaster's pages
+  an `{@npc}`, `{@place}`, `{@treasure}` or `{@encounter}` that finds nothing — in the text or
+  alone on its line — is a dashed link with a +, "not in this world yet". A click asks
+  (`GET /gm/editor/new`) whether to create it in the scope of the text that names it (the
+  chapter, the adventure, the world), so the link finds it at once; **Create** makes it and
+  opens its page to fill in (`POST`), **Back to the text** leaves it. One of that name made
+  meanwhile opens straight away. Players, and the gamemaster's *View as player*, see the words
+  alone; a missing chapter or character keeps the inert mark.
 - **References are by name** because you type them in an editor. Renaming an object in the app
   rewrites `{@npc Old Name…}` in every `.md` file of its scope.
 

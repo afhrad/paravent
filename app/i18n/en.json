@@ -4019,5 +4019,13 @@
   "images.tag_name": "New name for {tag}",
   "images.tag_count": {"one": "{count} picture", "other": "{count} pictures"},
   "images.tag_delete": "Delete the tag {tag}",
-  "images.tag_delete_confirm": "Remove the tag “{tag}” from {count} pictures? The pictures stay."
+  "images.tag_delete_confirm": "Remove the tag “{tag}” from {count} pictures? The pictures stay.",
+  "md.missing_create": "“{name}” is not in this world yet. Click to create this {kind}.",
+  "md.create_title": "Create “{name}”?",
+  "md.create_lede": "The text names “{name}”, but this world has no {kind} of that name where the text looks. Create it {where} and open its page to fill in?",
+  "md.create_submit": "Create {kind}",
+  "md.create_back": "Back to the text",
+  "md.create_in_chapter": "in the chapter “{name}”",
+  "md.create_in_adventure": "in the adventure “{name}”",
+  "md.create_in_world": "in the world “{name}”"
 }

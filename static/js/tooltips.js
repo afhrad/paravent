@@ -24,7 +24,7 @@
   var returning = false;   // focus handed back by close() must not reopen the preview
 
   function refOf(node) {
-    return node && node.closest ? node.closest('a.ref[href^="/ref/"], a.ref.lib[href], .ref.missing') : null;
+    return node && node.closest ? node.closest('a.ref[href^="/ref/"], a.ref.lib[href], .ref.missing:not(.creatable)') : null;
   }
   function inPreview(node) {
     return !!(node && node.closest && node.closest('.tip, .tip-sheet'));
@@ -33,7 +33,7 @@
   // An unresolved reference explains itself in a native title; that would show a second
   // tooltip on hover, and never on touch. Move it to data-reason and show it ourselves.
   function adoptTitles(root) {
-    (root || document).querySelectorAll('.ref.missing[title]').forEach(function (el) {
+    (root || document).querySelectorAll('.ref.missing:not(.creatable)[title]').forEach(function (el) {
       el.dataset.reason = el.getAttribute('title');
       el.removeAttribute('title');
       el.setAttribute('tabindex', '0');

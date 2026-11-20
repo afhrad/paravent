@@ -217,7 +217,8 @@ class TestPages:
         assert "Chapter saved." in page
         assert 'class="md-callout md-read"' in page
         assert 'class="ref lib chapter"' in page  # {@chapter Grey Reed}
-        assert "“Hob” is not in this world." in page  # NPCs arrive in step 4
+        # Not there yet: offered to the gamemaster to create.
+        assert "“Hob” is not in this world yet." in page and 'class="ref missing creatable"' in page
         assert f'href="/gm/encounters/{encounter.id}"' in page and "4× Goblin" in page
         assert 'class="md-fold md-fold-monster"' in page and "Goblin" in page
         assert ">Three wolves</a></td>" in page

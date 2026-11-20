@@ -717,6 +717,9 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         shrunk previews from the cache. **Where each picture is used** (2026-11-19,
         `app/services/media_uses.py`): a count on each, its uses listed for the one ticked,
         **Rename** writing every use again, **Delete** only while unused
+  - [x] **Missing links offer to be made** (2026-11-20, ADVENTURES.md §5.2): a link to an
+        NPC, place, treasure or encounter the world lacks shows as a dashed + link on the
+        gamemaster's pages; a click asks to create it where the text is and opens it
   - [x] **Ready-made objects in an adventure** (2026-11-19, `app/services/holdings.py`):
         the world's own NPCs, places, encounters and treasure added to an adventure from
         a list (linked in its `uses`, staying the world's); taken out of it, never

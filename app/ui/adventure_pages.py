@@ -63,6 +63,7 @@ from app.models.gamestate import (
     World,
 )
 from app.services import image_effects
+from app.services import scope as scopes
 from app.services.adventures import STATUSES, AdventureService, AdventureView, ChapterView
 from app.services.characters import CharacterService
 from app.services.combat import CombatService
@@ -89,6 +90,7 @@ from app.ui.icons import icon
 from app.ui.image_pages import image_editor, image_insert
 from app.ui.layout import app_shell
 from app.ui.library_links import (
+    CREATABLE,
     MEDIA_UPLOAD_URL,
     WORLDS_URL,
     adventure_url,
@@ -101,6 +103,7 @@ from app.ui.library_links import (
     delete_link,
     location_url,
     media_url,
+    new_object_url,
     npc_url,
     saved_version,
     treasure_url,
@@ -335,8 +338,22 @@ def prose_context(
         found = services.adventures.find_media(record_id, world.id, name)
         return media_url(*found) if found is not None else None
 
+    gamemaster = page.identity is not None and page.identity.is_gamemaster and not page.as_player
+
+    def create(kind: str, name: str) -> str | None:
+        # Made where this text looks first, so the link finds it at once.
+        if not gamemaster or kind not in CREATABLE:
+            return None
+        return new_object_url(kind, name, scopes.encode(here), page.path)
+
     return MarkdownContext(
-        tags=tag_ctx, link=link, embed=embed, media=media, find_media=find_media, t=page.t
+        tags=tag_ctx,
+        link=link,
+        embed=embed,
+        media=media,
+        find_media=find_media,
+        t=page.t,
+        create=create,
     )
 
 

@@ -4019,5 +4019,13 @@
   "images.tag_name": "Neuer Name für {tag}",
   "images.tag_count": {"one": "{count} Bild", "other": "{count} Bilder"},
   "images.tag_delete": "Tag {tag} löschen",
-  "images.tag_delete_confirm": "Den Tag „{tag}“ von {count} Bildern entfernen? Die Bilder bleiben."
+  "images.tag_delete_confirm": "Den Tag „{tag}“ von {count} Bildern entfernen? Die Bilder bleiben.",
+  "md.missing_create": "„{name}“ gibt es in dieser Welt noch nicht. Klicken, um es anzulegen ({kind}).",
+  "md.create_title": "„{name}“ anlegen?",
+  "md.create_lede": "Der Text nennt „{name}“, aber diese Welt hat dort, wo der Text sucht, nichts dieses Namens ({kind}). {where} anlegen und seine Seite zum Ausfüllen öffnen?",
+  "md.create_submit": "{kind} anlegen",
+  "md.create_back": "Zurück zum Text",
+  "md.create_in_chapter": "Im Kapitel „{name}“",
+  "md.create_in_adventure": "Im Abenteuer „{name}“",
+  "md.create_in_world": "In der Welt „{name}“"
 }
