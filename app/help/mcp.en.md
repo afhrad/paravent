@@ -179,6 +179,10 @@ change it tries on a text you edited is refused, and it gets your version back),
 You can also ask Claude to revise the draft while it is still one: "make the second fight
 easier", "give the reeve a daughter".
 
+Claude can also look over a whole world: "check the links of my world" reads what
+**Check links** in the world menu shows and reports it. It changes only its own drafts;
+the rest it names for you to mend there.
+
 ---
 
 ## 6b. Creatures

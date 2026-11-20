@@ -603,7 +603,12 @@ here. When the text is right and the object's name is wrong, **Rename “Hob Wad
 renames the object instead, every link to its old name following (`POST
 /gm/world/links/rename`, `rewrite_references`). The create page itself (a dashed link clicked
 in a chapter) now also offers what the text probably meant, each opening the one that exists.
-Claude reads the same list over MCP (`check_world`, MCP.md). Front matter reads twelve hex
+Below the list, **Not used anywhere** names the NPCs, places, treasure and encounters no text
+of the world names (resolved as the page resolves it, nearest scope first; an object naming
+itself does not count), no adventure lists as ready-made and, for an encounter, that was
+never fought — each to open or delete (`unused_objects`).
+Claude reads the same list over MCP (`check_world`, MCP.md), and its instructions say when:
+after a revision, or when asked to look over a world. Front matter reads twelve hex
 digits as text (`_FrontLoader`), so an id of digits alone survives a hand edit that lost
 its quotes.
 | `{@character …}` naming nobody placed in the world | — place the character in the world |

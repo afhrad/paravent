@@ -72,7 +72,13 @@ einfaches Markdown: Schreib es wie eine Notiz, den Rest macht Paravent.
   `{@`, schlägt der Editor die Namen vor.
 - `> [!read]` beginnt einen Kasten zum Vorlesen, `> [!secret]` einen, den nur du siehst.
 - `{@npc Hob Wade}`, `{@place Grauried}` oder `{@encounter Hinterhalt an der Fähre}`
-  nennt etwas Eigenes; die Prüfung neben der Vorschau bietet an, es anzulegen.
+  nennt etwas Eigenes; die Prüfung neben der Vorschau bietet an, es anzulegen, oder den
+  Namen, den du wohl meintest („Hob“ → *Hob Wade*). Im Kapitel selbst ist so ein Link
+  gestrichelt mit einem **+**: ein Klick legt es an.
+- **Links prüfen** im Weltmenü listet jeden Link der Welt, der ins Leere führt — Kapitel,
+  Notizen, Sitzungsnotizen —, jeder mit einem Druck korrigiert, angelegt oder das Objekt
+  auf den Namen im Text umbenannt. Die Zahl daneben sagt, wie viele; unter der Liste
+  stehen die NSC, Orte, Schätze und Begegnungen, die nichts verwendet.
 - Leitest du ein gekauftes Abenteuer? **Mit dem Buch beginnen** legt für jeden Abschnitt
   ein Kapitel an, und deine Notizen kommen dazwischen.
 
@@ -99,6 +105,10 @@ der Rundenleiste des Trackers.
   oberen Leiste.
 - **Namen:** Zahnrad → *Namen* für Namensstile je Volk, damit jeder Wirt einen Namen
   bekommt, der in deine Welt passt.
+- **Bilder:** Jedes Bild einer Welt steht im Bilderbrowser jedes Bildfelds. Gib ihnen dort
+  Tags; **Tags** benennt einen Tag auf allen um, führt Tags zusammen oder entfernt sie, und
+  ein unter **Auswählen** angehaktes Bild sagt, wo es verwendet wird, zum Umbenennen oder
+  Löschen.
 - **Aussehen:** *Themes*. Tome sieht aus wie die gedruckten Bücher, tagsüber Pergament,
   abends Leder.
 - **Sicherungen:** Alles, was du machst, liegt in einem Ordner, der Bibliothek. Setz einmal

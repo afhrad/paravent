@@ -109,7 +109,9 @@ To write an adventure: `create_adventure` (a draft, for the chosen characters), 
 `create_npc`, `create_encounter` and `create_treasure` (into the draft or one of its
 chapters), then `write_chapter` for each chapter, naming those objects by tag. Mend
 every problem `write_chapter` reports, then call `check_adventure` once everything exists.
-You can change only drafts you created; the
+`check_world` reads the whole world the same way (what the gamemaster sees under Check
+links): use it after a revision of an accepted adventure, whose names other adventures may
+use, or when asked to look over a world. You can change only drafts you created; the
 gamemaster reviews a draft and takes it over by giving it another status.
 """
 
@@ -166,7 +168,9 @@ Work in this order:
    and write the chapter again with the version it gave you. `list_sounds` shows what
    `{{@sound …}}` can play, for a tavern's noise or a fight's music, if any fits.
 9. Call `check_adventure`, which also reads every note and catches names that did not
-   exist yet when you wrote them. Mend what it reports.
+   exist yet when you wrote them. Mend what it reports. For a revision, also call
+   `check_world`: a rename in the draft can leave other texts of the world pointing at the
+   old name. Report what is outside your draft; do not change it.
 10. Finish with a short report: the premise in two sentences, the chapters, the NPCs, the
    fights with their difficulty, and anything you could not resolve.
 

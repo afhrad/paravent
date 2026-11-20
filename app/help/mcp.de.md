@@ -188,6 +188,10 @@ es bekommt deine Fassung zurück), dann:
 Solange es ein Entwurf ist, kannst du Claude auch um Änderungen bitten: „mach den zweiten
 Kampf leichter“, „gib dem Schultheiß eine Tochter“.
 
+Claude kann auch eine ganze Welt durchsehen: „prüf die Links meiner Welt“ liest, was
+**Links prüfen** im Weltmenü zeigt, und berichtet es. Es ändert nur seine eigenen
+Entwürfe; den Rest nennt es dir, damit du ihn dort korrigierst.
+
 ---
 
 ## 6b. Kreaturen

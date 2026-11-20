@@ -69,7 +69,13 @@ write it like a note, and Paravent adds the rest.
   `{@` offers the names as you write.
 - `> [!read]` starts a box to read aloud, `> [!secret]` one only you see.
 - `{@npc Hob Wade}`, `{@place Grey Reed}` or `{@encounter Ambush at the Ferry}` names
-  something of yours; the check beside the preview offers to create it.
+  something of yours; the check beside the preview offers to create it, or the name you
+  probably meant ("Hob" → *Hob Wade*). In the chapter itself such a link is dashed with a
+  **+**: a click creates it.
+- **Check links** in the world menu lists every link of the world that leads nowhere —
+  chapters, notes, session notes — each fixed with one press, created, or the object
+  renamed to the name the text uses. The number beside it says how many; below the list
+  stand the NPCs, places, treasure and encounters nothing uses.
 - Running a published adventure you own? **Start from the book** makes a chapter for
   each of its sections, and your notes go between them.
 
@@ -95,6 +101,9 @@ tracker's round bar.
   top bar.
 - **Names:** settings gear → *Names* for naming styles per people, so every innkeeper
   gets a name that fits your world.
+- **Pictures:** every picture of a world is in the image browser of any picture field. Give
+  them tags there; **Tags** renames, merges or removes a tag on all of them, and a picture
+  ticked under **Select** says where it is used, to rename or delete it.
 - **A look:** *Themes*. Tome looks like the printed books, parchment by day and leather
   at night.
 - **Backups:** everything you make lives in one folder, the library. Set
