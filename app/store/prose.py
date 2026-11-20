@@ -83,6 +83,21 @@ class FrontMatterError(ValueError):
 # -- front matter ---------------------------------------------------------------------
 
 
+class _FrontLoader(yaml.SafeLoader):
+    """YAML as safe_load reads it, except that twelve hex digits are always text: a record's
+    id (``new_id``) may be digits alone, and a file edited by hand or copied with its quotes
+    lost (``id: 123456789012``) must not turn it into a number and lose the record."""
+
+
+_FrontLoader.yaml_implicit_resolvers = {
+    first: list(resolvers) for first, resolvers in yaml.SafeLoader.yaml_implicit_resolvers.items()
+}
+for _digit in "0123456789":
+    _FrontLoader.yaml_implicit_resolvers.setdefault(_digit, []).insert(
+        0, ("tag:yaml.org,2002:str", re.compile(r"^[0-9a-f]{12}$"))
+    )
+
+
 def split_front_matter(text: str) -> tuple[dict[str, Any], str]:
     """``(fields, body)`` of a Markdown file; a file without front matter has none.
 
@@ -101,7 +116,7 @@ def split_front_matter(text: str) -> tuple[dict[str, Any], str]:
     else:
         raise FrontMatterError("The front matter has no closing --- line")
     try:
-        fields = yaml.safe_load(raw) if raw.strip() else {}
+        fields = yaml.load(raw, Loader=_FrontLoader) if raw.strip() else {}  # a SafeLoader
     except yaml.YAMLError as exc:
         mark = getattr(exc, "problem_mark", None)
         where = f" (line {mark.line + 2})" if mark is not None else ""
