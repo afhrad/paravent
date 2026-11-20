@@ -746,7 +746,12 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         settings open in the wide column under the monsters and the search (name and
         place, rules and sound side by side, the stated party only when ticked, the notes
         at full width, how they read folded beneath), the title image in its own panel
-        beside the rating, building and rolling
+        beside the rating, building and rolling. **The party view's tools in dialogs**
+        (2026-11-20, `app/ui/tool_dialog.py`): travel, time and calendar, opening a shop,
+        its magic-item shelf (open while stocking) and starting a chase each open a roomy
+        dialog with labelled fields, the panels keeping their summaries (`?tool=` opens one
+        without the script). **Factions' forms** styled like the rest, renown −1 · score ·
+        +1 beside each name
   - [x] **Title images** (2026-11-18, TOKENS.md §6, `app/services/title_images.py`): tokens
         of the table's own only for NPCs, creatures, characters and treasure; places,
         encounters, quests and factions take a title image, dropped or chosen on their page,

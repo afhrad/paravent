@@ -14,14 +14,6 @@ Sizes are rough — **S** a day's change, **M** a few, **L** a feature of its ow
 
 ## Next, agreed or recommended
 
-- **The party view's right column** (audit 2026-11-20, recommended first). Opened, its
-  narrow column holds the whole travel form (about a dozen fields), the clock's *More*
-  (timers, downtime, calendar), opening a shop with its magic-item shelf and starting a
-  chase; fields of very different sizes side by side, tiny selects in the chase form,
-  unlabelled boxes in the clock's section. The screen used most in play. M
-- **Factions' forms** (audit 2026-11-20, recommended with the above). *New faction* and
-  each faction's *Edit* use bare browser fields (a small name box, a plain select), unlike
-  every other form; the renown −1/+1 buttons sit at the far right, away from the names. S
 - **The creature builder** (audit 2026-11-20). Still the narrow page width, so its long
   form is a slim column; action texts are edited in a box with tiny type. To check: the
   statblock preview looked cut off after "Armor Class", and the floating Save/Publish bar
