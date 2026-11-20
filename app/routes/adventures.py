@@ -26,7 +26,7 @@ from urllib.parse import urlencode
 
 from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response, StreamingResponse
-from htpy import Element, Node
+from htpy import Node
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.models.gamestate import Adventure, Scope, SourceSet
@@ -103,7 +103,7 @@ def _services(registry: StoreRegistry) -> ProseServices:
 
 def _holdings(
     page: Page, registry: StoreRegistry, here: Scope, heading: str, *, open_: bool = False
-) -> Element:
+) -> Node:
     """What an adventure or chapter holds: its NPCs, treasure and encounters; an
     adventure also the world's ready-made ones it uses, and those it could."""
     adventure_id = here.adventure_id if here.chapter_id is None else None

@@ -20,7 +20,7 @@
 //
 // Above each editor, a toolbar: heading, bold and italic (⌘B, ⌘I; pressed again on
 // marked text they unmark it), bulleted and numbered lists, a link, read-aloud and
-// secret boxes, a reference on its own line (which opens the kinds drop-down), the insert pop-up, an image from a
+// secret boxes, every other callout from a menu, a reference on its own line (which opens the kinds drop-down), the insert pop-up, an image from a
 // file, a table — and, beside a preview, writing in full width (kept per browser).
 //
 // ↑ ↓ move, Enter or Tab completes, Esc closes. The list comes from /search/suggest:
@@ -440,6 +440,58 @@
     add('link', '<span aria-hidden="true">[ ]</span>', link);
     add('read', glyph('scroll'), function () { callout('read'); });
     add('secret', glyph('eye-off'), function () { callout('secret'); });
+    // Every callout the Markdown knows, in a menu under its button: Paravent's own
+    // first, then Obsidian's, each with its box's icon and name.
+    var kinds = said.callouts || [];
+    if (kinds.length) {
+      var menu = document.createElement('div');
+      menu.className = 'editor-callouts';
+      menu.setAttribute('role', 'menu');
+      menu.hidden = true;
+      var close = function () {
+        menu.hidden = true;
+        opener.setAttribute('aria-expanded', 'false');
+      };
+      var opener = add('callout', '<span aria-hidden="true">[!]</span>', function () {
+        var open = menu.hidden;
+        menu.hidden = !open;
+        opener.setAttribute('aria-expanded', open ? 'true' : 'false');
+        if (open) {
+          var first = menu.querySelector('button');
+          if (first) first.focus();
+        }
+      });
+      opener.setAttribute('aria-haspopup', 'menu');
+      opener.setAttribute('aria-expanded', 'false');
+      opener.classList.add('editor-callout');
+      kinds.forEach(function (k) {
+        var item = document.createElement('button');
+        item.type = 'button';
+        item.setAttribute('role', 'menuitem');
+        item.className = 'editor-callout-item';
+        item.dataset.kind = k[0];
+        item.innerHTML = glyph(k[2]) + '<span></span>';
+        item.lastChild.textContent = k[1];
+        item.addEventListener('mousedown', function (e) { e.preventDefault(); });
+        item.addEventListener('click', function () {
+          close();
+          area.focus();
+          callout(k[0]);
+        });
+        menu.appendChild(item);
+      });
+      menu.addEventListener('keydown', function (e) {
+        var items = Array.prototype.slice.call(menu.querySelectorAll('button'));
+        var at = items.indexOf(document.activeElement);
+        if (e.key === 'Escape') { e.preventDefault(); close(); opener.focus(); }
+        else if (e.key === 'ArrowDown') { e.preventDefault(); items[(at + 1) % items.length].focus(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); items[(at - 1 + items.length) % items.length].focus(); }
+      });
+      document.addEventListener('click', function (e) {
+        if (!menu.hidden && !menu.contains(e.target) && e.target !== opener && !opener.contains(e.target)) close();
+      });
+      bar.appendChild(menu);
+    }
     var fold = add('fold', glyph('book-open'), function () { block('{@'); });
     fold.classList.add('editor-fold');
     area.addEventListener('keydown', function (e) {
@@ -491,8 +543,12 @@
     area.parentNode.insertBefore(bar, area);
   }
 
+  // Each editor once: the page's own, and those that arrive later (a dialog's content
+  // fetched when it opens, as the world's settings are), told by an htmx:load.
   function init() {
     document.querySelectorAll('textarea.prose-editor').forEach(function (area) {
+      if (area.dataset.editorReady) return;
+      area.dataset.editorReady = '1';
       attach(area);
       toolbar(area, images(area));
     });
@@ -500,4 +556,5 @@
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
+  document.addEventListener('htmx:load', init);
 })();

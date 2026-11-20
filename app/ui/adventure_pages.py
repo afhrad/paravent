@@ -118,6 +118,7 @@ from app.ui.ref_pages import CATEGORY_KEY, statblock
 from app.ui.sound_panel import SOUNDS_URL
 from app.ui.tags import ENTITY_CATEGORY, RenderContext, localized_context, ref_url
 from app.ui.title_images import title_thumb
+from app.ui.tool_dialog import create_form, new_button, tool_dialog
 from app.ui.trap_pages import spring_button
 
 STATUS_TONE = {"draft": "magic", "planned": "neutral", "running": "accent", "finished": "heal"}
@@ -417,21 +418,6 @@ def _move_buttons(page: Page, action: str, *, first: bool, last: bool) -> Elemen
     ]
 
 
-def _add_form(page: Page, action: str, field: str, caption: str, submit: str) -> Element:
-    return form(method="post", action=action, class_="add-row")[
-        label(for_=f"f-new-{field}", class_="sr-only")[caption],
-        input_el(
-            id=f"f-new-{field}",
-            name=field,
-            type="text",
-            required=True,
-            placeholder=caption,
-            autocomplete="off",
-        ),
-        button(type="submit", class_="btn btn-primary")[icon("plus"), span[submit]],
-    ]
-
-
 def _status_choices(page: Page) -> list[tuple[str, str]]:
     return [(s, page.t(f"adventures.status.{s}")) for s in STATUSES]
 
@@ -568,7 +554,12 @@ def world_page(
             cover(world.id, world.cover, world.name),
             # The world's own page is its adventures: its settings, its other lists and
             # deleting it are the world menu's and the top bar's (CURRENT-WORLD.md §5).
-            page_head(world.name, t("adventures.heading"), book_count),
+            page_head(
+                world.name,
+                t("adventures.heading"),
+                book_count,
+                new_button(page, "adventure", t("adventures.new")),
+            ),
             notice(notice_text),
             alert(error),
             div(class_="md-body")[description.html] if description.html.strip() else None,
@@ -594,30 +585,50 @@ def world_page(
                 ul(class_="list")[rows]
                 if rows
                 else empty_state("map", t("adventures.empty_heading"), t("adventures.empty_text")),
-                _add_form(
-                    page,
-                    f"{world_url(world.id)}/adventures",
-                    "name",
-                    t("adventures.new_name"),
-                    t("adventures.new"),
+            ],
+            _new_adventure_dialog(page, world, books),
+        ],
+        world_id=world.id,
+    )
+
+
+def _new_adventure_dialog(
+    page: Page, world: World, books: Sequence[PublishedAdventure]
+) -> Element:
+    """A new adventure of the world: by name, or started from a published one."""
+    t = page.t
+    return tool_dialog(
+        page,
+        "adventure",
+        t("adventures.new"),
+        [
+            create_form(
+                page,
+                action=f"{world_url(world.id)}/adventures",
+                submit=t("adventures.create"),
+                body=text_field(
+                    "name", t("adventures.new_name"), value="", autocomplete="off", required=True
                 ),
-                form(
-                    method="post",
-                    action=f"{world_url(world.id)}/adventures/from-book",
-                    class_="add-row from-book",
-                )[
-                    label(for_="f-book", class_="sr-only")[t("book.choose")],
+            ),
+            form(
+                method="post",
+                action=f"{world_url(world.id)}/adventures/from-book",
+                class_="stack-form create-dialog-or",
+            )[
+                div(class_="field")[
+                    label(for_="f-book")[t("book.start_label")],
                     select(id="f-book", name="book", required=True)[
                         option(value="")[t("book.choose")],
                         [option(value=book.id)[_book_label(page, book)] for book in books],
                     ],
-                    button(type="submit", class_="btn")[icon("book-open"), span[t("book.start")]],
-                ]
-                if books
-                else None,
-            ],
+                ],
+                div(class_="form-actions")[
+                    button(type="submit", class_="btn")[icon("book-open"), span[t("book.start")]]
+                ],
+            ]
+            if books
+            else None,
         ],
-        world_id=world.id,
     )
 
 
@@ -863,18 +874,31 @@ def adventure_page(
             review,
             div(class_="md-body")[body.html] if body.html.strip() else None,
             section(class_="prose-section")[
-                h2(class_="section-title")[t("chapters.heading")],
+                div(class_="section-head")[
+                    h2(class_="section-title")[t("chapters.heading")],
+                    new_button(page, "chapter", t("chapters.new")),
+                ],
                 ol(class_="list")[rows]
                 if rows
                 else empty_state(
                     "book-open", t("chapters.empty_heading"), t("chapters.empty_text")
                 ),
-                _add_form(
+                tool_dialog(
                     page,
-                    f"{adventure_url(adv.id)}/chapters",
-                    "title",
-                    t("chapters.new_title"),
+                    "chapter",
                     t("chapters.new"),
+                    create_form(
+                        page,
+                        action=f"{adventure_url(adv.id)}/chapters",
+                        submit=t("chapters.create"),
+                        body=text_field(
+                            "title",
+                            t("chapters.new_title"),
+                            value="",
+                            autocomplete="off",
+                            required=True,
+                        ),
+                    ),
                 ),
             ],
             maps,

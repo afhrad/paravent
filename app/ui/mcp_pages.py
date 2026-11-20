@@ -33,6 +33,7 @@ from app.ui.forms import alert, notice, text_field
 from app.ui.home_pages import page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
+from app.ui.tool_dialog import create_form, new_button, tool_dialog
 
 MCP_URL = "/gm/mcp"
 
@@ -103,28 +104,30 @@ def mcp_page(
                 t("settings.menu"),
                 t("mcp.title"),
                 t("mcp.lede"),
-                a(href=f"/help/mcp?back={MCP_URL}", class_="btn")[
-                    icon("book-open"), span[t("mcp.how")]
+                div(class_="head-actions")[
+                    new_button(page, "key", t("mcp.new")),
+                    a(href=f"/help/mcp?back={MCP_URL}", class_="btn")[
+                        icon("book-open"), span[t("mcp.how")]
+                    ],
                 ],
             ),
             alert(error),
             notice(message),
             shown,
-            section(class_="panel")[
-                h2[t("mcp.new")],
-                form(method="post", action=MCP_URL, class_="mcp-new")[
-                    text_field(
-                        "name",
-                        t("mcp.name"),
-                        autocomplete="off",
-                        hint=t("mcp.name_hint"),
+            tool_dialog(
+                page,
+                "key",
+                t("mcp.new"),
+                create_form(
+                    page,
+                    action=MCP_URL,
+                    submit=t("mcp.create"),
+                    body=text_field(
+                        "name", t("mcp.name"), autocomplete="off", hint=t("mcp.name_hint")
                     ),
-                    button(type="submit", class_="btn btn-primary")[
-                        icon("plus"), span[t("mcp.create")]
-                    ],
-                ],
-                p(class_="muted")[t("mcp.endpoint"), " ", code[endpoint]],
-            ],
+                ),
+            ),
+            p(class_="muted")[t("mcp.endpoint"), " ", code[endpoint]],
             section(class_="panel")[
                 h2[t.plural("mcp.count", len(tokens))],
                 ul(class_="mcp-list")[

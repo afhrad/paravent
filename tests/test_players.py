@@ -192,7 +192,8 @@ class TestPlayerRoutes:
     async def test_empty_list(self, as_gm: AsyncClient) -> None:
         text = (await as_gm.get("/gm/players")).text
         assert "No players yet" in text
-        assert 'href="/gm/players/new"' in text
+        assert 'data-dialog="tool-player"' in text  # New player opens its dialog
+        assert '<dialog id="tool-player"' in text and 'action="/gm/players"' in text
         assert 'aria-current="page"' in text and 'href="/gm/players"' in text
 
     async def test_new_form_defaults_to_gm_language(

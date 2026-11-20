@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from urllib.parse import parse_qs, urlsplit
 
-from htpy import Element, Node, a, b, dialog, div, span
+from htpy import Element, Node, a, b, button, dialog, div, form, span
 
 from app.ui.context import Page
 from app.ui.icons import icon
@@ -65,4 +65,40 @@ def tool_dialog(
     ]
 
 
-__all__ = ["TOOL", "tool_button", "tool_dialog", "tool_open"]
+def new_button(page: Page, key: str, label: str) -> Element:
+    """**New …** at a list's head, opening its create dialog (``tool-<key>``): the one way
+    every list of the app makes a new thing."""
+    return a(href=f"?{TOOL}={key}", class_="btn btn-primary", data_dialog=f"tool-{key}")[
+        icon("plus"), span[label]
+    ]
+
+
+def create_form(
+    page: Page,
+    *,
+    action: str,
+    body: Node,
+    submit: str,
+    upload: bool = False,
+    more: Node = None,
+    submit_icon: str = "plus",
+) -> Element:
+    """A create dialog's form: ``body`` (its labelled fields), then **Create** (``submit``),
+    ``more`` (another way, a link), and **Cancel**, which closes the dialog."""
+    back = urlsplit(page.path).path
+    return form(
+        method="post",
+        action=action,
+        enctype="multipart/form-data" if upload else None,
+        class_="stack-form create-dialog-form",
+    )[
+        body,
+        div(class_="form-actions")[
+            button(type="submit", class_="btn btn-primary")[icon(submit_icon), span[submit]],
+            more,
+            a(href=back, class_="btn btn-ghost", data_close="1")[page.t("common.cancel")],
+        ],
+    ]
+
+
+__all__ = ["TOOL", "create_form", "new_button", "tool_button", "tool_dialog", "tool_open"]

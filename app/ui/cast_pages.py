@@ -80,7 +80,7 @@ from app.ui.palette import SearchTarget, search_form
 from app.ui.ref_pages import statblock
 from app.ui.tags import RenderContext, ref_url
 from app.ui.tokens import token, token_panel
-from app.ui.tool_dialog import tool_button, tool_dialog
+from app.ui.tool_dialog import create_form, tool_button, tool_dialog
 
 DENOMINATIONS = ("pp", "gp", "ep", "sp", "cp")
 # The delete button's name per kind of object (the holdings panel's rows).
@@ -223,12 +223,14 @@ def holdings_panel(
     used: Mapping[str, Sequence[Held]] | None = None,
     ready: Mapping[str, Sequence[tuple[str, str]]] | None = None,
     chapter_id: str | None = None,
-) -> Element:
+) -> Node:
     """The NPCs, places, treasure and encounters placed here, each with the line to
-    paste. For an adventure (``adventure_id``) also the world's ready-made ones it
-    ``used``, marked, and a list of the ``ready`` ones to add; there a row's button takes
-    the object out of the adventure without deleting it (app/services/holdings.py); for
-    a chapter (``chapter_id``) out of the chapter, up to its adventure."""
+    paste, and a **New …** for each kind, made here in a dialog (after the panel: a
+    closed fold draws nothing inside it). For an adventure (``adventure_id``) also the
+    world's ready-made ones it ``used``, marked, and a list of the ``ready`` ones to add;
+    there a row's button takes the object out of the adventure without deleting it
+    (app/services/holdings.py); for a chapter (``chapter_id``) out of the chapter, up to
+    its adventure."""
     t = page.t
     holdings_url = (
         f"/gm/adventures/{adventure_id}/holdings"
@@ -238,6 +240,7 @@ def holdings_panel(
         else ""
     )
     drop_label = t("holdings.drop_chapter") if chapter_id else t("holdings.drop")
+    dialogs: list[Element] = []
 
     def out_of_here(kind: str, object_id: str) -> Element:
         return form(method="post", action=holdings_url, class_="inline-form")[
@@ -259,6 +262,25 @@ def holdings_panel(
         action: str,
         extra: Node = None,
     ) -> Element:
+        dialogs.append(
+            tool_dialog(
+                page,
+                f"hold-{kind}",
+                t(f"holdings.new.{kind}"),
+                create_form(
+                    page,
+                    action=action,
+                    submit=t(f"holdings.new.{kind}"),
+                    body=[
+                        hidden("place", place),
+                        extra,
+                        text_field(
+                            "name", t("holdings.name"), value="", autocomplete="off", required=True
+                        ),
+                    ],
+                ),
+            )
+        )
         mine = [(name, url, ident, False) for name, url, ident in rows]
         theirs = [(h.name, URLS[kind](h.id), h.id, True) for h in (used or {}).get(kind, ())]
         offered = (ready or {}).get(kind, ())
@@ -299,25 +321,10 @@ def holdings_panel(
             ]
             if adventure_id and offered
             else None,
-            form(method="post", action=action, class_="add-row add-row-sm")[
-                hidden("place", place),
-                extra,
-                label(for_=f"f-add-{kind}-{place}", class_="sr-only")[t("holdings.name")],
-                input_el(
-                    id=f"f-add-{kind}-{place}",
-                    type="text",
-                    name="name",
-                    required=True,
-                    placeholder=t(f"holdings.new.{kind}"),
-                    autocomplete="off",
-                ),
-                button(type="submit", class_="btn btn-sm", aria_label=t(f"holdings.new.{kind}"))[
-                    icon("plus")
-                ],
-            ],
+            tool_button(page, f"hold-{kind}", t(f"holdings.new.{kind}"), "plus"),
         ]
 
-    return details(class_="panel holdings", id="holdings", open=open_)[
+    panel = details(class_="panel holdings", id="holdings", open=open_)[
         summary(class_="panel-head")[
             b[heading],
             span(class_="list-meta")[
@@ -360,6 +367,7 @@ def holdings_panel(
             ),
         ],
     ]
+    return [panel, dialogs]
 
 
 def creatures_panel(
@@ -440,7 +448,13 @@ def _create_dialog(
                 label(for_=f"{dialog_id}-notes")[
                     t("npcs.notes"), " ", span(class_="opt")[t("common.optional")]
                 ],
-                textarea(id=f"{dialog_id}-notes", name="notes", rows="4"),
+                textarea(
+                    id=f"{dialog_id}-notes",
+                    name="notes",
+                    rows="4",
+                    class_="prose-editor",
+                    data_scope=f"w:{world_id}",
+                ),
             ],
         ],
     )
@@ -517,7 +531,13 @@ def _new_npc_dialog(
                 label(for_="new-npc-notes")[
                     t("npcs.notes"), " ", span(class_="opt")[t("common.optional")]
                 ],
-                textarea(id="new-npc-notes", name="notes", rows="4"),
+                textarea(
+                    id="new-npc-notes",
+                    name="notes",
+                    rows="4",
+                    class_="prose-editor",
+                    data_scope=f"w:{world.id}",
+                ),
             ],
         ],
         more=button(

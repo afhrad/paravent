@@ -38,6 +38,7 @@ from app.ui.home_pages import page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.title_images import title_image, title_image_panel
+from app.ui.tool_dialog import new_button, tool_dialog
 
 FACTIONS_URL = "/gm/factions"
 
@@ -66,7 +67,12 @@ def factions_page(
         page,
         t("factions.page_title", world=world.name),
         [
-            page_head(t("factions.eyebrow"), world.name, t("factions.lede")),
+            page_head(
+                t("factions.eyebrow"),
+                world.name,
+                t("factions.lede"),
+                new_button(page, "faction", t("factions.new")),
+            ),
             alert(error),
             div(class_="faction-grid")[
                 [_faction(page, base, f, members) for f in factions]
@@ -192,44 +198,50 @@ def _new(
             cls="faction-new-row",
         )
 
-    return section(class_="panel faction-new")[
-        div(class_="panel-head")[h2[t("factions.new")]],
-        row(
-            "create",
-            "fn-name",
-            t("factions.name"),
-            input_el(id="fn-name", type="text", name="name", maxlength="120", required=True),
-            button(type="submit", class_="btn btn-primary")[
-                icon("plus", "sm"), span[t("factions.create")]
-            ],
-        ),
-        row(
-            "from_table",
-            "fn-table",
-            t("factions.table"),
-            select(id="fn-table", name="table")[
-                [
-                    option(value=f"{name}|{source}")[f"{name.removesuffix(' Renown')} ({source})"]
-                    for name, source in tables
-                ]
-            ],
-            button(type="submit", class_="btn")[t("factions.from_book")],
-        )
-        if tables
-        else None,
-        row(
-            "from_example",
-            "fn-example",
-            t("factions.example"),
-            select(id="fn-example", name="example")[
-                [option(value=name)[name] for name in examples]
-            ],
-            button(type="submit", class_="btn")[t("factions.from_example")],
-        )
-        if examples
-        else None,
-        p(class_="field-hint")[t("factions.new_hint")],
-    ]
+    return tool_dialog(
+        page,
+        "faction",
+        t("factions.new"),
+        div(class_="faction-new")[
+            row(
+                "create",
+                "fn-name",
+                t("factions.name"),
+                input_el(id="fn-name", type="text", name="name", maxlength="120", required=True),
+                button(type="submit", class_="btn btn-primary")[
+                    icon("plus", "sm"), span[t("factions.create")]
+                ],
+            ),
+            row(
+                "from_table",
+                "fn-table",
+                t("factions.table"),
+                select(id="fn-table", name="table")[
+                    [
+                        option(value=f"{name}|{source}")[
+                            f"{name.removesuffix(' Renown')} ({source})"
+                        ]
+                        for name, source in tables
+                    ]
+                ],
+                button(type="submit", class_="btn")[t("factions.from_book")],
+            )
+            if tables
+            else None,
+            row(
+                "from_example",
+                "fn-example",
+                t("factions.example"),
+                select(id="fn-example", name="example")[
+                    [option(value=name)[name] for name in examples]
+                ],
+                button(type="submit", class_="btn")[t("factions.from_example")],
+            )
+            if examples
+            else None,
+            p(class_="field-hint")[t("factions.new_hint")],
+        ],
+    )
 
 
 __all__ = ["FACTIONS_URL", "factions_page", "factions_url"]

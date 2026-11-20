@@ -10,28 +10,27 @@ from htpy import (
     a,
     b,
     button,
-    details,
     div,
     form,
+    label,
     li,
     option,
     p,
     select,
     span,
-    summary,
     ul,
 )
-from htpy import input as input_el
 
 from app.models.gamestate import User
 from app.models.pc import DraftStatus, PlayerCharacter
 from app.services.characters import CharacterSummary
 from app.ui.context import Page
-from app.ui.forms import alert
+from app.ui.forms import alert, text_field
 from app.ui.home_pages import delete_link, empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.tokens import token
+from app.ui.tool_dialog import create_form, new_button, tool_dialog
 
 
 def _player_select(
@@ -126,26 +125,27 @@ def characters_page(
     """Every character file, with who plays it; none belongs to a world, each playing in
     the table's (documentation/CURRENT-WORLD.md)."""
     t = page.t
-    create = details(class_="create-menu")[
-        summary(class_="btn btn-primary")[icon("plus"), span[t("chars.new")]],
-        form(method="post", action="/gm/characters", class_="create-form")[
-            div(class_="field")[
-                span(class_="eyebrow")[t("chars.new")],
-                input_el(
-                    type="text",
-                    name="name",
-                    required=True,
-                    placeholder=t("chars.name"),
-                    aria_label=t("chars.name"),
-                    autocomplete="off",
-                ),
+    create = tool_dialog(
+        page,
+        "character",
+        t("chars.new"),
+        create_form(
+            page,
+            action="/gm/characters",
+            submit=t("chars.create"),
+            body=[
+                text_field("name", t("chars.name"), value="", autocomplete="off", required=True),
+                div(class_="field")[
+                    label(for_="new-player")[t("chars.player")],
+                    _player_select(page, players, None, "new-player"),
+                ],
+                p(class_="field-hint")[t("chars.new_hint")],
             ],
-            _player_select(page, players, None, "new-player"),
-            button(type="submit", class_="btn btn-primary")[icon("check"), span[t("chars.create")]],
-            p(class_="field-hint")[t("chars.new_hint")],
-            a(href="/chargen/new", class_="btn")[icon("sparkles"), span[t("chargen.with_wizard")]],
-        ],
-    ]
+            more=a(href="/chargen/new", class_="btn")[
+                icon("sparkles"), span[t("chargen.with_wizard")]
+            ],
+        ),
+    )
     problems = [
         alert(t("chars.unreadable", file=name, error=error))
         for name, error in sorted(unreadable.items())
@@ -159,9 +159,15 @@ def characters_page(
         page,
         t("chars.page_title"),
         [
-            page_head(t("gm.eyebrow"), t("chars.heading"), t("chars.lede"), create),
+            page_head(
+                t("gm.eyebrow"),
+                t("chars.heading"),
+                t("chars.lede"),
+                new_button(page, "character", t("chars.new")),
+            ),
             problems,
             listing,
+            create,
         ],
     )
 

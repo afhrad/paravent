@@ -558,7 +558,15 @@ preview follows; ⌘↵ opens the entry in a new tab instead.
   (⌘K), a table, an image from a file — and, in the chapter editor, **full-width writing**
   without the preview, kept per browser. The chapter's preview **follows the cursor**: it
   scrolls to the heading the cursor is under, or the same share of the way down in a text
-  without headings.
+  without headings. **Every callout** (2026-11-20): the **[!]** button opens a menu of
+  all the callouts Paravent Markdown knows — its own eight (read-aloud, secret, sidebar,
+  variant, pullquote, flowchart, gallery, handout), then Obsidian's thirteen — each with
+  its box's icon and name in the reader's language, wrapping the lines selected; the list
+  comes from the renderer (`CALLOUTS`, `callout_menu`), so a new callout joins it by
+  itself. The toolbar is on **every gamemaster page** now (the insert layer comes with
+  each), on editors that arrive later too (a dialog's fetched content), and on the five
+  fields that lacked it: the first note of a new NPC, place or treasure, and a world's
+  description (its settings, a new world).
 - **⌘Z undoes what the editor wrote** (2026-10-26): every insertion — a completion, the
   insert pop-up, the toolbar, a chapter-check fix, a dropped image — goes through one
   helper (`ParaventText.replace` in `static/js/ui.js`) that edits with

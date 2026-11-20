@@ -757,7 +757,12 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         in a dialog too: in the table's world, blank or begun from a creature picked in the
         world's books (the encounter builder's picker, `pick=new-creature`), at that
         creature's own CR unless another is chosen. **An NPC's statblock** picked the
-        same way on its form (the picker fills the field, `SearchTarget.fill`)
+        same way on its form (the picker fills the field, `SearchTarget.fill`).
+        **Every list's New … opens a dialog** (2026-11-20, DESIGN.md §4): adventures,
+        chapters, characters, encounters, factions, players, session notes, sounds,
+        Claude's keys and the adventure's holdings joined places, NPCs, treasure, quests
+        and creatures; **CR badges** frame a creature's challenge rating everywhere it is
+        judged (DESIGN.md §4)
   - [x] **Title images** (2026-11-18, TOKENS.md §6, `app/services/title_images.py`): tokens
         of the table's own only for NPCs, creatures, characters and treasure; places,
         encounters, quests and factions take a title image, dropped or chosen on their page,

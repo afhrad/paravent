@@ -17,7 +17,6 @@ from htpy import (
     label,
     option,
     p,
-    section,
     select,
     span,
     textarea,
@@ -32,6 +31,7 @@ from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.library_links import WORLDS_URL, crumbs, delete_link, saved_version, world_url
 from app.ui.markdown import Rendered
+from app.ui.tool_dialog import create_form, new_button, tool_dialog
 
 SESSIONS_URL = "/gm/sessions"
 
@@ -85,28 +85,38 @@ def sessions_page(
                 (world.name, world_url(world.id)),
                 (t("sessions.title"), None),
             ),
-            page_head(t("adventures.world_eyebrow"), t("sessions.title"), t("sessions.lede")),
+            page_head(
+                t("adventures.world_eyebrow"),
+                t("sessions.title"),
+                t("sessions.lede"),
+                new_button(page, "session-note", t("sessions.new")),
+            ),
             notice(notice_text),
             alert(error),
-            section(class_="panel")[
-                form(method="post", action=sessions_url(world.id), class_="session-new")[
-                    div(class_="field")[
-                        label(for_="f-day")[t("sessions.date")],
-                        input_el(
-                            id="f-day",
-                            name="day",
-                            type="date",
-                            value=today.isoformat(),
-                            required=True,
-                        ),
+            tool_dialog(
+                page,
+                "session-note",
+                t("sessions.new"),
+                create_form(
+                    page,
+                    action=sessions_url(world.id),
+                    submit=t("sessions.create"),
+                    body=[
+                        div(class_="field")[
+                            label(for_="f-day")[t("sessions.date")],
+                            input_el(
+                                id="f-day",
+                                name="day",
+                                type="date",
+                                value=today.isoformat(),
+                                required=True,
+                            ),
+                        ],
+                        _adventure_select(page, adventures, None),
+                        p(class_="field-hint")[t("sessions.new_hint")],
                     ],
-                    _adventure_select(page, adventures, None),
-                    button(type="submit", class_="btn btn-primary")[
-                        icon("plus"), span[t("sessions.new")]
-                    ],
-                ],
-                p(class_="field-hint")[t("sessions.new_hint")],
-            ],
+                ),
+            ),
             [
                 article(class_="panel session-note", id=f"note-{note.id}")[
                     div(class_="session-head")[

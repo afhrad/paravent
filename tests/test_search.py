@@ -147,6 +147,12 @@ class TestRoutes:
         assert "<html" not in fragment.text
         assert fragment.text.startswith('<div id="palette-results"')
         assert 'role="option"' in fragment.text
+        # A creature's challenge rating stands out as a badge, not a plain pill.
+        assert '<span class="cr-badge cr-sm"' in fragment.text
+        assert '<span class="cr-label">CR</span><b class="cr-value">1/4</b>' in fragment.text
+        statblock = (await ac.get(f"/ref/monster/MM/Goblin?world={world.id}")).text
+        assert 'has-cr"' in statblock  # room for the badge in the head's corner
+        assert '<span class="cr-badge cr-lg"' in statblock and "50 XP</span>" in statblock
 
         everything = await ac.get(
             "/search", params={"q": "goblin", "world": world.id, "all": "1", "partial": "1"}

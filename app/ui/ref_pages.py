@@ -47,10 +47,12 @@ from app.services.sheet import spell_view
 from app.services.translation_targets import fluff_category
 from app.services.translations import record_key
 from app.store.projections import ITEM_KIND_NAMES as ITEM_TYPES
+from app.store.projections import coerce_cr
 from app.ui import rules_text
 from app.ui.affliction_pages import afflict_button
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
+from app.ui.cr_badge import cr_badge
 from app.ui.encounter_pages import encounter_url
 from app.ui.icons import icon
 from app.ui.layout import app_shell
@@ -998,11 +1000,8 @@ def _preview_body(page: Page, entry: ReferenceEntry, ctx: RenderContext) -> list
         hp = data.get("hp") or {}
         return [
             p(class_="tip-meta")[
+                _preview_cr(page, data),
                 rules_text.creature_type(page, data),
-                " · ",
-                t("ref.cr"),
-                " ",
-                rules_text.challenge(page, data),
             ],
             div(class_="tip-stats")[
                 div[
@@ -1185,8 +1184,15 @@ def statblock(page: Page, entry: ReferenceEntry, ctx: RenderContext) -> Element:
     }.get(entry.category, _generic)
     kind = t(CATEGORY_KEY.get(entry.category, "ref.kind.rule"))
     where = f"{entry.source}{' p. ' + str(data['page']) if data.get('page') else ''}"
+    cr = coerce_cr(data.get("cr")) if entry.category == "monster" else None
     return div(class_=f"panel statblock ref-{entry.category}")[
-        header(class_="sb-head" + (" has-token" if entry.token else ""))[
+        header(
+            class_="sb-head"
+            + (" has-token" if entry.token else "")
+            + (" has-cr" if cr is not None else "")
+        )[
+            # The measure of an enemy, in the head's corner (app/ui/cr_badge.py).
+            cr_badge(page, cr.text, xp=cr.xp, size="lg") if cr is not None else None,
             token(entry.token, "lg") if entry.token else None,
             span(class_="eyebrow")[kind],
             h1(class_="sb-name")[
@@ -1202,6 +1208,12 @@ def statblock(page: Page, entry: ReferenceEntry, ctx: RenderContext) -> Element:
         [_section(t("ref.more_from", book=book), more, ctx) for book, more in entry.more],
         _deck_cards(page, entry.cards, ctx),
     ]
+
+
+def _preview_cr(page: Page, data: dict[str, Any]) -> Node:
+    """A creature's CR badge at the start of its preview's line."""
+    cr = coerce_cr(data.get("cr"))
+    return [cr_badge(page, cr.text, xp=cr.xp, size="inline"), " "] if cr is not None else None
 
 
 def _heading_name(entry: ReferenceEntry) -> str:

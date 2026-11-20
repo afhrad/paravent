@@ -194,7 +194,13 @@ def _new_place_dialog(page: Page, world: World, error: str | None, is_open: bool
             ),
             div(class_="field")[
                 label(for_="f-new-notes")[t("places.notes")],
-                textarea(id="f-new-notes", name="notes", rows="4"),
+                textarea(
+                    id="f-new-notes",
+                    name="notes",
+                    rows="4",
+                    class_="prose-editor",
+                    data_scope=f"w:{world.id}",
+                ),
             ],
             label(for_="f-new-picture", class_="tok-drop img-drop")[
                 icon("upload"),

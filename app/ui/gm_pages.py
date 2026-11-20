@@ -560,7 +560,13 @@ def world_form(
                 label(for_="f-description")[
                     t("worlds.description"), " ", span(class_="opt")[t("common.optional")]
                 ],
-                textarea(id="f-description", name="description", rows="3")[description],
+                textarea(
+                    id="f-description",
+                    name="description",
+                    rows="3",
+                    class_="prose-editor",
+                    data_scope=f"w:{world.id}" if world is not None else None,
+                )[description],
             ],
             select_field(
                 "language",

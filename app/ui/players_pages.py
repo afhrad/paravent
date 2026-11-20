@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from htpy import Element, a, b, button, div, form, li, p, span, ul
+from htpy import Element, Node, a, b, button, div, form, li, p, span, ul
 
 from app.models.gamestate import User
 from app.services.auth import MIN_PASSWORD_LENGTH
@@ -15,6 +15,7 @@ from app.ui.forms import alert, checkbox_field, notice, select_field, text_field
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell, initials
+from app.ui.tool_dialog import create_form, new_button, tool_dialog
 
 PLAYERS_URL = "/gm/players"
 
@@ -52,9 +53,17 @@ def players_page(
 ) -> Element:
     """Every player account, with a way to add one."""
     t = page.t
-    new_button = a(href=f"{PLAYERS_URL}/new", class_="btn btn-primary")[
-        icon("plus"), span[t("players.new")]
-    ]
+    create = tool_dialog(
+        page,
+        "player",
+        t("player_form.new_title"),
+        create_form(
+            page,
+            action=PLAYERS_URL,
+            submit=t("player_form.create"),
+            body=_player_fields(page, PlayerInput(username=""), creating=True),
+        ),
+    )
     listing = (
         ul(class_="list")[[_player_row(page, s) for s in summaries]]
         if summaries
@@ -64,9 +73,15 @@ def players_page(
         page,
         t("players.page_title"),
         [
-            page_head(t("players.eyebrow"), t("players.heading"), t("players.lede"), new_button),
+            page_head(
+                t("players.eyebrow"),
+                t("players.heading"),
+                t("players.lede"),
+                new_button(page, "player", t("players.new")),
+            ),
             notice(notice_text),
             listing,
+            create,
         ],
     )
 
@@ -90,8 +105,43 @@ def player_form_page(
             href=f"{PLAYERS_URL}/{player.id}/delete",
             class_="btn btn-ghost btn-danger form-actions-end",
         )[t("player_form.delete")]
-    languages = [(lang.code, lang.name) for lang in t.languages]
+    return app_shell(
+        page,
+        title,
+        div(class_="formpage")[
+            a(href=PLAYERS_URL, class_="backlink")[icon("arrow-left"), span[t("player_form.back")]],
+            div(class_="panel")[
+                div(class_="panel-head")[span(class_="eyebrow")[t("players.eyebrow")], b[title]],
+                alert(error),
+                form(method="post", action=action, class_="stack-form")[
+                    _player_fields(page, values, creating=creating),
+                    None
+                    if creating
+                    else checkbox_field(
+                        "active",
+                        t("player_form.active"),
+                        checked=values.active,
+                        hint=t("player_form.active_hint"),
+                    ),
+                    div(class_="form-actions")[
+                        button(type="submit", class_="btn btn-primary")[
+                            icon("check"),
+                            span[t("player_form.create") if creating else t("player_form.save")],
+                        ],
+                        a(href=PLAYERS_URL, class_="btn btn-ghost")[t("common.cancel")],
+                        delete_link,
+                    ],
+                ],
+            ],
+        ],
+    )
 
+
+def _player_fields(page: Page, values: PlayerInput, *, creating: bool) -> Node:
+    """An account's fields: its name, the name shown, its language and a password (a new
+    one when ``creating``), shared by the new-player dialog and the edit page."""
+    t = page.t
+    languages = [(lang.code, lang.name) for lang in t.languages]
     password_fields = [
         text_field(
             "password",
@@ -113,60 +163,32 @@ def player_form_page(
             required=creating,
         ),
     ]
-
-    return app_shell(
-        page,
-        title,
-        div(class_="formpage")[
-            a(href=PLAYERS_URL, class_="backlink")[icon("arrow-left"), span[t("player_form.back")]],
-            div(class_="panel")[
-                div(class_="panel-head")[span(class_="eyebrow")[t("players.eyebrow")], b[title]],
-                alert(error),
-                form(method="post", action=action, class_="stack-form")[
-                    text_field(
-                        "username",
-                        t("field.username"),
-                        value=values.username,
-                        autocomplete="off",
-                        autofocus=creating,
-                        hint=t("field.username_hint"),
-                    ),
-                    text_field(
-                        "display_name",
-                        t("field.display_name"),
-                        value=values.display_name,
-                        autocomplete="off",
-                        required=False,
-                        optional_text=t("common.optional"),
-                    ),
-                    select_field(
-                        "language",
-                        t("field.language"),
-                        languages,
-                        selected=values.language,
-                        hint=t("player_form.language_hint"),
-                    ),
-                    password_fields,
-                    None
-                    if creating
-                    else checkbox_field(
-                        "active",
-                        t("player_form.active"),
-                        checked=values.active,
-                        hint=t("player_form.active_hint"),
-                    ),
-                    div(class_="form-actions")[
-                        button(type="submit", class_="btn btn-primary")[
-                            icon("check"),
-                            span[t("player_form.create") if creating else t("player_form.save")],
-                        ],
-                        a(href=PLAYERS_URL, class_="btn btn-ghost")[t("common.cancel")],
-                        delete_link,
-                    ],
-                ],
-            ],
-        ],
-    )
+    return [
+        text_field(
+            "username",
+            t("field.username"),
+            value=values.username,
+            autocomplete="off",
+            autofocus=creating,
+            hint=t("field.username_hint"),
+        ),
+        text_field(
+            "display_name",
+            t("field.display_name"),
+            value=values.display_name,
+            autocomplete="off",
+            required=False,
+            optional_text=t("common.optional"),
+        ),
+        select_field(
+            "language",
+            t("field.language"),
+            languages,
+            selected=values.language,
+            hint=t("player_form.language_hint"),
+        ),
+        password_fields,
+    ]
 
 
 def player_delete_page(page: Page, player: User, characters: int) -> Element:

@@ -507,6 +507,10 @@ def app_shell(
     # blue for a player — and spoken to screen readers, since colour alone is not enough.
     role_class = "role-gm" if identity.is_gamemaster else "role-player"
     bar = player_bar and not identity.is_gamemaster
+    # The gamemaster's Markdown editors are on many pages and in dialogs (a new NPC's first
+    # note, a world's description): the insert layer and the toolbar come with every one.
+    insert_layer = insert_layer or identity.is_gamemaster
+    insert_world = world_id or (page.world[0] if page.world else None)
     return document(
         page,
         page_title,
@@ -533,7 +537,7 @@ def app_shell(
             ],
             _player_bar(page) if bar else None,
             palette(page, world_id) if palette_layer else None,
-            insert_palette(page, world_id) if insert_layer else None,
+            insert_palette(page, insert_world) if insert_layer else None,
             log_dialog(page, log_scope or Filter()),
             world_dialogs(page),
             sound_dialog(page),

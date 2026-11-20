@@ -430,7 +430,12 @@ def world_dialogs(page: Page) -> Node:
                     label(for_="f-new-world-description")[
                         t("worlds.description"), " ", span(class_="opt")[t("common.optional")]
                     ],
-                    textarea(id="f-new-world-description", name="description", rows="3"),
+                    textarea(
+                        id="f-new-world-description",
+                        name="description",
+                        rows="3",
+                        class_="prose-editor",
+                    ),
                 ],
                 div(class_="form-actions")[
                     button(type="submit", class_="btn btn-primary")[

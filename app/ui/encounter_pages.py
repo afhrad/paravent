@@ -48,6 +48,7 @@ from app.services.token_export import DEFAULT_PIXELS, PIXELS, SQUARE_MM, Piece
 from app.services.tokens import Token
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
+from app.ui.cr_badge import cr_badge
 from app.ui.creature_links import creature_url
 from app.ui.forms import (
     alert,
@@ -69,6 +70,7 @@ from app.ui.palette import SearchTarget, search_form
 from app.ui.tags import ref_url
 from app.ui.title_images import title_image, title_image_panel, title_thumb
 from app.ui.tokens import token
+from app.ui.tool_dialog import create_form, new_button, tool_dialog
 
 ENCOUNTERS_URL = "/gm/encounters"
 
@@ -168,29 +170,43 @@ def encounters_page(
         for v in views
     ]
     here = next((w for w in worlds if w.id == current), None)
-    create = form(method="post", action=ENCOUNTERS_URL, class_="panel enc-new")[
-        div(class_="panel-head")[b[t("encounters.new")]],
-        alert(error),
-        div(class_="enc-new-fields")[
-            text_field(
-                "name", t("encounters.name"), value=draft_name, autocomplete="off", required=True
-            ),
-            [
-                hidden("world", here.id),
-                p(class_="enc-new-world")[t("encounters.new_in", world=here.name)],
-            ]
-            if here is not None
-            else None,
-            button(type="submit", class_="btn btn-primary")[
-                icon("plus"), span[t("encounters.create")]
+    create = tool_dialog(
+        page,
+        "encounter",
+        t("encounters.new"),
+        create_form(
+            page,
+            action=ENCOUNTERS_URL,
+            submit=t("encounters.create"),
+            body=[
+                alert(error),
+                text_field(
+                    "name",
+                    t("encounters.name"),
+                    value=draft_name,
+                    autocomplete="off",
+                    required=True,
+                ),
+                [
+                    hidden("world", here.id),
+                    p(class_="field-hint")[t("encounters.new_in", world=here.name)],
+                ]
+                if here is not None
+                else None,
             ],
-        ],
-    ]
+        ),
+        is_open=error is not None,
+    )
     return app_shell(
         page,
         t("encounters.page_title"),
         [
-            page_head(t("gm.eyebrow"), t("encounters.heading"), t("encounters.lede")),
+            page_head(
+                t("gm.eyebrow"),
+                t("encounters.heading"),
+                t("encounters.lede"),
+                new_button(page, "encounter", t("encounters.new")),
+            ),
             notice(notice_text),
             create,
             ul(class_="list")[rows]
@@ -228,12 +244,17 @@ def _line(
     planned, monster = line.planned, line.monster
     url = f"{encounter_url(view.encounter.id)}/monsters/{line.index}"
     world_id = view.world.id if view.world else None
+    meta: Node
     if monster is None:
         meta = t("encounters.missing")
     elif monster.cr is None:
         meta = t("encounters.no_cr")
     else:
-        meta = t("encounters.cr_xp", cr=monster.cr.text, xp=_number(page, line.xp or 0))
+        meta = [
+            cr_badge(page, monster.cr.text, size="inline"),
+            " ",
+            t("encounters.xp_each", xp=_number(page, line.xp or 0)),
+        ]
     shown = name_text(page, "monster", planned.name)
     name_node: Node = (
         a(

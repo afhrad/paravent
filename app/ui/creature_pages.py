@@ -57,6 +57,7 @@ from app.services.translation_targets import BUILDER_FIELDS, builder_key
 from app.store.creature_tables import BlockTemplate, CrRow, MonsterFeature
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
+from app.ui.cr_badge import cr_badge
 from app.ui.creature_links import CREATURES_URL, creature_url
 from app.ui.forms import alert, hidden, notice, select_field, text_field
 from app.ui.home_pages import empty_state, page_head
@@ -111,13 +112,13 @@ def creatures_page(
     items = [
         li(class_="list-row")[
             token(page.token_of("creature", r.design.world_id, r.design.id)),
+            cr_badge(page, r.design.cr),
             div(class_="list-main")[
                 a(href=creature_url(r.design.id), class_="list-title list-link")[r.design.name],
                 span(class_="list-meta")[
                     " · ".join(
                         x
                         for x in (
-                            t("creatures.cr_short", cr=r.design.cr),
                             t("creatures.plays_at", cr=r.plays_at) if r.plays_at else "",
                             r.world,
                             t("creatures.based_on", ref=r.design.based_on)

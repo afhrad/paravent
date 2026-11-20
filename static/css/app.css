@@ -2371,7 +2371,18 @@ dialog.logpanel::backdrop{ background:rgba(10,12,16,.35); }
 .prose-editor.is-dropping{ outline:2px dashed var(--accent); outline-offset:2px; }
 
 /* The editors' toolbar and full-width writing (static/js/complete.js) */
-.editor-tools{ display:flex; flex-wrap:wrap; align-items:center; gap:2px; margin:2px 0 6px; }
+.editor-tools{ display:flex; flex-wrap:wrap; align-items:center; gap:2px; margin:2px 0 6px; position:relative; }
+/* The Callout menu: every callout of Paravent Markdown, its icon and name, two columns. */
+.editor-callouts{ position:absolute; top:100%; left:0; z-index:30; margin-top:4px; padding:6px;
+  display:grid; grid-template-columns:repeat(2, minmax(150px, 1fr)); gap:2px;
+  max-height:min(70vh, 460px); overflow:auto;
+  background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-sm, 8px);
+  box-shadow:0 8px 24px rgba(0,0,0,.18); }
+.editor-callouts[hidden]{ display:none; }
+.editor-callout-item{ display:flex; align-items:center; gap:8px; padding:7px 10px; border:0; border-radius:6px;
+  background:none; color:var(--text); font:inherit; font-size:14px; text-align:left; cursor:pointer; }
+.editor-callout-item:hover, .editor-callout-item:focus-visible{ background:var(--surface-2); outline:none; }
+@media (max-width: 480px){ .editor-callouts{ grid-template-columns:minmax(0, 1fr); left:0; right:0; } }
 .editor-tool{ min-width:32px; justify-content:center; }
 .editor-tools .insert-ref{ margin:0 0 0 4px; }
 .editor-tools .editor-wide{ margin-left:auto; }
@@ -2637,6 +2648,27 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .tok-sm .tok-badge{ display:none; }
 .enc-line.is-foe .tok{ box-shadow:0 0 0 2px color-mix(in srgb, var(--dmg) 55%, transparent); }
 .enc-line.is-friend .tok{ box-shadow:0 0 0 2px color-mix(in srgb, var(--heal) 55%, transparent); }
+/* A creature's challenge rating (app/ui/cr_badge.py): the measure of an enemy, framed in
+   the danger colour wherever a creature is shown. "CR" small above, the rating large. */
+.cr-badge{ display:inline-flex; flex-direction:column; align-items:center; justify-content:center;
+  min-width:2.9em; padding:3px 7px 4px; line-height:1; vertical-align:middle; text-align:center;
+  color:var(--dmg-text); background:var(--dmg-weak); border:1.5px solid var(--dmg); border-radius:6px; }
+.cr-label{ font-family:var(--font-ui); font-size:9px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; opacity:.8; }
+.cr-value{ font-family:var(--font-display); font-size:17px; font-weight:700; font-variant-numeric:tabular-nums; margin-top:2px; white-space:nowrap; }
+.cr-xp{ font-family:var(--font-ui); font-size:10.5px; font-weight:600; margin-top:3px; opacity:.85; white-space:nowrap; }
+/* On one line within a row of text, so the row keeps its height. */
+.cr-inline{ flex-direction:row; align-items:baseline; gap:4px; min-width:0; padding:1px 7px 2px; border-radius:5px; }
+.cr-inline .cr-value{ margin-top:0; font-size:14px; }
+/* At a statblock's head: larger, a second frame inside the first, in the head's corner. */
+.cr-lg{ min-width:4.4em; padding:6px 10px 7px; border-width:2px; border-radius:8px;
+  box-shadow:inset 0 0 0 2px var(--dmg-weak), inset 0 0 0 3px color-mix(in srgb, var(--dmg) 55%, transparent); }
+.cr-lg .cr-label{ font-size:10px; }
+.cr-lg .cr-value{ font-size:26px; }
+.sb-head{ position:relative; }
+.sb-head.has-cr{ padding-right:5.4em; }
+.sb-head > .cr-lg{ position:absolute; top:0; right:0; }
+/* In a line of text (the encounter builder, the tracker's row, a preview) it sits low. */
+.list-meta .cr-badge, .cb-row .cr-badge, .tip-meta .cr-badge{ margin-right:2px; }
 .sb-head.has-token{ grid-template-columns:auto 1fr; column-gap:14px; align-items:center; }
 .sb-head.has-token > .tok{ grid-row:1 / span 4; }
 .sb-head.has-token > :not(.tok){ grid-column:2; }
@@ -3098,6 +3130,12 @@ dialog.img-zoom img{ max-width:100%; max-height:100%; object-fit:contain; border
 .world-menu-label{ padding:2px 10px 4px; margin:0; }
 .world-delete{ color:var(--dmg); }
 /* The settings dialog holds the whole world form */
+/* Every list's New … opens a create dialog (app/ui/tool_dialog.py: new_button,
+   create_form); a second way (start from a book) sits under a line. */
+.create-dialog-form{ margin-top:8px; }
+.create-dialog-or{ margin-top:14px; padding-top:14px; border-top:1px solid var(--border); }
+.section-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.section-head .section-title{ margin:0; }
 /* A tool's form in a dialog of its own (app/ui/tool_dialog.py): the party view's travel,
    time and calendar, shop and chase. The panel keeps a row of openers. */
 .tool-row{ display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }

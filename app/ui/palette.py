@@ -36,8 +36,10 @@ from app.store.projections import (
 )
 from app.ui import rules_text
 from app.ui.context import Page
+from app.ui.cr_badge import cr_badge
 from app.ui.forms import hidden
 from app.ui.icons import icon
+from app.ui.markdown import CALLOUT_ICON, CALLOUTS, OWN_CALLOUTS, callout_label
 from app.ui.tags import ref_url
 
 # The category's icon and its tint in the result list (documentation/DESIGN.md §5).
@@ -103,6 +105,7 @@ EDITOR_TOOLS = (
     "link",
     "read",
     "secret",
+    "callout",
     "fold",
     "image",
     "table",
@@ -168,7 +171,7 @@ def _monster_line(page: Page, m: MonsterProjection) -> tuple[str, str | None]:
         parts.append(f"{t('rules.short.ac')} {m.ac}")
     if m.hp is not None:
         parts.append(f"{t('rules.short.hp')} {m.hp}")
-    return " · ".join(parts), (f"{t('rules.short.cr')} {m.cr.text}" if m.cr else None)
+    return " · ".join(parts), (m.cr.text if m.cr else None)
 
 
 def _spell_line(page: Page, s: SpellProjection) -> tuple[str, str]:
@@ -194,7 +197,7 @@ def _describe(page: Page, hit: SearchHit) -> tuple[str, Node]:
     projection: Any = row.projection
     if isinstance(projection, MonsterProjection):
         line, cr = _monster_line(page, projection)
-        return line, span(class_="pill dmg")[cr] if cr else None
+        return line, cr_badge(page, cr) if cr else None
     if isinstance(projection, SpellProjection):
         line, level = _spell_line(page, projection)
         return line, span(class_="pill magic")[level]
@@ -530,9 +533,26 @@ def insert_palette(page: Page, world_id: str | None) -> Element:
         aria_label=page.t("search.insert"),
         data_button=page.t("search.insert_button"),
         data_button_title=page.t("search.insert_title"),
-        # The editors' toolbar (static/js/complete.js), in the reader's language.
-        data_tools=json.dumps({key: page.t(f"editor.{key}") for key in EDITOR_TOOLS}),
+        # The editors' toolbar (static/js/complete.js), in the reader's language, with
+        # every callout the Markdown knows for its Callout menu: kind, name, icon.
+        data_tools=json.dumps(
+            {
+                **{key: page.t(f"editor.{key}") for key in EDITOR_TOOLS},
+                "callouts": callout_menu(page),
+            }
+        ),
     )[search_form(page, SearchResult("", None, ()), world_id, in_dialog=True, target=target)]
+
+
+def callout_menu(page: Page) -> list[list[str]]:
+    """Every callout of Paravent Markdown as ``[kind, name, icon]``: Paravent's own first,
+    then Obsidian's, each by the name its box shows."""
+    own = list(OWN_CALLOUTS)
+    others = sorted(k for k in CALLOUTS if k not in OWN_CALLOUTS)
+    return [
+        [kind, page.t(callout_label(kind)), CALLOUT_ICON.get(kind, "info")]
+        for kind in (*own, *others)
+    ]
 
 
 def palette(page: Page, world_id: str | None) -> Element:

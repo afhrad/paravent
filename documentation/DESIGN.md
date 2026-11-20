@@ -296,6 +296,38 @@ checkbox — the 5e rule has three states and the UI must not imply two.
 > to the shared log, shows as a toast and plays the dice sounds on the device that rolled
 > (PROTOCOL.md).
 
+### Making something new
+
+Every list makes its new things one way (2026-11-20): a **New …** button in the list's
+head (beside its heading where the page head belongs to something else, as a chapter list
+under its adventure) opens a dialog with labelled fields, **Create …** and **Cancel**
+(`new_button`, `create_form`, `tool_dialog` in `app/ui/tool_dialog.py`; places, NPCs and
+treasure through `app/ui/library_links.py`'s twins). Without the script the button
+reloads the page with the dialog open (`?tool=<key>`); a refused create comes back with
+it open and the error inside. Adventures, chapters, characters, encounters, factions,
+quests, creatures, players, session notes, sounds, Claude's keys, places, NPCs, treasure,
+and the adventure's holdings, one button per kind. A second way to begin (an adventure
+from a book, a character in the wizard, a creature from the books) sits in the same
+dialog. Exceptions on purpose: a naming style opens its editor (a style is a pattern with
+parts and samples, not a short form), and the world menu's **New world** is its own
+dialog already.
+
+### Challenge rating
+
+A creature's CR is the measure a gamemaster looks for first when judging an enemy, so it
+is one component wherever a creature is shown (2026-11-20, `app/ui/cr_badge.py`): a framed
+box in the danger colour (`--dmg`, `--dmg-weak`, `--dmg-text`), the reader's abbreviation
+small (CR, HG) and the rating large, its XP in the title.
+
+| Size | Where | Shape |
+| --- | --- | --- |
+| `sm` | beside a search or picker result, a row of the creature builder's list | stacked |
+| `inline` | within a row of text: the encounter builder's lines, the tracker's rows, a preview | one line, so the row keeps its height |
+| `lg` | the head of a statblock (reference page, tracker panel, builder preview), in its corner | stacked, a second frame inside, the XP beneath |
+
+The statblock's own *Challenge* line stays, as the books print it. A player's sheet (Wild
+Shape's forms) keeps plain text: the badge is the gamemaster's measure of a foe.
+
 ---
 
 ## 5. Icons

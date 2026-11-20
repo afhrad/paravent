@@ -72,6 +72,7 @@ from app.services.sheet import CONDITIONS, Sheet
 from app.services.tokens import Token
 from app.ui import rules_text
 from app.ui.context import Page
+from app.ui.cr_badge import cr_badge
 from app.ui.encounter_pages import level_pill
 from app.ui.forms import alert, hidden
 from app.ui.home_pages import empty_state, page_head
@@ -513,7 +514,7 @@ def _meta(page: Page, view: CombatView, row: Row) -> list[Node]:
     elif row.monster is not None:
         parts.append(span[name_text(page, "monster", row.monster.name)])
         if row.monster.cr is not None:
-            parts.append(span(class_="mono")[t("combat.cr", cr=row.monster.cr.text)])
+            parts.append(cr_badge(page, row.monster.cr.text, size="inline"))
     out: list[Node] = []
     for i, part in enumerate(parts):
         if i:

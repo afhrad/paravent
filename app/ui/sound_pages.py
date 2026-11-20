@@ -16,6 +16,7 @@ from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.library_links import confirm_page, delete_link
 from app.ui.sound_panel import SOUND_KINDS, SOUND_URL, SOUNDS_URL
+from app.ui.tool_dialog import create_form, new_button, tool_dialog
 
 
 def speaker_page(page: Page) -> Element:
@@ -95,48 +96,58 @@ def sounds_page(
         page,
         t("sound.library"),
         div(class_="prose-page")[
-            page_head(t("sound.eyebrow"), t("sound.library"), t("sound.library_lede")),
+            page_head(
+                t("sound.eyebrow"),
+                t("sound.library"),
+                t("sound.library_lede"),
+                new_button(page, "sound", t("sound.add")),
+            ),
             notice(notice_text),
             alert(error),
-            form(
-                method="post",
-                action=SOUNDS_URL,
-                enctype="multipart/form-data",
-                class_="panel stack-form create-form",
-            )[
-                div(class_="field")[
-                    label(for_="f-files")[t("sound.files")],
-                    input_el(
-                        id="f-files",
-                        type="file",
-                        name="files",
-                        multiple=True,
-                        accept=".mp3,.m4a,.wav,.ogg,audio/*",
-                    ),
-                ],
-                div(class_="field")[
-                    label(for_="f-folder")[t("sound.folder")],
-                    input_el(id="f-folder", type="file", name="files", webkitdirectory=True),
-                ],
-                div(class_="field")[
-                    label(for_="f-kind")[t("sound.kind_label")],
-                    _kind_select(page, "kind", "effect"),
-                ],
-                text_field(
-                    "credit",
-                    t("sound.credit"),
-                    value="",
-                    autocomplete="off",
-                    required=False,
-                    optional_text=t("common.optional"),
-                ),
-                p(class_="field-hint")[t("sound.upload_hint")],
-                div(class_="form-actions")[
-                    button(type="submit", class_="btn btn-primary")[
-                        icon("upload"), span[t("adventures.upload")]
+            tool_dialog(
+                page,
+                "sound",
+                t("sound.add"),
+                create_form(
+                    page,
+                    action=SOUNDS_URL,
+                    upload=True,
+                    submit=t("adventures.upload"),
+                    submit_icon="upload",
+                    body=[
+                        div(class_="field")[
+                            label(for_="f-files")[t("sound.files")],
+                            input_el(
+                                id="f-files",
+                                type="file",
+                                name="files",
+                                multiple=True,
+                                accept=".mp3,.m4a,.wav,.ogg,audio/*",
+                            ),
+                        ],
+                        div(class_="field")[
+                            label(for_="f-folder")[t("sound.folder")],
+                            input_el(
+                                id="f-folder", type="file", name="files", webkitdirectory=True
+                            ),
+                        ],
+                        div(class_="field")[
+                            label(for_="f-kind")[t("sound.kind_label")],
+                            _kind_select(page, "kind", "effect"),
+                        ],
+                        text_field(
+                            "credit",
+                            t("sound.credit"),
+                            value="",
+                            autocomplete="off",
+                            required=False,
+                            optional_text=t("common.optional"),
+                        ),
+                        p(class_="field-hint")[t("sound.upload_hint")],
                     ],
-                ],
-            ],
+                ),
+                is_open=error is not None,
+            ),
             section[
                 ul(class_="list")[[_row(page, sound) for sound in sounds]]
                 if sounds

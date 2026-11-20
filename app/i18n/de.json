@@ -1431,7 +1431,7 @@
   "adventures.heading": "Abenteuer",
   "adventures.empty_heading": "Noch keine Abenteuer",
   "adventures.empty_text": "Leg unten eines an. Jedes Abenteuer ist ein Ordner mit Markdown-Dateien, die du auch in jedem Editor bearbeiten kannst.",
-  "adventures.new": "Abenteuer anlegen",
+  "adventures.new": "Neues Abenteuer",
   "adventures.new_name": "Name eines neuen Abenteuers",
   "adventures.chapters_n": {"one": "{count} Kapitel", "other": "{count} Kapitel"},
   "adventures.levels": "Stufe {start}–{end}",
@@ -1540,7 +1540,7 @@
   "chapters.heading": "Kapitel",
   "chapters.empty_heading": "Noch keine Kapitel",
   "chapters.empty_text": "Leg unten das erste an.",
-  "chapters.new": "Kapitel anlegen",
+  "chapters.new": "Neues Kapitel",
   "chapters.new_title": "Titel eines neuen Kapitels",
   "chapters.contents": "Inhalt",
   "chapters.nav": "Kapitel",
@@ -4101,5 +4101,13 @@
   "world.deleted_title": "Gelöschte Welten",
   "world.deleted_lede": "In den letzten 30 Tagen gelöschte Welten, mit ihrem Ordner, ihren Bildern und Einträgen. Wiederherstellen bringt eine zurück, wie sie war; nach 30 Tagen wird sie endgültig entfernt.",
   "world.deleted_none": "In letzter Zeit wurde keine Welt gelöscht.",
-  "md.embed.world": "Welt"
+  "md.embed.world": "Welt",
+  "rules.short.xp": "EP",
+  "encounters.xp_each": "je {xp} EP",
+  "sound.add": "Klänge hinzufügen",
+  "adventures.create": "Abenteuer anlegen",
+  "chapters.create": "Kapitel anlegen",
+  "sessions.create": "Notiz anlegen",
+  "book.start_label": "Oder mit einem veröffentlichten Abenteuer beginnen",
+  "editor.callout": "Kasten"
 }

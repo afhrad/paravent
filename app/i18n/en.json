@@ -1431,7 +1431,7 @@
   "adventures.heading": "Adventures",
   "adventures.empty_heading": "No adventures yet",
   "adventures.empty_text": "Start one below. Each adventure is a folder of Markdown files you can also edit in any editor.",
-  "adventures.new": "Add adventure",
+  "adventures.new": "New adventure",
   "adventures.new_name": "Name of a new adventure",
   "adventures.chapters_n": {"one": "{count} chapter", "other": "{count} chapters"},
   "adventures.levels": "Levels {start}–{end}",
@@ -1540,7 +1540,7 @@
   "chapters.heading": "Chapters",
   "chapters.empty_heading": "No chapters yet",
   "chapters.empty_text": "Add the first one below.",
-  "chapters.new": "Add chapter",
+  "chapters.new": "New chapter",
   "chapters.new_title": "Title of a new chapter",
   "chapters.contents": "Contents",
   "chapters.nav": "Chapters",
@@ -4101,5 +4101,13 @@
   "world.deleted_title": "Deleted worlds",
   "world.deleted_lede": "Worlds deleted in the last 30 days, with their folder, pictures and records. Restore puts one back as it was; after 30 days it is erased.",
   "world.deleted_none": "No world was deleted lately.",
-  "md.embed.world": "World"
+  "md.embed.world": "World",
+  "rules.short.xp": "XP",
+  "encounters.xp_each": "{xp} XP each",
+  "sound.add": "Add sounds",
+  "adventures.create": "Create adventure",
+  "chapters.create": "Create chapter",
+  "sessions.create": "Create note",
+  "book.start_label": "Or start from a published adventure",
+  "editor.callout": "Callout"
 }
