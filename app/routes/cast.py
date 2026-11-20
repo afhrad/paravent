@@ -272,6 +272,8 @@ def _npc_form(
     } | (values or {})
     groups = races(registry.naming_for(npc.scope.world_id).entries())
     roles = current["roles"]
+    books = registry.references.source_set(npc.scope.world_id)
+    picker = registry.search.search("", books, group="bestiary", term=page.t.terms())
     return html(
         npc_form_page(
             page,
@@ -291,9 +293,37 @@ def _npc_form(
             conflict=conflict,
             error=error,
             notice_text=notice_text,
+            result=picker,
         ),
         status_code=status_code,
     )
+
+
+@router.post(f"{NPCS_URL}/{{npc_id}}/statblock")
+async def pick_statblock(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    npc_id: str,
+    ref: Annotated[str, Form()] = "",
+) -> Response:
+    """The creature picker without the script: the creature becomes the NPC's statblock
+    at once (with a copy of its picture where the NPC has no portrait), back to its form."""
+    npc = registry.npcs.get(npc_id)
+    try:
+        saved = registry.npcs.update(
+            npc_id,
+            name=npc.name,
+            scope_value=scope.encode(npc.scope),
+            roles=list(npc.roles),
+            statblock=ref,
+            notes=npc.notes,
+        )
+    except Translatable as exc:
+        return _npc_form(page, registry, npc_id, error=page.t.error(exc), status_code=422)
+    if saved.statblock and saved.statblock != npc.statblock:
+        registry.copy_statblock_picture(npc_id)
+    return redirect(f"{npc_url(npc_id)}/edit")
 
 
 @router.get(f"{NPCS_URL}/{{npc_id}}/edit", response_class=HTMLResponse)

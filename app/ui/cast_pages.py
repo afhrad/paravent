@@ -80,6 +80,7 @@ from app.ui.palette import SearchTarget, search_form
 from app.ui.ref_pages import statblock
 from app.ui.tags import RenderContext, ref_url
 from app.ui.tokens import token, token_panel
+from app.ui.tool_dialog import tool_button, tool_dialog
 
 DENOMINATIONS = ("pp", "gp", "ep", "sp", "cp")
 # The delete button's name per kind of object (the holdings panel's rows).
@@ -742,8 +743,11 @@ def npc_form_page(
     conflict: str | None = None,
     error: str | None = None,
     notice_text: str | None = None,
+    result: SearchResult | None = None,
 ) -> Element:
-    """Edit an NPC: name, what names them, place, roles, statblock, notes and portrait."""
+    """Edit an NPC: name, what names them, place, roles, statblock, notes and portrait;
+    ``result`` is the creature picker's first view (the world's books), beside the
+    statblock."""
     t = page.t
     url = npc_url(npc.id)
     free = ", ".join(r for r in roles if r not in KNOWN_ROLES)
@@ -792,15 +796,25 @@ def npc_form_page(
                         optional_text=t("common.optional"),
                         hint=t("npcs.tags_hint"),
                     ),
-                    text_field(
-                        "statblock",
-                        t("npcs.statblock"),
-                        value=statblock_ref,
-                        autocomplete="off",
-                        required=False,
-                        optional_text=t("common.optional"),
-                        hint=t("npcs.statblock_hint"),
-                    ),
+                    div(class_="field")[
+                        label(for_="f-statblock")[
+                            t("npcs.statblock"), " ", span(class_="opt")[t("common.optional")]
+                        ],
+                        div(class_="tool-inline npc-statblock")[
+                            input_el(
+                                id="f-statblock",
+                                name="statblock",
+                                type="text",
+                                value=statblock_ref,
+                                autocomplete="off",
+                                aria_describedby="f-statblock-hint",
+                            ),
+                            tool_button(page, "statblock", t("npcs.statblock_pick"), "search")
+                            if result is not None
+                            else None,
+                        ],
+                        p(class_="field-hint", id="f-statblock-hint")[t("npcs.statblock_hint")],
+                    ],
                     div(class_="field")[
                         label(for_="f-notes")[t("npcs.notes")],
                         textarea(
@@ -824,6 +838,22 @@ def npc_form_page(
                     ],
                 ],
             ],
+            # The creature picker, outside the form above (a form never holds another).
+            tool_dialog(
+                page,
+                "statblock",
+                t("npcs.statblock_pick"),
+                search_form(
+                    page,
+                    result,
+                    world.id,
+                    in_dialog=False,
+                    target=npc_statblock_target(npc.id),
+                    autofocus=False,
+                ),
+            )
+            if result is not None
+            else None,
             # One picture for both: the portrait is the token's picture, placed in its
             # frame here (documentation/TOKENS.md).
             token_panel(
@@ -842,6 +872,19 @@ def npc_form_page(
         ],
         world_id=world.id,
         insert_layer=True,
+    )
+
+
+def npc_statblock_target(npc_id: str) -> SearchTarget:
+    """The NPC form's creature picker: a pick fills the statblock field (with the
+    script), or saves it at once (``POST /gm/npcs/<id>/statblock``)."""
+    return SearchTarget(
+        action=f"{npc_url(npc_id)}/edit",
+        dom_id="picker-results",
+        pick_action=f"{npc_url(npc_id)}/statblock",
+        pick=npc_id,
+        pick_hint="npcs.statblock_pick_hint",
+        fill="f-statblock",
     )
 
 

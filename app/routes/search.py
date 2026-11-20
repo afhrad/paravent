@@ -21,6 +21,7 @@ from app.dependencies import IdentityDep, PageDep, RegistryDep
 from app.routes.auth import html
 from app.services.search import GROUPS, Row, SearchHit, SearchResult
 from app.store.registry import StoreRegistry
+from app.ui.cast_pages import npc_statblock_target
 from app.ui.combat_pages import combat_url
 from app.ui.context import Page
 from app.ui.creature_pages import NEW_CREATURE, new_creature_target
@@ -69,7 +70,8 @@ async def search(
     ``pick=<encounter id>`` asks for the encounter builder's monster picker instead:
     creatures only, each an "add" button; ``pick=<combat id>`` the same for a running
     fight; ``pick=<treasure id>`` the treasure's item picker; ``pick=new-creature`` the
-    creature builder's, each creature beginning a new design. Only the gamemaster
+    creature builder's, each creature beginning a new design; ``pick=<NPC id>`` the NPC
+    form's, for its statblock. Only the gamemaster
     picks, so for anyone else — or an id that names nothing — it is ignored.
 
     ``insert=1`` asks for the Markdown editors' insert pop-up: each result inserts its
@@ -87,7 +89,12 @@ async def search(
         encounter = registry.gamestate.encounters.find(pick)
         treasure = registry.gamestate.treasures.find(pick)
         combat = registry.gamestate.combats.find(pick)
-        if combat is not None:
+        npc = registry.gamestate.npcs.find(pick)
+        if npc is not None:
+            # An NPC's statblock, from a creature of the world's books.
+            target = npc_statblock_target(npc.id)
+            group = "bestiary"
+        elif combat is not None:
             url = combat_url(combat.id)
             target = SearchTarget(
                 action=url,

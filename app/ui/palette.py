@@ -137,6 +137,9 @@ class SearchTarget:
     # Parts of the page an "add" replaces in place (``#plan #rating``): the picker then
     # posts in the background and takes them from the answer, without a reload.
     swap: str = ""
+    # The id of a field a pick fills instead (an NPC's statblock): with the script the
+    # picker writes the choice there and closes; without it the pick posts as usual.
+    fill: str = ""
 
 
 PALETTE = SearchTarget()
@@ -393,6 +396,7 @@ def search_form(
         method="get",
         autocomplete="off",
         data_pick_swap=target.swap or None,
+        data_fill=target.fill or None,
     )[
         div(class_="dialog-search")[
             icon("search"),

@@ -4092,5 +4092,14 @@
   "creatures.cr_own": "Its own",
   "creatures.begin_hint": "In this world. Begin blank (at CR 1 unless you choose one), or pick a creature of the world's books below to begin from it, at its own CR unless you choose one.",
   "creatures.create_blank": "Begin blank",
-  "creatures.hint_pick": "Search the creatures in this world's books — Enter begins with the highlighted one."
+  "creatures.hint_pick": "Search the creatures in this world's books — Enter begins with the highlighted one.",
+  "npcs.statblock_pick": "Pick a creature",
+  "npcs.statblock_pick_hint": "Search the creatures in this world's books — Enter takes the highlighted one.",
+  "md.embed.quest": "Quest",
+  "md.embed.faction": "Faction",
+  "world.deleted_n": {"one": "Deleted worlds: {n}", "other": "Deleted worlds: {n}"},
+  "world.deleted_title": "Deleted worlds",
+  "world.deleted_lede": "Worlds deleted in the last 30 days, with their folder, pictures and records. Restore puts one back as it was; after 30 days it is erased.",
+  "world.deleted_none": "No world was deleted lately.",
+  "md.embed.world": "World"
 }

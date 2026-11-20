@@ -122,6 +122,20 @@
     }
 
     form.addEventListener('submit', function (e) {
+      // A picker that fills a field (data-fill="<id>"): the choice goes there, unsaved,
+      // and the dialog closes; the field's own form saves it with everything else.
+      if (form.dataset.fill && e.submitter && e.submitter.classList.contains('res-pick')) {
+        var field = document.getElementById(form.dataset.fill);
+        if (field) {
+          e.preventDefault();
+          field.value = e.submitter.value;
+          field.dispatchEvent(new Event('input', { bubbles: true }));
+          var box = form.closest('dialog');
+          if (box) box.close();
+          field.focus();
+          return;
+        }
+      }
       if (form.dataset.pickSwap && e.submitter && e.submitter.classList.contains('res-pick')) {
         e.preventDefault();
         pickInPlace(e.submitter);

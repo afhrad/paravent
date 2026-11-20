@@ -4092,5 +4092,14 @@
   "creatures.cr_own": "Sein eigener",
   "creatures.begin_hint": "In dieser Welt. Leer beginnen (mit HG 1, wenn du keinen wählst), oder unten eine Kreatur aus den Büchern der Welt als Ausgangspunkt wählen, mit ihrem eigenen HG, wenn du keinen wählst.",
   "creatures.create_blank": "Leer beginnen",
-  "creatures.hint_pick": "Kreaturen aus den Büchern dieser Welt suchen – Enter beginnt mit der markierten."
+  "creatures.hint_pick": "Kreaturen aus den Büchern dieser Welt suchen – Enter beginnt mit der markierten.",
+  "npcs.statblock_pick": "Kreatur wählen",
+  "npcs.statblock_pick_hint": "Kreaturen aus den Büchern dieser Welt suchen – Enter übernimmt die markierte.",
+  "md.embed.quest": "Auftrag",
+  "md.embed.faction": "Fraktion",
+  "world.deleted_n": {"one": "Gelöschte Welten: {n}", "other": "Gelöschte Welten: {n}"},
+  "world.deleted_title": "Gelöschte Welten",
+  "world.deleted_lede": "In den letzten 30 Tagen gelöschte Welten, mit ihrem Ordner, ihren Bildern und Einträgen. Wiederherstellen bringt eine zurück, wie sie war; nach 30 Tagen wird sie endgültig entfernt.",
+  "world.deleted_none": "In letzter Zeit wurde keine Welt gelöscht.",
+  "md.embed.world": "Welt"
 }

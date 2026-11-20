@@ -3113,6 +3113,9 @@ dialog.img-zoom img{ max-width:100%; max-height:100%; object-fit:contain; border
 .tool-inline{ display:flex; gap:8px; }
 .tool-inline > input{ flex:0 0 96px; }
 .tool-inline > select{ flex:1 1 auto; min-width:0; }
+/* An NPC's statblock: the field takes the row, the picker's button beside it. */
+.npc-statblock > input{ flex:1 1 auto; min-width:0; }
+.npc-statblock > .tool-open{ flex:none; min-height:44px; }
 .tool-checks{ display:flex; flex-wrap:wrap; gap:8px 18px; border:0; margin:0; padding:0; }
 .tool-checks > legend{ padding:0; margin-bottom:6px; }
 .tool-dialog .shop-list{ margin:0 0 4px; }

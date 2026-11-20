@@ -236,6 +236,29 @@ async def _login(ac: AsyncClient, name: str) -> None:
 
 
 class TestThePages:
+    async def test_the_npc_form_picks_its_statblock(
+        self, client: tuple[AsyncClient, StoreRegistry]
+    ) -> None:
+        ac, registry = client
+        await _login(ac, "dm")
+        world = registry.gamestate.worlds.create(World(name="Moor", source_set=SourceSet()))
+        npc = registry.npcs.create("Snik", f"w:{world.id}", world.id)
+        form = (await ac.get(f"/gm/npcs/{npc.id}/edit")).text
+        assert 'data-dialog="tool-statblock"' in form and 'data-fill="f-statblock"' in form
+        assert 'id="f-statblock"' in form
+        found = (
+            await ac.get(
+                "/search",
+                params={"q": "goblin", "pick": npc.id, "partial": "1", "world": world.id},
+            )
+        ).text
+        assert f'formaction="/gm/npcs/{npc.id}/statblock"' in found
+        # Without the script a pick saves it at once, with a copy of the picture.
+        back = await ac.post(f"/gm/npcs/{npc.id}/statblock", data={"ref": "Goblin|MM"})
+        assert back.headers["location"] == f"/gm/npcs/{npc.id}/edit"
+        saved = registry.gamestate.npcs.get(npc.id)
+        assert saved.statblock == "Goblin|MM" and saved.portrait is not None
+
     async def test_an_npc_given_a_statblock_on_its_form_gets_the_picture(
         self, client: tuple[AsyncClient, StoreRegistry]
     ) -> None:
