@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-20T18:10:58+01:00",
+  "en": "Challenge ratings stand out as framed badges, every list makes new things in a dialog, and the editors offer every callout from a menu.",
+  "de": "Herausforderungsgrade stehen als gerahmte Abzeichen hervor, jede Liste legt Neues in einem Dialog an, und die Editoren bieten jeden Kasten aus einem Menü."
+ },
+ {
   "at": "2026-11-20T17:28:49+01:00",
   "en": "Deleted worlds, quests and factions can be restored, and a restored adventure gets back what moved out of it.",
   "de": "Gelöschte Welten, Aufträge und Fraktionen lassen sich wiederherstellen, und ein wiederhergestelltes Abenteuer bekommt zurück, was aus ihm verschoben wurde."
@@ -293,10 +298,5 @@
   "at": "2026-11-16T19:02:19+01:00",
   "en": "Double presses no longer sell twice or run a bastion turn twice; supper comes after an encounter at day's end; chases count existing exhaustion; players can no longer add strong creatures as followers or free defenders.",
   "de": "Doppelte Klicks verkaufen nicht mehr doppelt und starten keinen zweiten Bastionszug; nach einer Begegnung am Tagesende gibt es trotzdem Abendessen; Verfolgungsjagden zählen vorhandene Erschöpfung; Spieler können keine starken Kreaturen als Gefolge oder kostenlose Verteidiger mehr hinzufügen."
- },
- {
-  "at": "2026-11-16T16:13:07+01:00",
-  "en": "Companions and mounts keep the wounds they took in a fight, and several ways to be paid or rewarded twice are closed, among them springing a trap twice and taking any item from a bastion's magical discovery.",
-  "de": "Gefährten und Reittiere behalten die Wunden aus einem Kampf, und mehrere Wege, doppelt bezahlt oder belohnt zu werden, sind geschlossen, darunter eine Falle zweimal auszulösen und beliebige Gegenstände aus einer magischen Entdeckung der Bastion zu nehmen."
  }
 ]
