@@ -1,12 +1,17 @@
 #!/usr/bin/env python3
-"""Raise the patch version (0.1.4 → 0.1.5) with every commit.
+"""Type-check the app, then raise the patch version (0.1.4 → 0.1.5) with every commit.
+
+**mypy first**, when the commit stages Python under ``app/``: ``mypy app/`` as configured in
+pyproject.toml (strict), with its cache, so a run after a small change takes seconds. An
+error stops the commit, before the version moves. It reads the working copies, not only
+what is staged. Skipped with PARAVENT_NO_MYPY=1, or when mypy is not installed.
 
 The version is set once, in pyproject.toml (app/__init__.py reads it); uv.lock records
 it too. Only the version line changes, in the staged files and the working copies alike,
 so nothing else unstaged slips into the commit.
 
-Skipped when the commit already changes the version itself (raising minor or major by
-hand), or with PARAVENT_NO_BUMP=1.
+The bump is skipped when the commit already changes the version itself (raising minor or
+major by hand), or with PARAVENT_NO_BUMP=1.
 
 Enable once per clone:  git config core.hooksPath scripts/hooks
 """
@@ -15,6 +20,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -44,7 +50,32 @@ def stage(path: str, text: str) -> None:
     git("update-index", "--cacheinfo", f"100644,{blob},{path}")
 
 
+def type_check() -> bool:
+    """mypy over the app when the commit stages Python there; False on an error."""
+    if os.environ.get("PARAVENT_NO_MYPY"):
+        return True
+    names = git("diff", "--cached", "--name-only", "--diff-filter=ACMR").split()
+    if not any(n.startswith("app/") and n.endswith(".py") for n in names):
+        return True
+    venv = Path(".venv/bin/mypy")
+    mypy = str(venv) if venv.exists() else shutil.which("mypy")
+    if mypy is None:
+        print("pre-commit: mypy not installed; type check skipped", file=sys.stderr)
+        return True
+    done = subprocess.run([mypy, "app/"], capture_output=True, text=True)
+    if done.returncode == 0:
+        return True
+    print(done.stdout + done.stderr, file=sys.stderr)
+    print(
+        "pre-commit: mypy found errors; fix them, or commit with PARAVENT_NO_MYPY=1",
+        file=sys.stderr,
+    )
+    return False
+
+
 def main() -> int:
+    if not type_check():
+        return 1
     if os.environ.get("PARAVENT_NO_BUMP"):
         return 0
     if re.search(r"^[+-]version = ", git("diff", "--cached", "-U0", "--", PROJECT), re.MULTILINE):

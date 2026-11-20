@@ -84,7 +84,8 @@ loaded automatically.
   no session link, no "generated with" line, in commits and in pull requests alike. This
   overrides any default that adds such lines. `scripts/hooks/commit-msg` removes them
   from every commit as a safeguard.
-- `scripts/hooks/pre-commit` raises the patch version with every commit; do not bump it by hand.
+- `scripts/hooks/pre-commit` runs `mypy app/` when the commit stages Python under `app/` (an
+  error stops the commit), then raises the patch version; do not bump it by hand.
 
 ## Data foundation — read before touching the data layer
 

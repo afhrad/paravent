@@ -184,6 +184,10 @@ git config core.hooksPath scripts/hooks
 
 A commit that changes the version itself (raising minor or major by hand) is left as it
 is; `PARAVENT_NO_BUMP=1 git commit …` skips the bump once.
+
+**The same hook type-checks first**: a commit that stages Python under `app/` runs
+`mypy app/` (strict, with its cache, so a few seconds after a small change), and an error
+stops the commit before the version moves. `PARAVENT_NO_MYPY=1 git commit …` skips it once.
 It shows at the bottom of the user menu and on the login page ("Paravent 0.1.0"), so you can
 tell at a glance which build a device is talking to.
 
