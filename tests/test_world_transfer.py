@@ -204,3 +204,15 @@ def test_an_id_of_digits_alone_survives_front_matter(
     monkeypatch.setattr(world_transfer, "new_id", lambda: next(ids))
     made = registry.world_transfer.import_world(data)
     assert made.world.id != "123456789012" and made.world.name == "Grey Reed (2)"
+
+
+def test_front_matter_keeps_an_id_of_digits_as_text(tmp_path: Path) -> None:
+    """A world file whose id lost its quotes in a hand edit still loads, its id as written."""
+    from app.store.prose import ProseStore
+
+    folder = tmp_path / "worlds" / "digits"
+    folder.mkdir(parents=True)
+    (folder / "world.md").write_text("---\nid: 012345678901\nname: Digits\n---\n")
+    store = ProseStore(tmp_path / "worlds")
+    store.load()
+    assert [(w.id, w.name) for w in store.records("world")] == [("012345678901", "Digits")]

@@ -4049,5 +4049,7 @@
   "transfer.done.skipped": {"one": "{count} Datei oder Eintrag war nicht lesbar und wurde ausgelassen.", "other": "{count} Dateien oder Einträge waren nicht lesbar und wurden ausgelassen."},
   "links.kind.session": "Sitzungsnotiz",
   "links.session_title": "Sitzung vom {day}",
-  "links.count_label": "Links, die ins Leere führen"
+  "links.count_label": "Links, die ins Leere führen",
+  "links.rename": "„{old}“ in „{new}“ umbenennen",
+  "links.renamed": "Umbenannt; jeder Link auf den alten Namen folgt."
 }

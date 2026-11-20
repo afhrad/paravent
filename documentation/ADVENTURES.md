@@ -599,8 +599,13 @@ how many beside **Check links**, counted when it opens (`/gm/world/links/count`)
 every page. A suggestion is written into its text on its
 line with one press (`POST /gm/world/links/fix`; a text changed meanwhile is left alone and
 the page says so); a missing object is offered through the create page, which comes back
-here. The create page itself (a dashed link clicked in a chapter) now also offers what the
-text probably meant, each opening the one that exists.
+here. When the text is right and the object's name is wrong, **Rename “Hob Wade” to “Hob”**
+renames the object instead, every link to its old name following (`POST
+/gm/world/links/rename`, `rewrite_references`). The create page itself (a dashed link clicked
+in a chapter) now also offers what the text probably meant, each opening the one that exists.
+Claude reads the same list over MCP (`check_world`, MCP.md). Front matter reads twelve hex
+digits as text (`_FrontLoader`), so an id of digits alone survives a hand edit that lost
+its quotes.
 | `{@character …}` naming nobody placed in the world | — place the character in the world |
 | An encounter alone on its line without creatures, an image that is not there; in older texts a `:::` block of an unknown kind or never closed | — |
 

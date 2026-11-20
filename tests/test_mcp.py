@@ -903,6 +903,18 @@ class TestWholeAdventure:
             await call(mcp, "create_place", adventure_id=draft["id"], name="Later", notes="")
             found = await call(mcp, "check_adventure", adventure_id=draft["id"])
             assert [p["name"] for p in found] == ["Fireblast"]
+            # The whole world, as Check links shows it: a near name is offered.
+            await call(
+                mcp,
+                "create_npc",
+                adventure_id=draft["id"],
+                name="Crier",
+                notes="Works for {@npc Heral} at {@place Later}.",
+            )
+            world = await call(mcp, "check_world", world_id=facts["world"].id)
+            herald = next(p for p in world if p["name"] == "Heral")
+            assert herald["where"] == "npc Crier" and herald["create"] is True
+            assert herald["meant"] == ["Herald"] and herald["instead"] == ["{@npc Herald}"]
 
     async def test_sounds_can_be_listed(self, table: tuple[httpx.AsyncClient, Any]) -> None:
         _raw, facts = table

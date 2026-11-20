@@ -5,6 +5,8 @@
   encounters and treasure, each problem with what would mend it (a quest's text, a
   faction's note and Claude's instructions are plain text, where a tag is never a link)
 * ``POST /gm/world/links/fix`` — one suggested replacement written into its text, on its line
+* ``POST /gm/world/links/rename`` — or the object renamed to the name the text uses, every
+  link to its old name following
 
 A missing NPC, place, treasure or encounter is offered to create through the same page as a
 dashed link in a chapter (``/gm/editor/new``), coming back here.
@@ -24,7 +26,7 @@ from htpy import Element, a, button, code, div, form, li, section, span, ul
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.models.gamestate import Scope
-from app.routes.adventures import chapter_problems, notes_problems
+from app.routes.adventures import chapter_problems, near_objects, notes_problems
 from app.routes.auth import html, redirect
 from app.services import scope as scopes
 from app.store.registry import StoreRegistry
@@ -50,6 +52,7 @@ from app.ui.world_menu import LINKS_URL
 router = APIRouter(tags=["world links"])
 
 FIX_URL = f"{LINKS_URL}/fix"
+RENAME_URL = f"{LINKS_URL}/rename"
 
 # Where each kind of text is kept: its collection on the game-state store and its field.
 FIELDS: dict[str, tuple[str, str]] = {
@@ -74,17 +77,25 @@ class Checked:
     url: str
     scope: Scope
     problems: Sequence[Problem]
+    # Per problem (same order): ``(id, name)`` of objects it probably meant, which may be
+    # renamed to the name the text uses when the text is right.
+    meant: Sequence[Sequence[tuple[str, str]]] = ()
 
 
 def world_problems(page: Page, registry: StoreRegistry, world_id: str) -> list[Checked]:
     """Every text of the world that has a problem, in the order of the world's lists."""
     found: list[Checked] = []
 
+    def objects_meant(here: Scope, faults: list[Problem]) -> list[list[tuple[str, str]]]:
+        return [_meant(registry, here, x) for x in faults]
+
     def add(
         kind: str, ident: str, title: str, url: str, here: Scope, faults: list[Problem]
     ) -> None:
         if faults:
-            found.append(Checked(kind, ident, title, url, here, faults))
+            found.append(
+                Checked(kind, ident, title, url, here, faults, objects_meant(here, faults))
+            )
 
     world = registry.adventures.world(world_id)
     here = Scope(world_id=world_id)
@@ -174,6 +185,29 @@ def world_problems(page: Page, registry: StoreRegistry, world_id: str) -> list[C
     return found
 
 
+RENAMEABLE: dict[str, str] = {
+    "npc": "npcs",
+    "place": "locations",
+    "treasure": "treasures",
+    "encounter": "encounters",
+}
+
+
+def _meant(registry: StoreRegistry, here: Scope, problem: Problem) -> list[tuple[str, str]]:
+    """The objects a missing NPC, place, treasure or encounter link probably meant."""
+    if problem.create is None:
+        return []
+    kind, name = problem.create
+    finders = {
+        "npc": registry.npcs.find,
+        "place": registry.locations.find,
+        "treasure": registry.treasure.find,
+        "encounter": registry.encounters.find,
+    }
+    found = (finders[kind](near, here) for near in near_objects(registry, here, kind, name))
+    return [(record.id, record.name) for record in found if record is not None]
+
+
 def _notes(page: Page, registry: StoreRegistry, here: Scope, text: str) -> list[Problem]:
     return notes_problems(page, registry, here, text) if text.strip() else []
 
@@ -227,6 +261,20 @@ def _text_section(page: Page, checked: Checked) -> Element:
                             ]
                             for instead in x.instead
                         ],
+                        [
+                            form(method="post", action=RENAME_URL, class_="inline-form")[
+                                hidden("kind", x.create[0]),
+                                hidden("id", object_id),
+                                hidden("name", x.create[1]),
+                                button(type="submit", class_="btn btn-sm btn-ghost check-rename")[
+                                    icon("pencil", "sm"),
+                                    span[t("links.rename", old=object_name, new=x.create[1])],
+                                ],
+                            ]
+                            for object_id, object_name in meant
+                        ]
+                        if x.create
+                        else None,
                         a(
                             href=new_object_url(
                                 x.create[0], x.create[1], scopes.encode(checked.scope), LINKS_URL
@@ -240,7 +288,9 @@ def _text_section(page: Page, checked: Checked) -> Element:
                         else None,
                     ],
                 ]
-                for x in checked.problems
+                for x, meant in zip(
+                    checked.problems, checked.meant or [[]] * len(checked.problems), strict=True
+                )
             ]
         ],
     ]
@@ -254,7 +304,11 @@ async def world_links(
     world = registry.table.world()
     if world is None:
         raise HTTPException(status_code=404)
-    message = {"1": page.t("links.fixed"), "stale": page.t("links.stale")}.get(fixed)
+    message = {
+        "1": page.t("links.fixed"),
+        "stale": page.t("links.stale"),
+        "renamed": page.t("links.renamed"),
+    }.get(fixed)
     return html(links_page(page, world.name, world_problems(page, registry, world.id), message))
 
 
@@ -294,6 +348,31 @@ async def fix_link(
     lines[line - 1] = lines[line - 1].replace(old, new, 1)
     collection.update(id, **{field: "\n".join(lines)})
     return redirect(f"{LINKS_URL}?fixed=1#t-{id}")
+
+
+@router.post(RENAME_URL)
+async def rename_object(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    kind: Annotated[str, Form()] = "",
+    id: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
+    name: Annotated[str, Form()] = "",
+) -> Response:
+    """The text is right and the object's name is not: rename it, and every link to its old
+    name in the world's texts follows."""
+    if kind not in RENAMEABLE or not name.strip():
+        raise HTTPException(status_code=400)
+    collection = getattr(registry.gamestate, RENAMEABLE[kind])
+    record = collection.find(id)
+    if record is None or _world_of(kind, record) != registry.table.world_id():
+        raise HTTPException(status_code=404)
+    old, new = record.name, name.strip()
+    collection.update(id, name=new)
+    where: Scope | None = record.scope  # an encounter may have none: its world's, then
+    world_id = where.world_id if where is not None else str(record.world_id)
+    adventure_id = where.adventure_id if where is not None else None
+    registry.adventures.rewrite_references(world_id, kind, old, new, adventure_id)
+    return redirect(f"{LINKS_URL}?fixed=renamed")
 
 
 def _world_of(kind: str, record: object) -> str | None:

@@ -37,6 +37,7 @@ from app.mcp.models import (
     RevisionChange,
     TreasureInfo,
     TreasureLine,
+    WorldProblem,
     WorldStyles,
 )
 from app.models.gamestate import (
@@ -422,6 +423,36 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
         for kind, name, record_id, notes, where in held:
             if where is not None and scopes.within(where, inside):
                 add(f"{kind} {name}", record_id, notes_problems(page, registry, where, notes))
+        return found
+
+    @server.tool()
+    def check_world(world_id: str = "") -> list[WorldProblem]:
+        """Everything in a world's texts that leads nowhere — its description, adventures,
+        chapters, session notes and the notes of its NPCs, places, encounters and treasure —
+        as the gamemaster's Check links shows it. Empty ``world_id``: the table's world.
+        Reading only: mend a draft's texts with ``write_chapter`` and the update tools."""
+        from app.routes.world_links import world_problems
+
+        registry = stores()
+        with tool_errors():
+            world = registry.adventures.world(current_or(registry, world_id))
+        found: list[WorldProblem] = []
+        for checked in world_problems(english_page(), registry, world.id):
+            meant = checked.meant or [[]] * len(checked.problems)
+            for p, objects in zip(checked.problems, meant, strict=True):
+                found.append(
+                    WorldProblem(
+                        where=f"{checked.kind} {checked.title}",
+                        id=checked.id,
+                        line=p.line,
+                        kind=p.kind,
+                        text=p.text,
+                        name=p.name,
+                        instead=list(p.instead),
+                        create=p.create is not None,
+                        meant=[name for _id, name in objects],
+                    )
+                )
         return found
 
     # -- NPCs -----------------------------------------------------------------------

@@ -532,6 +532,19 @@ class AdventureProblem(Problem):
     id: str = Field(description="That thing's id")
 
 
+class WorldProblem(AdventureProblem):
+    """Something in a world's texts that leads nowhere (``check_world``)."""
+
+    create: bool = Field(
+        default=False, description="A missing NPC, place, treasure or encounter: one can be made"
+    )
+    meant: list[str] = Field(
+        default_factory=list,
+        description="Names of the world's own objects the link probably meant (it does not "
+        "find them under the name written)",
+    )
+
+
 class SoundInfo(BaseModel):
     """Something ``{@sound Name}`` can play."""
 

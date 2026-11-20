@@ -4049,5 +4049,7 @@
   "transfer.done.skipped": {"one": "{count} file or record could not be read and was left out.", "other": "{count} files or records could not be read and were left out."},
   "links.kind.session": "Session note",
   "links.session_title": "Session of {day}",
-  "links.count_label": "Links that lead nowhere"
+  "links.count_label": "Links that lead nowhere",
+  "links.rename": "Rename “{old}” to “{new}”",
+  "links.renamed": "Renamed; every link to the old name follows."
 }

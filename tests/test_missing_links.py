@@ -171,3 +171,25 @@ async def test_the_world_lists_its_broken_links_and_mends_them(
     assert registry.gamestate.npcs.get(maren.id).notes == "Owes {@npc Hob Wade} a favour."
     page = (await gm.get("/gm/world/links?fixed=1")).text
     assert "Link fixed." in page and f'id="t-{maren.id}"' not in page
+
+
+async def test_an_object_takes_the_name_the_text_uses(
+    gm: AsyncClient, registry: StoreRegistry
+) -> None:
+    chapter_id = _chapter(registry)
+    chapter = registry.gamestate.chapters.get(chapter_id)
+    registry.table.select(chapter.world_id)
+    hob = registry.npcs.create("Hob Wade", f"w:{chapter.world_id}", chapter.world_id)
+    other = registry.adventures.create_chapter(chapter.adventure_id, "Ferry")
+    registry.gamestate.chapters.update(other.id, body="{@npc Hob Wade} rows across.")
+    page = (await gm.get("/gm/world/links")).text
+    assert "Rename “Hob Wade” to “Hob”" in page
+    done = await gm.post(
+        "/gm/world/links/rename", data={"kind": "npc", "id": hob.id, "name": "Hob"}
+    )
+    assert done.headers["location"] == "/gm/world/links?fixed=renamed"
+    assert registry.gamestate.npcs.get(hob.id).name == "Hob"
+    # The chapter that used the old name follows; the one that used "Hob" now finds him.
+    assert registry.gamestate.chapters.get(other.id).body == "{@npc Hob} rows across."
+    page = (await gm.get("/gm/world/links?fixed=renamed")).text
+    assert "Renamed; every link to the old name follows." in page and "{@npc Hob}" not in page
