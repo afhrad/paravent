@@ -17,6 +17,7 @@ from app.services import image_effects, media, scope
 from app.services.adventures import AdventureService, check_base, clean_name
 from app.services.naming import SUBJECT_PREFIX, Naming, NamingError, pool_key
 from app.services.npcs import ObjectNotFound, Place, clean_roles
+from app.services.trash import Trash
 from app.store.gamestate import GameStateStore
 
 # ``{@npc Name}``, ``{@encounter Name|label}``… — the campaign's objects a text names.
@@ -139,6 +140,7 @@ class LocationService:
     def delete(self, location_id: str) -> Location:
         """Delete a place; returns what it was."""
         found = self.get(location_id)
+        Trash(self._store).keep("place", found)  # restorable for a while
         self._store.locations.delete(location_id)
         return found
 

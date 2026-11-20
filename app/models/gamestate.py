@@ -1447,6 +1447,17 @@ class CheckCall(Record):
         return made * 2 >= len(self.characters)
 
 
+class TrashedObject(Record):
+    """An NPC, place, treasure or encounter deleted, kept for a while to restore
+    (app/services/trash.py): the record as it was, its world and when it went."""
+
+    kind: Literal["npc", "place", "treasure", "encounter"]
+    world_id: str
+    name: str
+    record: dict[str, Any]
+    deleted_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+
+
 class Knowledge(Record):
     """What a world's party knows about kinds of creatures; the id is the world's
     (``global`` for fights in no world). Kept per kind ("Goblin|MM"), so the next fight
@@ -1456,6 +1467,7 @@ class Knowledge(Record):
 
 
 __all__ = [
+    "TrashedObject",
     "Adventure",
     "Combat",
     "CombatLogEntry",

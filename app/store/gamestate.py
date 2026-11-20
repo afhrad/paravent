@@ -263,6 +263,7 @@ class GameStateStore:
             SoundScene,
             TableSafety,
             TableSettings,
+            TrashedObject,
             Treasure,
             User,
             World,
@@ -346,6 +347,8 @@ class GameStateStore:
         # The sound desk's library, shared by every world (documentation/SOUND.md).
         # What the gamemaster handed to characters, for the players' journal.
         self.handouts: Collection[Handout] = Collection(root / "handouts.json", Handout)
+        # NPCs, places, treasure and encounters deleted, kept a while to restore.
+        self.trash: Collection[TrashedObject] = Collection(root / "trash.json", TrashedObject)
         # Settings of the whole table, one record (``table``).
         self.table: Collection[TableSettings] = Collection(root / "table.json", TableSettings)
         self.sounds: Collection[Sound] = Collection(root / "sounds.json", Sound)
@@ -368,6 +371,7 @@ class GameStateStore:
             "naming_styles": self.naming_styles,
             "sounds": self.sounds,
             "table": self.table,
+            "trash": self.trash,
             "handouts": self.handouts,
             "sound_scenes": self.sound_scenes,
             "instructions": self.instructions,

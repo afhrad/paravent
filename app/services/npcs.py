@@ -19,6 +19,7 @@ from app.models.gamestate import Coins, Npc, Scope, Treasure, TreasureItem
 from app.services import media, scope
 from app.services.adventures import AdventureService, check_base, clean_name
 from app.services.i18n import Translatable
+from app.services.trash import Trash
 from app.services.treasure_roll import Rolled
 from app.store.gamestate import GameStateStore
 
@@ -173,6 +174,7 @@ class NpcService:
     def delete(self, npc_id: str) -> Npc:
         """Delete an NPC; returns what it was."""
         npc = self.get(npc_id)
+        Trash(self._store).keep("npc", npc)  # restorable for a while
         self._store.npcs.delete(npc_id)
         return npc
 
@@ -350,6 +352,7 @@ class TreasureService:
     def delete(self, treasure_id: str) -> Treasure:
         """Delete a treasure; returns what it was."""
         treasure = self.get(treasure_id)
+        Trash(self._store).keep("treasure", treasure)
         self._store.treasures.delete(treasure_id)
         return treasure
 

@@ -22,6 +22,7 @@ from app.services.difficulty import DifficultyRules, Rating, rules_for
 from app.services.i18n import Translatable
 from app.services.naming import Naming, NamingError, creature_races
 from app.services.tokens import Token
+from app.services.trash import Trash
 from app.store.gamestate import GameStateStore
 from app.store.projections import MonsterProjection, project_monster
 
@@ -304,8 +305,8 @@ class EncounterService:
         return self._store.encounters.update(encounter_id, monsters=monsters)
 
     def delete(self, encounter_id: str) -> None:
-        """Delete an encounter."""
-        self.get(encounter_id)
+        """Delete an encounter; it stays restorable for a while (app/services/trash.py)."""
+        Trash(self._store).keep("encounter", self.get(encounter_id))
         self._store.encounters.delete(encounter_id)
 
     def add_monster(self, encounter_id: str, ref: str, count: int = 1) -> Encounter:
