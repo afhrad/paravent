@@ -1963,6 +1963,11 @@ div.cg-stat{ display:flex; justify-content:space-between; align-items:baseline; 
 .tr-preview[open] > summary{ margin-bottom:8px; }
 .tr-side > .token-panel{ margin:0; }
 .tr-contents .enc-line:last-child{ border-bottom:0; }
+/* The encounter's settings in the wide column: a row's fields line up at the top (a
+   hint under one must not push the other down); the party's numbers only when ticked. */
+.enc-settings .field-row{ align-items:start; }
+.enc-settings form:not(:has(input[name="use_party"]:checked)) .enc-party-fields{ display:none; }
+.enc-settings .prose-editor{ min-height:16em; }
 .enc-share > summary{ display:flex; align-items:center; gap:8px; cursor:pointer; list-style:none; }
 .enc-share > summary::-webkit-details-marker{ display:none; }
 .enc-share[open] > summary{ margin-bottom:12px; }

@@ -483,7 +483,15 @@ def _picker(page: Page, view: EncounterView, result: SearchResult) -> Element:
     ]
 
 
-def _settings(page: Page, view: EncounterView, scopes: Sequence[tuple[str, str, int]]) -> Element:
+def _settings(
+    page: Page,
+    view: EncounterView,
+    scopes: Sequence[tuple[str, str, int]],
+    notes: Rendered | None = None,
+) -> Element:
+    """The encounter's settings, open in the wide column: name and place side by side,
+    the rules and the sound, the party it is rated for, the notes at the column's full
+    width and, folded beneath, how they read."""
     t = page.t
     enc = view.encounter
     current = ""
@@ -497,34 +505,40 @@ def _settings(page: Page, view: EncounterView, scopes: Sequence[tuple[str, str, 
         )
     inferred = t(f"encounters.rules.{view.rules_inferred}")
     party = enc.party
-    return details(class_="panel enc-settings", open=False)[
-        summary(class_="panel-head")[icon("pencil"), b[t("encounters.settings")]],
+    return section(class_="panel enc-settings", id="settings", aria_labelledby="settings-h")[
+        div(class_="panel-head")[
+            h2(id="settings-h")[icon("pencil", "sm"), " ", t("encounters.settings")]
+        ],
         form(method="post", action=encounter_url(enc.id), class_="stack-form")[
-            text_field("name", t("encounters.name"), value=enc.name, autocomplete="off"),
-            scope_select(
-                "world",
-                t("encounters.scope"),
-                scopes,
-                selected=current,
-                none_label=t("encounters.no_world"),
-            ),
-            select_field(
-                "rules",
-                t("encounters.rules_label"),
-                [
-                    ("", t("encounters.rules_auto", rules=inferred)),
-                    ("classic", t("encounters.rules.classic")),
-                    ("one", t("encounters.rules.one")),
-                ],
-                selected=enc.rules or "",
-            ),
-            select_field(
-                "sound",
-                t("encounters.sound"),
-                [("", "—"), *[(name, name) for name in view.sound_names]],
-                selected=enc.sound,
-                hint=t("encounters.sound_hint"),
-            ),
+            div(class_="field-row")[
+                text_field("name", t("encounters.name"), value=enc.name, autocomplete="off"),
+                scope_select(
+                    "world",
+                    t("encounters.scope"),
+                    scopes,
+                    selected=current,
+                    none_label=t("encounters.no_world"),
+                ),
+            ],
+            div(class_="field-row")[
+                select_field(
+                    "rules",
+                    t("encounters.rules_label"),
+                    [
+                        ("", t("encounters.rules_auto", rules=inferred)),
+                        ("classic", t("encounters.rules.classic")),
+                        ("one", t("encounters.rules.one")),
+                    ],
+                    selected=enc.rules or "",
+                ),
+                select_field(
+                    "sound",
+                    t("encounters.sound"),
+                    [("", "—"), *[(name, name) for name in view.sound_names]],
+                    selected=enc.sound,
+                    hint=t("encounters.sound_hint"),
+                ),
+            ],
             checkbox_field(
                 "use_party",
                 t("encounters.party_override"),
@@ -563,7 +577,7 @@ def _settings(page: Page, view: EncounterView, scopes: Sequence[tuple[str, str, 
                 textarea(
                     id="f-notes",
                     name="notes",
-                    rows="6",
+                    rows="12",
                     class_="prose-editor",
                     data_scope=current or None,
                     aria_describedby="f-notes-hint",
@@ -575,14 +589,20 @@ def _settings(page: Page, view: EncounterView, scopes: Sequence[tuple[str, str, 
                 ],
             ],
         ],
-        # A title image lives in the world's folder: none for an encounter planned ahead
-        # of any world. Outside the form above: a form never holds another.
-        title_image_panel(
-            page, "encounter", enc.id, encounter_title(enc), owner=enc.world_id, heading=False
-        )
-        if enc.world_id
+        details(class_="tr-preview")[
+            summary[t("treasure.notes_read")], div(class_="md-body enc-notes")[notes.html]
+        ]
+        if notes is not None and notes.html.strip()
         else None,
     ]
+
+
+def _title_panel(page: Page, enc: Encounter) -> Node:
+    """The title image, beside the plan; it lives in the world's folder, so an encounter
+    planned ahead of any world has none."""
+    if not enc.world_id:
+        return None
+    return title_image_panel(page, "encounter", enc.id, encounter_title(enc), owner=enc.world_id)
 
 
 def _typical_level(view: EncounterView) -> int:
@@ -681,20 +701,21 @@ def encounter_page(
                 ]
                 if enc.world_id
                 else None,
-                div(class_="md-body enc-notes")[notes.html]
-                if notes is not None and notes.html.strip()
-                else None,
             ],
             alert(error),
             notice(notice_text),
             div(class_="enc-grid")[
-                div(class_="enc-main")[_plan(page, view, name_styles), _picker(page, view, result)],
+                div(class_="enc-main")[
+                    _plan(page, view, name_styles),
+                    _picker(page, view, result),
+                    _settings(page, view, scopes, notes),
+                ],
                 div(class_="enc-side")[
                     _rating(page, view),
                     _build_fight(page, view, *build),
                     _roll_table(page, view, environments),
                     _fought(page, fought),
-                    _settings(page, view, scopes),
+                    _title_panel(page, enc),
                 ],
             ],
         ],

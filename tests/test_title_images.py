@@ -81,9 +81,9 @@ async def test_dropped_on_its_panel_and_drawn(gm: AsyncClient, registry: StoreRe
     encounter = registry.encounters.create("Ambush", world.id)
     page = (await gm.get(f"/gm/encounters/{encounter.id}")).text
     assert 'class="cover' not in page
-    # Changed only in its settings, the builder's edit mode.
-    settings = page.split('class="panel enc-settings"', 1)[1]
-    assert f'id="title-encounter-{encounter.id}"' in settings
+    # Changed in its own panel beside the plan, the builder being its edit mode.
+    side = page.split('class="enc-side"', 1)[1]
+    assert f'id="title-encounter-{encounter.id}"' in side
     assert f'action="/tokens/encounter/{encounter.id}"' not in page  # no token panel
     sent = await gm.post(
         f"/gm/title-image/encounter/{encounter.id}",

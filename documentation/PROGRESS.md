@@ -742,7 +742,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         laid out for editing** (2026-11-20): what it holds (items, the picker, the coins
         saved on their own) and its details (name and place side by side, the notes at the
         column's full width, how they read folded beneath) in the wide column; sharing out,
-        rolling and the token beside them
+        rolling and the token beside them. **The encounter builder** the same way: its
+        settings open in the wide column under the monsters and the search (name and
+        place, rules and sound side by side, the stated party only when ticked, the notes
+        at full width, how they read folded beneath), the title image in its own panel
+        beside the rating, building and rolling
   - [x] **Title images** (2026-11-18, TOKENS.md §6, `app/services/title_images.py`): tokens
         of the table's own only for NPCs, creatures, characters and treasure; places,
         encounters, quests and factions take a title image, dropped or chosen on their page,
