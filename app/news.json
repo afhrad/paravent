@@ -1,5 +1,15 @@
 [
  {
+  "at": "2026-11-20T12:16:55+01:00",
+  "en": "A broken link in a chapter can be pointed at the right object with one click, and renaming reaches notes too.",
+  "de": "Ein kaputter Link im Kapitel lässt sich mit einem Klick auf das richtige Objekt richten, und Umbenennen erreicht auch Notizen."
+ },
+ {
+  "at": "2026-11-20T12:16:51+01:00",
+  "en": "The gamemaster's home page shows what's new in Paravent since they last looked.",
+  "de": "Die Startseite der Spielleitung zeigt, was in Paravent neu ist, seit sie zuletzt geschaut hat."
+ },
+ {
   "at": "2026-11-20T11:59:33+01:00",
   "en": "The session page names the world's broken links before play, and the world menu counts unused objects.",
   "de": "Die Sitzungsseite nennt vor dem Spiel die kaputten Links der Welt, und das Weltmenü zählt unbenutzte Objekte."
@@ -288,15 +298,5 @@
   "at": "2026-11-15T11:52:48+01:00",
   "en": "Summon Beast and the other summoning spells put their creature into the fight beside the caster, scaled to the slot, until the concentration ends.",
   "de": "Beschwörungszauber wie Summon Beast bringen ihre Kreatur neben den Zaubernden in den Kampf, passend zum Grad, bis die Konzentration endet."
- },
- {
-  "at": "2026-11-15T11:32:25+01:00",
-  "en": "Shapechange lets a caster take any creature's shape and keep casting; players see their own character's shape hit points on the fight view; the combat guide explains shapes and concentration.",
-  "de": "Gestaltwandel lässt den Zaubernden die Gestalt jeder Kreatur annehmen und weiter zaubern; Spieler sehen die Trefferpunkte der Gestalt ihres eigenen Charakters in der Kampfansicht; die Kampfanleitung erklärt Gestalten und Konzentration."
- },
- {
-  "at": "2026-11-15T11:21:36+01:00",
-  "en": "What the players learn about a polymorphed creature counts for the creature it was turned into.",
-  "de": "Was die Spieler über eine verwandelte Kreatur erfahren, gilt für die Kreatur, in die sie verwandelt wurde."
  }
 ]
