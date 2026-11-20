@@ -7,6 +7,8 @@ chapter names, from the drop-down (static/js/complete.js).
 * ``GET  /gm/editor/new``    — a link to something the world lacks, clicked: asks whether
   to make it where the text is
 * ``POST /gm/editor/new``    — makes it (or finds it, made meanwhile) and opens its page
+* ``POST /gm/editor/rename`` — ``kind``, ``id``, ``name``, ``scope``: the object takes the
+  name the text uses, every link to its old name following; 204
 """
 
 from __future__ import annotations
@@ -76,6 +78,52 @@ async def create(
         raise HTTPException(status_code=400, detail="kind or name")
     url = _make(registry, kind, name, _scope(registry, scope))
     return Response(status_code=201, headers={"Location": url})
+
+
+# Where an NPC, place, treasure or encounter is kept on the game-state store.
+RENAMEABLE: dict[str, str] = {
+    "npc": "npcs",
+    "place": "locations",
+    "treasure": "treasures",
+    "encounter": "encounters",
+}
+
+
+def rename_object(
+    registry: StoreRegistry, kind: str, object_id: str, name: str, world_id: str | None
+) -> bool:
+    """Give an object of ``world_id`` the name a text uses; every link to its old name in
+    the world's texts follows. False when there is no such object there."""
+    collection = getattr(registry.gamestate, RENAMEABLE[kind])
+    record = collection.find(object_id)
+    if record is None:
+        return False
+    where: Scope | None = record.scope  # an encounter may have none: its world's, then
+    record_world = where.world_id if where is not None else record.world_id
+    if record_world != world_id:
+        return False
+    old, new = record.name, name.strip()
+    collection.update(object_id, name=new)
+    adventure_id = where.adventure_id if where is not None else None
+    registry.adventures.rewrite_references(str(record_world), kind, old, new, adventure_id)
+    return True
+
+
+@router.post("/gm/editor/rename", status_code=204)
+async def rename(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    kind: Annotated[str, Form()],
+    id: Annotated[str, Form()],  # noqa: A002 — the form field's name
+    name: Annotated[str, Form()],
+    scope: Annotated[str, Form()],
+) -> Response:
+    """The editor's check: the object takes the name the text uses (in the editor's world)."""
+    if kind not in RENAMEABLE or not name.strip():
+        raise HTTPException(status_code=400, detail="kind or name")
+    if not rename_object(registry, kind, id, name, _scope(registry, scope).world_id):
+        raise HTTPException(status_code=404)
+    return Response(status_code=204)
 
 
 def _where(page: Page, registry: StoreRegistry, where: Scope) -> str:

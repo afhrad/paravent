@@ -438,8 +438,7 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
             world = registry.adventures.world(current_or(registry, world_id))
         found: list[WorldProblem] = []
         for checked in world_problems(english_page(), registry, world.id):
-            meant = checked.meant or [[]] * len(checked.problems)
-            for p, objects in zip(checked.problems, meant, strict=True):
+            for p in checked.problems:
                 found.append(
                     WorldProblem(
                         where=f"{checked.kind} {checked.title}",
@@ -450,7 +449,7 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
                         name=p.name,
                         instead=list(p.instead),
                         create=p.create is not None,
-                        meant=[name for _id, name in objects],
+                        meant=[name for _id, name in p.rename],
                     )
                 )
         return found

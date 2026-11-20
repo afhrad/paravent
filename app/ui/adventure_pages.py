@@ -1272,6 +1272,21 @@ def check_panel(page: Page, problems: Sequence[Problem]) -> Element:
                             )[instead]
                             for instead in x.instead
                         ],
+                        [
+                            button(
+                                type="button",
+                                class_="btn btn-sm btn-ghost check-rename",
+                                data_kind=x.create[0],
+                                data_id=object_id,
+                                data_name=x.create[1],
+                            )[
+                                icon("pencil", "sm"),
+                                span[t("links.rename", old=object_name, new=x.create[1])],
+                            ]
+                            for object_id, object_name in x.rename
+                        ]
+                        if x.create
+                        else None,
                         button(
                             type="button",
                             class_="btn btn-sm check-create",

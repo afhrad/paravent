@@ -964,7 +964,29 @@ def _checks(registry: StoreRegistry, here: Scope, books: SourceSet) -> Checks:
     def near_object(kind: str, name: str) -> list[str]:
         return near_objects(registry, here, kind, name)
 
-    return Checks(empty_encounter=empty, nearest=nearest, near_object=near_object)
+    def meant(kind: str, name: str) -> list[tuple[str, str]]:
+        return meant_objects(registry, here, kind, name)
+
+    return Checks(
+        empty_encounter=empty, nearest=nearest, near_object=near_object, meant_objects=meant
+    )
+
+
+def meant_objects(
+    registry: StoreRegistry, here: Scope, kind: str, name: str
+) -> list[tuple[str, str]]:
+    """``(id, name)`` of the NPCs, places, treasure or encounters a text at ``here`` probably
+    meant by ``name`` (``near_objects``), to rename to it."""
+    finders = {
+        "npc": registry.npcs.find,
+        "place": registry.locations.find,
+        "treasure": registry.treasure.find,
+        "encounter": registry.encounters.find,
+    }
+    if kind not in finders:
+        return []
+    found = (finders[kind](near, here) for near in near_objects(registry, here, kind, name))
+    return [(record.id, record.name) for record in found if record is not None]
 
 
 def near_objects(registry: StoreRegistry, here: Scope, kind: str, name: str) -> list[str]:

@@ -216,3 +216,45 @@ async def test_what_nothing_uses_is_listed(gm: AsyncClient, registry: StoreRegis
     for kept in (hob.id, ready.id, fought.id):
         assert kept not in unused
     assert idle.id in unused
+
+
+async def test_the_editor_check_renames_too(gm: AsyncClient, registry: StoreRegistry) -> None:
+    chapter_id = _chapter(registry)
+    chapter = registry.gamestate.chapters.get(chapter_id)
+    hob = registry.npcs.create("Hob Wade", f"w:{chapter.world_id}", chapter.world_id)
+    panel = (await gm.post(f"/gm/chapters/{chapter_id}/check", data={"body": "{@npc Hob}"})).text
+    assert f'data-id="{hob.id}"' in panel and "Rename “Hob Wade” to “Hob”" in panel
+    done = await gm.post(
+        "/gm/editor/rename",
+        data={"kind": "npc", "id": hob.id, "name": "Hob", "scope": f"c:{chapter_id}"},
+    )
+    assert done.status_code == 204 and registry.gamestate.npcs.get(hob.id).name == "Hob"
+    panel = (await gm.post(f"/gm/chapters/{chapter_id}/check", data={"body": "{@npc Hob}"})).text
+    assert "is-clear" in panel  # nothing left to mend
+    other = registry.worlds.create(WorldInput(name="Elsewhere"))
+    refused = await gm.post(
+        "/gm/editor/rename",
+        data={"kind": "npc", "id": hob.id, "name": "X", "scope": f"w:{other.id}"},
+    )
+    assert refused.status_code == 404  # not an object of the editor's world
+
+
+async def test_unused_objects_go_together(gm: AsyncClient, registry: StoreRegistry) -> None:
+    chapter_id = _chapter(registry)
+    world = registry.gamestate.chapters.get(chapter_id).world_id
+    registry.table.select(world)
+    a = registry.npcs.create("Spare One", f"w:{world}", world)
+    b = registry.locations.create("Spare Mill", f"w:{world}", world)
+    c = registry.npcs.create("Spare Two", f"w:{world}", world)
+    picks = {"pick": [f"npc:{a.id}", f"place:{b.id}", f"npc:{c.id}"]}
+    asked = (await gm.post("/gm/world/links/unused", data=picks)).text
+    assert "Delete these 3 objects?" in asked and "Spare Mill" in asked
+    assert len(registry.gamestate.npcs.list()) == 2  # asking deletes nothing
+    # Meanwhile a text names one: it stays.
+    registry.gamestate.chapters.update(chapter_id, body="{@npc Spare Two} waits.")
+    done = await gm.post("/gm/world/links/unused", data={**picks, "confirmed": "1"})
+    assert done.headers["location"] == "/gm/world/links?fixed=deleted&n=2#unused"
+    assert [n.name for n in registry.gamestate.npcs.list()] == ["Spare Two"]
+    assert registry.gamestate.locations.list() == []
+    page = (await gm.get(done.headers["location"])).text
+    assert "2 objects deleted." in page

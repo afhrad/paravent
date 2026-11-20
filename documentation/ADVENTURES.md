@@ -606,7 +606,12 @@ in a chapter) now also offers what the text probably meant, each opening the one
 Below the list, **Not used anywhere** names the NPCs, places, treasure and encounters no text
 of the world names (resolved as the page resolves it, nearest scope first; an object naming
 itself does not count), no adventure lists as ready-made and, for an encounter, that was
-never fought — each to open or delete (`unused_objects`).
+never fought — each to open or delete (`unused_objects`), or several ticked and deleted
+together after one confirmation naming them, each only if it is still unused then (`POST
+/gm/world/links/unused`). The editor's check offers the same rename as Check links (`POST
+/gm/editor/rename`, `rename_object`), the problems carrying the objects they probably meant
+(`Problem.rename`). Tried on the real library (2026-11-20): three genuine broken links (the
+two deleted treasures, one named twice) and five genuinely unused objects, no false alarm.
 Claude reads the same list over MCP (`check_world`, MCP.md), and its instructions say when:
 after a revision, or when asked to look over a world. Front matter reads twelve hex
 digits as text (`_FrontLoader`), so an id of digits alone survives a hand edit that lost

@@ -7,6 +7,7 @@
 * ``POST /gm/world/links/fix`` — one suggested replacement written into its text, on its line
 * ``POST /gm/world/links/rename`` — or the object renamed to the name the text uses, every
   link to its old name following
+* ``POST /gm/world/links/unused`` — unused objects ticked: asked, then deleted
 
 A missing NPC, place, treasure or encounter is offered to create through the same page as a
 dashed link in a chapter (``/gm/editor/new``), coming back here.
@@ -24,11 +25,13 @@ from urllib.parse import urlencode
 from fastapi import APIRouter, Form, HTTPException
 from fastapi.responses import HTMLResponse, PlainTextResponse, Response
 from htpy import Element, a, b, button, code, div, form, li, p, section, span, ul
+from htpy import input as input_el
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.models.gamestate import Scope
-from app.routes.adventures import chapter_problems, near_objects, notes_problems
+from app.routes.adventures import chapter_problems, notes_problems
 from app.routes.auth import html, redirect
+from app.routes.editor import RENAMEABLE, rename_object
 from app.services import scope as scopes
 from app.store.registry import StoreRegistry
 from app.ui import tags
@@ -55,6 +58,7 @@ router = APIRouter(tags=["world links"])
 
 FIX_URL = f"{LINKS_URL}/fix"
 RENAME_URL = f"{LINKS_URL}/rename"
+UNUSED_URL = f"{LINKS_URL}/unused"
 
 # Where each kind of text is kept: its collection on the game-state store and its field.
 FIELDS: dict[str, tuple[str, str]] = {
@@ -79,9 +83,6 @@ class Checked:
     url: str
     scope: Scope
     problems: Sequence[Problem]
-    # Per problem (same order): ``(id, name)`` of objects it probably meant, which may be
-    # renamed to the name the text uses when the text is right.
-    meant: Sequence[Sequence[tuple[str, str]]] = ()
 
 
 @dataclass(frozen=True)
@@ -169,10 +170,7 @@ def world_problems(page: Page, registry: StoreRegistry, world_id: str) -> list[C
         else:
             faults = notes_problems(page, registry, text.scope, text.body)
         if faults:
-            meant = [_meant(registry, text.scope, x) for x in faults]
-            found.append(
-                Checked(text.kind, text.id, text.title, text.url, text.scope, faults, meant)
-            )
+            found.append(Checked(text.kind, text.id, text.title, text.url, text.scope, faults))
     return found
 
 
@@ -249,29 +247,6 @@ def unused_objects(page: Page, registry: StoreRegistry, world_id: str) -> list[U
     return [u for u in found if u.id not in used]
 
 
-RENAMEABLE: dict[str, str] = {
-    "npc": "npcs",
-    "place": "locations",
-    "treasure": "treasures",
-    "encounter": "encounters",
-}
-
-
-def _meant(registry: StoreRegistry, here: Scope, problem: Problem) -> list[tuple[str, str]]:
-    """The objects a missing NPC, place, treasure or encounter link probably meant."""
-    if problem.create is None:
-        return []
-    kind, name = problem.create
-    finders = {
-        "npc": registry.npcs.find,
-        "place": registry.locations.find,
-        "treasure": registry.treasure.find,
-        "encounter": registry.encounters.find,
-    }
-    found = (finders[kind](near, here) for near in near_objects(registry, here, kind, name))
-    return [(record.id, record.name) for record in found if record is not None]
-
-
 def links_page(
     page: Page,
     world_name: str,
@@ -307,19 +282,65 @@ def _unused_section(page: Page, unused: Sequence[Unused]) -> Element:
             b(class_="links-text-title")[t("links.unused_title")],
             p(class_="field-hint")[t("links.unused_hint")],
         ],
-        ul(class_="links-unused-list")[
-            [
-                li(class_="links-unused-row")[
-                    span(class_="muted links-unused-kind")[t(f"md.embed.{u.kind}")],
-                    a(href=u.url)[u.name],
-                    a(href=f"{u.url}/delete", class_="btn btn-sm btn-ghost btn-danger")[
-                        icon("trash-2", "sm"), span[t("links.delete")]
-                    ],
+        form(method="post", action=UNUSED_URL)[
+            ul(class_="links-unused-list")[
+                [
+                    li(class_="links-unused-row")[
+                        input_el(
+                            type="checkbox",
+                            name="pick",
+                            value=f"{u.kind}:{u.id}",
+                            id=f"pick-{u.id}",
+                            aria_label=u.name,
+                        ),
+                        span(class_="muted links-unused-kind")[t(f"md.embed.{u.kind}")],
+                        a(href=u.url)[u.name],
+                        a(href=f"{u.url}/delete", class_="btn btn-sm btn-ghost btn-danger")[
+                            icon("trash-2", "sm"), span[t("links.delete")]
+                        ],
+                    ]
+                    for u in unused
                 ]
-                for u in unused
-            ]
+            ],
+            div(class_="form-actions")[
+                button(type="submit", class_="btn btn-sm btn-danger")[
+                    icon("trash-2", "sm"), span[t("links.delete_ticked")]
+                ]
+            ],
         ],
     ]
+
+
+def _confirm_unused(page: Page, picked: Sequence[Unused]) -> Element:
+    """Ask before deleting several: their names, and one button."""
+    t = page.t
+    return app_shell(
+        page,
+        t("links.delete_title", count=len(picked)),
+        div(class_="formpage")[
+            a(href=f"{LINKS_URL}#unused", class_="backlink")[
+                icon("arrow-left"), span[t("common.cancel")]
+            ],
+            div(class_="panel panel-danger")[
+                div(class_="panel-head")[
+                    span(class_="eyebrow")[t("links.title")],
+                    b[t.plural("links.delete_heading", len(picked))],
+                ],
+                ul[[li[t(f"md.embed.{u.kind}"), ": ", b[u.name]] for u in picked]],
+                p(class_="field-hint")[t("links.delete_hint")],
+                form(method="post", action=UNUSED_URL)[
+                    [hidden("pick", f"{u.kind}:{u.id}") for u in picked],
+                    hidden("confirmed", "1"),
+                    div(class_="form-actions")[
+                        button(type="submit", class_="btn btn-dmg")[
+                            icon("trash-2"), span[t.plural("links.delete_n", len(picked))]
+                        ],
+                        a(href=f"{LINKS_URL}#unused", class_="btn btn-ghost")[t("common.cancel")],
+                    ],
+                ],
+            ],
+        ],
+    )
 
 
 def _text_section(page: Page, checked: Checked) -> Element:
@@ -360,7 +381,7 @@ def _text_section(page: Page, checked: Checked) -> Element:
                                     span[t("links.rename", old=object_name, new=x.create[1])],
                                 ],
                             ]
-                            for object_id, object_name in meant
+                            for object_id, object_name in x.rename
                         ]
                         if x.create
                         else None,
@@ -377,9 +398,7 @@ def _text_section(page: Page, checked: Checked) -> Element:
                         else None,
                     ],
                 ]
-                for x, meant in zip(
-                    checked.problems, checked.meant or [[]] * len(checked.problems), strict=True
-                )
+                for x in checked.problems
             ]
         ],
     ]
@@ -387,7 +406,7 @@ def _text_section(page: Page, checked: Checked) -> Element:
 
 @router.get(LINKS_URL, response_class=HTMLResponse)
 async def world_links(
-    _gm: GamemasterDep, page: PageDep, registry: RegistryDep, fixed: str = ""
+    _gm: GamemasterDep, page: PageDep, registry: RegistryDep, fixed: str = "", n: str = ""
 ) -> HTMLResponse:
     """The chapter check over the whole table's world."""
     world = registry.table.world()
@@ -397,6 +416,7 @@ async def world_links(
         "1": page.t("links.fixed"),
         "stale": page.t("links.stale"),
         "renamed": page.t("links.renamed"),
+        "deleted": page.t.plural("links.deleted", int(n) if n.isdigit() else 0),
     }.get(fixed)
     checked = await asyncio.to_thread(world_problems, page, registry, world.id)
     unused = await asyncio.to_thread(unused_objects, page, registry, world.id)
@@ -442,7 +462,7 @@ async def fix_link(
 
 
 @router.post(RENAME_URL)
-async def rename_object(
+async def rename_from_links(
     _gm: GamemasterDep,
     registry: RegistryDep,
     kind: Annotated[str, Form()] = "",
@@ -453,17 +473,40 @@ async def rename_object(
     name in the world's texts follows."""
     if kind not in RENAMEABLE or not name.strip():
         raise HTTPException(status_code=400)
-    collection = getattr(registry.gamestate, RENAMEABLE[kind])
-    record = collection.find(id)
-    if record is None or _world_of(kind, record) != registry.table.world_id():
+    if not rename_object(registry, kind, id, name, registry.table.world_id()):
         raise HTTPException(status_code=404)
-    old, new = record.name, name.strip()
-    collection.update(id, name=new)
-    where: Scope | None = record.scope  # an encounter may have none: its world's, then
-    world_id = where.world_id if where is not None else str(record.world_id)
-    adventure_id = where.adventure_id if where is not None else None
-    registry.adventures.rewrite_references(world_id, kind, old, new, adventure_id)
     return redirect(f"{LINKS_URL}?fixed=renamed")
+
+
+@router.post(UNUSED_URL, response_class=HTMLResponse)
+async def delete_unused(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    pick: Annotated[list[str] | None, Form()] = None,
+    confirmed: Annotated[str, Form()] = "",
+) -> Response:
+    """Several unused objects deleted at once: asked first, then each deleted only if it is
+    still unused (a text may name it by now)."""
+    world = registry.table.world()
+    if world is None:
+        raise HTTPException(status_code=404)
+    unused = await asyncio.to_thread(unused_objects, page, registry, world.id)
+    wanted = set(pick or ())
+    picked = [u for u in unused if f"{u.kind}:{u.id}" in wanted]
+    if not picked:
+        return redirect(f"{LINKS_URL}#unused")
+    if confirmed != "1":
+        return html(_confirm_unused(page, picked))
+    deleters = {
+        "npc": registry.npcs.delete,
+        "place": registry.locations.delete,
+        "treasure": registry.treasure.delete,
+        "encounter": registry.encounters.delete,
+    }
+    for u in picked:
+        deleters[u.kind](u.id)
+    return redirect(f"{LINKS_URL}?{urlencode({'fixed': 'deleted', 'n': len(picked)})}#unused")
 
 
 def _world_of(kind: str, record: object) -> str | None:

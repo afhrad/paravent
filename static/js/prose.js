@@ -93,6 +93,14 @@
           if (where < 0) return;
           var from = span[0] + where;
           window.ParaventText.replace(area, from, from + el.dataset.from.length, el.dataset.to);
+        } else if (el.classList.contains('check-rename')) {
+          // The text is right: the object takes its name, every link to the old one follows.
+          var named = new URLSearchParams({
+            kind: el.dataset.kind, id: el.dataset.id, name: el.dataset.name, scope: area.dataset.scope || ''
+          });
+          el.disabled = true;
+          fetch('/gm/editor/rename', { method: 'POST', body: named, credentials: 'same-origin' })
+            .then(function () { render(); });
         } else if (el.classList.contains('check-create')) {
           var body = new URLSearchParams({ kind: el.dataset.kind, name: el.dataset.name, scope: area.dataset.scope || '' });
           el.disabled = true;

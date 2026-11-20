@@ -4055,5 +4055,11 @@
   "links.unused_title": "Nirgends verwendet",
   "links.unused_count": {"one": "{count} Objekt", "other": "{count} Objekte"},
   "links.unused_hint": "Kein Text dieser Welt nennt sie, kein Abenteuer führt sie als fertiges Objekt, und aus den Begegnungen lief kein Kampf. Öffne eines, um es zu verwenden, oder lösche, was übrig ist.",
-  "links.delete": "Löschen"
+  "links.delete": "Löschen",
+  "links.delete_ticked": "Angehakte löschen",
+  "links.delete_title": "{count} Objekte löschen?",
+  "links.delete_heading": {"one": "Dieses Objekt löschen?", "other": "Diese {count} Objekte löschen?"},
+  "links.delete_hint": "Nichts in der Welt verwendet sie. Ihre Notizen gehen mit; Bilder bleiben im Ordner der Welt.",
+  "links.delete_n": {"one": "{count} Objekt löschen", "other": "{count} Objekte löschen"},
+  "links.deleted": {"one": "{count} Objekt gelöscht.", "other": "{count} Objekte gelöscht."}
 }

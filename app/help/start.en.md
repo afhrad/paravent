@@ -75,7 +75,7 @@ write it like a note, and Paravent adds the rest.
 - **Check links** in the world menu lists every link of the world that leads nowhere —
   chapters, notes, session notes — each fixed with one press, created, or the object
   renamed to the name the text uses. The number beside it says how many; below the list
-  stand the NPCs, places, treasure and encounters nothing uses.
+  stand the NPCs, places, treasure and encounters nothing uses, to tick and delete together.
 - Running a published adventure you own? **Start from the book** makes a chapter for
   each of its sections, and your notes go between them.
 

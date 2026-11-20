@@ -56,6 +56,9 @@ class Problem:
     instead: tuple[str, ...] = ()
     # ``(kind, name)`` of an NPC, encounter or treasure to create where the chapter is.
     create: tuple[str, str] | None = None
+    # ``(id, name)`` of the world's objects it probably meant, which may be renamed to the
+    # name the text uses when the text is right.
+    rename: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass
@@ -69,6 +72,9 @@ class Checks:
     # ``(kind, name)`` → names of the world's own NPCs, places, treasure, encounters or
     # chapters the text may have meant ("Modiras Dank" for "Modira's Dank"), nearest first.
     near_object: Callable[[str, str], Sequence[str]] = lambda _kind, _name: ()
+    # ``(kind, name)`` → ``(id, name)`` of those of them that are NPCs, places, treasure
+    # or encounters, to rename.
+    meant_objects: Callable[[str, str], Sequence[tuple[str, str]]] = lambda _kind, _name: ()
 
 
 def check(text: str, ctx: MarkdownContext, checks: Checks | None = None) -> list[Problem]:
@@ -168,7 +174,10 @@ def _tag(number: int, tag: tags.Tag, ctx: MarkdownContext, checks: Checks) -> Pr
             _written(tags.Tag(tag.name, (found, *tag.parts[1:])))
             for found in checks.near_object(tag.name, name)[:3]
         )
-        return Problem(number, "library", _written(tag), name, instead=near, create=create)
+        rename = tuple(checks.meant_objects(tag.name, name)) if create else ()
+        return Problem(
+            number, "library", _written(tag), name, instead=near, create=create, rename=rename
+        )
     if tag.name not in tags.ENTITY_CATEGORY:
         return None
     return _reference(number, tag.name, "|".join(tag.parts), _written(tag), ctx, checks)
@@ -216,7 +225,18 @@ def _embed(
         near = tuple(
             line.replace(argument, found, 1) for found in checks.near_object(kind, argument)[:3]
         )
-        return [Problem(number, "library", line, argument, instead=near, create=(kind, argument))]
+        rename = tuple(checks.meant_objects(kind, argument))
+        return [
+            Problem(
+                number,
+                "library",
+                line,
+                argument,
+                instead=near,
+                create=(kind, argument),
+                rename=rename,
+            )
+        ]
     payload = argument[: -len(" open")].rstrip() if argument.lower().endswith(" open") else argument
     tag = "creature" if kind == "statblock" else kind
     found = _reference(number, tag, payload, line, ctx, checks)

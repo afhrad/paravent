@@ -4055,5 +4055,11 @@
   "links.unused_title": "Not used anywhere",
   "links.unused_count": {"one": "{count} object", "other": "{count} objects"},
   "links.unused_hint": "No text of this world names these, no adventure lists them as ready-made, and no fight was run from the encounters. Open one to use it, or delete what is left over.",
-  "links.delete": "Delete"
+  "links.delete": "Delete",
+  "links.delete_ticked": "Delete ticked",
+  "links.delete_title": "Delete {count} objects?",
+  "links.delete_heading": {"one": "Delete this object?", "other": "Delete these {count} objects?"},
+  "links.delete_hint": "Nothing in the world uses them. Their notes go with them; pictures stay in the world's folder.",
+  "links.delete_n": {"one": "Delete {count} object", "other": "Delete {count} objects"},
+  "links.deleted": {"one": "{count} object deleted.", "other": "{count} objects deleted."}
 }
