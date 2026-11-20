@@ -638,10 +638,8 @@ def world_form_page(
     )
 
 
-def world_delete_page(
-    page: Page, world: World, characters: int, *, error: str | None = None
-) -> Element:
-    """Confirm, saying that the characters stay. ``characters`` is no longer shown."""
+def world_delete_page(page: Page, world: World, *, error: str | None = None) -> Element:
+    """Confirm, saying that the characters stay."""
     t = page.t
     return app_shell(
         page,

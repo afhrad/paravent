@@ -140,11 +140,11 @@ class Drafts:
         if world_id is None and self._store.worlds.list():
             raise DraftError("chargen.error.world")
         owner = player if identity.role is Role.GAMEMASTER else identity.user.username
-        created = self._characters.create("", owner)
-        draft = self._store.characters.update(created.id, world_id=world_id)
+        # Served in the table's world, whose books the wizard offers (CURRENT-WORLD.md §2).
+        draft = self._characters.create("", owner)
         # A wizard_step marks the file as the wizard's: lists link it back here.
         first = self.plan(draft).steps[0].id
-        return self._store.characters.update(created.id, wizard_step=first)
+        return self._store.characters.update(draft.id, wizard_step=first)
 
     # -- saving ----------------------------------------------------------------------
 

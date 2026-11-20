@@ -335,7 +335,8 @@ class TestPages:
         assert (await ac.get(f"/gm/chapters/{a.id}")).status_code == 404
         await ac.post(f"/gm/adventures/{adventure.id}/delete")
         assert (await ac.get(f"/gm/adventures/{adventure.id}")).status_code == 404
-        assert registry.worlds.delete(world.id) == 0  # nothing left in the way
+        registry.worlds.delete(world.id)  # nothing left in the way
+        assert registry.worlds.find(world.id) is None
 
     async def test_uploads(self, client: tuple[AsyncClient, StoreRegistry]) -> None:
         ac, registry = client

@@ -217,8 +217,8 @@ class WorldService:
         """How many characters live in a world."""
         return len(self._store.characters.list(lambda pc: pc.world_id == world_id))
 
-    def delete(self, world_id: str) -> int:
-        """Delete a world. Its characters stay, without a world; returns how many.
+    def delete(self, world_id: str) -> None:
+        """Delete a world; characters belong to none, so they are not touched.
 
         The world's folder, media included, is moved to ``library/.trash/``, not erased.
         """
@@ -226,17 +226,7 @@ class WorldService:
         adventures = self._store.adventures.list(lambda a: a.world_id == world_id)
         if adventures:
             raise AuthError("error.world_has_adventures", count=len(adventures))
-        moved = [pc.id for pc in self._store.characters.list() if pc.world_id == world_id]
-        for character_id in moved:
-            self._store.characters.update(character_id, world_id=None)
         self._store.worlds.delete(world_id)
-        return len(moved)
-
-    def place(self, character_id: str, world_id: str | None) -> None:
-        """Put a character in a world, or in none."""
-        if world_id:
-            self.get(world_id)
-        self._store.characters.update(character_id, world_id=world_id or None)
 
 
 __all__ = ["GROUPS", "Book", "BookCatalog", "WorldInput", "WorldNotFound", "WorldService"]

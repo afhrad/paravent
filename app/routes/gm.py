@@ -1354,25 +1354,22 @@ async def world_settings(
 async def confirm_delete_world(
     _gm: GamemasterDep, page: PageDep, worlds: WorldsDep, world_id: str
 ) -> HTMLResponse:
-    """Ask first, saying what happens to the world's characters."""
+    """Ask first, saying that the characters stay (they belong to no world)."""
     world = worlds.get(world_id)
-    return html(world_delete_page(page, world, worlds.character_count(world_id)))
+    return html(world_delete_page(page, world))
 
 
 @router.post(f"{WORLDS_URL}/{{world_id}}/delete", response_class=HTMLResponse)
 async def delete_world(
     _gm: GamemasterDep, page: PageDep, registry: RegistryDep, worlds: WorldsDep, world_id: str
 ) -> Response:
-    """Delete a world; its characters stay, without one."""
+    """Delete a world; the characters, belonging to none, stay as they are."""
     world = worlds.get(world_id)
     before = registry.table.world_id()
     try:
         worlds.delete(world_id)
     except AuthError as exc:
-        view = world_delete_page(
-            page, world, worlds.character_count(world_id), error=page.t.error(exc)
-        )
-        return html(view, status_code=409)
+        return html(world_delete_page(page, world, error=page.t.error(exc)), status_code=409)
     if registry.table.world_id() != before:
         registry.table.announce()  # open pages follow the table into the next world
     return redirect("/gm/adventures")  # the table plays in the next world, if any
