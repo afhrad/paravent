@@ -262,7 +262,7 @@ class WorldTransfer:
             for row in rows if isinstance(rows, list) else ():
                 if isinstance(row, dict) and isinstance(row.get("id"), str):
                     old.add(row["id"])
-        return {o: new_id() for o in old if _ID.fullmatch(o)}
+        return {o: _text_id() for o in old if _ID.fullmatch(o)}
 
     def _write_world(
         self,
@@ -355,6 +355,15 @@ class WorldTransfer:
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(content)
             done.files += 1
+
+
+def _text_id() -> str:
+    """A fresh id with a letter in it. Front matter is rewritten as text, and YAML reads
+    an id of digits alone (one in 270) as a number, which loses the record."""
+    while True:
+        ident = new_id()
+        if not ident.isdigit():
+            return ident
 
 
 def _fresh(name: str, record: Record) -> Record:

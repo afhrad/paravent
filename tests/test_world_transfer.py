@@ -166,7 +166,11 @@ async def test_the_world_menu_exports_imports_and_duplicates(registry: StoreRegi
             data={"name": "Grey Reed restored", "play": "1", "next": "/gm/adventures"},
             files={"file": ("grey-reed.paravent.zip", got.content, "application/zip")},
         )
-        assert sent.status_code == 303 and sent.headers["location"] == "/gm/adventures"
+        assert sent.status_code == 303
+        assert sent.headers["location"] == "/gm/adventures?transferred=import%3A4%3A5%3A0%3A0"
+        landed = (await gm.get(sent.headers["location"])).text
+        assert "“Grey Reed restored” was imported: 4 records and 5 files." in landed
+        assert 'data-busy="Importing… this can take a moment"' in landed
         restored = registry.table.world()
         assert restored is not None and restored.name == "Grey Reed restored"
         # Duplicated: a copy, played in at once.
@@ -185,3 +189,18 @@ async def test_the_world_menu_exports_imports_and_duplicates(registry: StoreRegi
         assert "That file is not a zip file." in again
         opened = 'aria-labelledby="import-world-h" data-open-now="1"'
         assert f'id="import-world" class="place-dialog" {opened}' in again
+
+
+def test_an_id_of_digits_alone_survives_front_matter(
+    registry: StoreRegistry, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """YAML reads ``id: 123456789012`` as a number; the import never gives out such an id."""
+    from app.services import world_transfer
+
+    t = _campaign(registry)
+    data = registry.world_transfer.export(t["world"])
+    # Digits alone for more calls than the file holds ids, then ids with a letter.
+    ids = iter([f"{n:012d}" for n in range(60)] + [f"{n:011x}a" for n in range(100)])
+    monkeypatch.setattr(world_transfer, "new_id", lambda: next(ids))
+    made = registry.world_transfer.import_world(data)
+    assert made.world.id != "123456789012" and made.world.name == "Grey Reed (2)"
