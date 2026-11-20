@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-20T14:27:17+01:00",
+  "en": "The treasure page is laid out for editing: items and coins together, a wide notes editor, sharing out and rolling beside them.",
+  "de": "Die Schatzseite ist zum Bearbeiten neu geordnet: Gegenstände und Münzen zusammen, ein breiter Notizeditor, Verteilen und Auswürfeln daneben."
+ },
+ {
   "at": "2026-11-20T14:14:52+01:00",
   "en": "Right after deleting something, Undo brings it back; what lies in the trash longer than 30 days is now erased.",
   "de": "Direkt nach dem Löschen holt „Rückgängig“ es zurück; was länger als 30 Tage im Papierkorb liegt, wird nun endgültig entfernt."
@@ -293,10 +298,5 @@
   "at": "2026-11-15T19:41:20+01:00",
   "en": "Travel with water, weather, mounts and ships; downtime activities from carousing to crime; magic items in the shop; bastion orders that bring defenders, coins and goods.",
   "de": "Reisen mit Wasser, Wetter, Reittieren und Schiffen; Auszeit-Tätigkeiten vom Feiern bis zum Verbrechen; magische Gegenstände im Laden; Bastionsbefehle, die Verteidiger, Münzen und Waren bringen."
- },
- {
-  "at": "2026-11-15T18:54:05+01:00",
-  "en": "Travel with encounter checks and rations, downtime for crafting, training and recuperating, a shop the gamemaster opens during play, and bastion defenders and events.",
-  "de": "Reisen mit Begegnungswürfen und Rationen, Auszeit zum Herstellen, Lernen und Erholen, ein Laden, den die Spielleitung im Spiel öffnet, sowie Verteidiger und Ereignisse für Bastionen."
  }
 ]
