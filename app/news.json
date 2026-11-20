@@ -1,5 +1,15 @@
 [
  {
+  "at": "2026-11-20T13:50:20+01:00",
+  "en": "Claude can see what was deleted lately and restore what it removed from its own drafts.",
+  "de": "Claude sieht, was kürzlich gelöscht wurde, und kann wiederherstellen, was es aus seinen eigenen Entwürfen entfernt hat."
+ },
+ {
+  "at": "2026-11-20T13:50:15+01:00",
+  "en": "Deleted chapters and adventures can be restored for 30 days under Check links, with what was deleted along with them; a link to something deleted lately offers to restore it.",
+  "de": "Gelöschte Kapitel und Abenteuer lassen sich 30 Tage lang unter „Links prüfen“ wiederherstellen, mitsamt dem, was mit ihnen gelöscht wurde; ein Link auf kürzlich Gelöschtes bietet an, es wiederherzustellen."
+ },
+ {
   "at": "2026-11-20T12:16:55+01:00",
   "en": "A broken link in a chapter can be pointed at the right object with one click, and renaming reaches notes too.",
   "de": "Ein kaputter Link im Kapitel lässt sich mit einem Klick auf das richtige Objekt richten, und Umbenennen erreicht auch Notizen."
@@ -288,15 +298,5 @@
   "at": "2026-11-15T16:26:31+01:00",
   "en": "Every world now has a clock: move time on, rest the whole party at once, and watch torches, lanterns and spells run out on their own.",
   "de": "Jede Welt hat jetzt eine Uhr: Zeit vorstellen, die ganze Gruppe auf einmal rasten lassen, und Fackeln, Laternen und Zauber laufen von selbst ab."
- },
- {
-  "at": "2026-11-15T14:39:18+01:00",
-  "en": "Call for checks outside a fight (asked or secret), share out treasure to the party, ammunition that runs down, Use for potions and scrolls, editable notes and shared party notes, lines and veils with an anonymous X-card, and bastions from level 5.",
-  "de": "Proben außerhalb des Kampfes anfordern (offen oder verdeckt), Schätze an die Gruppe verteilen, Munition, die sich verbraucht, „Benutzen“ für Tränke und Schriftrollen, bearbeitbare Notizen und gemeinsame Gruppennotizen, Grenzen und Schleier mit anonymer X-Karte sowie Bastionen ab Stufe 5."
- },
- {
-  "at": "2026-11-15T11:52:48+01:00",
-  "en": "Summon Beast and the other summoning spells put their creature into the fight beside the caster, scaled to the slot, until the concentration ends.",
-  "de": "Beschwörungszauber wie Summon Beast bringen ihre Kreatur neben den Zaubernden in den Kampf, passend zum Grad, bis die Konzentration endet."
  }
 ]
