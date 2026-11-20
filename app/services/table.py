@@ -8,6 +8,8 @@ with no world plays in none.
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from app.models.gamestate import TableSettings, World
 from app.services.i18n import Translatable
 from app.store.gamestate import GameStateStore
@@ -22,8 +24,12 @@ class TableError(Translatable):
 class TableService:
     """Reads and sets the table's current world."""
 
-    def __init__(self, store: GameStateStore) -> None:
+    def __init__(
+        self, store: GameStateStore, announce: Callable[[World | None], None] | None = None
+    ) -> None:
         self._store = store
+        # Told the world the table now plays in, so open pages can follow it.
+        self._announce = announce
 
     def _worlds(self) -> list[World]:
         return sorted(self._store.worlds.list(), key=lambda w: w.name.casefold())
@@ -49,8 +55,20 @@ class TableService:
         if world is None:
             raise TableError("table.error.no_world")
         record = self._store.table.find(TABLE_ID) or TableSettings(id=TABLE_ID)
+        # Against the choice kept, not the world played in: a new world first by name is
+        # already played in when none was ever chosen, and pages drawn before it still
+        # show the old one.
+        changed = record.world_id != world.id
         self._store.table.upsert(record.model_copy(update={"world_id": world.id}))
+        if changed:
+            self.announce()
         return world
+
+    def announce(self) -> None:
+        """Tell open pages which world the table plays in now (after a world it played
+        in was deleted, say)."""
+        if self._announce is not None:
+            self._announce(self.world())
 
 
 __all__ = ["TABLE_ID", "TableError", "TableService"]

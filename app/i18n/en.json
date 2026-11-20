@@ -3990,5 +3990,8 @@
   "images.error.name": "A name may hold letters, digits, spaces, dots, dashes and underscores.",
   "images.error.taken": "A picture of that name is already in its folder.",
   "images.error.in_use": "That picture is still in use and was not deleted.",
-  "npcs.statblock_from": "Take this creature's statblock (when the world's books have it)"
+  "npcs.statblock_from": "Take this creature's statblock (when the world's books have it)",
+  "world.notice": "The table now plays in {world}.",
+  "world.notice_none": "The table no longer plays in a world.",
+  "world.notice_reload": "Reload"
 }

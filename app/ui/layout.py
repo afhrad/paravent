@@ -51,7 +51,7 @@ from app.ui.nav import NAV, NavItem, nav_href
 from app.ui.palette import insert_palette, palette, search_trigger
 from app.ui.protocol_pages import log_button, log_dialog, toast_layer
 from app.ui.sound_panel import sound_button, sound_dialog
-from app.ui.world_menu import world_banner, world_dialogs, world_menu
+from app.ui.world_menu import world_banner, world_dialogs, world_menu, world_notice
 
 STYLESHEETS = (
     "/static/css/tokens.css",
@@ -529,11 +529,13 @@ def app_shell(
             world_dialogs(page),
             sound_dialog(page),
             toast_layer(page),
+            world_notice(page),
         ],
         scripts=(
             *extra_scripts,
             *(("/static/js/complete.js",) if insert_layer else ()),
             "/static/js/protocol.js",
+            "/static/js/table-world.js",
             *(("/static/js/sound-panel.js",) if identity.is_gamemaster else ()),
         ),
     )

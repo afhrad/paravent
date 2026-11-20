@@ -130,6 +130,35 @@ def world_banner(page: Page) -> Node:
     ]
 
 
+def world_notice(page: Page) -> Element:
+    """Hidden until the table moves to another world while the page is open; then it says
+    which and offers to reload (``table-world.js``, documentation/CURRENT-WORLD.md §8).
+    The page's world is the one it was drawn in, so a page drawn after the switch stays
+    quiet."""
+    t = page.t
+    return div(
+        id="world-notice",
+        class_="world-notice",
+        role="status",
+        hidden=True,
+        data_world=page.world[0] if page.world is not None else "",
+        data_text=t("world.notice", world="{world}"),
+        data_text_none=t("world.notice_none"),
+    )[
+        icon("globe", "sm"),
+        span(class_="world-notice-text"),
+        button(type="button", class_="btn btn-primary btn-sm", data_world_reload="")[
+            icon("refresh-cw", "sm"), span[t("world.notice_reload")]
+        ],
+        button(
+            type="button",
+            class_="btn btn-ghost btn-sm",
+            data_world_dismiss="",
+            aria_label=t("close"),
+        )[icon("x", "sm")],
+    ]
+
+
 def no_world_button(page: Page) -> Element:
     """**Create a world**, opening the new-world dialog (its page without the script)."""
     return a(href=f"{WORLDS_URL}/new", class_="btn btn-primary", data_dialog="new-world")[

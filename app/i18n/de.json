@@ -3990,5 +3990,8 @@
   "images.error.name": "Ein Name darf Buchstaben, Ziffern, Leerzeichen, Punkte, Binde- und Unterstriche enthalten.",
   "images.error.taken": "In seinem Ordner gibt es schon ein Bild mit diesem Namen.",
   "images.error.in_use": "Dieses Bild wird noch verwendet und wurde nicht gelöscht.",
-  "npcs.statblock_from": "Werte dieser Kreatur übernehmen (wenn die Bücher der Welt sie haben)"
+  "npcs.statblock_from": "Werte dieser Kreatur übernehmen (wenn die Bücher der Welt sie haben)",
+  "world.notice": "Der Tisch spielt jetzt in {world}.",
+  "world.notice_none": "Der Tisch spielt in keiner Welt mehr.",
+  "world.notice_reload": "Neu laden"
 }

@@ -160,4 +160,11 @@ Players: unchanged (Characters, Books, Journal), all of it the current world's.
 - **The worlds' list is gone**: `/gm/worlds` leads to the table's world's Adventures, as does
   deleting a world; with no world, those pages offer *Create a world* and the getting-started
   guide. The translation keys only that list, the pickers and the character chooser used went.
+- **Open pages follow a switch** (2026-11-20): choosing another world, making one, or deleting
+  the one played in publishes the table's world (`TABLE`, as "<id> <name>") through
+  `TableService.announce`; every signed-in page watches `/table/events` and, when the world
+  differs from the one it was drawn in (`#world-notice`'s `data-world`), says "The table now
+  plays in …" with **Reload** (`static/js/table-world.js`). Nothing reloads by itself: a player
+  may be typing. A choice is compared with the one kept, not the world played in, since a new
+  world first by name is played in at once when none was ever chosen.
 

@@ -3085,3 +3085,17 @@ input[type=checkbox]:not(.sr-only), input[type=radio]:not(.sr-only){ width:18px;
 .img-tag-suggest{ display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; flex-basis:100%; }
 .img-tag-suggest[hidden]{ display:none; }
 .img-tag-offer{ font-size:12px; padding:2px 8px; }
+
+/* The table moved to another world while this page was open (table-world.js). */
+.world-notice{
+  position:fixed; top:64px; left:50%; transform:translateX(-50%); z-index:45;
+  display:flex; align-items:center; gap:8px 12px; width:max-content; max-width:calc(100vw - 32px);
+  padding:8px 8px 8px 14px; border:1px solid var(--border-strong); border-left:4px solid var(--accent);
+  border-radius:var(--r); background:var(--surface); color:var(--text); box-shadow:var(--shadow-lg); font-size:14px;
+}
+.world-notice[hidden]{ display:none; }
+.world-notice > svg{ color:var(--accent); flex-shrink:0; }
+.world-notice-text{ flex:1 1 auto; }
+@media (max-width: 640px){
+  .world-notice{ left:12px; right:12px; transform:none; width:auto; flex-wrap:wrap; }
+}

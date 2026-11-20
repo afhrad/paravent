@@ -24,7 +24,15 @@ from urllib.parse import quote
 from app import __version__
 from app.config import Settings
 from app.models.compendium import score_of
-from app.models.gamestate import CheckCall, Combat, Combatant, Faction, FactionRank, WorldClock
+from app.models.gamestate import (
+    CheckCall,
+    Combat,
+    Combatant,
+    Faction,
+    FactionRank,
+    World,
+    WorldClock,
+)
 from app.models.pc import PlayerCharacter
 from app.models.protocol import EntryKind, ProtocolEntry
 from app.services import media, polymorph
@@ -65,7 +73,15 @@ from app.services.dice import Advantage, Dice
 from app.services.difficulty import DifficultyRules
 from app.services.downtime import DowntimeService
 from app.services.encounters import EncounterService
-from app.services.events import COMBATS, PARTY, PROSE, PROTOCOL, ChangeHub, combat_key
+from app.services.events import (
+    COMBATS,
+    PARTY,
+    PROSE,
+    PROTOCOL,
+    TABLE,
+    ChangeHub,
+    combat_key,
+)
 from app.services.factions import FactionService, Reward, ranks_from, rewards_of
 from app.services.followers import FollowerService, Statblock, hit_die
 from app.services.glossary import Glossary, LinkCounts
@@ -2030,7 +2046,11 @@ class StoreRegistry:
     @cached_property
     def table(self) -> TableService:
         """The world the whole table plays in (documentation/CURRENT-WORLD.md)."""
-        return TableService(self.gamestate)
+        return TableService(self.gamestate, self._table_world_changed)
+
+    def _table_world_changed(self, world: World | None) -> None:
+        """Tell every open page the world the table now plays in."""
+        self.events.publish(TABLE, f"{world.id} {world.name}" if world is not None else "")
 
     @property
     def books(self) -> BookCatalog:

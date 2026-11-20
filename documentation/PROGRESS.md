@@ -429,7 +429,8 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         factions, the session page, the journal and the clock show the table's world, their
         pickers gone. **Characters belong to no world**: the character store serves each in
         the table's world and never writes one, so every character is in the party and uses
-        the world's books; a new character is made in it. Claude's tools: `list_worlds`
+        the world's books; a new character is made in it. Open pages (a player's phone, another
+        screen) learn of a switch at once and offer to reload (2026-11-20). Claude's tools: `list_worlds`
         marks the current world, an empty `world_id` means it
   - [x] **What a player may read** (2026-11-03, documentation/PLAYER-VIEW.md,
         `app/services/player_view.py`): per world the books players may read ("Players" on

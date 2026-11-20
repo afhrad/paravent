@@ -12,6 +12,7 @@ from httpx import ASGITransport, AsyncClient
 from app.config import Settings
 from app.main import create_app
 from app.models.gamestate import Role
+from app.services.events import TABLE
 from app.services.table import TableError
 from app.services.worlds import WorldInput
 from app.store.registry import StoreRegistry
@@ -271,3 +272,34 @@ async def test_a_world_made_from_the_menu_is_in_the_makers_language(
     await gm.post("/gm/worlds", data={"name": "Nebelgipfel", "next": "/gm"})
     world = registry.table.world()
     assert world is not None and world.language == "de"
+
+
+async def test_open_pages_learn_the_table_moved(gm: AsyncClient, registry: StoreRegistry) -> None:
+    salt = registry.worlds.create(WorldInput(name="Salt Coast"))
+    grey = registry.worlds.create(WorldInput(name="Grey Reed"))
+    registry.table.select(grey.id)
+    queue = registry.events.subscribe(TABLE)
+    # A page drawn now knows the world it was drawn in, and is told when that changes.
+    pia = await _client(registry, "pia")
+    page = (await pia.get("/play")).text
+    await pia.aclose()
+    assert (
+        f'id="world-notice" class="world-notice" role="status" hidden data-world="{grey.id}"'
+        in page
+    )
+    assert "table-world.js" in page and "The table now plays in {world}." in page
+    await gm.post("/gm/world/select", data={"world": salt.id, "next": "/gm"})
+    assert queue.get_nowait() == f"{salt.id} Salt Coast"
+    await gm.post("/gm/world/select", data={"world": salt.id, "next": "/gm"})
+    assert queue.empty()  # chosen again: nothing changed
+    # The world played in deleted: the table follows into the next.
+    await gm.post(f"/gm/worlds/{salt.id}/delete")
+    assert queue.get_nowait() == f"{grey.id} Grey Reed"
+    await gm.post(f"/gm/worlds/{grey.id}/delete")
+    assert queue.get_nowait() == ""  # no world left
+    # None chosen yet, and a new world first by name is made from the menu: pages drawn
+    # in the old one are still told.
+    registry.worlds.create(WorldInput(name="Zinc Hills"))
+    await gm.post("/gm/worlds", data={"name": "Amber Fen"})
+    assert queue.get_nowait().endswith(" Amber Fen")
+    registry.events.unsubscribe(TABLE, queue)

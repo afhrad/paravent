@@ -5,6 +5,7 @@
 * ``GET  /log/panel``    — the panel's fragment: filters, entries, "older"
 * ``GET  /log/badge``    — how many entries arrived since a moment, for the badge
 * ``GET  /log/events``   — Server-Sent Events: a revision on every append
+* ``GET  /table/events`` — Server-Sent Events: the world the table plays in, on a change
 * ``POST /log/roll``     — a dice chip outside a sheet, rolled and logged
 * ``POST /log/reveal``   — the gamemaster shows an entry to the table in full
 * ``GET  /log/toasts``   — what pops up since a moment, as toast cards
@@ -26,7 +27,7 @@ from pydantic import BaseModel
 from app.dependencies import GamemasterDep, IdentityDep, PageDep, RegistryDep
 from app.routes.auth import html, redirect, safe_next
 from app.services.dice import DiceError, is_expression
-from app.services.events import PROTOCOL, revision_stream
+from app.services.events import PROTOCOL, TABLE, revision_stream
 from app.services.protocol_view import Filter, Viewer
 from app.ui.layout import app_shell
 from app.ui.protocol_pages import (
@@ -171,6 +172,22 @@ async def log_events(
     """A revision on every append to any log; the page then asks for what it may see."""
     return StreamingResponse(
         revision_stream(registry.events, PROTOCOL, None, request.is_disconnected),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.get("/table/events")
+async def table_events(
+    request: Request, identity: IdentityDep, registry: RegistryDep
+) -> StreamingResponse:
+    """The world the table plays in, now and whenever it changes, as "<id> <name>": every
+    signed-in page offers to reload when it differs from the one it was drawn in
+    (documentation/CURRENT-WORLD.md §8)."""
+    world = registry.table.world()
+    current = f"{world.id} {world.name}" if world is not None else ""
+    return StreamingResponse(
+        revision_stream(registry.events, TABLE, current, request.is_disconnected),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

@@ -47,6 +47,12 @@ COMBATS = "*combats"
 PROTOCOL = "*protocol"
 
 
+# The table's world, as "<world id> <name>" ("" without one), whenever the gamemaster
+# chooses another or deletes the one played in: every signed-in page watches it and offers
+# to reload (documentation/CURRENT-WORLD.md §8).
+TABLE = "*table"
+
+
 def combat_key(character_id: str) -> str:
     """The key a character's combats publish under, as their revision: the strip on the
     character's sheet watches it, so it learns of a fight without polling."""
@@ -191,6 +197,7 @@ __all__ = [
     "HEARTBEAT_SECONDS",
     "PARTY",
     "PROTOCOL",
+    "TABLE",
     "ChangeHub",
     "close_on_shutdown_signals",
     "revision_stream",

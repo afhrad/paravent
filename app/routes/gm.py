@@ -1361,10 +1361,11 @@ async def confirm_delete_world(
 
 @router.post(f"{WORLDS_URL}/{{world_id}}/delete", response_class=HTMLResponse)
 async def delete_world(
-    _gm: GamemasterDep, page: PageDep, worlds: WorldsDep, world_id: str
+    _gm: GamemasterDep, page: PageDep, registry: RegistryDep, worlds: WorldsDep, world_id: str
 ) -> Response:
     """Delete a world; its characters stay, without one."""
     world = worlds.get(world_id)
+    before = registry.table.world_id()
     try:
         worlds.delete(world_id)
     except AuthError as exc:
@@ -1372,6 +1373,8 @@ async def delete_world(
             page, world, worlds.character_count(world_id), error=page.t.error(exc)
         )
         return html(view, status_code=409)
+    if registry.table.world_id() != before:
+        registry.table.announce()  # open pages follow the table into the next world
     return redirect("/gm/adventures")  # the table plays in the next world, if any
 
 
