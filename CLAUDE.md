@@ -8,6 +8,7 @@ loaded automatically.
 - Read @documentation/PROJECT.md for project description
 - Read @documentation/TECHSTACK.md for technical solutions
 - Read @documentation/PROGRESS.md for steps in development
+- Read documentation/TODO.md for the working list (corrections, next steps, open questions); keep it current: add what is proposed or found, remove what is built or dropped
 - Read @documentation/CHARGEN.md for details on character generation
 - Read documentation/CHARGEN-WIZARD.md for the character-creation wizard UX spec
 - Read documentation/ADVENTURES.md before touching worlds, adventures, chapters or their Markdown

@@ -2,6 +2,8 @@
 
 What is not built yet but was found worth doing, with where it came from. Nothing here is
 decided: an idea becomes work when the user picks it, and moves to PROGRESS.md when built.
+The working list of corrections, next steps and open questions is [TODO.md](TODO.md); the
+magic item tracker and the player's guide left this list when they were built (2026-11-19).
 Sizes are rough — **S** a day's change, **M** a few, **L** a feature of its own.
 
 ## From the Dungeon Master's Guides (surveyed 2026-11-16)
@@ -16,7 +18,6 @@ milestone levelling, the reference screens, safety tools.
 
 | Idea | Guides | What it would do | Today | Size |
 | --- | --- | --- | --- | --- |
-| Magic item tracker | both | Three attuned items at most, charges, recharge at dawn by the world's clock | an attuned flag changes numbers; no limit, no charges | M |
 | More of the road | both | Foraging, getting lost and navigation each travelling day; encounter distance and surprise when one comes up | travel has none of these | M |
 | Settlement generator | both | Size, government, trait, calamity and buildings rolled into a place, named by the world's styles | places get names only | M |
 | Unidentified and cursed items | both | An item handed out unidentified, revealed later; a curse that binds its wearer | not covered | M |
@@ -60,9 +61,6 @@ milestone levelling, the reference screens, safety tools.
 
 ## From reviews and passes of the app
 
-- **A player's guide in the app** — the gamemaster has *Between the fights*; players have
-  nothing on downtime, bastions, followers, the shop and scrolls from their side. A short
-  help page linked from the sheet. S (proposed 2026-11-16)
 - **The shop on a phone** — every shelf item has its own count and Buy, so the page runs
   very long; the search and category chips narrow it. A compact row, or the list shown only
   once a category or search is chosen. S (phone pass 2026-11-16)
