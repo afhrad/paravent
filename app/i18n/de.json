@@ -4051,5 +4051,9 @@
   "links.session_title": "Sitzung vom {day}",
   "links.count_label": "Links, die ins Leere führen",
   "links.rename": "„{old}“ in „{new}“ umbenennen",
-  "links.renamed": "Umbenannt; jeder Link auf den alten Namen folgt."
+  "links.renamed": "Umbenannt; jeder Link auf den alten Namen folgt.",
+  "links.unused_title": "Nirgends verwendet",
+  "links.unused_count": {"one": "{count} Objekt", "other": "{count} Objekte"},
+  "links.unused_hint": "Kein Text dieser Welt nennt sie, kein Abenteuer führt sie als fertiges Objekt, und aus den Begegnungen lief kein Kampf. Öffne eines, um es zu verwenden, oder lösche, was übrig ist.",
+  "links.delete": "Löschen"
 }

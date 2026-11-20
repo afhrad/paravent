@@ -15,14 +15,15 @@ dashed link in a chapter (``/gm/editor/new``), coming back here.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence
+import re
+from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
 from typing import Annotated
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Form, HTTPException
 from fastapi.responses import HTMLResponse, PlainTextResponse, Response
-from htpy import Element, a, button, code, div, form, li, section, span, ul
+from htpy import Element, a, b, button, code, div, form, li, p, section, span, ul
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.models.gamestate import Scope
@@ -30,6 +31,7 @@ from app.routes.adventures import chapter_problems, near_objects, notes_problems
 from app.routes.auth import html, redirect
 from app.services import scope as scopes
 from app.store.registry import StoreRegistry
+from app.ui import tags
 from app.ui.context import Page
 from app.ui.encounter_pages import encounter_url
 from app.ui.forms import hidden, notice
@@ -82,107 +84,169 @@ class Checked:
     meant: Sequence[Sequence[tuple[str, str]]] = ()
 
 
-def world_problems(page: Page, registry: StoreRegistry, world_id: str) -> list[Checked]:
-    """Every text of the world that has a problem, in the order of the world's lists."""
-    found: list[Checked] = []
+@dataclass(frozen=True)
+class Text:
+    """One text of the world: what holds it, where its links look, and its Markdown."""
 
-    def objects_meant(here: Scope, faults: list[Problem]) -> list[list[tuple[str, str]]]:
-        return [_meant(registry, here, x) for x in faults]
+    kind: str  # a key of FIELDS
+    id: str
+    title: str
+    url: str
+    scope: Scope
+    body: str
 
-    def add(
-        kind: str, ident: str, title: str, url: str, here: Scope, faults: list[Problem]
-    ) -> None:
-        if faults:
-            found.append(
-                Checked(kind, ident, title, url, here, faults, objects_meant(here, faults))
-            )
 
+def world_texts(page: Page, registry: StoreRegistry, world_id: str) -> Iterator[Text]:
+    """Every text of the world, in the order of the world's lists."""
     world = registry.adventures.world(world_id)
     here = Scope(world_id=world_id)
-    add(
-        "world",
-        world.id,
-        world.name,
-        world_url(world.id),
-        here,
-        _notes(page, registry, here, world.description),
-    )
+    yield Text("world", world.id, world.name, world_url(world.id), here, world.description)
     for adventure in registry.adventures.adventures(world_id):
         inside = Scope(world_id=world_id, adventure_id=adventure.id)
-        add(
+        yield Text(
             "adventure",
             adventure.id,
             adventure.name,
             adventure_url(adventure.id),
             inside,
-            _notes(page, registry, inside, adventure.body),
+            adventure.body,
         )
         for chapter in registry.adventures.chapters(adventure.id):
             at = Scope(world_id=world_id, adventure_id=adventure.id, chapter_id=chapter.id)
-            faults = (
-                chapter_problems(page, registry, chapter.id, chapter.body)
-                if chapter.body.strip()
-                else []
-            )
-            add(
-                "chapter",
-                chapter.id,
-                f"{adventure.name} · {chapter.title}",
-                chapter_url(chapter.id),
-                at,
-                faults,
-            )
+            title = f"{adventure.name} · {chapter.title}"
+            yield Text("chapter", chapter.id, title, chapter_url(chapter.id), at, chapter.body)
     for npc in registry.npcs.list(world_id):
-        add(
-            "npc",
-            npc.id,
-            npc.name,
-            npc_url(npc.id),
-            npc.scope,
-            _notes(page, registry, npc.scope, npc.notes),
-        )
+        yield Text("npc", npc.id, npc.name, npc_url(npc.id), npc.scope, npc.notes)
     for location in registry.locations.list(world_id):
-        add(
+        yield Text(
             "place",
             location.id,
             location.name,
             location_url(location.id),
             location.scope,
-            _notes(page, registry, location.scope, location.notes),
+            location.notes,
         )
     for treasure in registry.treasure.list(world_id):
-        add(
+        yield Text(
             "treasure",
             treasure.id,
             treasure.name,
             treasure_url(treasure.id),
             treasure.scope,
-            _notes(page, registry, treasure.scope, treasure.notes),
+            treasure.notes,
         )
     for encounter in registry.encounters.list(world_id):
-        at = encounter.scope or here
-        add(
+        yield Text(
             "encounter",
             encounter.id,
             encounter.name,
             encounter_url(encounter.id),
-            at,
-            _notes(page, registry, at, encounter.notes),
+            encounter.scope or here,
+            encounter.notes,
         )
     for note in sorted(
         registry.gamestate.session_notes.list(lambda n: n.world_id == world_id),
         key=lambda n: n.day,
     ):
-        at = Scope(world_id=world_id, adventure_id=note.adventure_id)
-        add(
+        yield Text(
             "session",
             note.id,
             page.t("links.session_title", day=day_text(page, note.day)),
             f"{SESSIONS_URL}#note-{note.id}",
-            at,
-            _notes(page, registry, at, note.text),
+            Scope(world_id=world_id, adventure_id=note.adventure_id),
+            note.text,
         )
+
+
+def world_problems(page: Page, registry: StoreRegistry, world_id: str) -> list[Checked]:
+    """Every text of the world that has a problem, in the order of the world's lists."""
+    found: list[Checked] = []
+    for text in world_texts(page, registry, world_id):
+        if not text.body.strip():
+            continue
+        if text.kind == "chapter":
+            faults = chapter_problems(page, registry, text.id, text.body)
+        else:
+            faults = notes_problems(page, registry, text.scope, text.body)
+        if faults:
+            meant = [_meant(registry, text.scope, x) for x in faults]
+            found.append(
+                Checked(text.kind, text.id, text.title, text.url, text.scope, faults, meant)
+            )
     return found
+
+
+@dataclass(frozen=True)
+class Unused:
+    """An NPC, place, treasure or encounter nothing in the world uses."""
+
+    kind: str
+    id: str
+    name: str
+    url: str
+
+
+_BLOCK_LINE = re.compile(r"^ {0,3}:{3,}\s*(\S+)\s+(.+?)\s*$")
+
+
+def _named(body: str) -> Iterator[tuple[str, str]]:
+    """``(kind, name)`` of every NPC, place, treasure and encounter a text names: its
+    ``{@…}`` tags, nested ones too, and old ``:::`` blocks."""
+
+    def walk(nodes: Sequence[object]) -> Iterator[tuple[str, str]]:
+        for node in nodes:
+            if isinstance(node, tags.Tag):
+                if node.name in RENAMEABLE and node.part(0):
+                    yield node.name, node.part(0)
+                for part in node.parts:
+                    yield from walk(tags.parse(part))
+
+    yield from walk(tags.parse(body))
+    for line in body.splitlines():
+        block = _BLOCK_LINE.match(line)
+        if block and block.group(1).lower() in RENAMEABLE:
+            yield block.group(1).lower(), block.group(2)
+
+
+def unused_objects(page: Page, registry: StoreRegistry, world_id: str) -> list[Unused]:
+    """The world's NPCs, places, treasure and encounters that no text names (as the page
+    resolves the name, nearest scope first), no adventure lists as ready-made and, for an
+    encounter, that was never fought."""
+    finders = {
+        "npc": registry.npcs.find,
+        "place": registry.locations.find,
+        "treasure": registry.treasure.find,
+        "encounter": registry.encounters.find,
+    }
+    used: set[str] = set()
+    for text in world_texts(page, registry, world_id):
+        for kind, name in _named(text.body):
+            record = finders[kind](name, text.scope)
+            if record is not None and record.id != text.id:  # naming itself is no use
+                used.add(record.id)
+    for adventure in registry.adventures.adventures(world_id):
+        used.update(adventure.uses)
+    used.update(
+        c.encounter_id
+        for c in registry.gamestate.combats.list(lambda c: c.world_id == world_id)
+        if c.encounter_id
+    )
+    found = [
+        *(Unused("npc", n.id, n.name, npc_url(n.id)) for n in registry.npcs.list(world_id)),
+        *(
+            Unused("place", x.id, x.name, location_url(x.id))
+            for x in registry.locations.list(world_id)
+        ),
+        *(
+            Unused("treasure", x.id, x.name, treasure_url(x.id))
+            for x in registry.treasure.list(world_id)
+        ),
+        *(
+            Unused("encounter", e.id, e.name, encounter_url(e.id))
+            for e in registry.encounters.list(world_id)
+        ),
+    ]
+    return [u for u in found if u.id not in used]
 
 
 RENAMEABLE: dict[str, str] = {
@@ -208,14 +272,15 @@ def _meant(registry: StoreRegistry, here: Scope, problem: Problem) -> list[tuple
     return [(record.id, record.name) for record in found if record is not None]
 
 
-def _notes(page: Page, registry: StoreRegistry, here: Scope, text: str) -> list[Problem]:
-    return notes_problems(page, registry, here, text) if text.strip() else []
-
-
 def links_page(
-    page: Page, world_name: str, checked: Sequence[Checked], message: str | None = None
+    page: Page,
+    world_name: str,
+    checked: Sequence[Checked],
+    message: str | None = None,
+    unused: Sequence[Unused] = (),
 ) -> Element:
-    """The world's texts with their problems, each mendable from here."""
+    """The world's texts with their problems, each mendable from here; then what nothing
+    uses, to open or delete."""
     t = page.t
     count = sum(len(c.problems) for c in checked)
     return app_shell(
@@ -229,8 +294,32 @@ def links_page(
             ),
             notice(message),
             [_text_section(page, c) for c in checked],
+            _unused_section(page, unused) if unused else None,
         ],
     )
+
+
+def _unused_section(page: Page, unused: Sequence[Unused]) -> Element:
+    t = page.t
+    return section(class_="links-text links-unused panel", id="unused")[
+        div(class_="links-text-head")[
+            span(class_="eyebrow")[t.plural("links.unused_count", len(unused))],
+            b(class_="links-text-title")[t("links.unused_title")],
+            p(class_="field-hint")[t("links.unused_hint")],
+        ],
+        ul(class_="links-unused-list")[
+            [
+                li(class_="links-unused-row")[
+                    span(class_="muted links-unused-kind")[t(f"md.embed.{u.kind}")],
+                    a(href=u.url)[u.name],
+                    a(href=f"{u.url}/delete", class_="btn btn-sm btn-ghost btn-danger")[
+                        icon("trash-2", "sm"), span[t("links.delete")]
+                    ],
+                ]
+                for u in unused
+            ]
+        ],
+    ]
 
 
 def _text_section(page: Page, checked: Checked) -> Element:
@@ -309,7 +398,9 @@ async def world_links(
         "stale": page.t("links.stale"),
         "renamed": page.t("links.renamed"),
     }.get(fixed)
-    return html(links_page(page, world.name, world_problems(page, registry, world.id), message))
+    checked = await asyncio.to_thread(world_problems, page, registry, world.id)
+    unused = await asyncio.to_thread(unused_objects, page, registry, world.id)
+    return html(links_page(page, world.name, checked, message, unused))
 
 
 @router.get(f"{LINKS_URL}/count", response_class=PlainTextResponse)

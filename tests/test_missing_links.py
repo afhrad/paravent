@@ -13,7 +13,7 @@ from httpx import ASGITransport, AsyncClient
 
 from app.config import Settings
 from app.main import create_app
-from app.models.gamestate import Role, SessionNote
+from app.models.gamestate import Combat, Role, Scope, SessionNote
 from app.routes.adventures import close_names
 from app.services.worlds import WorldInput
 from app.store.registry import StoreRegistry
@@ -193,3 +193,26 @@ async def test_an_object_takes_the_name_the_text_uses(
     assert registry.gamestate.chapters.get(other.id).body == "{@npc Hob} rows across."
     page = (await gm.get("/gm/world/links?fixed=renamed")).text
     assert "Renamed; every link to the old name follows." in page and "{@npc Hob}" not in page
+
+
+async def test_what_nothing_uses_is_listed(gm: AsyncClient, registry: StoreRegistry) -> None:
+    chapter_id = _chapter(registry)  # names {@treasure Captain's Purse} and {@npc Hob}
+    chapter = registry.gamestate.chapters.get(chapter_id)
+    world = chapter.world_id
+    registry.table.select(world)
+    store = registry.gamestate
+    hob = registry.npcs.create("Hob", f"c:{chapter_id}", world)  # named by the chapter
+    loner = registry.npcs.create("Loner", f"w:{world}", world)  # named only by itself
+    store.npcs.update(loner.id, notes="{@npc Loner} keeps to himself.")
+    ready = registry.locations.create("Old Mill", f"w:{world}", world)  # a ready-made
+    store.adventures.update(chapter.adventure_id, uses=[ready.id])
+    fought = registry.encounters.create("Reed Ambush", world, Scope(world_id=world))
+    store.combats.create(Combat(name="Ambush", encounter_id=fought.id, world_id=world))
+    idle = registry.encounters.create("Idle Fight", world, Scope(world_id=world))
+    page = (await gm.get("/gm/world/links")).text
+    unused = page.split('id="unused"', 1)[1]
+    assert "Not used anywhere" in page and "2 objects" in unused
+    assert f'href="/gm/npcs/{loner.id}/delete"' in unused and "Idle Fight" in unused
+    for kept in (hob.id, ready.id, fought.id):
+        assert kept not in unused
+    assert idle.id in unused

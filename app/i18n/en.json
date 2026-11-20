@@ -4051,5 +4051,9 @@
   "links.session_title": "Session of {day}",
   "links.count_label": "Links that lead nowhere",
   "links.rename": "Rename “{old}” to “{new}”",
-  "links.renamed": "Renamed; every link to the old name follows."
+  "links.renamed": "Renamed; every link to the old name follows.",
+  "links.unused_title": "Not used anywhere",
+  "links.unused_count": {"one": "{count} object", "other": "{count} objects"},
+  "links.unused_hint": "No text of this world names these, no adventure lists them as ready-made, and no fight was run from the encounters. Open one to use it, or delete what is left over.",
+  "links.delete": "Delete"
 }
