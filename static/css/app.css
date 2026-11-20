@@ -1962,6 +1962,9 @@ div.cg-stat{ display:flex; justify-content:space-between; align-items:baseline; 
 .tr-preview > summary{ cursor:pointer; color:var(--text-2); font-size:14px; }
 .tr-preview[open] > summary{ margin-bottom:8px; }
 .tr-side > .token-panel{ margin:0; }
+/* After a delete the Undo bar says it, with its button: the page's own "deleted" notice
+   would only repeat it. */
+main:has(.undo-notice) .notice:not(.undo-notice){ display:none; }
 .tr-contents .enc-line:last-child{ border-bottom:0; }
 /* The encounter's settings in the wide column: a row's fields line up at the top (a
    hint under one must not push the other down); the party's numbers only when ticked. */
