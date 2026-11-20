@@ -110,11 +110,7 @@ def _clock(page: Page, registry: StoreRegistry, world_id: str | None) -> Element
     if shown is None:
         return None
     clock = registry.clock.of(shown)
-    members = [
-        pc
-        for pc in registry.gamestate.characters.list()
-        if pc.world_id == shown and not pc.in_wizard
-    ]
+    members = registry.gamestate.characters.of_world(shown, drafts=False)
     names = {pc.id: pc.name or "?" for pc in members}
     built = [(pc.name or "?", registry.bastions.of(pc.id)) for pc in members if pc.total_level >= 5]
     due = bastions_due(clock.minute, [(name, b.last_turn) for name, b in built if b.facilities])
@@ -234,8 +230,7 @@ def _shop(page: Page, registry: StoreRegistry, world_id: str | None) -> Element 
         return None
     members = [
         (pc.id, pc.name or "?")
-        for pc in registry.gamestate.characters.list()
-        if pc.world_id == shown and not pc.in_wizard
+        for pc in registry.gamestate.characters.of_world(shown, drafts=False)
     ]
     treasures = [(t.id, t.name) for t in registry.treasure.list(shown) if t.items]
     return shop_panel(page, shown, registry.shops.of(shown), members, treasures=treasures)
@@ -247,8 +242,7 @@ def _chase(page: Page, registry: StoreRegistry, world_id: str | None) -> Element
         return None
     members = [
         (pc.id, pc.name or "?")
-        for pc in registry.gamestate.characters.list()
-        if pc.world_id == shown and not pc.in_wizard
+        for pc in registry.gamestate.characters.of_world(shown, drafts=False)
     ]
     return chase_panel(page, shown, registry.chases.of(shown), members)
 
@@ -381,9 +375,8 @@ async def change_clock(
             kind = "long" if form.get("kind") == "long" else "short"
             characters.rest_party(world_id, kind, Actor(name, username=user.username))
             if kind == "long":  # their companions, mounts and sidekicks rest too
-                for pc in registry.gamestate.characters.list():
-                    if pc.world_id == world_id:
-                        registry.followers.rest(pc.id)
+                for pc in registry.gamestate.characters.of_world(world_id):
+                    registry.followers.rest(pc.id)
             clock.advance(
                 world_id, 480 if kind == "long" else 60, user.username, name, f"{kind}_rest"
             )
@@ -425,11 +418,7 @@ async def change_clock(
                 return redirect(f"/gm/encounters/{journey.encounter_id}")
         elif op == "downtime":
             raw = str(form.get("days", "")).strip()
-            party = [
-                pc
-                for pc in registry.gamestate.characters.list()
-                if pc.world_id == world_id and not pc.in_wizard
-            ]
+            party = registry.gamestate.characters.of_world(world_id, drafts=False)
             days = int(raw) if raw.isdigit() else 0
             registry.downtime.grant(party, days, world_id, user.username, name)
             characters.rest_party(world_id, "long", Actor(name, username=user.username))
@@ -588,11 +577,7 @@ def _trap(
         entry = registry.references.get(category, source or "-", name, world_id)
     except ReferenceNotFound:
         return None
-    party = [
-        pc
-        for pc in registry.gamestate.characters.list()
-        if pc.world_id == world_id and not pc.in_wizard
-    ]
+    party = registry.gamestate.characters.of_world(world_id, drafts=False)
     levels = [max(1, pc.total_level) for pc in party] or [1]
     return (
         str(entry.data.get("name", name)),
@@ -773,9 +758,7 @@ async def change_shop(
     flash: str | None = None
     try:
         if op == "open":
-            members = {
-                pc.id for pc in registry.gamestate.characters.list() if pc.world_id == world_id
-            }
+            members = {pc.id for pc in registry.gamestate.characters.of_world(world_id)}
 
             def number(key: str, default: int) -> int:
                 raw = str(form.get(key, "")).strip()
@@ -853,9 +836,8 @@ async def change_shop(
             raise ShopError("shop.error.prices")
     except ShopError as exc:
         flash = page.t.error(exc)
-    for pc in registry.gamestate.characters.list():
-        if pc.world_id == world_id:
-            registry.events.publish(pc.id, f"shop-{datetime.now(UTC).isoformat()}")
+    for pc in registry.gamestate.characters.of_world(world_id):
+        registry.events.publish(pc.id, f"shop-{datetime.now(UTC).isoformat()}")
     if request.headers.get("HX-Request") != "true":
         return redirect(f"/gm?{urlencode({'world': world_id})}")
     panel = _shop(page, registry, world_id)

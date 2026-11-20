@@ -259,9 +259,7 @@ class CharacterService:
         """A short or long rest for every character of a world (not one still in the
         wizard): the names of those who rested."""
         rested = []
-        for pc in self._store.characters.list():
-            if pc.world_id != world_id or pc.in_wizard:
-                continue
+        for pc in self._store.characters.of_world(world_id, drafts=False):
             self.play.act(pc.id, "rest", {"kind": kind}, self.sheet(pc), by)
             if kind == "long" and self._on_rested is not None:
                 self._on_rested(pc.id, by)
@@ -361,7 +359,7 @@ class CharacterService:
 
     def in_world(self, world_id: str) -> list[PlayerCharacter]:
         """The characters placed in ``world_id``, drafts too, by name."""
-        found = [pc for pc in self._store.characters.list() if pc.world_id == world_id]
+        found = self._store.characters.of_world(world_id)
         return sorted(found, key=lambda pc: pc.name.casefold())
 
     def named(self, world_id: str, name: str) -> PlayerCharacter | None:

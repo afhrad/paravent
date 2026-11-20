@@ -890,7 +890,7 @@ class StoreRegistry:
         by = Actor("Paravent", username="")
 
         def party(world_id: str) -> list[PlayerCharacter]:
-            return [pc for pc in self.gamestate.characters.list() if pc.world_id == world_id]
+            return self.gamestate.characters.of_world(world_id)
 
         def purse(character_id: str) -> int:
             pc = self.gamestate.characters.find(character_id)
@@ -923,9 +923,8 @@ class StoreRegistry:
     def _clock_changed(self, clock: WorldClock) -> None:
         """The party view and every sheet of the world show the time."""
         state = f"clock-{clock.updated_at.isoformat()}"
-        for pc in self.gamestate.characters.list():
-            if pc.world_id == clock.id:
-                self.events.publish(pc.id, state)
+        for pc in self.gamestate.characters.of_world(clock.id):
+            self.events.publish(pc.id, state)
         self.events.publish(PARTY, f"*clock {clock.id}")
 
     @cached_property
@@ -1072,7 +1071,7 @@ class StoreRegistry:
         characters = self.characters
 
         def party(world_id: str) -> list[PlayerCharacter]:
-            return [pc for pc in self.gamestate.characters.list() if pc.world_id == world_id]
+            return self.gamestate.characters.of_world(world_id)
 
         def eat(pc: PlayerCharacter) -> bool:
             try:
@@ -1467,9 +1466,8 @@ class StoreRegistry:
             # loses it when the chase ends.
             chase = self.gamestate.chases.find(world_id)
             state = f"chase-{chase.updated_at.isoformat() if chase else 'none'}"
-            for pc in self.gamestate.characters.list():
-                if pc.world_id == world_id:
-                    self.events.publish(pc.id, state)
+            for pc in self.gamestate.characters.of_world(world_id):
+                self.events.publish(pc.id, state)
             self.events.publish(PARTY, f"*chase {world_id}")
 
         return ChaseService(

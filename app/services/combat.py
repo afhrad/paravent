@@ -1945,12 +1945,7 @@ class CombatService:
                     names=planned.names,
                 )
         if characters is None:
-            characters = [
-                pc.id
-                for pc in self._store.characters.list(
-                    lambda pc: encounter.world_id is not None and pc.world_id == encounter.world_id
-                )
-            ]
+            characters = [pc.id for pc in self._store.characters.of_world(encounter.world_id)]
         for character_id in characters:
             self._add_character(combat, character_id)
         staged: builtins.list[ProtocolEntry] = []

@@ -19,7 +19,6 @@ from htpy import Element
 
 from app.dependencies import IdentityDep, PageDep, RegistryDep
 from app.routes.auth import html
-from app.routes.editor import CREATABLE
 from app.services.search import GROUPS, Row, SearchHit, SearchResult
 from app.store.registry import StoreRegistry
 from app.ui.combat_pages import combat_url
@@ -28,6 +27,7 @@ from app.ui.editor_suggest import CALLOUT, INLINE, kind_suggestions
 from app.ui.encounter_pages import encounter_url
 from app.ui.insert import campaign_group, tag_maker
 from app.ui.library_links import (
+    CREATABLE,
     chapter_url,
     character_url,
     location_url,

@@ -240,6 +240,12 @@ def test_a_character_plays_in_the_tables_world(registry: StoreRegistry) -> None:
     store.update(lyra.id, name="Lyra Mooncaller")
     assert "world_id" not in json.loads(path.read_text(encoding="utf-8"))
     assert store.get(lyra.id).world_id == salt.id
+    # The party of a world: every character for the table's, none for another; drafts
+    # left out when asked.
+    draft = store.create(PlayerCharacter(name="", wizard_step="species"))
+    assert {pc.id for pc in store.of_world(salt.id)} == {lyra.id, draft.id}
+    assert [pc.id for pc in store.of_world(salt.id, drafts=False)] == [lyra.id]
+    assert store.of_world(grey.id) == [] and store.of_world(None) == []
 
 
 async def test_the_settings_hold_the_pictures_and_the_list_is_the_menus(

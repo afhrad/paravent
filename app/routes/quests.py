@@ -32,8 +32,7 @@ _ITEM_LINE = re.compile(r"^\s*(?:(\d+)\s*[×x]?\s+)?(.+?)\s*$")
 def _members(registry: StoreRegistry, world_id: str) -> list[tuple[str, str]]:
     found = [
         (pc.id, pc.name or "?")
-        for pc in registry.gamestate.characters.list()
-        if pc.world_id == world_id and not pc.in_wizard
+        for pc in registry.gamestate.characters.of_world(world_id, drafts=False)
     ]
     return sorted(found, key=lambda m: m[1].lower())
 

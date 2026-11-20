@@ -288,9 +288,7 @@ class AdventureService:
         """The characters an adventure is written for; none means the world's
         (documentation/MCP.md §6). Ids of characters not in its world are dropped."""
         adventure = self.get(adventure_id)
-        present = {
-            pc.id for pc in self._store.characters.list() if pc.world_id == adventure.world_id
-        }
+        present = {pc.id for pc in self._store.characters.of_world(adventure.world_id)}
         chosen = [i for i in dict.fromkeys(character_ids) if i in present]
         return self._store.adventures.update(adventure_id, party=chosen or None)
 

@@ -21,6 +21,7 @@ tell whether what it shows is current, and a write that changes nothing notifies
 
 from __future__ import annotations
 
+import builtins
 import hashlib
 import json
 import logging
@@ -452,6 +453,16 @@ class CharacterStore:
             self._ensure_loaded()
             records = [self._serve(r) for r in self._items.values()]
         return [r for r in records if predicate(r)] if predicate else records
+
+    def of_world(
+        self, world_id: str | None, *, drafts: bool = True
+    ) -> builtins.list[PlayerCharacter]:
+        """The party of ``world_id``: every character when the table plays in it, none
+        when it does not (documentation/CURRENT-WORLD.md §2); ``drafts=False`` leaves out
+        those still in the wizard."""
+        if world_id is None:
+            return []
+        return self.list(lambda pc: pc.world_id == world_id and (drafts or not pc.in_wizard))
 
     def revision(self, character_id: str) -> str | None:
         """The current revision of a character, None when it does not exist."""

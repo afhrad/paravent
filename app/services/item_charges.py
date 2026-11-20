@@ -161,9 +161,8 @@ class ItemCharges:
         times = {kind: crossings(kind, before, now) for kind in RECHARGE_AT}
         if not any(times.values()):
             return
-        for pc in self._store.characters.list():
-            if pc.world_id == world_id:
-                self._recover(pc, lambda c: times.get(c.recharge, 0), by, by_name)
+        for pc in self._store.characters.of_world(world_id):
+            self._recover(pc, lambda c: times.get(c.recharge, 0), by, by_name)
 
     def rested(self, character_id: str, by: str, by_name: str) -> None:
         """A long rest ended: a ``restLong`` item's charges come back."""

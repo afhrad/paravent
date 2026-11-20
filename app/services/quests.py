@@ -95,7 +95,7 @@ class QuestService:
             faction = self._store.factions.find(faction_id)
             if faction is None or faction.world_id != world_id:
                 faction_id = None
-        members = {pc.id for pc in self._store.characters.list() if pc.world_id == world_id}
+        members = {pc.id for pc in self._store.characters.of_world(world_id)}
         chosen = values.get("characters") or []
         assert isinstance(chosen, list)
         steps_in = values.get("steps") or []
@@ -207,11 +207,7 @@ class QuestService:
 
     def party(self, quest: Quest) -> list[str]:
         """Those on a quest: its characters still in the world, or the world's party."""
-        world = [
-            pc.id
-            for pc in self._store.characters.list()
-            if pc.world_id == quest.world_id and not pc.in_wizard
-        ]
+        world = [pc.id for pc in self._store.characters.of_world(quest.world_id, drafts=False)]
         if quest.characters:
             return [c for c in quest.characters if c in world]
         return world

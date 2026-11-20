@@ -443,8 +443,8 @@ class AfflictionService:
         """The clock moved from ``before`` to ``now``: symptoms that fall due show,
         what wears off goes, and each dawn passed rolls the saves made at dawn."""
         dawns = _dawns(before, now)
-        for pc in self._store.characters.list():
-            if pc.world_id != world_id or not pc.state.afflictions:
+        for pc in self._store.characters.of_world(world_id):
+            if not pc.state.afflictions:
                 continue
             for held in list(pc.state.afflictions):
                 if held.onset is not None and held.onset <= now:

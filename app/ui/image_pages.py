@@ -83,7 +83,9 @@ def image_editor(
         data_frame=",".join(f"{v:.4f}" for v in frame) if frame else None,
     )[
         # What is set now, as it shows (framed and dressed).
-        img(class_="img-current", src=media_url(record_id, reference), alt="") if path else None,
+        img(class_="img-current", src=media_url(record_id, reference or path), alt="")
+        if path
+        else None,
         form(method="post", action=action, enctype="multipart/form-data", class_="img-form")[
             hidden("next", next_url),
             input_el(type="hidden", name="path", value=path, class_="img-path"),

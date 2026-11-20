@@ -216,13 +216,11 @@ class EncounterService:
             self._store.adventures.find(encounter.adventure_id) if encounter.adventure_id else None
         )
         chosen = set(adventure.party) if adventure is not None and adventure.party else None
-        characters = self._store.characters.list(
-            lambda pc: (
-                pc.world_id == encounter.world_id
-                and pc.total_level > 0
-                and (chosen is None or pc.id in chosen)
-            )
-        )
+        characters = [
+            pc
+            for pc in self._store.characters.of_world(encounter.world_id)
+            if pc.total_level > 0 and (chosen is None or pc.id in chosen)
+        ]
         members = sorted(
             (PartyMember(pc.name or "?", pc.total_level) for pc in characters),
             key=lambda m: (m.name or "").casefold(),

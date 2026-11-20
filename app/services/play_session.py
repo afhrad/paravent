@@ -173,9 +173,7 @@ class PlaySessionService:
     def brief(self, world_id: str) -> Brief:
         """What to know before play (see the module's note)."""
         store = self._store
-        members = [
-            pc for pc in store.characters.list() if pc.world_id == world_id and not pc.in_wizard
-        ]
+        members = store.characters.of_world(world_id, drafts=False)
         minute = self._minute_of(world_id)
         notes = sorted(
             store.session_notes.list(lambda n: n.world_id == world_id),

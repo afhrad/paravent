@@ -26,8 +26,7 @@ def _page(
 ) -> HTMLResponse:
     members = [
         (pc.id, pc.name or "?")
-        for pc in registry.gamestate.characters.list()
-        if pc.world_id == world.id and not pc.in_wizard
+        for pc in registry.gamestate.characters.of_world(world.id, drafts=False)
     ]
     return html(
         factions_page(

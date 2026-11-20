@@ -215,7 +215,7 @@ class WorldService:
 
     def character_count(self, world_id: str) -> int:
         """How many characters live in a world."""
-        return len(self._store.characters.list(lambda pc: pc.world_id == world_id))
+        return len(self._store.characters.of_world(world_id))
 
     def delete(self, world_id: str) -> None:
         """Delete a world; characters belong to none, so they are not touched.

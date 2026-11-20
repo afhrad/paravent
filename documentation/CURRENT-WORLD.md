@@ -30,9 +30,9 @@ the pages, characters and players do with it. **Status:** planned and built 2026
   each being changed, and switching worlds re-derives every sheet (its cache key holds the world).
   Nothing writes it (2026-11-20: the wizard's new draft, the world delete's loop that
   "moved" characters out and the unused `WorldService.place` went); the reads stay, as they
-  name the world a character plays in, which is the table's by construction. A filter
-  `pc.world_id == world_id` reads "the party of that world": every character for the table's
-  world, none for another.
+  name the world a character plays in, which is the table's by construction. **The party of a
+  world** is asked in one place, `CharacterStore.of_world(world_id, drafts=…)`: every
+  character for the table's world, none for another (2026-11-20; 27 hand-written filters went).
 - **Everything else keeps its world.** Adventures, chapters, NPCs, places, treasure, encounters,
   quests, factions, session notes, the clock and the log stay filed under their world exactly as
   now; only *which world is shown* changes. Nothing is migrated.

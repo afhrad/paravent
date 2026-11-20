@@ -1203,7 +1203,7 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
         key = found.key
         used = [
             *(n.name for n in registry.gamestate.npcs.list(lambda n: n.scope.world_id == world.id)),
-            *(c.name for c in registry.gamestate.characters.list(lambda c: c.world_id == world.id)),
+            *(c.name for c in registry.gamestate.characters.of_world(world.id)),
             *(x.name for x in registry.locations.list(world.id)),
         ]
         workshop = registry.naming_workshop
