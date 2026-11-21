@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-21T13:10:31+01:00",
+  "en": "Award XP from the party view for a riddle solved or a deal struck, each or shared out, leaving out whoever was absent. NPCs and contacts show how they stand toward the party and when you last met them.",
+  "de": "EP für gelöste Rätsel oder ausgehandelte Händel in der Spielübersicht vergeben, je Figur oder aufgeteilt, ohne die Abwesenden. NSC und Kontakte zeigen ihre Haltung zur Gruppe und wann ihr sie zuletzt getroffen habt."
+ },
+ {
   "at": "2026-11-21T12:55:36+01:00",
   "en": "Magic items can be handed out unidentified: players see only what they look like until you identify them. Cursed items bind whoever attunes to them until you lift the curse.",
   "de": "Magische Gegenstände lassen sich unidentifiziert verteilen: Die Spieler sehen nur ihr Aussehen, bis du sie identifizierst. Verfluchte Gegenstände binden ihren Träger, bis du den Fluch brichst."
@@ -293,10 +298,5 @@
   "at": "2026-11-18T22:06:15+01:00",
   "en": "The table shows the party first, with the world's clock, checks, shop and chase beside it, and tidier character cards.",
   "de": "Der Spieltisch zeigt zuerst die Gruppe, daneben Uhr, Proben, Laden und Verfolgung der Welt, und aufgeräumtere Figurenkarten."
- },
- {
-  "at": "2026-11-18T21:34:16+01:00",
-  "en": "Diseases, poisons and curses: put them on characters from the books, and the world's clock runs their course: symptoms, saves at each rest or dawn, and the cure.",
-  "de": "Krankheiten, Gifte und Flüche: aus den Büchern auf Figuren legen, und die Uhr der Welt lässt sie verlaufen: Symptome, Rettungswürfe bei jeder Rast oder jedem Morgengrauen, die Heilung."
  }
 ]
