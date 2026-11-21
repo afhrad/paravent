@@ -109,5 +109,8 @@ Entscheidung des Spielers.
 ## 8. Stufenaufstieg
 
 EP kommen aus Kämpfen und Aufträgen, und der Bogen zeigt, wie weit jede Figur noch hat.
+Für alles andere — ein gelöstes Rätsel, ein ausgehandelter Handel — gibt **EP vergeben** in
+der Spielübersicht den angehakten Figuren je dieselbe Menge oder teilt eine Summe auf; wer
+fehlte, wird abgehakt.
 Eine Welt mit **Stufenaufstieg nach Meilensteinen** vergibt und zeigt keine EP; Figuren
 steigen auf, wenn du es gewährst.

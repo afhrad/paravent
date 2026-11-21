@@ -605,6 +605,13 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         taken up again; on the session page and in its note
   - [x] **Milestone levelling** (2026-11-16): a world's switch; no XP is awarded after
         fights or quests, nor shown on the sheet
+  - [x] **Award XP** (2026-11-21, `app/ui/xp_pages.py`, `POST /gm/xp`): experience for a
+        challenge that was no fight from the party view, the same to each character ticked
+        or a total shared out, logged with its reason; none in a milestone world
+  - [x] **Attitude** (2026-11-21, `app/ui/attitude.py`): how an NPC or a character's
+        contact stands toward the party (friendly, indifferent, hostile) and when the party
+        last met them by the world's clock (**Seen now**), on the NPC's page and in the list,
+        and on the downtime page's contacts
   - [x] **Followers** (2026-11-16, `app/services/followers.py`, a character's
         Followers page): skilled and untrained hirelings at the handbook's wage, paid
         from the purse every day the clock passes (logged with what is owed); companions,

@@ -3288,3 +3288,12 @@ form[aria-busy="true"] .is-busy svg{ animation:busy-spin 1s linear infinite; }
 .cs-true-name{ margin-left:.25rem; }
 .enc-share-item{ display:grid; grid-template-columns:1fr auto; gap:.25rem .75rem; align-items:center; }
 .enc-share-item > label:first-child{ grid-column:1 / -1; }
+
+/* How someone stands toward the party (app/ui/attitude.py). */
+.attitude-panel{ display:flex; flex-wrap:wrap; align-items:center; gap:.4rem .6rem; margin:.5rem 0; }
+.attitude-panel > .eyebrow{ flex-basis:100%; }
+.attitude-buttons{ display:flex; flex-wrap:wrap; gap:.25rem; }
+.attitude-buttons .btn[aria-pressed="true"]{ background:var(--accent-weak); border-color:var(--accent); color:var(--accent-text); font-weight:600; }
+.attitude-buttons .btn.heal[aria-pressed="true"]{ background:var(--heal-weak); border-color:var(--heal); color:var(--heal-text); }
+.attitude-buttons .btn.dmg[aria-pressed="true"]{ background:var(--dmg-weak); border-color:var(--dmg); color:var(--dmg-text); }
+.attitude-pill{ margin-right:.25rem; }

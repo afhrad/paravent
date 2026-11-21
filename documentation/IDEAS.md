@@ -32,9 +32,6 @@ milestone levelling, the reference screens, safety tools.
 - **Marks of prestige** — titles, land, medals and favours on a character's story. S
 - **Running costs** — businesses and garrisons charged by the clock, like lifestyle and wages. S
 - **Follower loyalty** — a score that events move. S
-- **Attitude** — an NPC's or contact's attitude toward the party, with when they were last seen. S
-- **Quick experience** — an ad-hoc XP award for a non-combat challenge, with a switch for
-  absent characters (quests and fights already award). S
 - **Objects and doors** — AC, hit points and break DC by material and size; an object as a
   target in the tracker. S
 - **Siege equipment** in the tracker, with its crew. S

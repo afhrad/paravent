@@ -50,6 +50,9 @@ def made(kind: str, lines: Sequence[str]) -> list[str]:
     return out
 
 
+ATTITUDES = ("friendly", "indifferent", "hostile")
+
+
 class ContactService:
     """Each character's contacts (``library/contacts.json``); new ones and calls logged."""
 
@@ -106,16 +109,32 @@ class ContactService:
         )
 
     def edit(
-        self, character_id: str, contact_id: str, name: str, note: str, faction_id: str = ""
+        self,
+        character_id: str,
+        contact_id: str,
+        name: str,
+        note: str,
+        faction_id: str = "",
+        attitude: str | None = None,
     ) -> Contact:
+        """Rename, note and place a contact; ``attitude`` (``""`` for none) how it stands
+        toward the party, unchanged when not given."""
         contact = self._own(character_id, contact_id)
-        changed = contact.model_copy(
-            update={
-                "name": " ".join(name.split())[:120],
-                "note": note.strip()[:2000],
-                "faction_id": self._faction(contact.world_id, faction_id),
-            }
-        )
+        update: dict[str, object] = {
+            "name": " ".join(name.split())[:120],
+            "note": note.strip()[:2000],
+            "faction_id": self._faction(contact.world_id, faction_id),
+        }
+        if attitude is not None:
+            update["attitude"] = attitude if attitude in ATTITUDES else None
+        changed = contact.model_copy(update=update)
+        changed.touch()
+        return self._store.contacts.upsert(changed)
+
+    def seen(self, character_id: str, contact_id: str, minute: int) -> Contact:
+        """The party met the contact at ``minute`` of the world's clock."""
+        contact = self._own(character_id, contact_id)
+        changed = contact.model_copy(update={"last_seen": max(0, minute)})
         changed.touch()
         return self._store.contacts.upsert(changed)
 

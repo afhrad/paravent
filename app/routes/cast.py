@@ -243,8 +243,27 @@ async def show_npc(
             creature,
             ctx,
             notice_text=page.t("npcs.saved") if saved else None,
+            now=registry.clock.of(world.id).minute,
         )
     )
+
+
+@router.post(f"{NPCS_URL}/{{npc_id}}/attitude")
+async def npc_attitude(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    npc_id: str,
+    op: Annotated[str, Form()] = "",
+    attitude: Annotated[str, Form()] = "",
+) -> Response:
+    """Set how the NPC stands toward the party (``set``), or that the party met them now
+    by the world's clock (``seen``)."""
+    npc = registry.npcs.get(npc_id)
+    if op == "seen":
+        registry.npcs.seen(npc_id, registry.clock.of(npc.scope.world_id).minute)
+    elif op == "set":
+        registry.npcs.set_attitude(npc_id, attitude)
+    return redirect(npc_url(npc_id))
 
 
 def _npc_form(

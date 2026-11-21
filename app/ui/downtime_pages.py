@@ -41,6 +41,7 @@ from app.services.activities import (
 from app.services.contacts import KINDS as CONTACT_KINDS
 from app.services.downtime import DAILY, RECUPERATING_DAYS
 from app.services.factions import Reward
+from app.ui.attitude import attitude_pill, attitude_select, seen_text
 from app.ui.context import Page
 from app.ui.forms import alert, hidden, notice
 from app.ui.home_pages import page_head
@@ -118,6 +119,7 @@ def downtime_page(
     downtime: Downtime,
     start: StartOptions,
     contacts: Sequence[Contact] = (),
+    now: int | None = None,
     factions: Sequence[FactionView] = (),
     faction_choices: Sequence[tuple[str, str]] = (),
     error: str | None = None,
@@ -166,7 +168,7 @@ def downtime_page(
             if start.activities
             else None,
             _factions(page, factions) if factions else None,
-            _contacts(page, url, contacts, faction_choices),
+            _contacts(page, url, contacts, faction_choices, now),
             section(class_="panel downtime-done")[
                 div(class_="panel-head")[h2[t("downtime.finished")]],
                 ul(class_="downtime-list")[[_project(page, url, x, 0) for x in reversed(finished)]],
@@ -217,7 +219,11 @@ def _faction_select(page: Page, choices: Sequence[tuple[str, str]], selected: st
 
 
 def _contacts(
-    page: Page, url: str, contacts: Sequence[Contact], choices: Sequence[tuple[str, str]] = ()
+    page: Page,
+    url: str,
+    contacts: Sequence[Contact],
+    choices: Sequence[tuple[str, str]] = (),
+    now: int | None = None,
 ) -> Element:
     """Whom the character knows: allies, enemies, rivals and favours owed, each named
     and noted, called on once; and a way to write one down."""
@@ -248,9 +254,21 @@ def _contacts(
                     aria_label=t("contacts.note"),
                 ),
                 _faction_select(page, choices, contact.faction_id),
+                attitude_select(page, contact.attitude),
                 button(type="submit", class_="btn btn-sm")[t("contacts.save")],
             ],
+            attitude_pill(page, contact.attitude),
             small(class_="muted")[t(f"contacts.from.{contact.source}")] if contact.source else None,
+            seen_text(page, contact.last_seen, now, contact.world_id),
+            form(method="post", action=url, class_="inline-form")[
+                hidden("op", "contact_seen"),
+                hidden("contact", contact.id),
+                button(
+                    type="submit", class_="btn btn-sm btn-ghost", title=t("attitude.seen_now_hint")
+                )[icon("eye", "sm"), span[t("attitude.seen_now")]],
+            ]
+            if now is not None
+            else None,
             form(method="post", action=url, class_="inline-form")[
                 hidden("op", "contact_call"),
                 hidden("contact", contact.id),

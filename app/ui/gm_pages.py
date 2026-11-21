@@ -46,6 +46,7 @@ from app.ui.play_session_pages import session_url
 from app.ui.protocol_pages import headline
 from app.ui.sheet_pages import form_pill, speed_text
 from app.ui.tokens import token
+from app.ui.xp_pages import xp_notice
 
 PARTY_URL = "/gm"
 WORLDS_URL = "/gm/worlds"
@@ -398,6 +399,7 @@ def party_page(
     chase: Node = None,
     playing: Node = None,
     news: Node = None,
+    xp: Node = None,
 ) -> Element:
     """The gamemaster's landing screen: every character at the table, live; above it,
     ``news``, what changed in Paravent since the gamemaster last looked.
@@ -428,12 +430,14 @@ def party_page(
                     ]
                     if world is not None
                     else None,
+                    xp,
                     span(class_="cs-live", data_live_indicator="1", title=t("party.live_title"))[
                         span(class_="dot"), span[t("sheet.live")]
                     ],
                     _more_menu(page, world),
                 ],
             ),
+            xp_notice(page),
             news,
             _layout(
                 page,

@@ -99,5 +99,7 @@ player's decision.
 ## 8. Levelling
 
 XP comes from fights and quests, and the sheet shows how far each character has to go.
+For anything else — a riddle solved, a deal struck — **Award XP** on the party view gives
+the characters ticked the same amount each, or shares a total out; untick whoever was absent.
 A world set to **Level by milestones** awards and shows no XP; characters level when you
 grant it.

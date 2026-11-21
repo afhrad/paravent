@@ -159,6 +159,17 @@ class NpcService:
             )
         return saved
 
+    def set_attitude(self, npc_id: str, attitude: str) -> Npc:
+        """How the NPC stands toward the party; "" for nobody said."""
+        self.get(npc_id)
+        chosen = attitude if attitude in ("friendly", "indifferent", "hostile") else None
+        return self._store.npcs.update(npc_id, attitude=chosen)
+
+    def seen(self, npc_id: str, minute: int) -> Npc:
+        """The party met the NPC at ``minute`` of the world's clock."""
+        self.get(npc_id)
+        return self._store.npcs.update(npc_id, last_seen=max(0, minute))
+
     def upload_portrait(self, npc_id: str, filename: str, data: bytes) -> str:
         """Store a portrait beside the NPC's scope and use it."""
         npc = self.get(npc_id)

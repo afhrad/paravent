@@ -938,6 +938,7 @@ def _downtime(
             downtime=registry.downtime.of(character.id),
             start=start,
             contacts=registry.contacts.of(character.id),
+            now=registry.clock.of(character.world_id).minute if character.world_id else None,
             factions=[
                 FactionView(
                     faction,
@@ -1295,7 +1296,12 @@ async def change_downtime(
                 str(form.get("name", "")),
                 str(form.get("note", "")),
                 str(form.get("faction", "")),
+                str(form.get("attitude", "")) if "attitude" in form else None,
             )
+            message = None
+        elif op == "contact_seen":
+            minute = registry.clock.of(character.world_id).minute if character.world_id else 0
+            registry.contacts.seen(character.id, str(form.get("contact", "")), minute)
             message = None
         elif op == "contact_call":
             registry.contacts.call_on(character, str(form.get("contact", "")), user.username, name)

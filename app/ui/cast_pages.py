@@ -50,6 +50,7 @@ from app.services.references import ReferenceEntry
 from app.services.scope import encode
 from app.services.search import SearchResult
 from app.store.projections import ITEM_KIND_NAMES
+from app.ui.attitude import attitude_panel, attitude_pill
 from app.ui.auth_pages import message_panel
 from app.ui.book_pages import Mention
 from app.ui.context import Page
@@ -575,7 +576,12 @@ def npcs_page(
             token(page.token_of("npc", npc.scope.world_id, npc.id)),
             div(class_="list-main")[
                 a(href=npc_url(npc.id), class_="list-title list-link")[npc.name],
-                span(class_="list-meta")[role_pills(page, npc.roles), " ", _place_text(names)],
+                span(class_="list-meta")[
+                    attitude_pill(page, npc.attitude),
+                    role_pills(page, npc.roles),
+                    " ",
+                    _place_text(names),
+                ],
             ],
             delete_link(page, f"{npc_url(npc.id)}/delete", t("npcs.delete")),
         ]
@@ -702,8 +708,10 @@ def npc_page(
     ctx: RenderContext,
     *,
     notice_text: str | None = None,
+    now: int | None = None,
 ) -> Element:
-    """One NPC: portrait, roles, where they are, notes and statblock."""
+    """One NPC: portrait, roles, where they are, how they stand toward the party (``now``
+    the world's clock), notes and statblock."""
     t = page.t
     return app_shell(
         page,
@@ -723,6 +731,14 @@ def npc_page(
                     span(class_="eyebrow")[_place_text(place)],
                     h1[npc.name],
                     div(class_="npc-roles")[role_pills(page, npc.roles)],
+                    attitude_panel(
+                        page,
+                        f"{npc_url(npc.id)}/attitude",
+                        npc.attitude,
+                        npc.last_seen,
+                        now,
+                        world.id,
+                    ),
                     p(class_="field-hint")[
                         t("holdings.paste"), " ", _snippet(page, "npc", npc.name)
                     ],

@@ -332,6 +332,10 @@ class Scope(GameStateModel):
         return "adventure" if self.adventure_id else "world"
 
 
+# How someone of the campaign stands toward the party (the guides' attitudes).
+Attitude = Literal["friendly", "indifferent", "hostile"]
+
+
 class Npc(Record):
     """A person the gamemaster places in the story: a boss, an ally, a shopkeeper.
 
@@ -351,6 +355,10 @@ class Npc(Record):
     # What their name is made from: a naming style's race and culture (NAMES.md §5).
     race: str = ""
     culture: str = ""
+    # How they stand toward the party, and when they last met it by the world's clock
+    # (minutes since Day 1, 00:00); None while nobody said (app/ui/attitude.py).
+    attitude: Attitude | None = None
+    last_seen: int | None = None
 
 
 class Location(Record):
@@ -1275,6 +1283,9 @@ class Contact(Record):
     source: str = ""  # the downtime activity it came from ("carouse", "service")
     spent: bool = False
     faction_id: str | None = None  # the faction the contact belongs to
+    # How they stand toward the party, and when last seen by the world's clock.
+    attitude: Attitude | None = None
+    last_seen: int | None = None
 
 
 class ChaseRunner(GameStateModel):

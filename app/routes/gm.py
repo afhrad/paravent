@@ -81,6 +81,7 @@ from app.ui.gm_pages import (
 from app.ui.nav import WORLD_SECTIONS, world_section_of
 from app.ui.shop_pages import SHOP_URL, shop_panel
 from app.ui.trap_pages import TRAP_CATEGORIES, TRAPS_URL, spring_form, spring_result
+from app.ui.xp_pages import XP_DONE, XP_URL, xp_tool
 
 router = APIRouter(tags=["gamemaster"])
 
@@ -323,8 +324,42 @@ async def party(
             chase=_chase(page, registry, world_id),
             playing=_playing(page, registry, world_id),
             news=news_panel(page, registry.news.unseen(registry.places.get(_gm.user.id).news_seen)),
+            xp=xp_tool(page, chosen, _party_names(characters, world_id)),
         )
     )
+
+
+def _party_names(characters: CharacterService, world_id: str | None) -> list[tuple[str, str]]:
+    return [
+        (m.sheet.character.id, m.sheet.character.name or "?")
+        for m in characters.party(world_id)
+        if not m.sheet.character.in_wizard
+    ]
+
+
+@router.post(XP_URL)
+async def award_xp(
+    request: Request,
+    gm: GamemasterDep,
+    characters: CharactersDep,
+    worlds: WorldsDep,
+) -> Response:
+    """Experience for a challenge that was no fight, to the characters ticked: each the
+    amount, or the amount shared out evenly (rounded down); logged with its reason."""
+    form = await request.form()
+    world = worlds.find(str(form.get("world", "")))
+    present = dict(_party_names(characters, world.id if world else None))
+    chosen = [str(c) for c in form.getlist("to") if str(c) in present]
+    raw = str(form.get("xp", ""))
+    amount = int(raw) if raw.isdigit() else 0
+    if world is None or world.milestone or amount < 1 or not chosen:
+        return redirect("/gm?tool=xp")
+    each = amount // len(chosen) if form.get("how") == "split" else amount
+    reason = " ".join(str(form.get("reason", "")).split())[:200]
+    by = gm.user.display_name or gm.user.username
+    for character_id in chosen:
+        characters.award_xp(character_id, min(each, 1_000_000), reason, by)
+    return redirect(f"/gm?{urlencode({XP_DONE: f'{each}:{len(chosen)}'})}")
 
 
 @router.post(NEWS_SEEN_URL)
