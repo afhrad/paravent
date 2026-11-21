@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-21T12:27:58+01:00",
+  "en": "Import a campaign from a Game Master 5e backup: its adventures, scenes, fights, NPCs and treasure come over into a new world, creatures matched in your books and home-made ones as your own creatures.",
+  "de": "Eine Kampagne aus einer Sicherung von Game Master 5e importieren: Abenteuer, Szenen, Kämpfe, NSC und Schätze kommen in eine neue Welt, die Kreaturen aus deinen Büchern, eigene als eigene Kreaturen."
+ },
+ {
   "at": "2026-11-20T18:10:58+01:00",
   "en": "Challenge ratings stand out as framed badges, every list makes new things in a dialog, and the editors offer every callout from a menu.",
   "de": "Herausforderungsgrade stehen als gerahmte Abzeichen hervor, jede Liste legt Neues in einem Dialog an, und die Editoren bieten jeden Kasten aus einem Menü."
@@ -293,10 +298,5 @@
   "at": "2026-11-16T19:59:41+01:00",
   "en": "The session note now lists XP, levels, what each character received, bastion turns and downtime; phone layouts and German texts on the sheet, clock and session pages are tidied; character sheets load faster.",
   "de": "Die Sitzungsnotiz nennt jetzt auch EP, Stufenaufstiege, was jeder Charakter erhielt, Bastionszüge und Auszeit; Handy-Ansichten und deutsche Texte auf Bogen, Uhr und Sitzungsseite sind aufgeräumt; Charakterbögen laden schneller."
- },
- {
-  "at": "2026-11-16T19:02:19+01:00",
-  "en": "Double presses no longer sell twice or run a bastion turn twice; supper comes after an encounter at day's end; chases count existing exhaustion; players can no longer add strong creatures as followers or free defenders.",
-  "de": "Doppelte Klicks verkaufen nicht mehr doppelt und starten keinen zweiten Bastionszug; nach einer Begegnung am Tagesende gibt es trotzdem Abendessen; Verfolgungsjagden zählen vorhandene Erschöpfung; Spieler können keine starken Kreaturen als Gefolge oder kostenlose Verteidiger mehr hinzufügen."
  }
 ]
