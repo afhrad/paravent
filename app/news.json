@@ -1,5 +1,15 @@
 [
  {
+  "at": "2026-11-21T13:59:24+01:00",
+  "en": "Importing a Game Master 5e backup brings every campaign you tick into one new world, each campaign one adventure with its adventures as chapters.",
+  "de": "Der Import einer Game-Master-5e-Sicherung bringt alle angehakten Kampagnen in eine neue Welt, jede Kampagne ein Abenteuer mit ihren Abenteuern als Kapiteln."
+ },
+ {
+  "at": "2026-11-21T13:59:20+01:00",
+  "en": "A settlement can be named by your world's naming styles as it is rolled, its tavern too. Claude now knows how NPCs stand toward the party and can roll settlements for the places it writes.",
+  "de": "Eine Siedlung lässt sich beim Erwürfeln nach den Namensstilen deiner Welt benennen, ihre Taverne auch. Claude kennt nun die Haltung der NSC zur Gruppe und kann Siedlungen für die Orte erwürfeln, die es schreibt."
+ },
+ {
   "at": "2026-11-21T13:36:44+01:00",
   "en": "Roll a place as a settlement: its size, government, leader, what it is known for, its trouble, a tavern and shops from your guide's tables, each part again on its own.",
   "de": "Einen Ort als Siedlung erwürfeln: Größe, Regierung, Führung, wofür er bekannt ist, sein Unheil, eine Taverne und Läden aus den Tabellen deines Spielleiterhandbuchs, jeder Teil einzeln neu."
@@ -288,15 +298,5 @@
   "at": "2026-11-18T22:52:19+01:00",
   "en": "Places, encounters, quests and factions have a title image you can drop on their page; tokens are for NPCs, monsters, characters and treasure.",
   "de": "Orte, Begegnungen, Aufträge und Fraktionen haben ein Titelbild, das sich auf ihre Seite ziehen lässt; Token gibt es für NSC, Monster, Figuren und Schätze."
- },
- {
-  "at": "2026-11-18T22:27:27+01:00",
-  "en": "The table shows what is in play: the running adventures and chapters, one tap away.",
-  "de": "Der Spieltisch zeigt, was im Spiel ist: die laufenden Abenteuer und Kapitel, einen Tipp entfernt."
- },
- {
-  "at": "2026-11-18T22:27:26+01:00",
-  "en": "Saving a chapter with an encounter or a box in it works again.",
-  "de": "Ein Kapitel mit Begegnung oder Kasten lässt sich wieder speichern."
  }
 ]
