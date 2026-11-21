@@ -105,6 +105,13 @@ Entscheidung des Spielers.
   Erschöpfung mehr oder weniger oder ein sinkender SG, wie es im Buch steht. **Endet** auf
   dem Bogen heilt sie. Ein **Fluch** ist deiner: *Einen Fluch auferlegen* in der
   Ansicht *Verbrauch* des Bogens, mit Namen und Wirkung.
+- **Wahnsinn** in der Spielübersicht trifft auf etwas Grauenvolles: Hake an, wen es
+  trifft, lege Rettungswurf und SG fest und gib psychischen Schaden dazu, wenn es geistige
+  Belastung ist. Wer scheitert, erleidet den Schaden und den gewählten Wahnsinn —
+  kurzzeitig (1W10 Minuten), langzeitig (1W10 × 10 Stunden) oder unbefristet —, für jede
+  Figur einzeln auf der Tabelle deines Handbuchs ausgewürfelt, mit ihren Zuständen. Er
+  steht in der Ansicht *Verbrauch* des Bogens, vergeht mit der Uhr der Welt, und **Endet**
+  dort heilt ihn.
 
 ## 8. Stufenaufstieg
 

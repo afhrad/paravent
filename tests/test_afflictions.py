@@ -203,7 +203,7 @@ async def test_at_the_table(table: tuple[AsyncClient, StoreRegistry, str]) -> No
     assert "carries it" in done.text
     (held,) = registry.gamestate.characters.get(lyra).state.afflictions
     sheet = (await ac.get(f"/characters/{lyra}")).text
-    assert "Diseases, poisons and curses" in sheet and "Not showing yet" in sheet
+    assert "Diseases, poisons, curses and madness" in sheet and "Not showing yet" in sheet
     # The world's clock carries it on: after five days its symptoms have shown (and the
     # dawn saves since may have cured it already).
     registry.clock.advance(world or "", 5 * DAY, "dm", "DM")

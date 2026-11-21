@@ -40,6 +40,7 @@ from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.library_links import adventure_url, chapter_url, world_url
+from app.ui.madness_pages import madness_notice
 from app.ui.names import class_line, name_text
 from app.ui.play_buttons import play_button
 from app.ui.play_session_pages import session_url
@@ -400,6 +401,7 @@ def party_page(
     playing: Node = None,
     news: Node = None,
     xp: Node = None,
+    madness: Node = None,
 ) -> Element:
     """The gamemaster's landing screen: every character at the table, live; above it,
     ``news``, what changed in Paravent since the gamemaster last looked.
@@ -431,6 +433,7 @@ def party_page(
                     if world is not None
                     else None,
                     xp,
+                    madness,
                     span(class_="cs-live", data_live_indicator="1", title=t("party.live_title"))[
                         span(class_="dot"), span[t("sheet.live")]
                     ],
@@ -438,6 +441,7 @@ def party_page(
                 ],
             ),
             xp_notice(page),
+            madness_notice(page),
             news,
             _layout(
                 page,

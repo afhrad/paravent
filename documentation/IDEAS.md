@@ -20,7 +20,6 @@ milestone levelling, the reference screens, safety tools.
 | --- | --- | --- | --- | --- |
 | More of the road | both | Foraging, getting lost and navigation each travelling day; encounter distance and surprise when one comes up | travel has none of these | M |
 | Optional combat rules | 2014 | World switches the tracker applies: morale, massive damage, lingering injuries, mobs, side initiative | not covered | M |
-| Madness, fear and stress | both | Short-, long-term and indefinite effects rolled and put on with a timer | not covered | S |
 | Crafting magic items | both | A downtime project by rarity (time, cost, tool) | mundane items and scrolls only | M |
 
 ### Smaller

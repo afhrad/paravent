@@ -48,6 +48,7 @@ from app.services.current_world import world_of_page
 from app.services.dice import Advantage
 from app.services.downtime import DowntimeError
 from app.services.events import PARTY, revision_stream
+from app.services.madness import rolls_2014
 from app.services.play import Actor, PlayError
 from app.services.player_view import player_choice, player_ticks
 from app.services.references import ReferenceNotFound
@@ -78,6 +79,7 @@ from app.ui.gm_pages import (
     world_form,
     world_form_page,
 )
+from app.ui.madness_pages import madness_tool
 from app.ui.nav import WORLD_SECTIONS, world_section_of
 from app.ui.shop_pages import SHOP_URL, shop_panel
 from app.ui.trap_pages import TRAP_CATEGORIES, TRAPS_URL, spring_form, spring_result
@@ -325,6 +327,12 @@ async def party(
             playing=_playing(page, registry, world_id),
             news=news_panel(page, registry.news.unseen(registry.places.get(_gm.user.id).news_seen)),
             xp=xp_tool(page, chosen, _party_names(characters, world_id)),
+            madness=madness_tool(
+                page,
+                chosen,
+                _party_names(characters, world_id),
+                tables=rolls_2014(lambda c, b: registry.book_table(world_id, c, b)),
+            ),
         )
     )
 

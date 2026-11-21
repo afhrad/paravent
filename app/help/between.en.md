@@ -95,6 +95,12 @@ player's decision.
   more or less, or a falling DC, as the books say. **Ends** on the sheet cures it. A
   **curse** is your own: *Put a curse on* in the sheet's Track view, with a name and what
   it does.
+- **Madness** on the party view meets something horrifying: tick who faces it, set the
+  saving throw and its DC, and add psychic damage if it is mental stress. Whoever fails
+  takes the damage and the madness you chose — short-term (1d10 minutes), long-term
+  (1d10 × 10 hours) or indefinite — each rolled on its own on your guide's table, its
+  conditions put on. It shows in the sheet's Track view, wears off by the world's clock,
+  and **Ends** there cures it.
 
 ## 8. Levelling
 

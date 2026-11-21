@@ -619,6 +619,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         contact stands toward the party (friendly, indifferent, hostile) and when the party
         last met them by the world's clock (**Seen now**), on the NPC's page and in the list,
         and on the downtime page's contacts
+  - [x] **Madness** (2026-11-21, `app/services/madness.py`, `POST /gm/madness`): from the
+        party view, a save the gamemaster sets, psychic damage for mental stress, and for
+        whoever fails a short-term, long-term or indefinite madness, each rolled on its own
+        on the 2014 guide's tables where the world has them (their conditions put on), else
+        as the 2024 guide's effects; carried as an affliction, worn off by the clock
   - [x] **Followers** (2026-11-16, `app/services/followers.py`, a character's
         Followers page): skilled and untrained hirelings at the handbook's wage, paid
         from the purse every day the clock passes (logged with what is owed); companions,

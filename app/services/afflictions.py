@@ -1,4 +1,4 @@
-"""Diseases, poisons and curses carried by characters, run by the world's clock.
+"""Diseases, poisons, curses and madness carried by characters, run by the world's clock.
 
 A disease's or poison's text says in prose what it does. The reader takes what is
 mechanics, as the trap reader does (app/services/traps.py): the saving throw that
@@ -30,6 +30,7 @@ from typing import Any
 from app.models.pc import Affliction, PlayerCharacter
 from app.models.protocol import EntryKind, ProtocolEntry, Scope, Visibility
 from app.services.dice import Dice, DiceError
+from app.services.madness import MadEffect
 from app.services.traps import (
     _CONDITION,
     _DAMAGE,
@@ -42,7 +43,7 @@ from app.store.gamestate import GameStateStore
 
 DAY = 24 * 60
 DAWN = 6 * 60  # the hour a "daily at dawn" save is rolled
-KINDS = ("disease", "poison", "curse")
+KINDS = ("disease", "poison", "curse", "madness")
 _UNIT = {"minute": 1, "hour": 60, "day": DAY}
 _WORDS = {"one": 1, "a": 1, "an": 1, "two": 2, "three": 3}
 _COURSE = re.compile(
@@ -405,6 +406,81 @@ class AfflictionService:
                 Visibility.PUBLIC,
             )
         return curse if pc is not None else None
+
+    def madden(
+        self,
+        world_id: str,
+        name: str,
+        roll: Callable[[], MadEffect] | None,
+        victims: Sequence[Victim],
+        *,
+        save: tuple[str, int] | None,
+        damage: str,
+        half: bool,
+        by: str,
+        by_name: str,
+    ) -> list[Outcome]:
+        """Madness or mental stress on ``victims`` (app/services/madness.py): each rolls
+        ``save`` (ability, DC) on its sheet where given; on a failure, or at once without
+        one, takes the psychic ``damage`` (rolled once for all; half on a success with
+        ``half``) and, with ``roll``, a madness of its own, named ``name``."""
+        out: list[Outcome] = []
+        now = self._now(world_id)
+        dealt = self._roll(damage) if damage else 0
+        for victim in victims:
+            outcome = Outcome(victim.character_id, victim.name)
+            if save is not None:
+                outcome.roll = self._save(victim.character_id, save[0])
+                outcome.dc = save[1]
+                outcome.caught = outcome.roll < save[1]
+            if dealt and (outcome.caught or half):
+                amount = dealt if outcome.caught else dealt // 2
+                outcome.damage = _taken(amount, "psychic", victim)
+            if outcome.caught and roll is not None:
+                effect = roll()
+                outcome.lasting = True
+                outcome.conditions = self._carry_madness(
+                    world_id, victim.character_id, name, effect, now
+                )
+            out.append(outcome)
+            if outcome.damage:
+                self._hurt(victim.character_id, outcome.damage)
+            self._log(
+                world_id,
+                by,
+                by_name,
+                victim.character_id,
+                victim.name,
+                f"affliction:caught:madness:{_safe(name)}:{_n(outcome.roll)}:{_n(outcome.dc)}:"
+                f"{int(outcome.caught)}:{outcome.damage}",
+                Visibility.PUBLIC,
+            )
+        return out
+
+    def _carry_madness(
+        self, world_id: str, character_id: str, name: str, effect: MadEffect, now: int
+    ) -> tuple[str, ...]:
+        """Keep a madness on the character, its conditions put on now."""
+        lasts = max(1, self._roll(effect.lasts)) * effect.unit if effect.lasts else 0
+        madness = Affliction(
+            id=uuid.uuid4().hex[:12],
+            kind="madness",
+            name=name[:200],
+            note=effect.text[:2000],
+            since=now,
+            ends=now + lasts if lasts else None,
+            pending_conditions=list(effect.conditions),
+        )
+        put: list[str] = []
+
+        def change(pc: PlayerCharacter) -> None:
+            held = madness.model_copy(deep=True)
+            put.clear()
+            put.extend(_show(pc, held, self._known))
+            pc.state.afflictions = [*pc.state.afflictions, held]
+
+        self._mutate(character_id, change)
+        return tuple(put)
 
     # -- ending ---------------------------------------------------------------------
 

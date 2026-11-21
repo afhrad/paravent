@@ -4,20 +4,27 @@
 * ``POST /gm/afflictions/afflict``         — put it on the ticked characters
 * ``POST /gm/afflictions/{character}/end``   — it ends on the character (cured)
 * ``POST /gm/afflictions/{character}/curse`` — a curse of the gamemaster's own
+* ``POST /gm/madness``                      — madness or mental stress on the ticked
 """
 
 from __future__ import annotations
 
+from dataclasses import replace
+from urllib.parse import urlencode
+
 from fastapi import APIRouter, Request
-from fastapi.responses import HTMLResponse, Response
+from fastapi.responses import HTMLResponse, RedirectResponse, Response
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep, WorldsDep
 from app.routes.auth import html
 from app.services.afflictions import AfflictionEffect, Victim, read_affliction
+from app.services.dice import Dice, is_expression
+from app.services.madness import LEVELS, MadEffect, roll_madness
 from app.services.references import ReferenceNotFound
 from app.store.registry import StoreRegistry
 from app.ui.affliction_pages import AFFLICTIONS_URL, afflict_form, afflict_result, afflicts
 from app.ui.forms import alert
+from app.ui.madness_pages import MADNESS_DONE, MADNESS_URL, SAVES
 
 router = APIRouter(tags=["afflictions"])
 
@@ -118,21 +125,7 @@ async def afflict(
     if not chosen:
         result = alert(page.t("trap.error.no_one"))
     else:
-        victims = []
-        for cid in chosen:
-            pc = registry.gamestate.characters.find(cid)
-            if pc is None:
-                continue
-            sheet = registry.characters.sheet(pc)
-            victims.append(
-                Victim(
-                    cid,
-                    known[cid],
-                    resist=tuple(sheet.defended("resist")),
-                    immune=tuple(sheet.defended("immune")),
-                    vulnerable=tuple(sheet.defended("vulnerable")),
-                )
-            )
+        victims = _victims(registry, chosen, known)
         outcomes = registry.afflictions.afflict(
             world_id,
             kind,
@@ -185,6 +178,84 @@ async def put_curse(
             user.display_name or user.username,
         )
     return _back(request, character_id)
+
+
+def _victims(registry: StoreRegistry, chosen: list[str], known: dict[str, str]) -> list[Victim]:
+    """The ticked characters with the defences their sheets give."""
+    victims = []
+    for cid in chosen:
+        pc = registry.gamestate.characters.find(cid)
+        if pc is None:
+            continue
+        sheet = registry.characters.sheet(pc)
+        victims.append(
+            Victim(
+                cid,
+                known[cid],
+                resist=tuple(sheet.defended("resist")),
+                immune=tuple(sheet.defended("immune")),
+                vulnerable=tuple(sheet.defended("vulnerable")),
+            )
+        )
+    return victims
+
+
+@router.post(MADNESS_URL)
+async def madden(
+    request: Request, gm: GamemasterDep, page: PageDep, worlds: WorldsDep, registry: RegistryDep
+) -> Response:
+    """Madness or mental stress on the ticked characters (app/services/madness.py): the
+    save set, psychic damage, and a grade of madness rolled for each who fails."""
+    form = await request.form()
+    world = worlds.find(str(form.get("world", "")))
+    known = (
+        {
+            pc.id: pc.name or "?"
+            for pc in registry.gamestate.characters.of_world(world.id, drafts=False)
+        }
+        if world is not None
+        else {}
+    )
+    chosen = list(dict.fromkeys(str(c) for c in form.getlist("to") if str(c) in known))
+    level = str(form.get("level", ""))
+    level = level if level in LEVELS else ""
+    ability = str(form.get("ability", ""))
+    raw_dc = str(form.get("dc", ""))
+    save = (ability, min(int(raw_dc), 30)) if ability in SAVES and raw_dc.isdigit() else None
+    damage = "".join(str(form.get("damage", "")).split())[:20]
+    if damage and not is_expression(damage):
+        damage = ""
+    if world is None or not chosen or not (level or damage):
+        return RedirectResponse("/gm?tool=madness", status_code=303)
+    t = page.t
+    dice = Dice()
+
+    def rolled() -> MadEffect:
+        effect = roll_madness(
+            level,
+            lambda caption, books: registry.book_table(world.id, caption, books),
+            dice,
+        )
+        # The 2024 guide's longer effects are words of the reader's, not a table's.
+        if not effect.text and not effect.conditions:
+            return replace(effect, text=t("madness.disadvantage"))
+        return effect
+
+    user = gm.user
+    outcomes = registry.afflictions.madden(
+        world.id,
+        t(f"madness.level.{level}") if level else t("madness.stress"),
+        rolled if level else None,
+        _victims(registry, chosen, known),
+        save=save,
+        damage=damage,
+        half=bool(form.get("half")),
+        by=user.username,
+        by_name=user.display_name or user.username,
+    )
+    failed = sum(1 for o in outcomes if o.caught)
+    query = urlencode({MADNESS_DONE: f"{failed}:{len(outcomes)}"})
+    return RedirectResponse(f"/gm?{query}", status_code=303)
 
 
 def _back(request: Request, character_id: str) -> Response:
