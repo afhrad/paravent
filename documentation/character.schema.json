@@ -93,7 +93,7 @@
     },
     "Affliction": {
       "additionalProperties": false,
-      "description": "A disease, poison or curse a character carries (app/services/afflictions.py).\n\nWhat its text says is read once, when it is caught, and kept here: ``onset`` is the\nworld clock's minute its symptoms show (None once they have, or for one that shows at\nonce), when ``pending_exhaustion`` and ``pending_conditions`` are put on; ``ends`` the\nminute it wears off by itself (a poison's hour). ``conditions`` are those it put on,\ntaken off with it; ``exhaustion`` the levels it holds through rests until it ends.\n``course`` is when the character saves against it (``long_rest`` or ``dawn``), at\n``dc`` with ``ability``, and ``rule`` what the saves do: ``exhaustion`` (a failure adds\na level, a success takes one, cured at none), ``three`` (cured after three successes)\nor ``dc_drop`` (a success lowers the DC by ``drop``, cured at 0); none leaves it to\nthe table. A curse is the gamemaster's: its name and ``note``.",
+      "description": "A disease, poison or curse a character carries (app/services/afflictions.py).\n\nWhat its text says is read once, when it is caught, and kept here: ``onset`` is the\nworld clock's minute its symptoms show (None once they have, or for one that shows at\nonce), when ``pending_exhaustion`` and ``pending_conditions`` are put on; ``ends`` the\nminute it wears off by itself (a poison's hour). ``conditions`` are those it put on,\ntaken off with it; ``exhaustion`` the levels it holds through rests until it ends.\n``course`` is when the character saves against it (``long_rest`` or ``dawn``), at\n``dc`` with ``ability``, and ``rule`` what the saves do: ``exhaustion`` (a failure adds\na level, a success takes one, cured at none), ``three`` (cured after three successes)\nor ``dc_drop`` (a success lowers the DC by ``drop``, cured at 0); none leaves it to\nthe table. A curse is the gamemaster's: its name and ``note``. Madness\n(app/services/madness.py) keeps its grade as ``name``, what the table says as ``note``.",
       "properties": {
         "id": {
           "title": "Id",
@@ -103,7 +103,8 @@
           "enum": [
             "disease",
             "poison",
-            "curse"
+            "curse",
+            "madness"
           ],
           "title": "Kind",
           "type": "string"
@@ -375,6 +376,69 @@
       ],
       "title": "DraftStatus",
       "type": "string"
+    },
+    "Gift": {
+      "additionalProperties": false,
+      "description": "A supernatural gift a character holds (app/services/gifts.py): a blessing, a charm\nor a boon of the world's books, ``gift`` naming it. ``kind`` is the book's word for\nit (\"charm\"). A charm's ``uses`` are read from its text when it is given (None for a\ngift that does not wear out) and ``used`` counts them; it vanishes once all are used.\n``ends`` is the world clock's minute it fades by itself (\"lasts for 10 days\").",
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "gift": {
+          "$ref": "#/$defs/ChosenOption"
+        },
+        "kind": {
+          "default": "",
+          "maxLength": 40,
+          "title": "Kind",
+          "type": "string"
+        },
+        "uses": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uses"
+        },
+        "used": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Used",
+          "type": "integer"
+        },
+        "since": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Since",
+          "type": "integer"
+        },
+        "ends": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ends"
+        }
+      },
+      "required": [
+        "id",
+        "gift"
+      ],
+      "title": "Gift",
+      "type": "object"
     },
     "GivenName": {
       "additionalProperties": false,
@@ -1133,6 +1197,20 @@
     },
     "currency": {
       "$ref": "#/$defs/Currency"
+    },
+    "gifts": {
+      "items": {
+        "$ref": "#/$defs/Gift"
+      },
+      "title": "Gifts",
+      "type": "array"
+    },
+    "formulas": {
+      "items": {
+        "$ref": "#/$defs/ChosenOption"
+      },
+      "title": "Formulas",
+      "type": "array"
     },
     "lifestyle": {
       "default": "",

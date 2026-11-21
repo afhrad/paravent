@@ -20,12 +20,9 @@ milestone levelling, the reference screens, safety tools.
 | --- | --- | --- | --- | --- |
 | More of the road | both | Foraging, getting lost and navigation each travelling day; encounter distance and surprise when one comes up | travel has none of these | M |
 | Optional combat rules | 2014 | World switches the tracker applies: morale, massive damage, lingering injuries, mobs, side initiative | not covered | M |
-| Crafting magic items | both | A downtime project by rarity (time, cost, tool) | mundane items and scrolls only | M |
 
 ### Smaller
 
-- **Supernatural gifts** — grant a blessing or charm to a character, a charm's uses kept as a
-  resource (gifts can be browsed; epic boons arrive as feats). S
 - **Divine intervention** — a pantheon per world and the intervention roll. S
 - **Marks of prestige** — titles, land, medals and favours on a character's story. S
 - **Running costs** — businesses and garrisons charged by the clock, like lifestyle and wages. S

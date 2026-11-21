@@ -2807,6 +2807,12 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .downtime-result li{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 .downtime-complication{ display:inline-flex; align-items:center; gap:6px; flex-wrap:wrap; color:var(--cond-text); }
 .downtime-offers{ grid-column:1 / -1; }
+/* A magic item formula: its name and buttons on a line, what it takes beneath. */
+.downtime-formula{ display:grid; gap:2px; padding:6px 0; border-bottom:1px solid var(--border); }
+.downtime-formula-head{ display:flex; align-items:center; flex-wrap:wrap; gap:6px 10px; }
+.downtime-formula-head > b{ margin-right:auto; }
+.downtime-formula-head > .inline-form{ flex-basis:auto; }
+.downtime-missing{ margin:2px 0 0; padding-left:18px; color:var(--cond-text); font-size:.9em; }
 .party-travel-weather{ font-size:.9rem; }
 .bastion-yields{ display:grid; gap:10px; margin-bottom:16px; }
 .bastion-yield-list{ list-style:none; margin:0; padding:0; display:grid; gap:4px; }

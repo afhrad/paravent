@@ -528,6 +528,22 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             return _trap_words(page, rest.split(":"))
         if head == "affliction":
             return _affliction_words(page, rest.split(":"))
+        if head == "formula":
+            step, _, ref = rest.partition(":")
+            item = name_text(page, "item", ref.partition("|")[0])
+            return t(f"protocol.formula_{step}", name=item)
+        if head == "gift":
+            step, _, more = rest.partition(":")
+            if step == "granted":
+                _kind, _, ref = more.partition(":")
+                name = ref.partition("|")[0]
+                return t("protocol.gift_granted", name=t.term("reward", name) or name)
+            ref, _, tail = more.rpartition(":")
+            name = ref.partition("|")[0]
+            shown = t.term("reward", name) or name
+            if step == "used":
+                return t("protocol.gift_used", name=shown, left=tail)
+            return t(f"protocol.gift_gone_{tail}", name=shown)
         if head == "scroll":
             used, spell_ref, kept, *check = [*rest.split(":"), ""][:5]
             spell_name = name_text(page, "spell", spell_ref.partition("|")[0])
@@ -785,7 +801,7 @@ def _project_words(page: Page, kind: str, label: str) -> str:
         return str(name_text(page, categories, ref.partition("|")[0]))
     if kind == "scribe":
         return str(name_text(page, "spell", label.partition(";")[2].partition("|")[0]))
-    if kind == "sell_magic":
+    if kind in ("sell_magic", "enchant"):
         return str(name_text(page, "item", label.partition("|")[0]))
     if kind == "carouse":
         return page.t(f"downtime.class_name.{label}")

@@ -452,6 +452,27 @@ class Affliction(GameStateModel):
         return self.onset is None
 
 
+class Gift(GameStateModel):
+    """A supernatural gift a character holds (app/services/gifts.py): a blessing, a charm
+    or a boon of the world's books, ``gift`` naming it. ``kind`` is the book's word for
+    it ("charm"). A charm's ``uses`` are read from its text when it is given (None for a
+    gift that does not wear out) and ``used`` counts them; it vanishes once all are used.
+    ``ends`` is the world clock's minute it fades by itself ("lasts for 10 days")."""
+
+    id: str
+    gift: ChosenOption
+    kind: str = Field(default="", max_length=40)
+    uses: int | None = Field(default=None, ge=1)
+    used: int = Field(default=0, ge=0)
+    since: int = Field(default=0, ge=0)
+    ends: int | None = Field(default=None, ge=0)
+
+    @property
+    def left(self) -> int | None:
+        """Uses still to come, None for a gift that does not wear out."""
+        return None if self.uses is None else max(0, self.uses - self.used)
+
+
 _HIT_DIE = re.compile(r"^d(4|6|8|10|12|20)$")
 _SLOT_LEVEL = re.compile(r"^[1-9]$")
 
@@ -685,6 +706,11 @@ class PlayerCharacter(Record):
 
     inventory: list[InventoryItem] = Field(default_factory=list)
     currency: Currency = Field(default_factory=Currency)
+    # Supernatural gifts the gamemaster gave: blessings, charms, boons (app/services/gifts.py).
+    gifts: list[Gift] = Field(default_factory=list)
+    # Magic item formulas the gamemaster gave, each an item the character may craft in
+    # downtime (app/services/magic_crafting.py): ``["Wand of Magic Missiles|XDMG"]``.
+    formulas: list[ChosenOption] = Field(default_factory=list)
     # How the character lives between adventures (app/services/lifestyle.py): each day
     # the world's clock passes off the road costs that from the purse. "" for none kept.
     lifestyle: Literal[
@@ -860,6 +886,7 @@ __all__ = [
     "Currency",
     "DeathSaves",
     "DraftStatus",
+    "Gift",
     "InventoryItem",
     "LogEntry",
     "LogKind",

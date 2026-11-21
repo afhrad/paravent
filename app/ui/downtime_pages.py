@@ -41,6 +41,7 @@ from app.services.activities import (
 from app.services.contacts import KINDS as CONTACT_KINDS
 from app.services.downtime import DAILY, RECUPERATING_DAYS
 from app.services.factions import Reward
+from app.services.magic_crafting import Plan
 from app.ui.attitude import attitude_pill, attitude_select, seen_text
 from app.ui.context import Page
 from app.ui.forms import alert, hidden, notice
@@ -76,6 +77,19 @@ class StartOptions:
     scrolls: Sequence[tuple[str, int, int, int]] = ()
     activities: bool = False
     magic: Sequence[tuple[str, str, str]] = field(default=())
+    # The magic item formulas held, each with how it would be crafted (None: the rule
+    # has no row for it), and the guide the world crafts by (None: no rule).
+    formulas: Sequence[FormulaView] = ()
+    craft_book: str | None = None
+
+
+@dataclass(frozen=True)
+class FormulaView:
+    """A magic item formula the character holds, as it would be crafted."""
+
+    ref: str
+    name: str
+    plan: Plan | None
 
 
 def project_label(page: Page, project: DowntimeProject) -> str:
@@ -89,7 +103,7 @@ def project_label(page: Page, project: DowntimeProject) -> str:
         return page.t(f"downtime.class_name.{project.label}")
     if project.kind in ("gamble",):
         return coin_text(page, int(project.label)) if project.label.isdigit() else ""
-    if project.kind == "sell_magic":
+    if project.kind in ("sell_magic", "enchant"):
         return str(name_text(page, "item", project.label.partition("|")[0]))
     if project.kind == "train":
         kind, _, ref = project.label.partition(":")
@@ -160,6 +174,14 @@ def downtime_page(
                 div(class_="panel-head")[h2[t("downtime.start")]],
                 _start(page, url, start),
             ],
+            _formulas(
+                page,
+                url,
+                start,
+                gamemaster=page.identity is not None and page.identity.is_gamemaster,
+            )
+            if start.formulas
+            else None,
             section(class_="panel downtime-new")[
                 div(class_="panel-head")[h2[t("downtime.activities")]],
                 p(class_="muted")[t("downtime.activities_hint")],
@@ -177,6 +199,74 @@ def downtime_page(
             else None,
         ],
     )
+
+
+def _formulas(page: Page, url: str, start: StartOptions, *, gamemaster: bool) -> Element:
+    """The magic item formulas held: what each takes and costs by the world's guide, what
+    the character still lacks, and a way to begin; the gamemaster takes one back."""
+    t = page.t
+    rows = []
+    for formula in start.formulas:
+        plan = formula.plan
+        facts: list[str] = []
+        if plan is not None:
+            facts.append(t(f"downtime.rarity.{plan.rarity}"))
+            facts.append(t.plural("crafting.days", plan.days, n=plan.days))
+            if plan.daily:
+                facts.append(
+                    t(
+                        "crafting.per_day",
+                        coins=coin_text(page, plan.daily),
+                        total=coin_text(page, plan.daily * plan.days),
+                    )
+                )
+            elif plan.paid:
+                facts.append(coin_text(page, plan.paid))
+            if plan.ingredient:
+                facts.append(t("crafting.ingredient", cr=plan.ingredient))
+        rows.append(
+            li(class_="downtime-formula")[
+                div(class_="downtime-formula-head")[
+                    b[formula.name],
+                    form(method="post", action=url, class_="inline-form")[
+                        hidden("op", "start"),
+                        hidden("kind", "enchant"),
+                        hidden("item", formula.ref),
+                        button(type="submit", class_="btn btn-sm btn-primary")[t("downtime.begin")],
+                    ]
+                    if plan is not None and plan.possible
+                    else None,
+                    form(method="post", action=url, class_="inline-form")[
+                        hidden("op", "formula_drop"),
+                        hidden("item", formula.ref),
+                        button(type="submit", class_="btn btn-sm btn-ghost")[t("crafting.forget")],
+                    ]
+                    if gamemaster
+                    else None,
+                ],
+                small(class_="muted")[" · ".join(facts)] if facts else None,
+                small(class_="muted")[t("crafting.no_row")]
+                if plan is None and start.craft_book
+                else None,
+                ul(class_="downtime-missing")[
+                    [
+                        li[t(f"crafting.missing.{key}", what=what)]
+                        for key, what in (plan.missing if plan is not None else ())
+                    ]
+                ]
+                if plan is not None and plan.missing
+                else None,
+            ]
+        )
+    return section(class_="panel downtime-new")[
+        div(class_="panel-head")[h2[t("crafting.heading")]],
+        p(class_="muted")[
+            t(f"crafting.lede.{start.craft_book.lower()}")
+            if start.craft_book
+            else t("crafting.no_rule")
+        ],
+        ul(class_="downtime-list")[rows],
+    ]
 
 
 def _factions(page: Page, factions: Sequence[FactionView]) -> Element:

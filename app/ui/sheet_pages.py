@@ -94,6 +94,7 @@ from app.ui.context import Page
 from app.ui.downtime_pages import sheet_downtime_link
 from app.ui.follower_pages import sheet_followers_link
 from app.ui.forms import hidden
+from app.ui.gift_pages import sheet_gifts
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.names import ITEM, name_span, name_text, named, origin_text, training_text
@@ -1955,8 +1956,9 @@ def _right(page: Page, sheet: Sheet) -> Element:
         log_embed_slot(Filter("character", character=sheet.character.id)),
     ]
     afflictions = sheet_afflictions(page, sheet.character, sheet.clock)
+    gifts = sheet_gifts(page, sheet.character)
     return aside(class_="cs-right")[
-        concentration, slots, resources, conditions, afflictions, rest, log
+        concentration, slots, resources, conditions, afflictions, gifts, rest, log
     ]
 
 

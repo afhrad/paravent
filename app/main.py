@@ -43,6 +43,8 @@ from app.routes import current_world as current_world_routes
 from app.routes import editor as editor_routes
 from app.routes import encounters as encounter_routes
 from app.routes import factions as faction_routes
+from app.routes import formulas as formula_routes
+from app.routes import gifts as gift_routes
 from app.routes import glossary as glossary_routes
 from app.routes import gm as gm_routes
 from app.routes import gm5_import as gm5_import_routes
@@ -346,6 +348,8 @@ def create_app() -> FastAPI:
     app.include_router(world_transfer_routes.router)
     app.include_router(gm5_import_routes.router)
     app.include_router(story_seed_routes.router)
+    app.include_router(gift_routes.router)
+    app.include_router(formula_routes.router)
     app.include_router(world_links_routes.router)
     app.include_router(home_routes.router)
     app.include_router(players_routes.router)

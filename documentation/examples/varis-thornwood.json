@@ -50,6 +50,8 @@
     {"item": "Owlbear claw on a leather cord", "quantity": 1, "equipped": false, "attuned": false, "notes": "Trophy of his first hunt"}
   ],
   "currency": {"cp": 30, "sp": 15, "ep": 0, "gp": 145, "pp": 0},
+  "gifts": [],
+  "formulas": [],
   "lifestyle": "modest",
   "resources": [
     {"name": "Second Wind", "max": 1, "recharge": "short"},

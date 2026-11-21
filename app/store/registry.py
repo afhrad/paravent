@@ -85,6 +85,7 @@ from app.services.events import (
 )
 from app.services.factions import FactionService, Reward, ranks_from, rewards_of
 from app.services.followers import FollowerService, Statblock, hit_die
+from app.services.gifts import GiftService
 from app.services.glossary import Glossary, LinkCounts
 from app.services.handouts import HandoutService
 from app.services.holdings import Holdings
@@ -96,6 +97,7 @@ from app.services.knowledge import KnowledgeService
 from app.services.lifestyle import LifestyleService, costs_2014, costs_2024
 from app.services.locations import LocationService
 from app.services.machine_translation import MachineTranslator
+from app.services.magic_crafting import CraftRule, Formulas, rule_from
 from app.services.mcp_tokens import McpTokenService
 from app.services.media_tags import MediaTags
 from app.services.media_uses import MediaUses
@@ -724,6 +726,7 @@ class StoreRegistry:
         their charges at the dawns, dusks and midnights passed."""
         self.afflictions.passed(world, before, now, by, by_name)
         self.item_charges.passed(world, before, now, by, by_name)
+        self.gifts.passed(world, before, now, by, by_name)
 
     @cached_property
     def holdings(self) -> Holdings:
@@ -1423,6 +1426,48 @@ class StoreRegistry:
                 out[level] = (days(row[1]), copper(row[2]), _scroll_ref(level, scroll))
         return out
 
+    def magic_craft_rule(self, world_id: str | None) -> CraftRule | None:
+        """How a world crafts magic items (app/services/magic_crafting.py): the 2024
+        guide where the world plays the 2024 rules, else *Xanathar's*, else the 2014
+        guide's rule, else the 2024 guide; None without any of them."""
+        new_rules = self.rules_of(world_id) == "one"
+        order = ["XDMG", "XGE", "DMG"] if new_rules else ["XGE", "DMG", "XDMG"]
+        for book in order:
+            if not self.has_book(world_id, book):
+                continue
+            if book == "XDMG":
+                rule = rule_from(
+                    "XDMG",
+                    self.book_table(world_id, "Magic Item Crafting Time and Cost", ["XDMG"]),
+                    self.book_table(world_id, "Magic Item Tools", ["XDMG"]),
+                )
+            elif book == "XGE":
+                rule = rule_from(
+                    "XGE",
+                    self.book_table(world_id, "Magic Item Crafting Time and Cost", ["XGE"]),
+                    None,
+                    self.book_table(world_id, "Magic Item Ingredients", ["XGE"]),
+                )
+            else:
+                rule = rule_from("DMG", self._dmg_crafting_rows())
+            if rule is not None:
+                return rule
+        return None
+
+    def _dmg_crafting_rows(self) -> Rows | None:
+        """The 2014 guide's *Crafting Magic Items* table, printed in its downtime rule."""
+        try:
+            entry = self.compendium.find(
+                "variantrule", "Downtime Activity: Crafting a Magic Item", "DMG"
+            )
+        except EntryNotFound:
+            return None
+        data = entry.model_dump(by_alias=True, exclude_none=True) if entry else {}
+        for node in data.get("entries") or []:
+            if isinstance(node, dict) and node.get("caption") == "Crafting Magic Items":
+                return rows_of(SimpleNamespace(rows=node.get("rows")))
+        return None
+
     def rarity_values(self, world_id: str | None) -> dict[str, int]:
         """A magic item's value by rarity in copper, from the world's guide: the 2024
         table, else *Xanathar's* base prices, else the top of the 2014 guide's range."""
@@ -1762,6 +1807,18 @@ class StoreRegistry:
             save=save,
             hurt=hurt,
             conditions=frozenset(CONDITIONS),
+        )
+
+    @cached_property
+    def formulas(self) -> Formulas:
+        """Magic item formulas the gamemaster gives (app/services/magic_crafting.py)."""
+        return Formulas(self.gamestate, self.protocol)
+
+    @cached_property
+    def gifts(self) -> GiftService:
+        """Blessings, charms and boons given to characters (app/services/gifts.py)."""
+        return GiftService(
+            self.gamestate, self.protocol, now=lambda world_id: self.clock.of(world_id).minute
         )
 
     @cached_property

@@ -16,6 +16,9 @@ downtime page:
 * **Scribing a spell scroll** of a spell the character has, by the book's Spell Scroll
   Costs table (the 2024 one in a 2024 world): the cost paid at the start, the scroll in
   the pack when the days are done.
+* **Crafting a magic item** the character holds a formula for, by the world's guide
+  (app/services/magic_crafting.py): its days, and its cost paid at the start or, under
+  the 2014 guide, 25 gp each day; the item in the pack when the days are done.
 * **Research**: 1 gp a day, for as many days as the gamemaster says.
 * **Recuperating**: three days, then a DC 15 Constitution saving throw is rolled.
 * **Working**, or **anything else**: days only.
@@ -36,7 +39,7 @@ from app.services.i18n import Translatable
 from app.services.protocol import ProtocolService
 from app.store.gamestate import GameStateStore
 
-KINDS = ("craft", "train", "research", "recuperate", "work", "other", "scribe")
+KINDS = ("craft", "train", "research", "recuperate", "work", "other", "scribe", "enchant")
 # The most days granted at once: a year.
 MOST_DAYS = 365
 TRAINING_DAYS = 250
@@ -129,8 +132,9 @@ class DowntimeService:
         """A new project. Crafting needs the item's ``price`` (its materials are paid
         now); training a ``language:`` or ``tool:`` reference with its ``needed`` days
         and ``daily`` cost (``training_plan``); scribing ``"<scroll>;<spell>"`` with
-        its days and full ``price``, paid now; research and anything else may name
-        their days."""
+        its days and full ``price``, paid now; a magic item (``enchant``) its reference,
+        days, the ``price`` paid now and the ``daily`` cost (app/services/magic_crafting.py);
+        research and anything else may name their days."""
         label = " ".join(label.split())[:200]
         if kind not in KINDS:
             raise DowntimeError("downtime.error.kind")
@@ -145,6 +149,9 @@ class DowntimeService:
                 raise DowntimeError("downtime.error.days")
         elif kind == "scribe":
             if ";" not in label or price is None or price < 0 or not needed:
+                raise DowntimeError("downtime.error.item")
+        elif kind == "enchant":
+            if "|" not in label or price is None or price < 0 or not needed:
                 raise DowntimeError("downtime.error.item")
         elif kind == "recuperate":
             needed = RECUPERATING_DAYS
@@ -161,13 +168,16 @@ class DowntimeService:
         elif kind == "scribe" and price:
             paid = price
             self._pay(pc.id, paid, f"scroll {label.partition(';')[2]}")
+        elif kind == "enchant" and price:
+            paid = price
+            self._pay(pc.id, paid, f"crafting {label}")
         project = DowntimeProject(
             id=uuid.uuid4().hex[:10],
             kind=kind,
             label=label,
             needed=needed,
             paid=paid,
-            daily=daily if kind == "train" else None,
+            daily=daily if kind in ("train", "enchant") else None,
         )
         held = self.of(pc.id)
         self._save(held.model_copy(update={"projects": [*held.projects, project]}))
@@ -267,7 +277,7 @@ class DowntimeService:
         return self._save(held.model_copy(update={"projects": kept}))
 
     def _finish(self, pc: PlayerCharacter, project: DowntimeProject, by: str, by_name: str) -> None:
-        if project.kind == "craft":
+        if project.kind in ("craft", "enchant"):
             self._give(pc.id, project.label)
         elif project.kind == "scribe":
             self._give(pc.id, project.label)  # "<scroll>;<spell>": it keeps its spell

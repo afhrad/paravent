@@ -36,6 +36,7 @@ from app.ui.affliction_pages import party_chips
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
 from app.ui.forms import alert, checkbox_field, hidden, select_field, text_field
+from app.ui.gift_pages import party_gifts
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
@@ -266,7 +267,8 @@ def _magic_items(page: Page, sheet: Sheet) -> Node:
     left of them (app/services/item_charges.py)."""
     t = page.t
     held = [i for i in sheet.inventory if i.attuned or i.charges is not None]
-    if not held:
+    gifts = party_gifts(page, sheet.character)
+    if not held and not gifts:
         return None
     return div(class_="pc-slots pc-magic", title=t("party.magic_items"))[
         [
@@ -275,7 +277,8 @@ def _magic_items(page: Page, sheet: Sheet) -> Node:
                 span(class_="mono")[f" {i.charges_left}/{i.charges.most}"] if i.charges else None,
             ]
             for i in held
-        ]
+        ],
+        gifts,
     ]
 
 

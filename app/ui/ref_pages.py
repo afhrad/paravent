@@ -54,6 +54,8 @@ from app.ui.auth_pages import message_panel
 from app.ui.context import Page
 from app.ui.cr_badge import cr_badge
 from app.ui.encounter_pages import encounter_url
+from app.ui.formula_pages import formula_button
+from app.ui.gift_pages import grant_button
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.library_links import chapter_url, location_url, npc_url, treasure_url
@@ -1256,6 +1258,10 @@ def reference_page(
             statblock(page, entry, ctx),
             spring_button(page, entry.world_id, entry.category, entry.name, entry.source),
             afflict_button(
+                page, entry.world_id, entry.category, entry.name, entry.source, entry.data
+            ),
+            grant_button(page, entry.world_id, entry.category, entry.name, entry.source),
+            formula_button(
                 page, entry.world_id, entry.category, entry.name, entry.source, entry.data
             ),
             _description(page, entry, ctx, description),

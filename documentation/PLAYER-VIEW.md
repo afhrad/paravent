@@ -44,7 +44,8 @@ Hidden by default: a category added later stays hidden until it is listed.
 A spell, feature, feat, species, class, subclass, background or item in one of the player's
 character files is readable whatever its book or kind: a Cloak of Protection from the DMG reads
 once it is in the inventory. Treasure handed out is in the inventory, so it reads too. A class
-or subclass the character has opens its features.
+or subclass the character has opens its features. A supernatural gift the character holds and the magic
+item of a formula it was given read the same way (2026-11-21).
 
 ## 2. Where it is held
 

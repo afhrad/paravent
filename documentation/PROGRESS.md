@@ -630,6 +630,19 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         patron, ally, villain, framing event, quandary, twist, climax, what it leads on to)
         on the world's guides, each part again on its own, the ticked ones kept in the
         notes or a secret box; for Claude `roll_story_seeds`
+  - [x] **Supernatural gifts** (2026-11-21, `app/services/gifts.py`): **Grant** beside a
+        blessing, charm or boon of the world's books gives it to the ticked characters,
+        its uses ("has 3 charges", "used three times", "once used") and how long it lasts
+        read from its text and changeable; the sheet's Track view and the party card list
+        them, a charm's uses spent on the sheet, gone with the last or by the world's
+        clock; the gamemaster takes one back; logged
+  - [x] **Crafting magic items** (2026-11-21, `app/services/magic_crafting.py`): the
+        gamemaster gives a magic item's formula from its page; the character's downtime
+        page crafts it by the world's guide — the 2024 table (Arcana, the tool of the
+        *Magic Item Tools* table, its spells prepared, a weapon's or armour's price on
+        top), *Xanathar's* (workweeks, the ingredient's challenge) or the 2014 guide's
+        (minimum level, spell slots, 25 gp a day) — consumables halved, the item in the
+        pack when done
   - [x] **Followers** (2026-11-16, `app/services/followers.py`, a character's
         Followers page): skilled and untrained hirelings at the handbook's wage, paid
         from the purse every day the clock passes (logged with what is owed); companions,

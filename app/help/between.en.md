@@ -48,6 +48,10 @@ often to check, with rations and water, mounted or aboard a ship.
 - **Grant downtime** on the clock panel. Each character spends the days on its
   *Downtime* page: crafting with the right tools, training, scribing scrolls, research,
   recuperating, work, or the book's activities from carousing to crime.
+- **Magic items** are crafted from a formula: *Give the formula* on a magic item's page
+  hands it to the characters you tick, and their *Downtime* page then offers to craft it
+  by your guide — its days and cost, and what the character still lacks (Arcana, the
+  tool, the item's spells, a level).
 - **Lifestyle** is chosen on the sheet's *Gear* tab and paid each day the clock passes
   off the road; what the purse lacks is logged as owed.
 - **A shop** opens from the party view, at a share of the list price, with mundane gear
@@ -101,6 +105,10 @@ player's decision.
   (1d10 × 10 hours) or indefinite — each rolled on its own on your guide's table, its
   conditions put on. It shows in the sheet's Track view, wears off by the world's clock,
   and **Ends** there cures it.
+- **Supernatural gifts** — a blessing, a charm, a boon — are given from the gift's page:
+  *Grant*, with the uses and days its text names filled in. The sheet's Track view lists
+  them; a charm's uses are spent there, and it vanishes with the last or when its time is
+  up. *Take back* ends one.
 
 ## 8. Levelling
 

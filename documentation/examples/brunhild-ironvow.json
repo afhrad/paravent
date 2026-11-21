@@ -58,6 +58,8 @@
     {"item": "Trophy: a drow hand crossbow, broken", "quantity": 1, "equipped": false, "attuned": false, "notes": "Taken in the Underdark skirmish that cost her company its captain"}
   ],
   "currency": {"cp": 12, "sp": 40, "ep": 0, "gp": 186, "pp": 3},
+  "gifts": [],
+  "formulas": [],
   "lifestyle": "modest",
   "resources": [
     {"name": "Divine Sense", "max": 5, "recharge": "long"},

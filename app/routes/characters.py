@@ -57,6 +57,7 @@ from app.services.events import revision_stream
 from app.services.experience import progress
 from app.services.factions import granted, title_of
 from app.services.followers import PLAYER_FOLLOWER_CR, FollowerError, sidekick_level
+from app.services.magic_crafting import Crafter, Plan, plan
 from app.services.play import Actor, PlayError, cast_level
 from app.services.sheet import Sheet
 from app.services.shop import ShopError, Ware, priced
@@ -65,7 +66,7 @@ from app.store.errors import EntryNotFound
 from app.ui.bastion_pages import bastion_page
 from app.ui.character_list_pages import character_delete_page, characters_page
 from app.ui.context import Page
-from app.ui.downtime_pages import FactionView, StartOptions, downtime_page
+from app.ui.downtime_pages import FactionView, FormulaView, StartOptions, downtime_page
 from app.ui.follower_pages import followers_page
 from app.ui.names import name_text
 from app.ui.sheet_pages import sheet_fragment, sheet_page
@@ -909,6 +910,7 @@ def _downtime(
     rule = registry.training_rule(character.world_id)
     sheet = registry.characters.sheet(character)
     training_days, training_daily = training_plan(rule, sheet.ability("int").modifier)
+    craft = registry.magic_craft_rule(character.world_id)
     start = StartOptions(
         craftable=[
             (
@@ -929,6 +931,11 @@ def _downtime(
         scrolls=_scribable(registry, character),
         activities=registry.has_book(character.world_id, "XGE"),
         magic=[(ref, name, rarity) for ref, name, rarity, _ in _magic_carried(registry, character)],
+        formulas=[
+            FormulaView(ref, str(name_text(page, "item", ref.partition("|")[0])), made)
+            for ref, made in _formula_plans(registry, character)
+        ],
+        craft_book=craft.book if craft is not None else None,
     )
     return html(
         downtime_page(
@@ -974,6 +981,45 @@ def _craftable(
             continue
         out.append((offer, [tool for tool in tools if tool.lower() in held]))
     return out, left_out
+
+
+def _formula_plans(
+    registry: RegistryDep, character: PlayerCharacter
+) -> list[tuple[str, Plan | None]]:
+    """Each magic item formula the character holds, with how it would craft it by the
+    world's guide (app/services/magic_crafting.py); None where the guide has no row."""
+    rule = registry.magic_craft_rule(character.world_id)
+    if not character.formulas:
+        return []
+    sheet = registry.characters.sheet(character)
+    crafter = Crafter(
+        level=character.total_level,
+        arcana=any(s.key == "arcana" and s.proficient for s in sheet.skills),
+        tools=[o.name for o in character.tools],
+        spells=[s.name for s in sheet.spells if s.found],
+        slots=any(s.total for s in sheet.slots) or bool(sheet.pact and sheet.pact.total),
+    )
+    out: list[tuple[str, Plan | None]] = []
+    for formula in character.formulas:
+        made = None
+        if rule is not None:
+            try:
+                found = registry.compendium.find("item", formula.name, formula.source or "")
+            except EntryNotFound:
+                found = None
+            data = found.model_dump(by_alias=True, exclude_none=True) if found else {}
+            base_price = 0
+            base = str(data.get("baseItem") or "")
+            if base:
+                name, _, source = base.partition("|")
+                try:
+                    item = registry.compendium.find("baseitem", name, source)
+                    base_price = int(getattr(item, "value", 0) or 0)
+                except (EntryNotFound, TypeError, ValueError):
+                    base_price = 0
+            made = plan(rule, data, crafter, base_price) if data else None
+        out.append((formula.reference, made))
+    return out
 
 
 def _scribable(
@@ -1244,6 +1290,18 @@ async def change_downtime(
                     raise DowntimeError("downtime.error.item")
                 scroll = registry.scroll_costs(character.world_id)[chosen[1]][2]
                 label, needed, item_price = f"{scroll};{spell}", chosen[2], chosen[3]
+            elif kind == "enchant":
+                wanted = str(form.get("item", "")).lower()
+                made = next(
+                    (m for ref, m in _formula_plans(registry, character) if ref.lower() == wanted),
+                    None,
+                )
+                if made is None or not made.possible:
+                    raise DowntimeError("downtime.error.item")
+                label = next(
+                    f.reference for f in character.formulas if f.reference.lower() == wanted
+                )
+                needed, item_price, daily = made.days, made.paid, made.daily or None
             service.start(
                 character,
                 kind,
@@ -1280,6 +1338,11 @@ async def change_downtime(
             )
             registry.contacts.from_activity(character, kind, project.result, user.username, name)
             message = page.t("downtime.done")
+        elif op == "formula_drop":
+            if not identity.is_gamemaster:
+                raise DowntimeError("downtime.error.item")
+            registry.formulas.drop(character.id, str(form.get("item", "")), user.username, name)
+            message = None
         elif op == "contact_add":
             registry.contacts.add(
                 character,

@@ -164,6 +164,9 @@ def _options(pc: PlayerCharacter) -> Iterable[ChosenOption]:
     yield from pc.spells.usable
     for granted in pc.spells.granted:
         yield from granted.spells
+    for gift in pc.gifts:
+        yield gift.gift
+    yield from pc.formulas
     for item in pc.inventory:
         if not item.unidentified:  # its name is the gamemaster's secret until identified
             yield item.item

@@ -1203,10 +1203,10 @@ class WorldClock(Record):
 
 class DowntimeProject(GameStateModel):
     """Something a character spends downtime days on (app/services/downtime.py):
-    crafting an item (``label`` its reference), training in a language or tool (its
-    reference), research, recuperating, working, or anything else (``label`` its text).
-    ``needed`` is the days it takes (None: as long as it is kept up); ``paid`` the
-    copper spent on it so far."""
+    crafting an item or a magic item (``enchant``; ``label`` its reference), training in
+    a language or tool (its reference), research, recuperating, working, or anything
+    else (``label`` its text). ``needed`` is the days it takes (None: as long as it is
+    kept up); ``paid`` the copper spent on it so far."""
 
     id: str
     kind: Literal[
@@ -1226,6 +1226,7 @@ class DowntimeProject(GameStateModel):
         "job",
         "sell_magic",
         "buy_magic",
+        "enchant",
     ]
     label: str = Field(default="", max_length=200)
     needed: int | None = Field(default=None, ge=1)

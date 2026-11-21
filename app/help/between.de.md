@@ -52,6 +52,10 @@ geprüft wird, mit Rationen und Wasser, beritten oder an Bord eines Schiffs.
   *Auszeit*: Handwerk mit dem richtigen Werkzeug, Ausbildung, Schriftrollen schreiben,
   Forschung, Erholung, Arbeit oder die Tätigkeiten des Buchs vom Feiern bis zum
   Verbrechen.
+- **Magische Gegenstände** entstehen aus einer Formel: *Formel geben* auf der Seite eines
+  magischen Gegenstands gibt sie den angehakten Figuren, und ihre Seite *Auszeit* bietet
+  dann an, ihn nach deinem Handbuch herzustellen — mit Tagen und Kosten und dem, was der
+  Figur noch fehlt (Arkane Kunde, das Werkzeug, die Zauber des Gegenstands, eine Stufe).
 - **Lebensstil** wählt man im Reiter *Ausrüstung* des Bogens; er wird an jedem Tag
   bezahlt, den die Uhr abseits der Reise vorrückt. Was der Geldbeutel nicht hergibt, wird
   als Schuld protokolliert.
@@ -112,6 +116,11 @@ Entscheidung des Spielers.
   Figur einzeln auf der Tabelle deines Handbuchs ausgewürfelt, mit ihren Zuständen. Er
   steht in der Ansicht *Verbrauch* des Bogens, vergeht mit der Uhr der Welt, und **Endet**
   dort heilt ihn.
+- **Übernatürliche Gaben** — ein Segen, ein Talisman, eine Gabe — verleihst du auf ihrer
+  Seite: *Verleihen*, mit den Anwendungen und Tagen, die ihr Text nennt. Die Ansicht
+  *Verbrauch* des Bogens führt sie; dort werden die Anwendungen eines Talismans
+  verbraucht, und er vergeht mit der letzten oder wenn seine Zeit um ist. *Entziehen*
+  beendet eine Gabe.
 
 ## 8. Stufenaufstieg
 
