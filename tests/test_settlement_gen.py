@@ -115,3 +115,20 @@ async def test_a_2014_settlement(gm: tuple[AsyncClient, StoreRegistry]) -> None:
     for label in ("Government", "Leader", "Relations between its peoples", "Defining trait"):
         assert label in page
     assert ">DMG<" in page and ">XDMG<" not in page
+
+
+async def test_a_rolled_name_and_a_tavern_by_the_worlds_style(
+    gm: tuple[AsyncClient, StoreRegistry],
+) -> None:
+    client, registry = gm
+    ford = _place(registry, ["PHB", "MM", "DMG"])
+    url = f"/gm/places/{ford.id}/settlement"
+    page = (await client.get(url)).text
+    assert 'id="f-name"' in page and "name-roll-dice" in page  # the place's name dice
+    assert "naming style" not in page  # starters alone leave the tavern to the guide
+    registry.worlds.set_naming(ford.scope.world_id, ["starter:english-taverns"])
+    page = (await client.get(url)).text
+    assert "naming style" in page
+    await client.post(url, data={"action": "apply", "size": "village", "name": "Hob's Landing"})
+    renamed = registry.locations.get(ford.id)
+    assert renamed.name == "Hob's Landing" and "**Size:** Village" in renamed.notes

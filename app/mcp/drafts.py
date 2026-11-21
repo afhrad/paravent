@@ -80,6 +80,19 @@ if TYPE_CHECKING:
 KINDS = ("chapter", "npc", "place", "encounter", "treasure", "quest", "adventure")
 
 
+ATTITUDE = Field(
+    description='How they stand toward the party: "friendly", "indifferent", "hostile"; '
+    '"" for nobody said'
+)
+
+
+def checked_attitude(attitude: str) -> str:
+    """An attitude the tools take, refused otherwise."""
+    if attitude not in ("", "friendly", "indifferent", "hostile"):
+        raise ToolError('attitude is "friendly", "indifferent", "hostile" or ""')
+    return attitude
+
+
 def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> None:
     """Add the writing tools to ``server``."""
 
@@ -128,6 +141,7 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
             statblock=npc.statblock,
             notes=npc.notes,
             version=text_version(npc.notes),
+            attitude=npc.attitude,
         )
 
     def place_info(location: Location) -> PlaceInfo:
@@ -557,6 +571,7 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
         ] = None,
         race: Annotated[str, Field(description="The race their name comes from")] = "",
         culture: Annotated[str, Field(description="The culture their name comes from")] = "",
+        attitude: Annotated[str, ATTITUDE] = "",
     ) -> NpcInfo:
         """An NPC of a draft adventure (or of one of its chapters)."""
         registry = stores()
@@ -578,6 +593,8 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
             if name_parts:
                 given = GivenName(text=name, parts=name_parts)
                 npc = registry.gamestate.npcs.update(npc.id, given_name=given)
+            if attitude:
+                npc = registry.npcs.set_attitude(npc.id, checked_attitude(attitude))
         registry.copy_statblock_picture(npc.id)  # a copy of its statblock creature's picture
         return npc_info(npc)
 
@@ -700,6 +717,7 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
         chapter_id: Annotated[
             str | None, Field(description='Move to this chapter; "" for the whole adventure')
         ] = None,
+        attitude: Annotated[str | None, ATTITUDE] = None,
     ) -> NpcInfo:
         """Change an NPC of a draft; what you leave out stays as it is."""
         registry = stores()
@@ -719,6 +737,8 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
                 notes=notes if notes is not None else npc.notes,
                 base=base,
             )
+            if attitude is not None:
+                saved = registry.npcs.set_attitude(npc.id, checked_attitude(attitude))
         return npc_info(saved)
 
     # -- places ---------------------------------------------------------------------

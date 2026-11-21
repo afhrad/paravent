@@ -26,12 +26,14 @@ from htpy import (
 from htpy import input as input_el
 
 from app.models.gamestate import Location, World
-from app.services.settlement_gen import Size
+from app.services.naming import StyleEntry
+from app.services.settlement_gen import NAMING, Size
 from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.library_links import WORLDS_URL, crumbs, location_url, world_url
+from app.ui.location_pages import place_name_field
 
 
 def size_text(page: Page, size: Size) -> str:
@@ -45,6 +47,8 @@ def settlement_page(
     location: Location,
     world: World,
     *,
+    name: str,
+    name_styles: Sequence[StyleEntry],
     sizes: Sequence[Size],
     size: str,
     rolled: Mapping[str, str],
@@ -62,7 +66,9 @@ def settlement_page(
             ],
             span(class_="settle-value")[value],
             hidden(f"v_{part}", value),
-            small(class_="muted mono settle-book")[sources.get(part, "")],
+            small(class_="muted mono settle-book")[
+                t("settlement.naming") if sources.get(part) == NAMING else sources.get(part, "")
+            ],
             button(
                 type="submit",
                 name="action",
@@ -89,6 +95,10 @@ def settlement_page(
             p(class_="muted")[t("settlement.lede")],
             form(method="post", action=action, class_="stack-form")[
                 section(class_="panel")[
+                    div(class_="field settle-name")[
+                        label(for_="f-name")[b[t("settlement.name")]],
+                        place_name_field(page, location, name, name_styles),
+                    ],
                     label(class_="field settle-size")[
                         b[t("settlement.size")],
                         select(name="size")[
@@ -112,6 +122,7 @@ def settlement_page(
                 ],
             ],
         ],
+        extra_scripts=("/static/js/htmx.min.js",),
         world_id=world.id,
     )
 

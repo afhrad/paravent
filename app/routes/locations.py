@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from typing import Annotated
 
 from fastapi import APIRouter, File, Form, Request, UploadFile
@@ -23,6 +24,7 @@ from app.services.dice import Dice
 from app.services.i18n import Translatable
 from app.services.locations import named_in
 from app.services.media import MAX_BYTES, MediaError
+from app.services.naming import NamingError
 from app.services.settlement_gen import SIZES, SettlementGenerator, plays_2024
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
@@ -330,12 +332,33 @@ async def delete_location(_gm: GamemasterDep, registry: RegistryDep, location_id
 # -- rolled as a settlement (app/services/settlement_gen.py) ---------------------------
 
 
-def _settlement_generator(registry: StoreRegistry, world_id: str) -> SettlementGenerator:
+def _settlement_generator(
+    registry: StoreRegistry, world_id: str, language: str
+) -> SettlementGenerator:
     world = registry.adventures.world(world_id)
+    naming = registry.naming_for(world_id)
+    # The world's own names for buildings — a style of the table's, or one it ticked —
+    # name the tavern; the starters every table has leave it to the guide's table.
+    own = [
+        e
+        for e in naming.entries()
+        if e.subject == "building"
+        and e.style is not None
+        and (e.kind != "starter" or e.key in world.naming_styles)
+    ]
+
+    def tavern() -> str:
+        try:
+            return next(iter(naming.names(own[0].key, count=1, language=language)), "")
+        except NamingError:
+            return ""
+
+    has_style = bool(own)
     return SettlementGenerator(
         lambda caption, books: registry.book_table(world_id, caption, books),
         Dice(),
         new_rules=plays_2024(world.source_set.sources),
+        tavern=tavern if has_style else None,
     )
 
 
@@ -347,6 +370,7 @@ def _settlement(
     size: str,
     rolled: dict[str, str],
     kept: frozenset[str],
+    name: str = "",
 ) -> HTMLResponse:
     world = registry.adventures.world(location.scope.world_id)
     return html(
@@ -354,6 +378,8 @@ def _settlement(
             page,
             location,
             world,
+            name=name or location.name,
+            name_styles=registry.naming_for(world.id).entries(),
             sizes=generator.sizes(),
             size=size if size in SIZES else SIZES[0],
             rolled=rolled,
@@ -369,7 +395,7 @@ async def roll_settlement(
 ) -> HTMLResponse:
     """A place rolled as a settlement, every part ticked."""
     location = registry.locations.get(location_id)
-    generator = _settlement_generator(registry, location.scope.world_id)
+    generator = _settlement_generator(registry, location.scope.world_id, page.lang)
     rolled = generator.roll()
     return _settlement(page, registry, location, generator, SIZES[0], rolled, frozenset(rolled))
 
@@ -382,11 +408,12 @@ async def settle(
     ``apply``: write the size and the ticked parts into the place's notes."""
     form = await request.form()
     location = registry.locations.get(location_id)
-    generator = _settlement_generator(registry, location.scope.world_id)
+    generator = _settlement_generator(registry, location.scope.world_id, page.lang)
     parts = generator.parts()
     rolled = {p: str(form.get(f"v_{p}", ""))[:500] for p in parts}
     kept = frozenset(str(k) for k in form.getlist("keep") if str(k) in parts)
     size = str(form.get("size", SIZES[0]))
+    name = " ".join(str(form.get("name", "")).split()) or location.name
     action = str(form.get("action", "roll"))
     if action.startswith("reroll:") and action[7:] in parts:
         part = action[7:]
@@ -404,6 +431,16 @@ async def settle(
             if p in kept and rolled.get(p)
         ]
         tags = [t(f"settlement.size.{chosen.key}")] if chosen else []
-        registry.locations.add_details(location_id, "\n".join(lines), tags)
+        saved = registry.locations.add_details(location_id, "\n".join(lines), tags)
+        if name != saved.name:  # a rolled name: every text naming the place follows
+            # A name the world cannot take: the place keeps its own.
+            with suppress(Translatable):
+                registry.locations.update(
+                    location_id,
+                    name=name,
+                    scope_value=scope.encode(saved.scope),
+                    tags=saved.tags,
+                    notes=saved.notes,
+                )
         return redirect(location_url(location_id))
-    return _settlement(page, registry, location, generator, size, rolled, kept)
+    return _settlement(page, registry, location, generator, size, rolled, kept, name)

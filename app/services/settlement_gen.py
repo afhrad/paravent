@@ -22,6 +22,8 @@ from app.services.dice import Dice
 
 GUIDE_2014 = "DMG"
 GUIDE_2024 = "XDMG"
+# Where a tavern named by the world's naming style comes from.
+NAMING = "naming"
 # How many shops a settlement shows.
 SHOPS = 3
 
@@ -68,13 +70,22 @@ class Size:
 class SettlementGenerator:
     """Rolls a settlement's parts on the tables of the world's guide."""
 
-    def __init__(self, find: Finder, dice: Dice, *, new_rules: bool) -> None:
+    def __init__(
+        self,
+        find: Finder,
+        dice: Dice,
+        *,
+        new_rules: bool,
+        tavern: Callable[[], str] | None = None,
+    ) -> None:
         """``find`` reads the world's tables; ``new_rules`` when the world plays the 2024
-        guide (it declares it)."""
+        guide (it declares it); ``tavern`` names a tavern by the world's own naming style
+        for taverns, in place of the guide's table, where it has one."""
         self._find = find
         self._dice = dice
         self._tables = TABLES_2024 if new_rules else TABLES_2014
         self._rows: dict[str, Rows | None] = {}
+        self._tavern = tavern
 
     def _table(self, part: str) -> Rows | None:
         if part not in self._rows:
@@ -84,10 +95,12 @@ class SettlementGenerator:
 
     def parts(self) -> list[str]:
         """The parts the world's books have a table for, in reading order."""
-        return [p for p in PARTS if self._table(p)]
+        return [p for p in PARTS if self._table(p) or (p == "tavern" and self._tavern)]
 
     def source_of(self, part: str) -> str:
-        """The book a part is rolled in."""
+        """The book a part is rolled in; ``naming`` for a tavern named by a style."""
+        if part == "tavern" and self._tavern is not None:
+            return NAMING
         return self._tables[part][0]
 
     def sizes(self) -> list[Size]:
@@ -100,7 +113,7 @@ class SettlementGenerator:
             out.append(
                 Size(key, row[0], row[1] if len(row) > 1 else "", row[2] if len(row) > 2 else "")
                 if row
-                else Size(key, key)
+                else Size(key, key.capitalize())
             )
         return out
 
@@ -119,6 +132,8 @@ class SettlementGenerator:
 
     def roll_part(self, part: str, current: str = "") -> str:
         """One part rolled (again): not what it is now, where the table offers another."""
+        if part == "tavern" and self._tavern is not None:
+            return self._tavern()
         rows = self._table(part)
         if not rows:
             return ""

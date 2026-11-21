@@ -164,6 +164,24 @@ class TestReading:
         assert len(overview["party"]) == 2
         assert overview["today"] == "Day 1, 08:00" and overview["calendar"] == ""
 
+    async def test_attitudes_and_a_settlement(self, table: tuple[httpx.AsyncClient, Any]) -> None:
+        _raw, facts = table
+        registry = facts["app"].state.stores
+        world = facts["world"]
+        hob = next(n for n in registry.npcs.list(world.id) if n.name == "Hob Wade")
+        registry.npcs.set_attitude(hob.id, "friendly")
+        registry.npcs.seen(hob.id, 8 * 60)
+        async with session(table) as mcp:
+            overview = await call(mcp, "world_overview", world_id=world.id)
+            town = await call(mcp, "roll_settlement", world_id=world.id, size="town")
+            assert "village, town or city" in await refused(
+                mcp, "roll_settlement", world_id=world.id, size="hamlet"
+            )
+        shown = next(n for n in overview["npcs"] if n["name"] == "Hob Wade")
+        assert shown["attitude"] == "friendly" and shown["last_seen"] == "Day 1, 08:00"
+        assert town["size"] == "Town" and set(town["parts"]) >= {"government", "tavern", "shops"}
+        assert set(town["books"].values()) == {"DMG"}  # a 2014 world rolls on its guide
+
     async def test_the_tables_world_is_marked_and_named_by_nothing(
         self, table: tuple[httpx.AsyncClient, Any]
     ) -> None:
@@ -415,8 +433,16 @@ class TestDrafts:
                 notes="**Wants:** the village.",
                 roles=["villain"],
                 statblock="Green Hag",
+                attitude="hostile",
             )
-            assert hag["statblock"] == "Green Hag|MM"
+            assert hag["statblock"] == "Green Hag|MM" and hag["attitude"] == "hostile"
+            calmer = await call(
+                mcp, "update_npc", npc_id=hag["id"], base=hag["version"], attitude="indifferent"
+            )
+            assert calmer["attitude"] == "indifferent"
+            assert "attitude is" in await refused(
+                mcp, "update_npc", npc_id=hag["id"], base=hag["version"], attitude="smitten"
+            )
             assert "not a creature" in await refused(
                 mcp, "create_npc", adventure_id=adventure_id, name="X", notes="", statblock="Nope"
             )

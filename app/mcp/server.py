@@ -47,6 +47,7 @@ from app.mcp.models import (
     RolledEncounterAnswer,
     SearchAnswer,
     SearchMatch,
+    SettlementRoll,
     ShopOffer,
     ShopStockAnswer,
     SoundInfo,
@@ -62,6 +63,7 @@ from app.services.activities import RARITIES
 from app.services.afflictions import read_affliction
 from app.services.calendar import date_words
 from app.services.clock import DAY
+from app.services.dice import Dice
 from app.services.difficulty import rules_for
 from app.services.encounter_gen import EncounterGenerator, bands_of, pool_of
 from app.services.encounter_roll import EncounterRoller
@@ -69,6 +71,7 @@ from app.services.naming import GENDERS, FoundStyle, NamingError
 from app.services.naming_workshop import race_names
 from app.services.npc_gen import edition_for
 from app.services.search import GROUP_KEYS, Row
+from app.services.settlement_gen import SettlementGenerator, plays_2024
 from app.services.traps import read_trap
 from app.services.travel import ENCOUNTER_ON, PACES, TRAVEL_DAY
 from app.ui.affliction_pages import afflicts
@@ -309,6 +312,10 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
                 adventure=names.get(scope.adventure_id or ""),
                 roles=list(getattr(item, "roles", None) or getattr(item, "tags", [])),
                 statblock=getattr(item, "statblock", None),
+                attitude=getattr(item, "attitude", None),
+                last_seen=date_words(dated, seen)[0]
+                if (seen := getattr(item, "last_seen", None)) is not None
+                else "",
             )
 
         return WorldOverview(
@@ -903,6 +910,32 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
                 if len(out) >= 60:
                     return out
         return out
+
+    @server.tool()
+    def roll_settlement(
+        world_id: str,
+        size: Annotated[str, Field(description="village, town or city")] = "village",
+    ) -> SettlementRoll:
+        """Roll a settlement on the world's guide's tables: who leads it, what defines it,
+        what it is known for, its trouble, a tavern and shops. Nothing is saved: use what
+        fits in a place's notes (`create_place`), in the world's language."""
+        registry = stores()
+        world = world_of(world_id)
+        generator = SettlementGenerator(
+            lambda caption, books: registry.book_table(world.id, caption, books),
+            Dice(),
+            new_rules=plays_2024(world.source_set.sources),
+        )
+        chosen = next((s for s in generator.sizes() if s.key == size), None)
+        if chosen is None:
+            raise ToolError("size is village, town or city")
+        parts = generator.roll()
+        return SettlementRoll(
+            size=chosen.name,
+            population=chosen.population,
+            parts=parts,
+            books={p: generator.source_of(p) for p in parts},
+        )
 
     @server.tool()
     def plan_chase(

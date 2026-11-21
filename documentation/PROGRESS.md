@@ -608,7 +608,10 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
   - [x] **Roll as a settlement** (2026-11-21, `app/services/settlement_gen.py`,
         ADVENTURES.md §4): a place's size and the guide's settlement tables — government,
         leader, relations, trait, fame, calamity, tavern, shops — read from the world's books
-        by caption, each part rerolled alone, the ticked ones kept in its notes
+        by caption, each part rerolled alone, the ticked ones kept in its notes; its name
+        rolled by the world's styles there too, the tavern by the world's own style for
+        buildings where it has one; for Claude `roll_settlement`, and NPCs' attitudes in
+        `world_overview`, `create_npc` and `update_npc`
   - [x] **Award XP** (2026-11-21, `app/ui/xp_pages.py`, `POST /gm/xp`): experience for a
         challenge that was no fight from the party view, the same to each character ticked
         or a total shared out, logged with its reason; none in a milestone world

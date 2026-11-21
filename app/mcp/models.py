@@ -59,6 +59,13 @@ class CampaignObject(BaseModel):
     adventure: str | None = None
     roles: list[str] = Field(default_factory=list)
     statblock: str | None = None
+    attitude: str | None = Field(
+        default=None,
+        description="An NPC's attitude toward the party: friendly, indifferent, hostile",
+    )
+    last_seen: str = Field(
+        default="", description="When the party last met the NPC, by the world's clock"
+    )
 
 
 class QuestSummary(BaseModel):
@@ -706,6 +713,19 @@ class NpcInfo(BaseModel):
     statblock: str | None
     notes: str
     version: str
+    attitude: str | None = None
+
+
+class SettlementRoll(BaseModel):
+    """What `roll_settlement` gives: a settlement rolled on the world's guide."""
+
+    size: str
+    population: str = ""
+    parts: dict[str, str] = Field(
+        description="government, leader, relations, trait, fame, calamity, tavern, shops — "
+        "those the world's books have tables for, in the books' English"
+    )
+    books: dict[str, str] = Field(description="The book each part was rolled in")
 
 
 class EncounterInfo(BaseModel):
