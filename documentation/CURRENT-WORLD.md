@@ -222,14 +222,16 @@ The world menu also offers **Check links** (every broken link of the world, ADVE
 
 **Import from Game Master 5e** in the world menu (`/gm/import/gm5`; `app/services/gm5_backup.py`
 reads the file, `app/services/gm5_import.py` makes the world, `app/routes/gm5_import.py`)
-makes one campaign of a backup of Lion's Den's *Game Master 5e* into a **new world**. The
-user's decisions: match every creature and item against the books the gamemaster names, which
+makes the campaigns of a backup of Lion's Den's *Game Master 5e* — every one ticked — into
+**one new world**, **each campaign an adventure** (decided 2026-11-21). The user's
+decisions: match every creature and item against the books the gamemaster names, which
 become the world's books; home-made creatures become creature-builder designs; what the backup
 leaves out of a creature comes from the book creature it is based on.
 
 - **The file** is one XML document (`<data><version>`), refused with a DTD. It waits in
   `library/.imports/` (owner-only) under a random token until imported, a day at most.
-- **Choosing**: a campaign, the new world's name (empty: the campaign's) and the books
+- **Choosing**: the campaigns (all ticked to start), the new world's name (empty: the one
+  campaign's, else "Game Master 5e") and the books
   (PHB, MM and DMG to start, where loaded). **Check** shows the plan before anything is
   written: each creature name as from the books, a design begun from a book creature, a
   design of its own, or left out (a name without a statblock); each item as a book item,
@@ -250,16 +252,21 @@ leaves out of a creature comes from the book creature it is based on.
   feet, and attack lines written as the corpus's tags (`{@atk mw} {@hit 5}`, `{@h}`,
   `{@damage 1d8 + 3}`, `{@dc 13}`), in English or German, so the tracker rolls them. A name
   the table's designs have already gets the world's name in brackets.
-- **The rest**: the campaign's picture is the world's cover, an adventure's its cover. Each
-  adventure keeps its notes as chapters, and **an encounter with notes is a scene**: a
-  chapter of its name with the notes as text and the fight (and its loot) placed in it as
-  cards, so the adventure reads in the backup's order. Notes and scenes of the campaign
-  itself go into an adventure named after it. An encounter without notes is an encounter of
-  its adventure (or the world); the saved fight state is dropped. NPCs keep their label as
+- **The rest**: a campaign is one adventure, its picture the cover. Its own notes are
+  chapters, then each of its Game Master 5e adventures' notes, titled "Adventure: Note"
+  (no prefix for a campaign that is one adventure by its own name, or of one adventure and
+  nothing of its own), that adventure's picture on its first chapter. **An encounter with
+  notes is a scene**: a chapter of its name with the notes as text and the fight (and its
+  loot) placed in it as cards, so the adventure reads in the backup's order. A Game Master 5e
+  adventure of fights alone becomes one chapter of its name holding them as cards. An
+  encounter without notes is an encounter of the adventure; the saved fight state is
+  dropped. Everything lands in the campaign's adventure (or one of its chapters), never at
+  world level. NPCs keep their label as
   name and their statblock by the same rules. Items become a treasure per adventure or
   encounter: book items with their count, coins ("Gold (gp)") as coins, the rest as
   `**name** (detail): text` lines in its notes.
 - **Left behind**: player characters (numbers only, no choices: built again in the wizard)
   and the app's own compendium (the corpus has the books).
 - **Tried on a real backup** (2026-11-21, seven campaigns): 105 of 114 creature names were
-  book creatures; a campaign imports in about five seconds, most of it the homebrew publish.
+  book creatures; all seven import into one world of seven adventures, 55 chapters and 92
+  encounters in about five seconds, most of it the homebrew publish.

@@ -173,9 +173,9 @@ class ItemMatch:
 
 @dataclass(slots=True)
 class Plan:
-    """What an import of a campaign would make, counted."""
+    """What an import of the chosen campaigns would make, counted."""
 
-    campaign: Campaign
+    campaigns: list[Campaign]
     creatures: list[CreatureMatch] = field(default_factory=list)
     items: list[ItemMatch] = field(default_factory=list)
     adventures: int = 0
@@ -420,20 +420,24 @@ class Gm5Import:
         return _Names(rows, self._localized(lang, "item"))
 
     @staticmethod
-    def _campaign(backup: Backup, index: int) -> Campaign:
-        if not 0 <= index < len(backup.campaigns):
+    def _campaigns(backup: Backup, indexes: Iterable[int]) -> list[Campaign]:
+        chosen = sorted(set(indexes))
+        if not chosen or not all(0 <= i < len(backup.campaigns) for i in chosen):
             raise Gm5ImportError("gm5.error.campaign")
-        return backup.campaigns[index]
+        return [backup.campaigns[i] for i in chosen]
 
-    def plan(self, backup: Backup, index: int, sources: Iterable[str], lang: str) -> Plan:
-        """What importing campaign ``index`` against ``sources`` would make."""
-        campaign = self._campaign(backup, index)
+    def plan(
+        self, backup: Backup, indexes: Iterable[int], sources: Iterable[str], lang: str
+    ) -> Plan:
+        """What importing the campaigns ``indexes`` against ``sources`` would make."""
+        campaigns = self._campaigns(backup, indexes)
         source_set = SourceSet(sources=list(sources))
         creatures = self.creature_names(source_set, lang)
         items = self.item_names(source_set, lang)
-        plan = Plan(campaign=campaign)
-        counts = Counter(s.name for s in _statblocks(backup, campaign))
-        numbers = {s.name: s.has_numbers for s in _statblocks(backup, campaign)}
+        plan = Plan(campaigns=campaigns)
+        blocks = [s for c in campaigns for s in _statblocks(backup, c)]
+        counts = Counter(s.name for s in blocks)
+        numbers = {s.name: s.has_numbers for s in blocks}
         for name, count in sorted(counts.items(), key=lambda kv: kv[0].casefold()):
             if ref := creatures.exact(name):
                 plan.creatures.append(CreatureMatch(name, count, "book", ref))
@@ -443,42 +447,47 @@ class Gm5Import:
                 plan.creatures.append(CreatureMatch(name, count, "variant", base))
             else:
                 plan.creatures.append(CreatureMatch(name, count, "new"))
-        item_counts = Counter(i.name for i in _items(campaign))
+        item_counts = Counter(i.name for c in campaigns for i in _items(c))
         for name, count in sorted(item_counts.items(), key=lambda kv: kv[0].casefold()):
             if _COINS.search(name):
                 plan.items.append(ItemMatch(name, count, coins=True))
             else:
                 plan.items.append(ItemMatch(name, count, items.exact(name)))
-        plan.adventures = len(campaign.adventures) + (1 if has_chapters(campaign) else 0)
+        containers = [c for campaign in campaigns for c in _containers(campaign)]
+        plan.adventures = len(campaigns)
         plan.chapters = sum(
-            len(c.notes) + sum(1 for e in c.encounters if e.notes) for c in _containers(campaign)
+            len(c.notes) + sum(1 for e in c.encounters if e.notes) for c in containers
+        ) + sum(  # an adventure of fights alone is gathered into a chapter of its name
+            1
+            for campaign in campaigns
+            for part in campaign.adventures
+            if not has_chapters(part) and (part.encounters or part.items or part.npcs)
         )
         plan.encounters = sum(
             1
-            for c in _containers(campaign)
+            for c in containers
             for e in c.encounters
             if any(x.statblock or backup.npc(x.uid) for x in e.combatants)
         )
-        plan.npcs = sum(len(c.npcs) for c in _containers(campaign))
-        uids = {c.image for c in _containers(campaign)} | {
-            n.image for c in _containers(campaign) for n in c.notes
-        }
+        plan.npcs = sum(len(c.npcs) for c in containers)
+        uids = {c.image for c in containers} | {n.image for c in containers for n in c.notes}
         plan.pictures = len({u for u in uids if u and u in backup.images})
         return plan
 
     def run(
         self,
         backup: Backup,
-        index: int,
+        indexes: Iterable[int],
         *,
         name: str,
         sources: Iterable[str],
         t: Translator,
     ) -> Imported:
-        """Make campaign ``index`` into a new world named ``name`` (the campaign's name
-        when empty), with ``sources`` as its books; texts it writes itself in ``t``'s
-        language."""
-        return _Run(self, backup, self._campaign(backup, index), name, list(sources), t).go()
+        """Make the campaigns ``indexes`` into one new world named ``name`` (one campaign's
+        own name when empty, else "Game Master 5e"), each campaign an adventure of it,
+        with ``sources`` as its books; texts it writes itself in ``t``'s language."""
+        campaigns = self._campaigns(backup, indexes)
+        return _Run(self, backup, campaigns, name, list(sources), t).go()
 
 
 class _Run:
@@ -488,19 +497,22 @@ class _Run:
         self,
         importer: Gm5Import,
         backup: Backup,
-        campaign: Campaign,
+        campaigns: list[Campaign],
         name: str,
         sources: list[str],
         t: Translator,
     ) -> None:
         self.registry = importer._registry
         self.backup = backup
-        self.campaign = campaign
+        self.campaigns = campaigns
         self.t = t
         self.words = _Words(t)
+        default = campaigns[0].name if len(campaigns) == 1 else t("gm5.world_default")
         self.world = self.registry.worlds.create(
-            WorldInput(name=name.strip() or campaign.name, sources=tuple(sources), language=t.code)
+            WorldInput(name=name.strip() or default, sources=tuple(sources), language=t.code)
         )
+        # A picture a Game Master 5e adventure had, for the first chapter made of it.
+        self.pending_image = ""
         self.creatures = importer.creature_names(self.world.source_set, t.code)
         self.items = importer.item_names(self.world.source_set, t.code)
         self.designs: dict[str, str] = {}  # a backup name → its design's reference
@@ -614,6 +626,7 @@ class _Run:
         adventures = self.registry.adventures
         title = unique(title or self.t("gm5.untitled"), self.titles.setdefault(adventure_id, set()))
         chapter = adventures.create_chapter(adventure_id, title)
+        image, self.pending_image = image or self.pending_image, ""
         if path := self.picture(chapter.id, image, title):
             body = f"![{title}]({path})\n\n{body}"
         adventures.update_chapter(
@@ -647,7 +660,9 @@ class _Run:
             lines[self.monster_line(block, ref, not block.enemy)] += 1
         return lines, missing
 
-    def encounter(self, encounter: Encounter, where: Scope, adventure_id: str | None) -> None:
+    def encounter(
+        self, encounter: Encounter, where: Scope, adventure_id: str | None, prefix: str = ""
+    ) -> None:
         """An encounter of the backup. One with notes is a scene: a chapter of the
         adventure with the notes as its text and the fight and its loot placed in it as
         cards, so the adventure reads in the backup's order."""
@@ -658,7 +673,7 @@ class _Run:
         left_out = self.t("gm5.not_imported", names=", ".join(missing)) if missing else ""
         name = encounter.name or self.t("gm5.untitled")
         if encounter.notes and adventure_id is not None:
-            chapter_id = self.chapter(adventure_id, name, notes)
+            chapter_id = self.chapter(adventure_id, f"{prefix}{name}", notes)
             here = Scope(world_id=self.world.id, adventure_id=adventure_id, chapter_id=chapter_id)
             cards = []
             if lines or missing:
@@ -744,16 +759,38 @@ class _Run:
         self.counts["treasures"] += 1
         return name
 
-    def container(self, container: Container, where: Scope, adventure_id: str | None) -> None:
+    def container(
+        self, container: Container, where: Scope, adventure_id: str | None, prefix: str = ""
+    ) -> None:
+        """A campaign's or Game Master 5e adventure's notes and scenes as chapters (titled
+        with ``prefix``), its fights, NPCs and items in ``where``."""
         for note in container.notes:
             if adventure_id is not None:
-                self.chapter(adventure_id, note.name, note.text, note.image)
+                self.chapter(adventure_id, f"{prefix}{note.name}", note.text, note.image)
         for encounter in container.encounters:
-            self.encounter(encounter, where, adventure_id)
+            self.encounter(encounter, where, adventure_id, prefix)
         for npc in container.npcs:
             self.npc(npc, where)
         if container.items:
             self.treasure(self.t("gm5.treasure_of", name=container.name), container.items, where)
+
+    def gathered(self, part: Container, adventure_id: str) -> None:
+        """A Game Master 5e adventure of fights, NPCs and items but no notes: one chapter
+        of its name, what it holds placed in it and its fights and treasure as cards."""
+        chapter_id = self.chapter(adventure_id, part.name, "")
+        here = Scope(world_id=self.world.id, adventure_id=adventure_id, chapter_id=chapter_id)
+        self.container(part, here, None)
+        registry = self.registry
+        fights = reversed(registry.encounters.within(here))  # in the order they were made
+        cards = [f"{{@encounter {e.name}}}" for e in fights]
+        cards += [f"{{@treasure {x.name}}}" for x in registry.treasure.list(self.world.id, here)]
+        chapter = registry.adventures.get_chapter(chapter_id)
+        registry.adventures.update_chapter(
+            chapter_id,
+            title=chapter.title,
+            status="planned",
+            body=(chapter.body.rstrip() + "\n\n" + "\n\n".join(cards)).strip() + "\n",
+        )
 
     def adventure(self, name: str, image: str) -> str:
         made = self.registry.adventures.create(self.world.id, unique(name, self.taken["adv"]))
@@ -763,17 +800,25 @@ class _Run:
         return made.id
 
     def go(self) -> Imported:
-        campaign, world = self.campaign, self.world
-        if path := self.picture(world.id, campaign.image, "cover"):
-            self.registry.adventures.set_cover(world.id, path)
-        # The campaign's own notes and scenes need an adventure to be chapters of.
-        own = self.adventure(campaign.name, "") if has_chapters(campaign) else None
-        self.container(campaign, Scope(world_id=world.id), own)
-        for adventure in campaign.adventures:
-            adventure_id = self.adventure(adventure.name, adventure.image)
-            self.container(
-                adventure, Scope(world_id=world.id, adventure_id=adventure_id), adventure_id
-            )
+        """Each campaign one adventure: its own notes and scenes, then each of its Game
+        Master 5e adventures' as chapters named after that adventure, in the backup's
+        order; what any of them holds in that adventure."""
+        world = self.world
+        for campaign in self.campaigns:
+            adventure_id = self.adventure(campaign.name, campaign.image)
+            where = Scope(world_id=world.id, adventure_id=adventure_id)
+            self.container(campaign, where, adventure_id)
+            for part in campaign.adventures:
+                # A campaign of one adventure by its own name reads without the name.
+                alone = len(campaign.adventures) == 1 and not has_chapters(campaign)
+                same = part.name.casefold() == campaign.name.casefold()
+                prefix = "" if alone or same else f"{part.name}: "
+                self.pending_image = part.image
+                if has_chapters(part) or not (part.encounters or part.items or part.npcs):
+                    self.container(part, where, adventure_id, prefix)
+                else:  # fights alone: a chapter of its name holds them as cards
+                    self.gathered(part, adventure_id)
+                self.pending_image = ""
         if self.design_count:
             self.registry.creatures.publish()
         c = self.counts

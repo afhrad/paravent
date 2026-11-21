@@ -137,6 +137,7 @@ def _group(page: Page, key: str, matches: Sequence[Element], *, open_: bool) -> 
 
 def _plan(page: Page, plan: Plan) -> Element:
     t = page.t
+    left = sum(c.characters for c in plan.campaigns)
     by = {s: [_creature(page, c) for c in plan.creatures if c.status == s] for s in
           ("book", "variant", "new", "skipped")}  # fmt: skip
     items = [
@@ -157,7 +158,11 @@ def _plan(page: Page, plan: Plan) -> Element:
         for i in plan.items
     ]
     return section(class_="panel gm5-plan")[
-        h2[t("gm5.plan", campaign=plan.campaign.name)],
+        h2[
+            t("gm5.plan", campaign=plan.campaigns[0].name)
+            if len(plan.campaigns) == 1
+            else t.plural("gm5.plan_many", len(plan.campaigns))
+        ],
         p[
             t(
                 "gm5.plan_counts",
@@ -168,9 +173,7 @@ def _plan(page: Page, plan: Plan) -> Element:
                 pictures=plan.pictures,
             )
         ],
-        p(class_="muted")[t.plural("gm5.characters_left", plan.campaign.characters)]
-        if plan.campaign.characters
-        else None,
+        p(class_="muted")[t.plural("gm5.characters_left", left)] if left else None,
         _group(page, "gm5.group.variant", by["variant"], open_=True),
         _group(page, "gm5.group.new", by["new"], open_=True),
         _group(page, "gm5.group.skipped", by["skipped"], open_=True),
@@ -185,7 +188,7 @@ def choose_page(
     token: str,
     backup: Backup,
     catalog: BookCatalog,
-    campaign: int,
+    campaigns: Sequence[int],
     sources: Sequence[str],
     name: str,
     plan: Plan | None,
@@ -202,15 +205,16 @@ def choose_page(
             alert(t(error) if error else None),
             section(class_="panel")[
                 form(method="get", action=action, class_="stack-form", id="gm5-form")[
-                    div(class_="field", role="radiogroup", aria_label=t("gm5.campaign"))[
-                        h2(class_="eyebrow")[t("gm5.campaign")],
+                    div(class_="field gm5-campaigns")[
+                        h2(class_="eyebrow")[t("gm5.campaigns")],
+                        p(class_="field-hint")[t("gm5.campaigns_hint")],
                         [
                             label(class_="field-check gm5-campaign")[
                                 input_el(
-                                    type="radio",
-                                    name="campaign",
+                                    type="checkbox",
+                                    name="campaigns",
                                     value=str(i),
-                                    checked=i == campaign,
+                                    checked=i in campaigns,
                                 ),
                                 span[
                                     b[c.name],
@@ -247,7 +251,7 @@ def choose_page(
                     class_="form-actions gm5-run",
                     data_busy=t("gm5.importing"),
                 )[
-                    input_el(type="hidden", name="campaign", value=str(campaign)),
+                    [input_el(type="hidden", name="campaigns", value=str(i)) for i in campaigns],
                     input_el(type="hidden", name="name", value=name),
                     [input_el(type="hidden", name="sources", value=s) for s in sources],
                     button(type="submit", class_="btn btn-primary")[

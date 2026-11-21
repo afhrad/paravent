@@ -35,6 +35,13 @@ def _uploads(registry: StoreRegistry) -> Gm5Uploads:
     return Gm5Uploads(registry.settings.library_dir / ".imports")
 
 
+def _indexes(given: list[str] | None, count: int) -> list[int]:
+    """The campaigns ticked, by position; every one when nothing was asked yet."""
+    if given is None:
+        return list(range(count))
+    return sorted({int(x) for x in given if x.isdigit() and int(x) < count})
+
+
 def _default_books(registry: StoreRegistry) -> list[str]:
     return [code for code in DEFAULT_BOOKS if registry.books.get(code) is not None]
 
@@ -66,9 +73,9 @@ async def choose(
     _gm: GamemasterDep,
     page: PageDep,
     registry: RegistryDep,
-    campaign: int = 0,
     name: str = "",
     sources: Annotated[list[str] | None, Query()] = None,
+    campaigns: Annotated[list[str] | None, Query()] = None,
 ) -> Response:
     """A campaign and the books to match against, and what that would make."""
     try:
@@ -76,10 +83,10 @@ async def choose(
     except Gm5ImportError as exc:
         return redirect(f"{GM5_URL}?{urlencode({'error': exc.key})}")
     chosen = sources if sources is not None else _default_books(registry)
-    campaign = min(max(campaign, 0), max(len(backup.campaigns) - 1, 0))
+    picked = _indexes(campaigns, len(backup.campaigns))
     plan = (
-        await run_in_threadpool(Gm5Import(registry).plan, backup, campaign, chosen, page.lang)
-        if backup.campaigns
+        await run_in_threadpool(Gm5Import(registry).plan, backup, picked, chosen, page.lang)
+        if picked
         else None
     )
     return html(
@@ -88,11 +95,15 @@ async def choose(
             token=token,
             backup=backup,
             catalog=registry.books,
-            campaign=campaign,
+            campaigns=picked,
             sources=chosen,
             name=name,
             plan=plan,
-            error=None if backup.campaigns else "gm5.error.empty",
+            error="gm5.error.empty"
+            if not backup.campaigns
+            else None
+            if picked
+            else "gm5.error.campaign",
         )
     )
 
@@ -103,17 +114,18 @@ async def run(
     gm: GamemasterDep,
     page: PageDep,
     registry: RegistryDep,
-    campaign: Annotated[int, Form()] = 0,
     name: Annotated[str, Form()] = "",
     sources: Annotated[list[str] | None, Form()] = None,
+    campaigns: Annotated[list[str] | None, Form()] = None,
 ) -> Response:
     """Import the campaign into a new world, which the table then plays in."""
     uploads = _uploads(registry)
     try:
         backup = await run_in_threadpool(uploads.load, token)
+        picked = _indexes(campaigns or [], len(backup.campaigns))
         made = await run_in_threadpool(
             lambda: Gm5Import(registry).run(
-                backup, campaign, name=name, sources=sources or [], t=page.t
+                backup, picked, name=name, sources=sources or [], t=page.t
             )
         )
     except Gm5ImportError as exc:

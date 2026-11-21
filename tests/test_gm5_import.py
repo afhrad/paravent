@@ -140,7 +140,7 @@ def registry(tmp_path: Path, corpus: Path) -> Iterator[StoreRegistry]:
 
 
 def test_the_plan_says_what_each_creature_and_item_becomes(registry: StoreRegistry) -> None:
-    plan = Gm5Import(registry).plan(read_backup(BACKUP), 0, ["XPHB", "XMM", "XDMG"], "de")
+    plan = Gm5Import(registry).plan(read_backup(BACKUP), [0], ["XPHB", "XMM", "XDMG"], "de")
     found = {c.name: (c.status, c.ref.partition("|")[0]) for c in plan.creatures}
     assert found["Skeleton"] == ("book", "Skeleton")
     assert found["Klapperbein"] == ("book", "Skeleton")  # by the table's own name for it
@@ -153,7 +153,7 @@ def test_the_plan_says_what_each_creature_and_item_becomes(registry: StoreRegist
     assert items["Gold (gp)"] == ("", True)
     assert items["Marla's Bell Clapper"] == ("", False)
     assert (plan.adventures, plan.chapters, plan.encounters, plan.npcs, plan.pictures) == (
-        2, 3, 1, 1, 1,
+        1, 3, 1, 1, 1,
     )  # fmt: skip
 
 
@@ -172,30 +172,39 @@ async def test_a_campaign_becomes_a_new_world(gm: AsyncClient, registry: StoreRe
     choose = sent.headers["location"]
     page = (await gm.get(choose)).text
     assert "Grey Reed" in page and "Elsewhere" in page
-    books = [("campaign", "0"), ("sources", "XPHB"), ("sources", "XMM"), ("sources", "XDMG")]
+    # Every campaign is ticked to start.
+    assert page.count('type="checkbox" name="campaigns"') == 2
+    assert 'name="campaigns" value="0" checked' in page
+    assert 'name="campaigns" value="1" checked' in page
+    nothing = (await gm.get(choose, params=[("campaigns", "x")])).text
+    assert "Hake mindestens eine Kampagne an." in nothing
+    books = [("campaigns", "0"), ("sources", "XPHB"), ("sources", "XMM"), ("sources", "XDMG")]
     checked = (await gm.get(choose, params=books)).text
     assert "Reed Lurker" in checked and "Bog Walker (Zombie)" in checked
     done = await gm.post(
-        choose, data={"campaign": "0", "name": "", "sources": ["XPHB", "XMM", "XDMG"]}
+        choose, data={"campaigns": ["0"], "name": "", "sources": ["XPHB", "XMM", "XDMG"]}
     )
-    assert done.headers["location"].startswith("/gm/adventures?transferred=gm5%3A2%3A3%3A1%3A1%3A")
+    assert done.headers["location"].startswith("/gm/adventures?transferred=gm5%3A1%3A3%3A1%3A1%3A")
 
     world = registry.table.world()
-    assert world is not None and world.name == "Grey Reed" and world.cover
+    assert world is not None and world.name == "Grey Reed"
     assert world.source_set.sources == ["XPHB", "XMM", "XDMG", "Homebrew"]
-    adventures = {a.name: a for a in registry.adventures.adventures(world.id)}
-    assert set(adventures) == {"Grey Reed", "The Drowned Bell"}
-    background = registry.adventures.chapters(adventures["Grey Reed"].id)[0]
+    # The campaign is one adventure; its Game Master 5e adventure's notes and scenes are
+    # chapters of it, named after that adventure.
+    (adventure,) = registry.adventures.adventures(world.id)
+    assert adventure.name == "Grey Reed" and adventure.cover
+    background, ford, ambush = registry.adventures.chapters(adventure.id)
     assert background.title == "Background" and "Nobody sleeps." in background.body
-    ford, ambush = registry.adventures.chapters(adventures["The Drowned Bell"].id)
-    assert ford.body.startswith("![The Ford](media/")
+    assert ford.title == "The Drowned Bell: The Ford"
+    assert ford.body.startswith("![The Drowned Bell: The Ford](media/")
     # An encounter with notes is a scene: a chapter with the fight and its loot as cards.
-    assert ambush.title == "Ambush at the ford" and "They rise from the mud." in ambush.body
+    assert ambush.title == "The Drowned Bell: Ambush at the ford"
+    assert "They rise from the mud." in ambush.body
     assert "{@encounter Ambush at the ford}" in ambush.body
     assert "{@treasure Schatz: Ambush at the ford}" in ambush.body
 
     (fight,) = registry.encounters.list(world.id)
-    assert fight.chapter_id == ambush.id
+    assert fight.chapter_id == ambush.id and fight.adventure_id == adventure.id
     lines = {(m.name, m.source, m.label): m.count for m in fight.monsters}
     skeleton = next(k for k in lines if k[0] == "Skeleton")
     assert lines[skeleton] == 2 and skeleton[2] == "Bones"  # one group, its label unnumbered
@@ -234,3 +243,18 @@ async def test_the_world_menu_offers_it(gm: AsyncClient) -> None:
     assert 'action="/gm/import/gm5"' in page and 'href="/gm/import/gm5"' in page
     refused = await gm.post("/gm/import/gm5", files={"file": ("x.backup", b"nope")})
     assert refused.headers["location"] == "/gm/import/gm5?error=gm5.error.not_backup"
+
+
+async def test_every_campaign_ticked_into_one_world(
+    gm: AsyncClient, registry: StoreRegistry
+) -> None:
+    sent = await gm.post("/gm/import/gm5", files={"file": ("my.backup", BACKUP)})
+    done = await gm.post(
+        sent.headers["location"],
+        data={"campaigns": ["0", "1"], "name": "", "sources": ["XPHB", "XMM", "XDMG"]},
+    )
+    assert done.headers["location"].startswith("/gm/adventures?transferred=gm5%3A2%3A")
+    world = registry.table.world()
+    assert world is not None and world.name == "Game Master 5e"
+    names = [a.name for a in registry.adventures.adventures(world.id)]
+    assert sorted(names) == ["Elsewhere", "Grey Reed"]
