@@ -64,6 +64,10 @@ class prepares them. A concentration spell shows as held until you drop it or lo
 - The spells an item casts are on the spells list under **From items**, cast like your
   own, the item's charges spent instead of a slot. A wand that allows it can spend more
   charges for a higher level.
+- An item marked **unidentified** shows only what it looks like, and works as a plain
+  item of its kind until the game master identifies it. You cannot attune to it before.
+- A **cursed** item holds on once you attune to it: you cannot end the attunement, take it
+  off or sell it until the game master lifts the curse.
 - Potions have **Drink**, torches and lanterns **Light**, and scrolls their spell.
 - When the gamemaster opens a shop, it appears on your sheet: buy, and sell what you no
   longer need.

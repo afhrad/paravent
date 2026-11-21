@@ -3272,3 +3272,19 @@ form[aria-busy="true"] .is-busy svg{ animation:busy-spin 1s linear infinite; }
 .gm5-group{ margin-top:.75rem; }
 .gm5-list li{ margin:.2rem 0; }
 .gm5-run{ margin-top:1rem; }
+
+/* The gamemaster's word on a carried item (app/services/identify.py): a small folded
+   panel at the row's end; the real name of an unidentified item beside its looks. */
+.cs-item-gm{ position:relative; }
+.cs-item-gm > summary{ list-style:none; }
+.cs-item-gm > summary::-webkit-details-marker{ display:none; }
+.cs-item-gm-body{ position:absolute; right:0; top:100%; z-index:20; min-width:16rem; display:grid; gap:.5rem;
+  padding:.75rem; background:var(--surface); border:1px solid var(--border);
+  border-radius:8px; box-shadow:var(--shadow-md); }
+.cs-item-secret{ gap:.5rem; font-size:.875rem; }
+.cs-item-gm-body{ font-size:.875rem; }
+.cs-item-gm-body input[type=text], .cs-item-gm-body select, .cs-item-gm-body label{ font-size:inherit; }
+.cs-item-gm-body input[type=text], .cs-item-gm-body select{ padding:.3rem .5rem; }
+.cs-true-name{ margin-left:.25rem; }
+.enc-share-item{ display:grid; grid-template-columns:1fr auto; gap:.25rem .75rem; align-items:center; }
+.enc-share-item > label:first-child{ grid-column:1 / -1; }

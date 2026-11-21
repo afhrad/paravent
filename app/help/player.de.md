@@ -72,6 +72,12 @@ Konzentrationszauber steht als gehalten da, bis du ihn fallen lässt oder verlie
 - Die Zauber eines Gegenstands stehen in der Zauberliste unter **Aus Gegenständen** und
   wirken wie deine eigenen, mit den Ladungen des Gegenstands statt eines Zauberplatzes.
   Ein Zauberstab, der es erlaubt, kann mehr Ladungen für einen höheren Grad ausgeben.
+- Ein **unidentifizierter** Gegenstand zeigt nur, wie er aussieht, und wirkt wie ein
+  gewöhnlicher Gegenstand seiner Art, bis die Spielleitung ihn identifiziert. Vorher kannst
+  du dich nicht auf ihn einstimmen.
+- Ein **verfluchter** Gegenstand hält dich fest, sobald du dich auf ihn einstimmst: Du kannst
+  die Einstimmung nicht beenden, ihn nicht ablegen und nicht verkaufen, bis die Spielleitung
+  den Fluch bricht.
 - Tränke haben **Trinken**, Fackeln und Laternen **Anzünden**, Schriftrollen ihren
   Zauber.
 - Öffnet die Spielleitung einen Laden, erscheint er auf deinem Bogen: kaufen, und

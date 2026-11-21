@@ -511,6 +511,28 @@
           "minimum": 0,
           "title": "Charges Used",
           "type": "integer"
+        },
+        "unidentified": {
+          "default": false,
+          "title": "Unidentified",
+          "type": "boolean"
+        },
+        "shown_as": {
+          "default": "",
+          "title": "Shown As",
+          "type": "string"
+        },
+        "cursed": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cursed"
         }
       },
       "required": [

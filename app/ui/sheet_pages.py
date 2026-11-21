@@ -1255,8 +1255,106 @@ def _comma(items: list[Element]) -> list[Node]:
     return out
 
 
+UNIDENTIFIED_KINDS = frozenset(
+    {"potion", "ring", "wand", "rod", "scroll", "staff", "wondrous", "item"}
+)
+
+
+def _item_name(page: Page, item: ItemView, gm: bool) -> Node:
+    """An item's name: as it looks while unidentified — the gamemaster's words, or the
+    kind of thing it is — with its real name beside it for the gamemaster alone."""
+    if not item.unidentified:
+        return name_span(page, ITEM, item.name)
+    t = page.t
+    kind = (
+        t(f"items.kind.{item.seen_kind}")
+        if item.seen_kind in UNIDENTIFIED_KINDS
+        else name_text(page, ITEM, item.seen_kind)
+    )
+    looks = item.shown_as or t("items.unidentified", kind=kind)
+    return span(class_="cs-item-name")[
+        span(class_="nm", title=t("items.unidentified_hint"))[looks],
+        small(class_="muted cs-true-name")[" (", name_span(page, ITEM, item.true_name), ")"]
+        if gm
+        else None,
+    ]
+
+
+def _item_gm(page: Page, sheet: Sheet, item: ItemView) -> Element:
+    """The gamemaster's word on a carried item: identify it, lift its curse, or hand it
+    out unidentified (with what the player sees) and say whether it is cursed."""
+    t = page.t
+    url = f"/characters/{sheet.character.id}/item"
+    ref = item.true_name or item.name
+
+    def keep(op: str) -> list[Node]:
+        return [hidden("op", op), hidden("index", str(item.index)), hidden("ref", ref)]
+
+    cursed = "book"
+    if item.cursed_set is not None:
+        cursed = "yes" if item.cursed_set else "no"
+    return details(class_="cs-item-gm")[
+        summary(class_="btn btn-sm btn-ghost", title=t("items.gm_title"))[
+            icon("eye-off" if item.unidentified else "wand-sparkles", "sm")
+        ],
+        div(class_="cs-item-gm-body")[
+            form(method="post", action=url, class_="inline-form")[
+                keep("identify"),
+                button(type="submit", class_="btn btn-sm btn-primary")[
+                    icon("sparkles", "sm"), span[t("items.identify")]
+                ],
+            ]
+            if item.unidentified
+            else None,
+            form(method="post", action=url, class_="inline-form")[
+                keep("lift_curse"),
+                button(type="submit", class_="btn btn-sm")[
+                    icon("shield-check", "sm"), span[t("items.lift_curse")]
+                ],
+            ]
+            if item.bound
+            else None,
+            form(method="post", action=url, class_="stack-form cs-item-secret")[
+                keep("item_secret"),
+                label(class_="field-check")[
+                    input_el(
+                        type="checkbox",
+                        name="unidentified",
+                        value="1",
+                        checked=item.unidentified,
+                        disabled=item.attuned and not item.unidentified,
+                    ),
+                    span[t("items.unidentified_box")],
+                ],
+                label(class_="field")[
+                    span[t("items.shown_as")],
+                    input_el(
+                        type="text",
+                        name="shown_as",
+                        value=item.shown_as,
+                        maxlength="80",
+                        placeholder=t("items.shown_as_hint"),
+                        autocomplete="off",
+                    ),
+                ],
+                label(class_="field")[
+                    span[t("items.cursed")],
+                    select(name="cursed")[
+                        [
+                            option(value=v, selected=v == cursed)[t(f"items.cursed.{v}")]
+                            for v in ("book", "yes", "no")
+                        ]
+                    ],
+                ],
+                button(type="submit", class_="btn btn-sm")[t("items.save")],
+            ],
+        ],
+    ]
+
+
 def _item_row(page: Page, sheet: Sheet, item: ItemView) -> Element:
     t = page.t
+    gm = page.identity is not None and page.identity.is_gamemaster
     can_equip = item.kind in ("armor", "shield", "weapon") or item.equipped
     badges = [
         span(class_="tag")[f"×{item.quantity}"] if item.quantity != 1 else None,
@@ -1265,12 +1363,18 @@ def _item_row(page: Page, sheet: Sheet, item: ItemView) -> Element:
         else None,
         span(class_="tag")[_item_summary(page, item.summary)] if item.summary else None,
         span(class_="tag warn")[t("sheet.not_found")]
-        if not item.found and "|" in item.name
+        if not item.found and "|" in item.name and not item.unidentified
         else None,
+        span(class_="tag warn", title=t("items.bound_hint"))[t("items.bound")]
+        if item.bound
+        else span(class_="tag")[t("items.cursed_tag")]
+        if item.cursed and gm
+        else None,
+        span(class_="tag")[t("items.unidentified_tag")] if item.unidentified and gm else None,
     ]
     return div(class_=f"cs-item {'on' if item.equipped else ''}")[
         div(class_="cs-item-main")[
-            name_span(page, ITEM, item.name),
+            _item_name(page, item, gm),
             span(class_="meta")[badges, span[item.notes] if item.notes else None],
             _scroll_acts(page, sheet, item) if item.scroll else None,
             _charges(page, sheet, item),
@@ -1283,7 +1387,8 @@ def _item_row(page: Page, sheet: Sheet, item: ItemView) -> Element:
                 t("sheet.attuned_on") if item.attuned else t("sheet.attune"),
                 cls=f"btn btn-sm {'is-on' if item.attuned else ''}",
                 pressed=item.attuned,
-                title=t("sheet.attune_title"),
+                title=t("items.bound_hint") if item.bound else t("sheet.attune_title"),
+                disabled=item.bound,
             )
             if item.attunable
             else None,
@@ -1294,6 +1399,8 @@ def _item_row(page: Page, sheet: Sheet, item: ItemView) -> Element:
                 t("sheet.equipped") if item.equipped else t("sheet.equip"),
                 cls=f"btn btn-sm {'is-on' if item.equipped else ''}",
                 pressed=item.equipped,
+                title=t("items.bound_hint") if item.bound and item.equipped else None,
+                disabled=item.bound and item.equipped,
             )
             if can_equip
             else None,
@@ -1305,7 +1412,7 @@ def _item_row(page: Page, sheet: Sheet, item: ItemView) -> Element:
                 cls="btn btn-sm cs-drink",
                 title=t("sheet.drink_title", dice=rules_text.dice(page, item.heal)),
             )
-            if item.heal
+            if item.heal and not item.bound
             else act(
                 sheet,
                 "light",
@@ -1323,8 +1430,9 @@ def _item_row(page: Page, sheet: Sheet, item: ItemView) -> Element:
                 cls="btn btn-sm",
                 title=t("sheet.use_title"),
             )
-            if item.consumable
+            if item.consumable and not item.bound
             else None,
+            _item_gm(page, sheet, item) if gm else None,
         ],
     ]
 

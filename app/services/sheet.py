@@ -32,7 +32,7 @@ from app.models.pc import (
     Recharge,
 )
 from app.models.protocol import ProtocolEntry
-from app.services import feature_options, granted_spells, polymorph, wild_shape
+from app.services import feature_options, granted_spells, identify, polymorph, wild_shape
 from app.services.character import (
     HEAVY_ARMOR,
     LIGHT_ARMOR,
@@ -451,6 +451,18 @@ class ItemView:
     attunable: bool = False
     # Who may attune to it, as its book tags it (``reqAttuneTags``).
     attune_tags: tuple[dict[str, Any], ...] = ()
+    # Handed out unidentified (app/services/identify.py): the gamemaster's words for it,
+    # the kind it is shown as ("potion", "ring", … or its base item's name) and its real
+    # name, which only the gamemaster reads. ``name`` is then its stand-in's.
+    unidentified: bool = False
+    shown_as: str = ""
+    seen_kind: str = ""
+    true_name: str = ""
+    # Cursed (its book or the gamemaster), and holding its bearer: cursed and attuned.
+    cursed: bool = False
+    bound: bool = False
+    # The gamemaster's own word on its curse; None follows its book.
+    cursed_set: bool | None = None
 
     @property
     def charges_left(self) -> int:
@@ -918,6 +930,34 @@ class _Corpus:
 # -- the build -------------------------------------------------------------------------
 
 
+def _mark_identity(sheet: Sheet, character: PlayerCharacter, corpus: _Corpus) -> None:
+    """What the inventory's rows are under their looks: unidentified (with the kind they
+    are shown as and their real name), cursed, binding."""
+    marked = []
+    for view in sheet.inventory:
+        entry = character.inventory[view.index]
+        data = corpus.item(entry.item)
+        if not entry.unidentified and entry.cursed is None and not identify.is_cursed(entry, data):
+            marked.append(view)
+            continue
+        base = identify.base_of(data)  # the kind it is shown as: its base item's name
+        marked.append(
+            replace(
+                view,
+                unidentified=entry.unidentified,
+                shown_as=entry.shown_as,
+                seen_kind=(base.name if base else identify.kind_of(data))
+                if entry.unidentified
+                else "",
+                true_name=entry.item.name,
+                cursed=identify.is_cursed(entry, data),
+                bound=identify.is_bound(entry, data),
+                cursed_set=entry.cursed,
+            )
+        )
+    sheet.inventory = marked
+
+
 def build_sheet(
     character: PlayerCharacter,
     compendium: Any | None = None,
@@ -931,6 +971,8 @@ def build_sheet(
     plays the PHB's optional rule."""
     corpus = _Corpus(compendium, source_set)
     sheet = Sheet(character=character, revision=revision, file_error=file_error)
+    real = character
+    character = identify.as_seen(character, corpus.item)  # unidentified items as seen
     level = character.total_level
     sheet.level = level
 
@@ -994,6 +1036,7 @@ def build_sheet(
     _defenses(sheet, character, corpus, species, subspecies)
     resilient = sum(1 for f in character.feats if f.name.lower() == RESILIENT)
     sheet.open_saves = max(0, resilient - len(character.saving_throws))
+    _mark_identity(sheet, real, corpus)
     return sheet
 
 

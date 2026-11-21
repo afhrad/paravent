@@ -636,14 +636,19 @@ async def share_treasure(
         if str(form.get(f"item.{index}", "")) in present
     }
     split = [str(c) for c in form.getlist("coins_to") if str(c) in present]
+    # Magic handed out unidentified, its name the gamemaster's (app/services/identify.py).
+    hidden = {index for index in given if form.get(f"unid.{index}") == "1"}
+    handed: dict[str, list[tuple[str, int]]] = {}
+    for index, whom in given.items():
+        item = treasure.items[index]
+        handed.setdefault(whom, []).append(
+            (f"?{item.ref}" if index in hidden else item.ref, item.count)
+        )
     _, shares = registry.treasure.share(treasure_id, given, split)
     by = Actor(gm.user.display_name or gm.user.username, username=gm.user.username)
-    for character_id, (items, coins) in shares.items():
+    for character_id, (_items, coins) in shares.items():
         registry.characters.receive(
-            character_id,
-            [(item.ref, item.count) for item in items],
-            coins.model_dump(),
-            by,
+            character_id, handed.get(character_id, []), coins.model_dump(), by
         )
     notice_text = page.t("treasure.shared", count=len(shares)) if shares else None
     return _treasure(page, registry, treasure_id, notice_text=notice_text)

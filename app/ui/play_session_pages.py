@@ -31,6 +31,13 @@ def session_url(world_id: str) -> str:
     return f"{SESSION_URL}?{urlencode({'world': world_id})}"
 
 
+
+def _received_name(page: Page, ref: str) -> str:
+    """An item received, by name; one handed out unidentified as such."""
+    if ref == "?":
+        return page.t("protocol.unidentified_item")
+    return str(name_text(page, ITEM, ref.partition("|")[0]))
+
 def happened_lines(page: Page, world_id: str, happened: Happened) -> list[str]:
     """What happened beyond the fights, one Markdown list line each, in the reader's
     language: the session note's second part."""
@@ -70,9 +77,7 @@ def happened_lines(page: Page, world_id: str, happened: Happened) -> list[str]:
         lines.append(t("session.happened.level", name=name))
     for name, (items, copper) in happened.received.items():
         what = [
-            f"{count} × {name_text(page, ITEM, ref.partition('|')[0])}"
-            if count > 1
-            else name_text(page, ITEM, ref.partition("|")[0])
+            f"{count} × {_received_name(page, ref)}" if count > 1 else _received_name(page, ref)
             for ref, count in items
         ]
         if copper:

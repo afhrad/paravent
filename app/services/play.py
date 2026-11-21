@@ -58,8 +58,11 @@ PRIVATE_ACTIONS = frozenset({"roll", "death_save", "hit_die"})
 # Actions the server takes for a character and the sheet may never post: their prices
 # and goods are worked out by the shop, downtime and treasure, not by the form.
 INTERNAL_ACTIONS = frozenset(
-    {"receive", "buy", "sell", "spend", "learn", "eat", "inscribe", "scroll"}
-)
+    {
+        "receive", "buy", "sell", "spend", "learn", "eat", "inscribe", "scroll",
+        "identify", "lift_curse", "item_secret",
+    }
+)  # fmt: skip
 # A day's food on the road, by item name.
 RATIONS = frozenset({"rations", "rations (1 day)"})
 # The conditions under which a creature cannot keep concentrating (each one is, or
@@ -86,6 +89,12 @@ def _take_one(pc: PlayerCharacter, index: int) -> None:
         carried.quantity -= 1
     else:
         pc.inventory = [i for n, i in enumerate(pc.inventory) if n != index]
+
+
+def _refuse_bound(sheet: Sheet, index: int) -> None:
+    """Refuse letting go of an item whose curse holds its bearer (app/services/identify.py)."""
+    if any(i.index == index and i.bound for i in sheet.inventory):
+        raise PlayError("play.error.bound")
 
 
 def _castable(sheet: Sheet, spell: SpellView) -> None:
@@ -201,6 +210,9 @@ class PlayService:
             "use": self._use,
             "light": self._light,
             "notes": self._notes,
+            "identify": self._identify,
+            "lift_curse": self._lift_curse,
+            "item_secret": self._item_secret,
         }
 
     @property
@@ -898,6 +910,8 @@ class PlayService:
         index = _int(params, "index")
         if not 0 <= index < len(pc.inventory):
             raise PlayError("play.error.bad_input")
+        if pc.inventory[index].equipped:
+            _refuse_bound(sheet, index)
         pc.inventory[index].equipped = not pc.inventory[index].equipped
 
     def _attune(
@@ -907,9 +921,13 @@ class PlayService:
         than the character has slots for (app/services/item_charges.py), logged."""
         index = _int(params, "index", -1)
         item = next((i for i in sheet.inventory if i.index == index), None)
+        if item is not None and item.unidentified:
+            raise PlayError("play.error.unidentified")
         if item is None or not item.attunable or not 0 <= index < len(pc.inventory):
             raise PlayError("play.error.bad_input")
         carried = pc.inventory[index]
+        if carried.attuned:
+            _refuse_bound(sheet, index)
         if not carried.attuned and not attunement_allows(
             item.attune_tags,
             classes=[c.name for c in pc.classes],
@@ -968,6 +986,7 @@ class PlayService:
         """Drink a healing potion: its dice heal the character, one fewer is carried."""
         index = _int(params, "index", -1)
         item = next((i for i in sheet.inventory if i.index == index), None)
+        _refuse_bound(sheet, index)
         if item is None or not item.heal or not 0 <= index < len(pc.inventory):
             raise PlayError("play.error.bad_input")
         rolled = self._dice.roll(item.heal)
@@ -1016,6 +1035,7 @@ class PlayService:
         """Use up one of a consumable (a potion, a scroll, antitoxin), logged."""
         index = _int(params, "index", -1)
         item = next((i for i in sheet.inventory if i.index == index), None)
+        _refuse_bound(sheet, index)
         if item is None or not item.consumable or not 0 <= index < len(pc.inventory):
             raise PlayError("play.error.bad_input")
         reference = pc.inventory[index].item.reference
@@ -1133,16 +1153,19 @@ class PlayService:
         """Items and coins handed to the character (a treasure shared out): ``items`` is
         ``Name|SOURCE*count`` joined by ``;``, coins by denomination, and ``spell`` the
         spell a scroll among them holds. Items join a stack of the same thing already
-        carried."""
+        carried; one written ``?Name|SOURCE`` arrives unidentified (app/services/identify.py)
+        and is logged as ``?``, its name the gamemaster's secret."""
         got: list[str] = []
         for part in filter(None, params.get("items", "").split(";")):
             ref, _, count_text = part.rpartition("*")
             count = int(count_text) if count_text.isdigit() else 0
+            unknown = ref.startswith("?")
+            ref = ref.removeprefix("?")
             if not ref or count < 1:
                 raise PlayError("play.error.bad_input")
             option = ChosenOption.model_validate(ref)
-            self._add_items(pc, option, count, params.get("spell", ""))
-            got.append(f"{option.reference}*{count}")
+            self._add_items(pc, option, count, params.get("spell", ""), unknown)
+            got.append(f"?*{count}" if unknown else f"{option.reference}*{count}")
         coins = {d: max(0, _int(params, d, 0)) for d in ("cp", "sp", "ep", "gp", "pp")}
         for denomination, amount in coins.items():
             setattr(pc.currency, denomination, getattr(pc.currency, denomination) + amount)
@@ -1178,8 +1201,9 @@ class PlayService:
             raise PlayError("play.error.bad_input")
         item = pc.inventory[index]
         ref = params.get("ref")
-        if item.equipped or (ref is not None and item.item.reference != ref):
+        if item.equipped or item.unidentified or (ref is not None and item.item.reference != ref):
             raise PlayError("play.error.bad_input")
+        _refuse_bound(sheet, index)
         earned = max(0, _int(params, "price", 0)) * count
         item.quantity -= count
         if item.quantity == 0:
@@ -1249,8 +1273,9 @@ class PlayService:
         spellbook (``copy``), with the check the server rolled, logged
         ``scroll:<cast|copy>:<spell>:<kept>[:<total>:<dc>]``."""
         index = _int(params, "index", -1)
-        if not 0 <= index < len(pc.inventory):
+        if not 0 <= index < len(pc.inventory) or pc.inventory[index].unidentified:
             raise PlayError("play.error.bad_input")
+        _refuse_bound(sheet, index)
         spell = pc.inventory[index].spell
         _take_one(pc, index)
         what = f"scroll:{params.get('what', 'cast')}:{spell}:{params.get('ok', '1')}"
@@ -1275,8 +1300,64 @@ class PlayService:
         _take_one(pc, found)
         pc.state.hunger_levels = 0
 
+    def _carried(self, pc: PlayerCharacter, params: Mapping[str, str]) -> tuple[int, InventoryItem]:
+        """The carried item ``index`` names, checked against ``ref`` (the name of the item
+        the page was drawn for), so a changed pack is never acted on in its place."""
+        index = _int(params, "index", -1)
+        if not 0 <= index < len(pc.inventory):
+            raise PlayError("play.error.bad_input")
+        carried = pc.inventory[index]
+        if params.get("ref", carried.item.name).casefold() != carried.item.name.casefold():
+            raise PlayError("play.error.bad_input")
+        return index, carried
+
+    def _identify(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """The gamemaster identifies an unidentified item: it is itself from now on, and
+        the log tells the players what it is."""
+        _index, carried = self._carried(pc, params)
+        if not carried.unidentified:
+            raise PlayError("play.error.bad_input")
+        carried.unidentified = False
+        carried.shown_as = ""
+        self._stage(pc, actor, EntryKind.CUSTOM, what=f"identify:{carried.item.reference}")
+
+    def _lift_curse(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """The gamemaster lifts the curse of an item holding its bearer: the attunement
+        ends, as Remove Curse ends it, and the item may be let go."""
+        index, carried = self._carried(pc, params)
+        if not any(i.index == index and i.bound for i in sheet.inventory):
+            raise PlayError("play.error.bad_input")
+        carried.attuned = False
+        self._stage(pc, actor, EntryKind.CUSTOM, what=f"lift_curse:{carried.item.reference}")
+
+    def _item_secret(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """The gamemaster's word on a carried item: unidentified (``unidentified``, and
+        ``shown_as`` what the player sees), and cursed (``cursed``: ``yes``, ``no`` or
+        ``book``). Not logged: it is the gamemaster's secret."""
+        _index, carried = self._carried(pc, params)
+        hide = params.get("unidentified") == "1"
+        if hide and not carried.unidentified:
+            if carried.attuned:  # an attuned item is known to its bearer
+                raise PlayError("play.error.known")
+            carried.charges_used = 0
+        carried.unidentified = hide
+        carried.shown_as = " ".join(params.get("shown_as", "").split())[:80] if hide else ""
+        carried.cursed = {"yes": True, "no": False}.get(params.get("cursed", "book"))
+
     @staticmethod
-    def _add_items(pc: PlayerCharacter, option: ChosenOption, count: int, spell: str = "") -> None:
+    def _add_items(
+        pc: PlayerCharacter,
+        option: ChosenOption,
+        count: int,
+        spell: str = "",
+        unidentified: bool = False,
+    ) -> None:
         """Put ``count`` of an item in the pack, on a stack of the same thing if any (a
         spell scroll only on one of the same spell)."""
         stack = next(
@@ -1286,13 +1367,18 @@ class PlayService:
                 if i.item.name.lower() == option.name.lower()
                 and (i.item.source or "").lower() == (option.source or "").lower()
                 and i.spell.lower() == spell.lower()
+                and i.unidentified == unidentified
+                and not i.shown_as
             ),
             None,
         )
         if stack is not None:
             stack.quantity += count
         else:
-            pc.inventory = [*pc.inventory, InventoryItem(item=option, quantity=count, spell=spell)]
+            pc.inventory = [
+                *pc.inventory,
+                InventoryItem(item=option, quantity=count, spell=spell, unidentified=unidentified),
+            ]
 
     def _end_polymorph(self, pc: PlayerCharacter, actor: Actor, natural: bool = False) -> None:
         """Leave a spell's shape; ``natural`` when it ended by itself, which ends the spell

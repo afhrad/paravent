@@ -102,7 +102,7 @@ is meant: `{"item": "Letter from a dead colleague"}`.
 | `feats`, `optional_features` | `["Alert|PHB"]`, `["Cantrip Formulas|TCE"]` | an optional class feature from another book appears only when listed here |
 | `wild_shapes` | `["Wolf|XMM"]` | a 2024 druid's known Wild Shape forms, chosen on the sheet up to the number the level allows; a 2014 druid may take any beast that fits and lists none |
 | `spells` | `{"cantrips": […], "known": […], "prepared": […]}` | see below |
-| `inventory` | `[{"item": "Quarterstaff|PHB", "quantity": 1, "equipped": true, "attuned": false, "notes": ""}]` | equipped armour, shields and protective items set AC; equipped weapons become attacks; a spell scroll carries `"spell": "Fireball|PHB"`, the spell it holds (left out while none), cast from the sheet or copied into a spellbook (`app/services/spellbook.py`); `"charges_used": 3` the charges spent of a magic item (left out while none), its count and recovery read from the book: spent and given back on the sheet, back at the dawn, dusk or midnight the world's clock passes or after a long rest; `attuned` is set on the sheet, three items at most, an artificer's four to six (`app/services/item_charges.py`) |
+| `inventory` | `[{"item": "Quarterstaff|PHB", "quantity": 1, "equipped": true, "attuned": false, "notes": ""}]` | equipped armour, shields and protective items set AC; equipped weapons become attacks; a spell scroll carries `"spell": "Fireball|PHB"`, the spell it holds (left out while none), cast from the sheet or copied into a spellbook (`app/services/spellbook.py`); `"charges_used": 3` the charges spent of a magic item (left out while none), its count and recovery read from the book: spent and given back on the sheet, back at the dawn, dusk or midnight the world's clock passes or after a long rest; `attuned` is set on the sheet, three items at most, an artificer's four to six (`app/services/item_charges.py`); `"unidentified": true` with `"shown_as"` an item handed out unidentified, `"cursed": true` or `false` the gamemaster's word on its curse (each left out while unset; `app/services/identify.py`, below) |
 | `currency` | `{"cp": 0, "sp": 14, "ep": 0, "gp": 230, "pp": 2}` | |
 | `lifestyle` | `"modest"`, `""` | how the character lives: `wretched` … `aristocratic`; each day the world's clock passes off the road costs that from `currency` (app/services/lifestyle.py); `""` keeps none |
 | `resources` | `[{"name": "Arcane Recovery", "max": 1, "recharge": "long"}]` | limited-use features; `recharge` is `short`, `long` or `none` |
@@ -147,6 +147,24 @@ Rebuke from 3rd level) are not listed: the sheet adds them at the character's le
 adds a domain's spells. A spell castable without a slot once per rest gets a resource of
 its own, counted in `state.resources_used` ("Bless (Magic Initiate)": 1) and restored by
 the rest.
+
+### Unidentified and cursed items (2026-11-21)
+
+`app/services/identify.py`. **Unidentified**: its player sees `shown_as` (the gamemaster's
+words, "a ring of black iron") or the kind of thing it is ("Longsword (unidentified)", "Ring
+(unidentified)"), never its name: the sheet is worked out with the item replaced by its base
+item (a +1 longsword as a longsword, a ring as nothing), so neither its numbers nor its
+charges or spells give it away; it cannot be attuned, sold or used up as itself; its entry is
+not among what its player may read (PLAYER-VIEW.md). The gamemaster sees its real name
+beside its looks and **Identifies** it from the item's panel on the sheet; the log then names
+it. Sharing out a treasure offers each item as unidentified, ticked for magic items; the log
+writes it as "an unidentified item" (`?` in `receive:`).
+
+**Cursed**: its book's `curse`, unless the gamemaster says otherwise (`cursed`). Attuned to a
+cursed item, its bearer is bound: the attunement cannot end, and it cannot be taken off,
+sold, drunk or used up (`play.error.bound`), until the gamemaster **Lifts the curse**, which
+ends the attunement as Remove Curse does. The player sees "Cursed: bound" once it binds; the
+gamemaster sees "Cursed" from the start. An item already attuned cannot be made unidentified.
 
 ### `state` — what play changes
 

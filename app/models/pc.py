@@ -320,15 +320,24 @@ class InventoryItem(GameStateModel):
     # Charges spent of a magic item's (its book says how many and when they come back);
     # left out of the file while none are.
     charges_used: int = Field(default=0, ge=0)
+    # Handed out unidentified (app/services/identify.py): the player sees ``shown_as``, or
+    # what kind of thing it is, and it works as its base item until the gamemaster
+    # identifies it. Left out of the file while false or empty.
+    unidentified: bool = False
+    shown_as: str = ""
+    # Whether it is cursed, stated by the gamemaster; None follows its book (``curse``).
+    # Attuned to a cursed item, the character cannot let it go until the curse is lifted.
+    cursed: bool | None = None
 
     @model_serializer(mode="wrap")
     def _without_empty_spell(self, handler: SerializerFunctionWrapHandler) -> Any:
         data = handler(self)
         if isinstance(data, dict):
-            if not data.get("spell"):
-                data.pop("spell", None)
-            if not data.get("charges_used"):
-                data.pop("charges_used", None)
+            for key in ("spell", "charges_used", "unidentified", "shown_as"):
+                if not data.get(key):
+                    data.pop(key, None)
+            if data.get("cursed") is None:
+                data.pop("cursed", None)
         return data
 
 

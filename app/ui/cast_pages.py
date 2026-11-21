@@ -1257,11 +1257,22 @@ def _share_panel(
         summary(class_="panel-head")[icon("send"), b[t("treasure.share")]],
         form(method="post", action=url, class_="stack")[
             [
-                label(class_="field")[
-                    span[_item_label(page, item, treasure.scope.world_id)],
-                    select(name=f"item.{index}")[
+                div(class_="field enc-share-item")[
+                    label(for_=f"share-item-{index}")[
+                        _item_label(page, item, treasure.scope.world_id)
+                    ],
+                    select(id=f"share-item-{index}", name=f"item.{index}")[
                         option(value="")[t("treasure.share_keep")],
                         [option(value=cid)[name] for cid, name in characters],
+                    ],
+                    label(class_="cs-heal-pick", title=t("treasure.share_unidentified_hint"))[
+                        input_el(
+                            type="checkbox",
+                            name=f"unid.{index}",
+                            value="1",
+                            checked=_is_magic(lines, index),
+                        ),
+                        span[t("treasure.share_unidentified")],
                     ],
                 ]
                 for index, item in enumerate(treasure.items)
@@ -1285,6 +1296,14 @@ def _share_panel(
             ],
         ],
     ]
+
+
+def _is_magic(lines: Sequence[TreasureLine], index: int) -> bool:
+    """Whether a treasure's item is magic (a rarity beyond none): handed out unidentified
+    unless the gamemaster says otherwise."""
+    line = next((x for x in lines if x.index == index), None)
+    rarity = str(getattr(line.entry, "rarity", "") or "") if line and line.entry else ""
+    return rarity.lower() not in ("", "none", "unknown")
 
 
 def _item_label(page: Page, item: TreasureItem, world_id: str | None) -> str:

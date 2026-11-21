@@ -480,6 +480,9 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             ref, _, on = rest.rpartition(":")
             item = name_text(page, ("item", "baseitem"), ref.partition("|")[0])
             return t("protocol.attune_on" if on == "1" else "protocol.attune_off", item=item)
+        if head in ("identify", "lift_curse"):
+            item = name_text(page, ("item", "baseitem"), rest.partition("|")[0])
+            return t(f"protocol.{head}", item=item)
         if head == "charge":
             # charge:<ref>:<spend|regain>:<n>:<left>
             ref, op, n, left = (rest.rsplit(":", 3) + ["", "", ""])[:4]
@@ -500,7 +503,11 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             parts = []
             for part in filter(None, items.split(";")):
                 ref, _, count = part.rpartition("*")
-                name = name_text(page, ("item", "baseitem"), ref.partition("|")[0])
+                name = (
+                    t("protocol.unidentified_item")
+                    if ref == "?"
+                    else name_text(page, ("item", "baseitem"), ref.partition("|")[0])
+                )
                 parts.append(f"{name} ×{count}" if count not in ("", "1") else str(name))
             for coin in filter(None, purse.split(",")):
                 amount, denomination = coin[:-2], coin[-2:]

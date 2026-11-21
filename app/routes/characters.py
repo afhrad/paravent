@@ -753,6 +753,8 @@ def _shop(
     wares = _wares(registry, character, shop)
     sellable = []
     for n, item in enumerate(character.inventory):
+        if item.unidentified or item.attuned:  # unknown, or perhaps held by a curse
+            continue
         price = registry.shops.buys_for(shop, catalogue.item(item.item.reference))
         if price > 0 and not item.equipped and item.quantity > 0:
             sellable.append((n, item, price))
@@ -1004,7 +1006,7 @@ def _magic_carried(
     """Carried magic items that may be sold, ``(reference, name, rarity, index)``."""
     out = []
     for n, item in enumerate(character.inventory):
-        if item.equipped or item.quantity <= 0:
+        if item.equipped or item.quantity <= 0 or item.unidentified or item.attuned:
             continue
         try:
             found = registry.compendium.find("item", item.item.name, item.item.source or "")
@@ -1440,6 +1442,35 @@ async def use_scroll(
     except PlayError as exc:
         flash = exc.key
     return redirect(f"/characters/{character_id}?{urlencode({'tab': 'gear', 'flash': flash})}")
+
+
+@router.post("/characters/{character_id}/item")
+async def item_secret(
+    request: Request,
+    gm: GamemasterDep,
+    characters: CharactersDep,
+    character_id: str,
+) -> Response:
+    """The gamemaster's word on a carried item (app/services/identify.py): identify it
+    (``identify``), lift its curse (``lift_curse``), or set whether it is unidentified,
+    what it is shown as and whether it is cursed (``item_secret``)."""
+    form = await request.form()
+    op = str(form.get("op", ""))
+    params = {
+        key: str(form.get(key, ""))
+        for key in ("index", "ref", "unidentified", "shown_as", "cursed")
+        if form.get(key) is not None
+    }
+    flash = ""
+    try:
+        if op not in ("identify", "lift_curse", "item_secret"):
+            raise PlayError("play.error.bad_input")
+        by = Actor(gm.user.display_name or gm.user.username, username=gm.user.username)
+        characters.act_for(character_id, op, params, by)
+    except PlayError as exc:
+        flash = exc.key
+    query = {"tab": "gear", **({"flash": flash} if flash else {})}
+    return redirect(f"/characters/{character_id}?{urlencode(query)}")
 
 
 @router.post("/characters/{character_id}/summon", response_class=HTMLResponse)
