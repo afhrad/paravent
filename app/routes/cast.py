@@ -22,7 +22,7 @@ from fastapi.responses import HTMLResponse, Response
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.models.gamestate import Coins, Scope, SourceSet
-from app.routes.auth import html, redirect
+from app.routes.auth import back_with_undo, html, redirect
 from app.routes.paravent_markdown import paravent_markdown
 from app.services import scope
 from app.services.adventures import EditConflict, text_version
@@ -451,11 +451,17 @@ async def confirm_delete_npc(
 
 
 @router.post(f"{NPCS_URL}/{{npc_id}}/delete")
-async def delete_npc(_gm: GamemasterDep, registry: RegistryDep, npc_id: str) -> Response:
-    """Delete an NPC."""
+async def delete_npc(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    npc_id: str,
+    next: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
+) -> Response:
+    """Delete an NPC; back where it was asked from (a context menu), with Undo."""
     npc = registry.npcs.delete(npc_id)
     undo = registry.trash.entry_of("npc", npc.id) or ""
-    return redirect(f"{world_npcs_url(npc.scope.world_id)}?deleted=1&undo={undo}")
+    fallback = world_npcs_url(npc.scope.world_id)
+    return redirect(back_with_undo(next, fallback, undo, gone=npc_url(npc.id)))
 
 
 # -- treasure ----------------------------------------------------------------------------
@@ -808,11 +814,17 @@ async def confirm_delete_treasure(
 
 
 @router.post(f"{TREASURE_URL}/{{treasure_id}}/delete")
-async def delete_treasure(_gm: GamemasterDep, registry: RegistryDep, treasure_id: str) -> Response:
-    """Delete a treasure."""
+async def delete_treasure(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    treasure_id: str,
+    next: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
+) -> Response:
+    """Delete a treasure; back where it was asked from (a context menu), with Undo."""
     treasure = registry.treasure.delete(treasure_id)
     undo = registry.trash.entry_of("treasure", treasure.id) or ""
-    return redirect(f"{world_treasure_url(treasure.scope.world_id)}?deleted=1&undo={undo}")
+    fallback = world_treasure_url(treasure.scope.world_id)
+    return redirect(back_with_undo(next, fallback, undo, gone=treasure_url(treasure.id)))
 
 
 __all__ = ["router"]

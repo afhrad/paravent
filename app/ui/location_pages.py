@@ -35,6 +35,7 @@ from app.services.naming import PERSON, StyleEntry
 from app.services.scope import encode
 from app.ui.cast_pages import role_pills
 from app.ui.context import Page
+from app.ui.context_menu import row_menu
 from app.ui.forms import alert, hidden, notice, scope_select, text_field
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
@@ -46,6 +47,7 @@ from app.ui.library_links import (
     crumbs,
     delete_link,
     location_url,
+    preset_place,
     saved_version,
     world_url,
 )
@@ -132,7 +134,7 @@ def locations_page(
                 a(href=location_url(location.id), class_="list-title list-link")[location.name],
                 span(class_="list-meta")[role_pills(page, location.tags), " ", _where(names)],
             ],
-            delete_link(page, f"{location_url(location.id)}/delete", t("places.delete")),
+            row_menu(page, location_url(location.id), location.name),
         ]
         for location, names in rows
     ]
@@ -180,7 +182,7 @@ def _new_place_dialog(page: Page, world: World, error: str | None, is_open: bool
                 alert(error),
                 # In the table's world (documentation/CURRENT-WORLD.md); moved into an
                 # adventure or chapter on its form if wanted.
-                hidden("place", f"w:{world.id}"),
+                hidden("place", preset_place(page, f"w:{world.id}")),
                 text_field("name", t("adventures.name"), value="", autocomplete="off"),
                 text_field(
                     "tags",

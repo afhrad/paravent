@@ -23,6 +23,7 @@ loaded automatically.
 - Read documentation/JOURNAL.md before touching handouts: sharing boxes and pictures, the players' journal
 - Read documentation/TOKENS.md before touching tokens: the round token of every element
 - Read documentation/DESIGN.md for UI/UX elements
+- Read documentation/CONTEXT-MENUS.md before touching context menus (right-click, long press, the ⋯ menus)
 - Read documentation/THEMES.md before touching themes, tokens or `static/css/tokens.css`
 - Read @documentation/TRANSLATION.md for the multilingual design
 - Read website/README.md before touching the website (paravent.org, `website/`). When a

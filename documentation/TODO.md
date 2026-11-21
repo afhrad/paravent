@@ -12,6 +12,9 @@ Nothing agreed is waiting; see the proposals below.
 
 ## Proposed, not yet chosen
 
+- **Context menus, the rest** — pictures in chapters and log entries; session notes,
+  creatures, sounds, naming styles and characters with ⋯ menus and dialogs; "give to …"
+  and "drop" on the sheet (documentation/CONTEXT-MENUS.md §10). S
 - **Encounter notes at a glance** — the builder's notes now read folded under their
   editor ("How the notes read"), as on the treasure page; before, they stood under the
   title. Put back above the plan if the gamemaster wants tactics in view while planning.
@@ -25,8 +28,9 @@ Nothing agreed is waiting; see the proposals below.
 
 ## Known compromises
 
-- **The Undo bar hides every other notice on its page** (`main:has(.undo-notice)`); a page
-  reached after a delete shows only the delete's notice today, so nothing else is hidden.
+- **The Undo bar hides every other notice on its page** (`main:has(.undo-notice)`). Since
+  a delete from a context menu returns to the page it was asked from (2026-11-21), that
+  page's own notice, if it shows one, waits until the next load.
   Revisit if a delete ever lands on a page with a notice of its own.
 - **Restore works in any world** since the Undo (2026-11-20); Check links still lists only
   the table's world's trash.

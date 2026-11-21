@@ -35,6 +35,7 @@ from app.services.worlds import Book, BookCatalog
 from app.ui.affliction_pages import party_chips
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
+from app.ui.context_menu import data_menu, menu_button
 from app.ui.forms import alert, checkbox_field, hidden, select_field, text_field
 from app.ui.gift_pages import party_gifts
 from app.ui.home_pages import empty_state, page_head
@@ -197,6 +198,7 @@ def party_card(
         id=f"pc-{pc.id}",
         class_=f"pc-card {state or ('nohp' if top is None else '')}",
         data_rev=sheet.revision or "",
+        data_menu=data_menu("party", pc.id),
     )[
         div(class_="alert pc-flash", role="alert")[icon("triangle-alert"), span[flash]]
         if flash
@@ -221,6 +223,7 @@ def party_card(
             span(class_="pill dmg", title=sheet.file_error)[t("chars.file_error")]
             if sheet.file_error
             else None,
+            menu_button(page, pc.name or t("play.unnamed"), f"/characters/{pc.id}"),
         ],
         div(class_="pc-hp")[
             div(class_="pc-hp-row")[

@@ -48,6 +48,7 @@ from app.services.token_export import DEFAULT_PIXELS, PIXELS, SQUARE_MM, Piece
 from app.services.tokens import Token
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
+from app.ui.context_menu import row_menu
 from app.ui.cr_badge import cr_badge
 from app.ui.creature_links import creature_url
 from app.ui.forms import (
@@ -62,7 +63,7 @@ from app.ui.forms import (
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
-from app.ui.library_links import copy_snippet, delete_link
+from app.ui.library_links import copy_snippet, delete_link, preset_place
 from app.ui.markdown import Rendered
 from app.ui.name_roller import name_roller
 from app.ui.names import name_text
@@ -165,7 +166,7 @@ def encounters_page(
                 span(class_="list-meta")[_summary(page, v)],
             ],
             level_pill(page, v.rating),
-            delete_link(page, f"{encounter_url(v.encounter.id)}/delete", t("encounters.delete")),
+            row_menu(page, encounter_url(v.encounter.id), v.encounter.name),
         ]
         for v in views
     ]
@@ -189,6 +190,7 @@ def encounters_page(
                 ),
                 [
                     hidden("world", here.id),
+                    hidden("place", placed) if (placed := preset_place(page, "")) else None,
                     p(class_="field-hint")[t("encounters.new_in", world=here.name)],
                 ]
                 if here is not None

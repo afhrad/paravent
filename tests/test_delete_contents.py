@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from datetime import date
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -119,9 +120,12 @@ class TestButtons:
         await raw.post("/login", data={"username": "dm", "password": PASSWORD})
         to_adventure = f'href="/gm/adventures/{adventure.id}/delete"'
         to_chapter = f'href="/gm/chapters/{chapter.id}/delete"'
-        assert to_adventure in (await raw.get(f"/gm/worlds/{world_id}")).text
+        # A list row reaches its delete through its ⋯ menu (documentation/CONTEXT-MENUS.md).
+        row_adventure = f"href=%2Fgm%2Fadventures%2F{adventure.id}"
+        row_chapter = f"href=%2Fgm%2Fchapters%2F{chapter.id}"
+        assert row_adventure in (await raw.get(f"/gm/worlds/{world_id}")).text
         on_adventure = (await raw.get(f"/gm/adventures/{adventure.id}")).text
-        assert to_adventure in on_adventure and to_chapter in on_adventure
+        assert to_adventure in on_adventure and row_chapter in on_adventure
         assert to_chapter in (await raw.get(f"/gm/chapters/{chapter.id}")).text
 
     async def test_every_object_has_its_delete_in_reach(self, table: Table) -> None:  # noqa: F811
@@ -146,7 +150,8 @@ class TestButtons:
         for kind, (own_page, listing) in targets.items():
             link = f'href="{own_page}/delete"'
             assert link in (await raw.get(own_page)).text, kind  # beside Edit / Run
-            assert link in (await raw.get(listing)).text, kind  # on its row
+            row = f"href={quote(own_page, safe='')}"
+            assert row in (await raw.get(listing)).text, kind  # its row's ⋯ menu
             # In the adventure's panel it is only taken out of the adventure, never
             # deleted (app/services/holdings.py).
             assert link not in holdings, kind

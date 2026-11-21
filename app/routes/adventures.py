@@ -30,7 +30,7 @@ from htpy import Node
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.models.gamestate import Adventure, Scope, SourceSet
-from app.routes.auth import html, redirect, safe_next
+from app.routes.auth import back_with_undo, html, redirect, safe_next
 from app.services import image_effects, scope
 from app.services.adventures import (
     AdventureError,
@@ -562,9 +562,11 @@ async def delete_adventure(
     registry: RegistryDep,
     adventure_id: str,
     contents: Annotated[str, Form()] = "keep",
+    next: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
 ) -> Response:
     """Move the adventure to the trash; with ``contents=all`` its NPCs, places,
-    encounters and treasure are deleted too, else they move up to the world."""
+    encounters and treasure are deleted too, else they move up to the world. Back where
+    it was asked from (a context menu), with Undo."""
     adventure = registry.adventures.get(adventure_id)
     world_id = adventure.world_id
     # A revision's records are copies: they go with it, and the original is untouched.
@@ -574,7 +576,8 @@ async def delete_adventure(
     if adventure.revision_of:
         return redirect(adventure_url(adventure.revision_of))
     undo = registry.trash.entry_of("adventure", adventure_id) or ""
-    return redirect(_with(world_url(world_id), deleted="1", undo=undo))
+    gone = adventure_url(adventure_id)
+    return redirect(back_with_undo(next, world_url(world_id), undo, gone=gone))
 
 
 @router.post(f"{ADVENTURES_URL}/{{adventure_id}}/holdings")
@@ -1086,12 +1089,14 @@ async def delete_chapter(
     registry: RegistryDep,
     chapter_id: str,
     contents: Annotated[str, Form()] = "keep",
+    next: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
 ) -> Response:
     """Move the chapter to the trash; with ``contents=all`` what is placed in it goes
-    too, else it moves up to the adventure."""
+    too, else it moves up to the adventure. Back where it was asked from, with Undo."""
     chapter = registry.adventures.delete_chapter(chapter_id, contents=contents == "all")
     undo = registry.trash.entry_of("chapter", chapter_id) or ""
-    return redirect(_with(adventure_url(chapter.adventure_id), deleted="1", undo=undo))
+    fallback = adventure_url(chapter.adventure_id)
+    return redirect(back_with_undo(next, fallback, undo, gone=chapter_url(chapter_id)))
 
 
 @router.post(f"{ADVENTURES_URL}/{{adventure_id}}/start")

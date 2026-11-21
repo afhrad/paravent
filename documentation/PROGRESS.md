@@ -630,6 +630,13 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         patron, ally, villain, framing event, quandary, twist, climax, what it leads on to)
         on the world's guides, each part again on its own, the ticked ones kept in the
         notes or a secret box; for Claude `roll_story_seeds`
+  - [x] **Context menus** (2026-11-21, documentation/CONTEXT-MENUS.md,
+        `app/routes/menus.py`, `static/js/menu.js`): a right-click, long press (450 ms, a
+        bottom sheet on a phone), the ContextMenu key or the **⋯** on list rows (NPCs,
+        places, treasure, encounters, adventures, chapters), campaign and missing links,
+        party cards, tracker rows and the sheet's items and spells. Deletes from a menu come
+        back with Undo, or ask in a dialog what goes with them; Duplicate, Move up, New …
+        here, create a missing link in the chapter, adventure or world
   - [x] **Supernatural gifts** (2026-11-21, `app/services/gifts.py`): **Grant** beside a
         blessing, charm or boon of the world's books gives it to the ticked characters,
         its uses ("has 3 charges", "used three times", "once used") and how long it lasts

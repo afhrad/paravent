@@ -546,6 +546,7 @@ def app_shell(
         ],
         scripts=(
             *extra_scripts,
+            "/static/js/menu.js",
             *(("/static/js/complete.js",) if insert_layer else ()),
             "/static/js/protocol.js",
             "/static/js/table-world.js",

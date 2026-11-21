@@ -56,6 +56,7 @@ from app.routes import library_preview as library_preview_routes
 from app.routes import locations as location_routes
 from app.routes import mcp_tokens as mcp_routes
 from app.routes import media as media_routes
+from app.routes import menus as menu_routes
 from app.routes import naming as naming_routes
 from app.routes import npc_gen as npc_gen_routes
 from app.routes import play_combat as play_combat_routes
@@ -350,6 +351,7 @@ def create_app() -> FastAPI:
     app.include_router(story_seed_routes.router)
     app.include_router(gift_routes.router)
     app.include_router(formula_routes.router)
+    app.include_router(menu_routes.router)
     app.include_router(world_links_routes.router)
     app.include_router(home_routes.router)
     app.include_router(players_routes.router)

@@ -26,7 +26,7 @@ from fastapi.responses import HTMLResponse, Response
 from app.dependencies import GamemasterDep, PageDep, RegistryDep, WorldsDep
 from app.models.gamestate import PartySpec
 from app.models.pc import DraftStatus
-from app.routes.auth import html, redirect
+from app.routes.auth import back_with_undo, html, redirect
 from app.routes.paravent_markdown import paravent_markdown
 from app.services import scope, token_export
 from app.services.encounter_gen import EncounterGenerator, bands_of, pool_of
@@ -642,12 +642,16 @@ async def confirm_delete(
 
 @router.post(f"{ENCOUNTERS_URL}/{{encounter_id}}/delete")
 async def delete_encounter(
-    _gm: GamemasterDep, registry: RegistryDep, encounter_id: str
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    encounter_id: str,
+    next: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
 ) -> Response:
-    """Delete the encounter."""
+    """Delete the encounter; back where it was asked from (a context menu), with Undo."""
     registry.encounters.delete(encounter_id)
     undo = registry.trash.entry_of("encounter", encounter_id) or ""
-    return redirect(f"{ENCOUNTERS_URL}?deleted=1&undo={undo}")
+    gone = f"{ENCOUNTERS_URL}/{encounter_id}"
+    return redirect(back_with_undo(next, ENCOUNTERS_URL, undo, gone=gone))
 
 
 __all__ = ["router"]

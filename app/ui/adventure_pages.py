@@ -81,6 +81,7 @@ from app.ui.auth_pages import message_panel
 from app.ui.cast_pages import npc_card, treasure_card
 from app.ui.combat_pages import combat_url
 from app.ui.context import Page
+from app.ui.context_menu import row_menu
 from app.ui.creature_pages import creature_url
 from app.ui.encounter_pages import encounter_title, encounter_url, level_pill
 from app.ui.forms import alert, hidden, notice, select_field, text_field
@@ -537,7 +538,7 @@ def world_page(
                     ),
                 ],
             ],
-            delete_link(page, f"{adventure_url(adv.id)}/delete", t("adventures.delete")),
+            row_menu(page, adventure_url(adv.id), adv.name),
             _move_buttons(
                 page,
                 f"{adventure_url(adv.id)}/move",
@@ -831,7 +832,7 @@ def adventure_page(
             a(href=f"{chapter_url(ch.id)}/edit", class_="btn btn-sm btn-ghost")[
                 icon("pencil"), span(class_="list-action-label")[t("players.edit")]
             ],
-            delete_link(page, f"{chapter_url(ch.id)}/delete", t("chapters.delete")),
+            row_menu(page, chapter_url(ch.id), ch.title),
             _move_buttons(
                 page,
                 f"{chapter_url(ch.id)}/move",

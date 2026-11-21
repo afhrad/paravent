@@ -16,7 +16,7 @@ from fastapi.responses import HTMLResponse, Response
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.models.gamestate import Location
-from app.routes.auth import html, redirect
+from app.routes.auth import back_with_undo, html, redirect
 from app.routes.paravent_markdown import paravent_markdown
 from app.services import scope
 from app.services.adventures import EditConflict, text_version
@@ -322,11 +322,17 @@ async def confirm_delete_location(
 
 
 @router.post(f"{LOCATIONS_URL}/{{location_id}}/delete")
-async def delete_location(_gm: GamemasterDep, registry: RegistryDep, location_id: str) -> Response:
-    """Delete a place."""
+async def delete_location(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    location_id: str,
+    next: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
+) -> Response:
+    """Delete a place; back where it was asked from (a context menu), with Undo."""
     location = registry.locations.delete(location_id)
     undo = registry.trash.entry_of("place", location.id) or ""
-    return redirect(f"{world_locations_url(location.scope.world_id)}?deleted=1&undo={undo}")
+    fallback = world_locations_url(location.scope.world_id)
+    return redirect(back_with_undo(next, fallback, undo, gone=location_url(location.id)))
 
 
 # -- rolled as a settlement (app/services/settlement_gen.py) ---------------------------

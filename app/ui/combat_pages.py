@@ -744,7 +744,7 @@ def combatant_row(page: Page, view: CombatView, turn: TurnView, row: Row, sel: s
         if x
     )
     running = view.combat.running
-    return li(id=f"c-{c.id}", class_=classes, style=_hp_fill(row))[
+    return li(id=f"c-{c.id}", class_=classes, style=_hp_fill(row), data_menu_local="")[
         _row_token(view, row, shown_label(page, row)),
         div(class_="c-body")[
             div(class_="c-name")[

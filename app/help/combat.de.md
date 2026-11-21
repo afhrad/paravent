@@ -155,6 +155,10 @@ Nach mehreren Kämpfen an einem Abend fasst **Die ganze Sitzung** sie zusammen.
 
 ## Gut zu wissen
 
+- **Ein Rechtsklick auf eine Zeile** (langes Drücken auf dem Tablet) öffnet ihr ⋯-Menü.
+  Das gilt auch für Gruppenkarten, Listenzeilen und die Verweise in deinen Kapiteln: ein
+  Menü dessen, was dort geht — öffnen, Kampf starten, duplizieren, nach oben verschieben,
+  löschen mit Rückgängig, oder einen fehlenden Verweis gleich dort anlegen.
 - **Das Protokoll** (eingeklappt unter der Reihenfolge) hält jeden Wurf mit seinen Würfeln
   fest. Natürliche 20 und 1 sind dort grün und rot markiert, ebenso auf dem Bogen und auf
   deinen Gruppenkarten.

@@ -7,9 +7,10 @@ other's links without importing each other.
 
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from datetime import datetime
-from urllib.parse import urlencode
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 from htpy import (
     Element,
@@ -63,6 +64,14 @@ def new_object_url(kind: str, name: str, scope: str, back: str, text: str = "") 
     if text:
         query["text"] = text
     return f"{NEW_OBJECT_URL}?" + urlencode(query)
+
+
+def preset_place(page: Page, default: str) -> str:
+    """Where a New dialog places what it makes: ``?place=`` on the page's address (a
+    context menu's **New … here**, documentation/CONTEXT-MENUS.md §5) when it is a scope
+    (``c:``, ``a:``, ``w:`` and an id), else ``default``; the route checks it again."""
+    value = (parse_qs(urlsplit(page.path).query).get("place") or [""])[0]
+    return value if re.fullmatch(r"[wac]:[A-Za-z0-9_-]{1,64}", value) else default
 
 
 def media_url(record_id: str, relative: str) -> str:
@@ -165,25 +174,38 @@ def confirm_page(
     choice: Node = None,
 ) -> Element:
     """Ask before deleting: what goes, and a button that does it; ``choice`` sits in the
-    form above the button (how much goes with it)."""
+    form above the button (how much goes with it). Asked from a context menu
+    (``?dialog=1``, documentation/CONTEXT-MENUS.md §5) it is the panel alone, shown as a
+    dialog, and the delete returns to the page the menu was opened on (``next``)."""
     t = page.t
+    query = parse_qs(urlsplit(page.path).query)
+    in_dialog = (query.get("dialog") or [""])[0] == "1"
+    next_page = (query.get("next") or [""])[0]
+    panel = div(class_="panel panel-danger")[
+        div(class_="panel-head")[span(class_="eyebrow")[t("gm.eyebrow")], b[heading]],
+        p[lede],
+        p(class_="field-hint")[hint] if hint else None,
+        form(method="post", action=action)[
+            hidden("next", next_page) if next_page.startswith("/") else None,
+            choice,
+            div(class_="form-actions")[
+                button(type="submit", class_="btn btn-dmg")[icon("x"), span[submit]],
+                button(type="button", class_="btn btn-ghost", data_close="1")[
+                    t("common.cancel")
+                ]
+                if in_dialog
+                else a(href=back, class_="btn btn-ghost")[t("common.cancel")],
+            ],
+        ],
+    ]
+    if in_dialog:
+        return panel
     return app_shell(
         page,
         title,
         div(class_="formpage")[
             a(href=back, class_="backlink")[icon("arrow-left"), span[t("common.cancel")]],
-            div(class_="panel panel-danger")[
-                div(class_="panel-head")[span(class_="eyebrow")[t("gm.eyebrow")], b[heading]],
-                p[lede],
-                p(class_="field-hint")[hint] if hint else None,
-                form(method="post", action=action)[
-                    choice,
-                    div(class_="form-actions")[
-                        button(type="submit", class_="btn btn-dmg")[icon("x"), span[submit]],
-                        a(href=back, class_="btn btn-ghost")[t("common.cancel")],
-                    ],
-                ],
-            ],
+            panel,
         ],
     )
 

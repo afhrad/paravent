@@ -61,6 +61,9 @@ Konzentrationszauber steht als gehalten da, bis du ihn fallen lässt oder verlie
 
 ## 5. Ausrüstung und magische Gegenstände
 
+- **Lange drücken** auf einen Gegenstand oder Zauber (Rechtsklick mit der Maus) zeigt, was
+  damit geht: ausrüsten oder ablegen, einstimmen, eine Ladung verbrauchen, trinken, auf
+  einem Grad wirken, den ganzen Eintrag lesen.
 - **Ausrüsten** von Rüstung, Schilden und Waffen: Sie bestimmen deine Rüstungsklasse und
   deine Angriffe.
 - **Einstimmen** auf einen magischen Gegenstand, der es verlangt, bis zu drei. Manche

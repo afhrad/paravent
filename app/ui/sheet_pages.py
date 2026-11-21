@@ -91,6 +91,7 @@ from app.ui.chase_pages import chase_banner
 from app.ui.check_pages import check_banner
 from app.ui.clock_pages import remaining, sheet_time, sheet_timers
 from app.ui.context import Page
+from app.ui.context_menu import data_menu
 from app.ui.downtime_pages import sheet_downtime_link
 from app.ui.follower_pages import sheet_followers_link
 from app.ui.forms import hidden
@@ -1025,6 +1026,7 @@ def _spell_row(
     ]
     return details(
         class_=f"cs-spell {'held' if held else ''}",
+        data_menu=data_menu("spell", sheet.character.id, ref=spell.reference),
         data_level=str(spell.level),
         data_key=f"spell:{spell.reference}:{spell.free}"
         if spell.free
@@ -1373,7 +1375,10 @@ def _item_row(page: Page, sheet: Sheet, item: ItemView) -> Element:
         else None,
         span(class_="tag")[t("items.unidentified_tag")] if item.unidentified and gm else None,
     ]
-    return div(class_=f"cs-item {'on' if item.equipped else ''}")[
+    return div(
+        class_=f"cs-item {'on' if item.equipped else ''}",
+        data_menu=data_menu("item", sheet.character.id, str(item.index)),
+    )[
         div(class_="cs-item-main")[
             _item_name(page, item, gm),
             span(class_="meta")[badges, span[item.notes] if item.notes else None],

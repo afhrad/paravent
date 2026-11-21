@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import math
 from typing import Annotated
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse, Response
@@ -37,6 +38,21 @@ def safe_next(url: str | None) -> str:
     if not url or not url.startswith("/") or url.startswith(("//", "/\\")):
         return ""
     return url
+
+
+def back_with_undo(next_page: str, fallback: str, undo: str, gone: str = "") -> str:
+    """Where a delete returns with the Undo bar (``deleted`` and ``undo`` in the query):
+    the page it was asked from — a context menu sends it as ``next``
+    (documentation/CONTEXT-MENUS.md §5) — unless that is the gone object's own page
+    (``gone``) or not this site's, else ``fallback``."""
+    target = safe_next(next_page)
+    path = urlsplit(target).path if target else ""
+    if not target or (gone and (path == gone or path.startswith(gone + "/"))):
+        target = fallback
+    parts = urlsplit(target)
+    query = [(k, v) for k, v in parse_qsl(parts.query) if k not in ("deleted", "undo")]
+    query += [("deleted", "1"), ("undo", undo)]
+    return urlunsplit(("", "", parts.path, urlencode(query), parts.fragment))
 
 
 def home_for(role: Role) -> str:

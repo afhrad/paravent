@@ -55,6 +55,9 @@ class prepares them. A concentration spell shows as held until you drop it or lo
 
 ## 5. Gear and magic items
 
+- **Press and hold** an item or a spell (right-click with a mouse) for what can be done
+  with it: equip or take off, attune, spend a charge, drink, cast at a level, read the full
+  entry.
 - **Equip** armour, shields and weapons: they set your armour class and your attacks.
 - **Attune** to a magic item that asks for it, up to three. Some items are only for some
   characters (a cleric's staff); the sheet says so if yours is not one of them.

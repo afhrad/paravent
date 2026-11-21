@@ -54,6 +54,7 @@ from app.ui.attitude import attitude_panel, attitude_pill
 from app.ui.auth_pages import message_panel
 from app.ui.book_pages import Mention
 from app.ui.context import Page
+from app.ui.context_menu import row_menu
 from app.ui.encounter_pages import encounter_url
 from app.ui.forms import alert, hidden, notice, origin_fields, scope_select, text_field
 from app.ui.home_pages import empty_state, page_head
@@ -69,6 +70,7 @@ from app.ui.library_links import (
     delete_link,
     location_url,
     npc_url,
+    preset_place,
     saved_version,
     treasure_url,
     world_url,
@@ -441,7 +443,7 @@ def _create_dialog(
             submit=submit,
             body=[
                 alert(error),
-                hidden("place", f"w:{world_id}"),
+                hidden("place", preset_place(page, f"w:{world_id}")),
                 text_field("name", t("adventures.name"), value="", autocomplete="off"),
                 div(class_="field")[
                     label(for_=f"{dialog_id}-notes")[
@@ -506,7 +508,7 @@ def _new_npc_dialog(
             submit=t("npcs.create"),
             body=[
                 alert(error),
-                hidden("place", f"w:{world.id}"),
+                hidden("place", preset_place(page, f"w:{world.id}")),
                 div(class_="field")[
                     label(for_="f-new-npc-race")[t("npcs.race")],
                     input_el(
@@ -583,7 +585,7 @@ def npcs_page(
                     _place_text(names),
                 ],
             ],
-            delete_link(page, f"{npc_url(npc.id)}/delete", t("npcs.delete")),
+            row_menu(page, npc_url(npc.id), npc.name),
         ]
         for npc, names in ordered
     ]
@@ -655,7 +657,7 @@ def treasures_page(
                     )
                 ],
             ],
-            delete_link(page, f"{treasure_url(x.id)}/delete", t("treasure.delete")),
+            row_menu(page, treasure_url(x.id), x.name),
         ]
         for x, names in rows
     ]

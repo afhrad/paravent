@@ -139,6 +139,10 @@ evening, **The whole session** puts them together.
 
 ## Good to know
 
+- **A right-click on a row** (a long press on a tablet) opens its ⋯ menu. The same works
+  on party cards, list rows and the links in your chapters: a menu of what can be done
+  there — open, run, duplicate, move up, delete with Undo, or create a missing link right
+  where it stands.
 - **The log** (folded under the order) keeps every roll with its dice. Natural 20s and 1s
   are marked green and red there, on the sheet and on your party cards.
 - **Dice sounds** play on the device that rolled — rattle, a chime for a natural 20, a

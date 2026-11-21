@@ -312,6 +312,14 @@ dialog. Exceptions on purpose: a naming style opens its editor (a style is a pat
 parts and samples, not a short form), and the world menu's **New world** is its own
 dialog already.
 
+### Context menus
+
+Built 2026-11-21: a right-click (long press on touch, the **⋯** beside it, the ContextMenu
+key) on tracker rows, party cards, campaign links and missing links, the sheet's items and
+spells, and list rows — one server-built menu per kind, drawn as a popover or, on a phone,
+a bottom sheet. A list row's trash icon became its **⋯**; a delete from a menu returns with
+**Undo**, or asks in a dialog where something goes with it. Spec: documentation/CONTEXT-MENUS.md.
+
 ### Form fields
 
 Every drop-down, text box and text field has one look (2026-11-21, the top of
