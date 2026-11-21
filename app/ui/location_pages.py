@@ -252,6 +252,9 @@ def location_page(
                     a(href=f"{location_url(location.id)}/edit", class_="btn")[
                         icon("pencil"), span[t("players.edit")]
                     ],
+                    a(href=f"{location_url(location.id)}/settlement", class_="btn btn-ghost")[
+                        icon("dices", "sm"), span[t("settlement.roll")]
+                    ],
                     delete_link(
                         page, f"{location_url(location.id)}/delete", t("places.delete"), text=True
                     ),

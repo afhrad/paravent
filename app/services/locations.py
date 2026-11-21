@@ -116,6 +116,14 @@ class LocationService:
             )
         return saved
 
+    def add_details(self, location_id: str, text: str, tags: builtins.list[str]) -> Location:
+        """What a roll gave a place, written beneath its notes; ``tags`` join its own."""
+        before = self.get(location_id)
+        notes = f"{before.notes.rstrip()}\n\n{text.strip()}\n" if before.notes.strip() else text
+        return self._store.locations.update(
+            location_id, notes=notes, tags=clean_roles([*before.tags, *tags])
+        )
+
     def upload_picture(self, location_id: str, filename: str, data: bytes) -> str:
         """Store a picture beside the place's scope and use it."""
         found = self.get(location_id)

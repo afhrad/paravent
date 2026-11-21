@@ -605,6 +605,10 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         taken up again; on the session page and in its note
   - [x] **Milestone levelling** (2026-11-16): a world's switch; no XP is awarded after
         fights or quests, nor shown on the sheet
+  - [x] **Roll as a settlement** (2026-11-21, `app/services/settlement_gen.py`,
+        ADVENTURES.md §4): a place's size and the guide's settlement tables — government,
+        leader, relations, trait, fame, calamity, tavern, shops — read from the world's books
+        by caption, each part rerolled alone, the ticked ones kept in its notes
   - [x] **Award XP** (2026-11-21, `app/ui/xp_pages.py`, `POST /gm/xp`): experience for a
         challenge that was no fight from the party view, the same to each character ticked
         or a total shared out, logged with its reason; none in a milestone world

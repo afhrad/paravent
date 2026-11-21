@@ -3297,3 +3297,15 @@ form[aria-busy="true"] .is-busy svg{ animation:busy-spin 1s linear infinite; }
 .attitude-buttons .btn.heal[aria-pressed="true"]{ background:var(--heal-weak); border-color:var(--heal); color:var(--heal-text); }
 .attitude-buttons .btn.dmg[aria-pressed="true"]{ background:var(--dmg-weak); border-color:var(--dmg); color:var(--dmg-text); }
 .attitude-pill{ margin-right:.25rem; }
+
+/* A place rolled as a settlement (app/ui/settlement_pages.py). */
+.settle-size{ max-width:22rem; }
+.settle-list{ list-style:none; margin:.75rem 0 0; padding:0; display:grid; gap:.35rem; }
+.settle-row{ display:grid; grid-template-columns:minmax(9rem, 14rem) 1fr auto auto; gap:.5rem; align-items:center;
+  padding:.4rem 0; border-top:1px solid var(--border); }
+.settle-keep{ display:flex; gap:.5rem; align-items:center; font-weight:600; }
+@media (max-width: 640px){
+  .settle-row{ grid-template-columns:1fr auto; }
+  .settle-value{ grid-column:1 / -1; order:3; }
+  .settle-book{ display:none; }
+}

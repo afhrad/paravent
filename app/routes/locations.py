@@ -19,9 +19,11 @@ from app.routes.auth import html, redirect
 from app.routes.paravent_markdown import paravent_markdown
 from app.services import scope
 from app.services.adventures import EditConflict, text_version
+from app.services.dice import Dice
 from app.services.i18n import Translatable
 from app.services.locations import named_in
 from app.services.media import MAX_BYTES, MediaError
+from app.services.settlement_gen import SIZES, SettlementGenerator, plays_2024
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
 from app.ui.encounter_pages import encounter_url
@@ -36,6 +38,7 @@ from app.ui.location_pages import (
     world_locations_url,
 )
 from app.ui.markdown import LIBRARY_ICON
+from app.ui.settlement_pages import settlement_page, size_text
 
 router = APIRouter(tags=["places"])
 
@@ -322,3 +325,85 @@ async def delete_location(_gm: GamemasterDep, registry: RegistryDep, location_id
     location = registry.locations.delete(location_id)
     undo = registry.trash.entry_of("place", location.id) or ""
     return redirect(f"{world_locations_url(location.scope.world_id)}?deleted=1&undo={undo}")
+
+
+# -- rolled as a settlement (app/services/settlement_gen.py) ---------------------------
+
+
+def _settlement_generator(registry: StoreRegistry, world_id: str) -> SettlementGenerator:
+    world = registry.adventures.world(world_id)
+    return SettlementGenerator(
+        lambda caption, books: registry.book_table(world_id, caption, books),
+        Dice(),
+        new_rules=plays_2024(world.source_set.sources),
+    )
+
+
+def _settlement(
+    page: Page,
+    registry: StoreRegistry,
+    location: Location,
+    generator: SettlementGenerator,
+    size: str,
+    rolled: dict[str, str],
+    kept: frozenset[str],
+) -> HTMLResponse:
+    world = registry.adventures.world(location.scope.world_id)
+    return html(
+        settlement_page(
+            page,
+            location,
+            world,
+            sizes=generator.sizes(),
+            size=size if size in SIZES else SIZES[0],
+            rolled=rolled,
+            sources={p: generator.source_of(p) for p in rolled},
+            kept=kept,
+        )
+    )
+
+
+@router.get(f"{LOCATIONS_URL}/{{location_id}}/settlement", response_class=HTMLResponse)
+async def roll_settlement(
+    _gm: GamemasterDep, page: PageDep, registry: RegistryDep, location_id: str
+) -> HTMLResponse:
+    """A place rolled as a settlement, every part ticked."""
+    location = registry.locations.get(location_id)
+    generator = _settlement_generator(registry, location.scope.world_id)
+    rolled = generator.roll()
+    return _settlement(page, registry, location, generator, SIZES[0], rolled, frozenset(rolled))
+
+
+@router.post(f"{LOCATIONS_URL}/{{location_id}}/settlement", response_class=HTMLResponse)
+async def settle(
+    request: Request, _gm: GamemasterDep, page: PageDep, registry: RegistryDep, location_id: str
+) -> Response:
+    """``roll`` everything again (the ticked kept), ``reroll:<part>`` one part, or
+    ``apply``: write the size and the ticked parts into the place's notes."""
+    form = await request.form()
+    location = registry.locations.get(location_id)
+    generator = _settlement_generator(registry, location.scope.world_id)
+    parts = generator.parts()
+    rolled = {p: str(form.get(f"v_{p}", ""))[:500] for p in parts}
+    kept = frozenset(str(k) for k in form.getlist("keep") if str(k) in parts)
+    size = str(form.get("size", SIZES[0]))
+    action = str(form.get("action", "roll"))
+    if action.startswith("reroll:") and action[7:] in parts:
+        part = action[7:]
+        rolled[part] = generator.roll_part(part, rolled[part])
+    elif action == "roll":
+        rolled = generator.roll({p: v for p, v in rolled.items() if p in kept})
+        kept = frozenset(rolled)
+    elif action == "apply":
+        t = page.t
+        chosen = next((s for s in generator.sizes() if s.key == size), None)
+        lines = [f"**{t('settlement.size')}:** {size_text(page, chosen)}"] if chosen else []
+        lines += [
+            f"- **{t(f'settlement.part.{p}')}:** {rolled[p]}"
+            for p in parts
+            if p in kept and rolled.get(p)
+        ]
+        tags = [t(f"settlement.size.{chosen.key}")] if chosen else []
+        registry.locations.add_details(location_id, "\n".join(lines), tags)
+        return redirect(location_url(location_id))
+    return _settlement(page, registry, location, generator, size, rolled, kept)

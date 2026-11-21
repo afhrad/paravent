@@ -174,7 +174,7 @@ written in another chapter still links.
 | **NPC** | name · roles (`boss`, `villain`, `ally`, `patron`, free tags) · statblock reference `Name\|SRC` or none · portrait (a media path) · notes in Markdown |
 | **Encounter** | exists already; `world_id` becomes a `Scope` |
 | **Treasure** | name · items as `Name\|SRC` with counts · coins (cp/sp/ep/gp/pp) · notes. "Given to" a character comes later |
-| **Place** | name · tags (village, dungeon, inn…) · picture (a media path, its title image since 2026-11-18, TOKENS.md §6) · notes in Paravent Markdown. Written `{@place Name}`; built 2026-10-28 (`library/locations.json`, the model `Location` — `Place` is already where a user left off) |
+| **Place** | name · tags (village, dungeon, inn…) · picture (a media path, its title image since 2026-11-18, TOKENS.md §6) · notes in Paravent Markdown. Written `{@place Name}`; built 2026-10-28 (`library/locations.json`, the model `Location` — `Place` is already where a user left off). **Roll as a settlement** (2026-11-21, `app/services/settlement_gen.py`): size, government, leader, relations, defining trait, what it is known for, its trouble, a tavern and shops, rolled on the world's guide's tables (2024 where declared, the government and relations from the 2014 guide), each part again on its own, the ticked ones written beneath its notes with the size as a tag |
 | **Media** | not a record — a file in a `media/` folder, uploaded through the app or dropped in |
 
 "Bosses" on the world are NPCs at world scope with the `boss` role; the world page lists them.
