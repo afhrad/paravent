@@ -863,6 +863,9 @@ def adventure_page(
                     a(href=f"{adventure_url(adv.id)}/edit", class_="btn")[
                         icon("pencil"), span[t("players.edit")]
                     ],
+                    a(href=f"{adventure_url(adv.id)}/ideas", class_="btn btn-ghost")[
+                        icon("dices", "sm"), span[t("seeds.adventure.open")]
+                    ],
                     delete_link(
                         page, f"{adventure_url(adv.id)}/delete", t("adventures.delete"), text=True
                     ),

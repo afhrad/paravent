@@ -220,6 +220,20 @@ book place's `:::: at …` — a click, a tap or Enter copies it, and "Copied" s
 moment (`copy_snippet`, `ui.js`). Over plain http on the home network the browser's
 clipboard API is closed, so the older copy command stands in.
 
+**Seeds from the guides** (2026-11-21, `app/services/story_seeds.py`). **Roll as a villain**
+on an NPC's page rolls the 2014 guide's villain tables: its kind, scheme, methods and
+weakness. Scheme and methods are two-step tables, "Immortality: Ascend to godhood". The
+2024 guide has no such tables, so a world without the 2014 guide is told so. **Roll ideas**
+on an adventure's page rolls the guide of its world. The 2024 guide gives a situation for
+the party's level band (the adventure's party, else the world's characters, by their
+average level), a hook, the climax and what the adventure leads on to. The patron, ally,
+villain, framing event, moral quandary and twist that only the 2014 guide prints join
+them where the world declares that guide too. A 2014 world rolls the party's goal
+(dungeon, wilderness, event or other) and the introduction instead of the situation and
+hook. Each part rolls again on its own. **Keep** writes the ticked parts beneath the
+NPC's notes, or at the end of the adventure's text in a `[!secret]` box. Claude rolls the
+same with `roll_story_seeds` (MCP.md).
+
 ---
 
 ## 4b. Session notes

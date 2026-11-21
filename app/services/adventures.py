@@ -307,6 +307,12 @@ class AdventureService:
             body=body,
         )
 
+    def add_to_body(self, adventure_id: str, text: str) -> Adventure:
+        """What a roll gave an adventure, written at the end of its text."""
+        before = self.get(adventure_id)
+        body = f"{before.body.rstrip()}\n\n{text.strip()}\n" if before.body.strip() else text
+        return self._store.adventures.update(adventure_id, body=body)
+
     def set_party(self, adventure_id: str, character_ids: Sequence[str]) -> Adventure:
         """The characters an adventure is written for; none means the world's
         (documentation/MCP.md §6). Ids of characters not in its world are dropped."""

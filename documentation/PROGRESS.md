@@ -624,6 +624,12 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         whoever fails a short-term, long-term or indefinite madness, each rolled on its own
         on the 2014 guide's tables where the world has them (their conditions put on), else
         as the 2024 guide's effects; carried as an affliction, worn off by the clock
+  - [x] **Villains and adventure ideas** (2026-11-21, `app/services/story_seeds.py`,
+        ADVENTURES.md §4): **Roll as a villain** on an NPC (kind, scheme, methods, weakness)
+        and **Roll ideas** on an adventure (situation by party level or goal, hook,
+        patron, ally, villain, framing event, quandary, twist, climax, what it leads on to)
+        on the world's guides, each part again on its own, the ticked ones kept in the
+        notes or a secret box; for Claude `roll_story_seeds`
   - [x] **Followers** (2026-11-16, `app/services/followers.py`, a character's
         Followers page): skilled and untrained hirelings at the handbook's wage, paid
         from the purse every day the clock passes (logged with what is owed); companions,

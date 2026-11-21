@@ -182,6 +182,19 @@ class TestReading:
         assert town["size"] == "Town" and set(town["parts"]) >= {"government", "tavern", "shops"}
         assert set(town["books"].values()) == {"DMG"}  # a 2014 world rolls on its guide
 
+    async def test_story_seeds(self, table: tuple[httpx.AsyncClient, Any]) -> None:
+        _raw, facts = table
+        world = facts["world"]
+        async with session(table) as mcp:
+            villain = await call(mcp, "roll_story_seeds", world_id=world.id, kind="villain")
+            ideas = await call(mcp, "roll_story_seeds", world_id=world.id, kind="adventure")
+            assert "villain or adventure" in await refused(
+                mcp, "roll_story_seeds", world_id=world.id, kind="hero"
+            )
+        assert list(villain["parts"]) == ["villain", "scheme", "methods", "weakness"]
+        assert {"goal", "twist", "climax"} <= set(ideas["parts"]) and ideas["level"] is None
+        assert set(ideas["books"].values()) == {"DMG"}
+
     async def test_the_tables_world_is_marked_and_named_by_nothing(
         self, table: tuple[httpx.AsyncClient, Any]
     ) -> None:

@@ -728,6 +728,20 @@ class SettlementRoll(BaseModel):
     books: dict[str, str] = Field(description="The book each part was rolled in")
 
 
+class StorySeeds(BaseModel):
+    """What `roll_story_seeds` gives: a villain's or an adventure's parts rolled on the
+    world's guides."""
+
+    kind: str
+    level: int | None = Field(default=None, description="The party level a 2024 situation fits")
+    parts: dict[str, str] = Field(
+        description="villain: villain, scheme, methods, weakness; adventure: situation or "
+        "goal, hook, patron, ally, villain, introduction, framing, quandary, twist, climax, "
+        "connection — those the world's books have tables for, in the books' English"
+    )
+    books: dict[str, str] = Field(description="The book each part was rolled in")
+
+
 class EncounterInfo(BaseModel):
     """An encounter of an adventure, rated for its party."""
 

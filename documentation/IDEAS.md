@@ -42,8 +42,6 @@ milestone levelling, the reference screens, safety tools.
 ### Bigger
 
 - **Planar effects** — the rules of the plane the party is on, rolled or applied. M
-- **Villain and adventure tables** — scheme, methods and weakness for the NPC generator;
-  premises, hooks and twists as seeds, also for Claude's `new_adventure`. S–M
 - **Character variants** — hero points, proficiency dice, honor and sanity, rest variants
   such as gritty realism, as world switches. M
 - **Sentient items and artifacts** — a sentient item's mind and purpose, an artifact's

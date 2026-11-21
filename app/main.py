@@ -67,6 +67,7 @@ from app.routes import safety as safety_routes
 from app.routes import search as search_routes
 from app.routes import session_notes as session_routes
 from app.routes import sound as sound_routes
+from app.routes import story_seeds as story_seed_routes
 from app.routes import themes as theme_routes
 from app.routes import title_images as title_image_routes
 from app.routes import tokens as token_routes
@@ -344,6 +345,7 @@ def create_app() -> FastAPI:
     app.include_router(current_world_routes.router)
     app.include_router(world_transfer_routes.router)
     app.include_router(gm5_import_routes.router)
+    app.include_router(story_seed_routes.router)
     app.include_router(world_links_routes.router)
     app.include_router(home_routes.router)
     app.include_router(players_routes.router)

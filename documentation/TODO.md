@@ -16,6 +16,12 @@ Nothing agreed is waiting; see the proposals below.
   editor ("How the notes read"), as on the treasure page; before, they stood under the
   title. Put back above the plan if the gamemaster wants tactics in view while planning.
   Open question to the user. S
+- **Villagers from a Game Master 5e backup** — a campaign's townsfolk with a statblock come
+  in as builder designs, like its monsters; they could be plain NPCs with a book statblock
+  instead. Open question to the user. S
+- **An unidentified +1 weapon** works as its base item, so its bonus does not count until
+  identified. The rules count it from the start; showing it would hint at what it is.
+  Open question to the user. S
 
 ## Known compromises
 

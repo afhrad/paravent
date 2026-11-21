@@ -159,6 +159,12 @@ class NpcService:
             )
         return saved
 
+    def add_notes(self, npc_id: str, text: str) -> Npc:
+        """What a roll gave an NPC, written beneath its notes."""
+        before = self.get(npc_id)
+        notes = f"{before.notes.rstrip()}\n\n{text.strip()}\n" if before.notes.strip() else text
+        return self._store.npcs.update(npc_id, notes=notes)
+
     def set_attitude(self, npc_id: str, attitude: str) -> Npc:
         """How the NPC stands toward the party; "" for nobody said."""
         self.get(npc_id)

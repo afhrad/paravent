@@ -52,6 +52,7 @@ from app.mcp.models import (
     ShopStockAnswer,
     SoundInfo,
     SpellKnown,
+    StorySeeds,
     TrapInfo,
     UnservedPeople,
     WorldOverview,
@@ -72,6 +73,7 @@ from app.services.naming_workshop import race_names
 from app.services.npc_gen import edition_for
 from app.services.search import GROUP_KEYS, Row
 from app.services.settlement_gen import SettlementGenerator, plays_2024
+from app.services.story_seeds import KINDS, SeedGenerator
 from app.services.traps import read_trap
 from app.services.travel import ENCOUNTER_ON, PACES, TRAVEL_DAY
 from app.ui.affliction_pages import afflicts
@@ -933,6 +935,39 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
         return SettlementRoll(
             size=chosen.name,
             population=chosen.population,
+            parts=parts,
+            books={p: generator.source_of(p) for p in parts},
+        )
+
+    @server.tool()
+    def roll_story_seeds(
+        world_id: str,
+        kind: Annotated[str, Field(description="villain or adventure")] = "adventure",
+        level: Annotated[
+            int, Field(ge=1, le=20, description="The party's level, for a 2024 situation")
+        ] = 1,
+    ) -> StorySeeds:
+        """Roll seeds for a story on the world's guides: for a villain, its kind, scheme,
+        methods and weakness (2014 guide); for an adventure, a situation for the party's
+        level or the party's goal, a hook, patron, ally, villain, framing event, moral
+        quandary, twist, climax and what it leads on to. Nothing is saved: take what fits
+        as inspiration for a draft, written in the world's language. A part whose table
+        the world's books lack is left out."""
+        registry = stores()
+        world = world_of(world_id)
+        if kind not in KINDS:
+            raise ToolError("kind is villain or adventure")
+        generator = SeedGenerator(
+            lambda caption, books: registry.book_table(world.id, caption, books),
+            Dice(),
+            kind=kind,
+            new_rules=plays_2024(world.source_set.sources),
+            level=level,
+        )
+        parts = generator.roll()
+        return StorySeeds(
+            kind=kind,
+            level=level if "situation" in parts else None,
             parts=parts,
             books={p: generator.source_of(p) for p in parts},
         )

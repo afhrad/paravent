@@ -750,6 +750,9 @@ def npc_page(
                     a(href=f"{npc_url(npc.id)}/generate", class_="btn btn-ghost")[
                         icon("dices", "sm"), span[t("npcgen.open")]
                     ],
+                    a(href=f"{npc_url(npc.id)}/villain", class_="btn btn-ghost")[
+                        icon("skull", "sm"), span[t("seeds.villain.open")]
+                    ],
                     delete_link(page, f"{npc_url(npc.id)}/delete", t("npcs.delete"), text=True),
                 ],
             ],
