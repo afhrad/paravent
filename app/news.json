@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-21T12:55:36+01:00",
+  "en": "Magic items can be handed out unidentified: players see only what they look like until you identify them. Cursed items bind whoever attunes to them until you lift the curse.",
+  "de": "Magische Gegenstände lassen sich unidentifiziert verteilen: Die Spieler sehen nur ihr Aussehen, bis du sie identifizierst. Verfluchte Gegenstände binden ihren Träger, bis du den Fluch brichst."
+ },
+ {
   "at": "2026-11-21T12:27:58+01:00",
   "en": "Import a campaign from a Game Master 5e backup: its adventures, scenes, fights, NPCs and treasure come over into a new world, creatures matched in your books and home-made ones as your own creatures.",
   "de": "Eine Kampagne aus einer Sicherung von Game Master 5e importieren: Abenteuer, Szenen, Kämpfe, NSC und Schätze kommen in eine neue Welt, die Kreaturen aus deinen Büchern, eigene als eigene Kreaturen."
@@ -293,10 +298,5 @@
   "at": "2026-11-18T21:34:16+01:00",
   "en": "Diseases, poisons and curses: put them on characters from the books, and the world's clock runs their course: symptoms, saves at each rest or dawn, and the cure.",
   "de": "Krankheiten, Gifte und Flüche: aus den Büchern auf Figuren legen, und die Uhr der Welt lässt sie verlaufen: Symptome, Rettungswürfe bei jeder Rast oder jedem Morgengrauen, die Heilung."
- },
- {
-  "at": "2026-11-16T19:59:41+01:00",
-  "en": "The session note now lists XP, levels, what each character received, bastion turns and downtime; phone layouts and German texts on the sheet, clock and session pages are tidied; character sheets load faster.",
-  "de": "Die Sitzungsnotiz nennt jetzt auch EP, Stufenaufstiege, was jeder Charakter erhielt, Bastionszüge und Auszeit; Handy-Ansichten und deutsche Texte auf Bogen, Uhr und Sitzungsseite sind aufgeräumt; Charakterbögen laden schneller."
  }
 ]
