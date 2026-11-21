@@ -129,7 +129,7 @@ class TestQueries:
 
     def test_get_missing_raises(self, store: CompendiumStore) -> None:
         with pytest.raises(EntryNotFound):
-            store.get("monster", "beholder|mm")
+            store.get("monster", "reed lurker|mm")
 
     def test_unknown_category_raises(self, store: CompendiumStore) -> None:
         with pytest.raises(EntryNotFound):

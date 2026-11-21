@@ -39,7 +39,8 @@ RACE_PREFIX = "race:"
 SUBJECT_PREFIX = "subject:"
 PERSON = "person"
 # The books' ancestries under the other names creatures go by: an orc finds the
-# half-orc's tables, a githyanki the gith's.
+# half-orc's tables, a people of two branches its parent's (the keys match the user's
+# corpus).
 BOOK_ALIASES: dict[str, tuple[str, ...]] = {
     "Half-Orc": ("Orc",),
     "Gith": ("Githyanki", "Githzerai"),

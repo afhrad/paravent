@@ -111,8 +111,8 @@ Zum or Zur, and the sign comes from the matching list.
 **Pools.** A key may roll among several styles: `race:Dwarf` among a race's styles of
 people, `race:Dwarf|settlement` among its styles of a kind of place, `subject:water`
 among every style of that kind. The books' ancestries carry aliases of their own, so a
-creature called otherwise finds them: Half-Orc answers to Orc, Gith to Githyanki and
-Githzerai. **Their word lists were written from general knowledge and have not been checked
+creature called otherwise finds them: Half-Orc answers to Orc, and a people of two
+branches to either branch (`BOOK_ALIASES`, keyed as the user's corpus names them). **Their word lists were written from general knowledge and have not been checked
 name by name against an onomastic source.** The mechanics come from these sources:
 
 - [Nordic socio-onomastics](https://www.nordicsocioonomastics.org/2023/11/): elements shared in a family.

@@ -80,7 +80,7 @@ class TestText:
             ),
             ("Make a {@dc 15} save.", "Make a DC 15 save."),
             ("{@note see {@spell fireball}}", "see fireball"),
-            ("{@deity Bahamut|Nonhuman|PHB}", "Bahamut"),
+            ("{@deity Thorn|Reedfolk|PHB}", "Thorn"),
         ],
     )
     def test_strip_tags(self, raw: str, plain: str) -> None:

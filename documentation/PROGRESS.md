@@ -190,9 +190,9 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         out of book sections (`generated/gendata-variantrules.json`, "Weapon Mastery
         Properties"), and `legendaryGroupTemplate`: a legendary shadow dragon keeps its own
         kind's lair actions and gains the shadow dragon's. **Subrace links** resolve by the
-        name 5eTools composes ("Elf (Wood)", "Human (Innistrad; Gavony)"). The corpus check's
+        name 5eTools composes ("Elf (Wood)", "Race (Region; Line)"). The corpus check's
         dead references fell from 112 (296 uses) to 8 (13), all upstream:
-        a race the data lacks (Goblin (Ixalan)), typos, and two links into the wrong book
+        a race the data lacks, typos, and two links into the wrong book
         **Maps** (2026-11-12, `generated/gendata-maps.json`, ADVENTURES.md §7): the 1,302 maps
         of the adventures and rulebooks, by chapter, on an adventure started from a book and
         a rulebook's contents, each leading to where it sits, with its player version; a
@@ -574,10 +574,10 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         trap on each sheet, the DC hidden, the totals coming in on the form, sprung with
         them (whoever has not rolled is rolled for)
   - [x] **A calendar per world** (2026-11-16, `app/services/calendar.py`): the setting
-        calendars the world's books print (Harptos, Eberron, Exandria, Theros, Ravnica)
+        calendars the world's books print (five, each read from its own table)
         on the clock panel; with one chosen and today's date set, every clock label
         reads a date ("14 Mirtul 1492 DR"), holidays by name, with the season, which
-        also turns the weather's rain or snow; Harptos's Shieldmeet every fourth year
+        also turns the weather's rain or snow; a leap day the calendar marks every fourth year
   - [x] **Contacts and favours** (2026-11-16, `app/services/contacts.py`): carousing's
         allies and enemies, religious service's favours and the rivals behind the book's
         starred complications become a character's contacts on its downtime page, named,

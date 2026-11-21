@@ -25,9 +25,8 @@ The **Session** button on the party view opens the session page.
 
 The clock panel on the party view keeps the world's day and time. Move it on, rest the
 party, start your own reminders; torches, lanterns and spells with a duration run out
-against it. **Calendar** dates the days by a setting calendar your books print
-(Harptos, Eberron, Exandria, Theros, Ravnica), with holidays and seasons; Harptos's
-Shieldmeet comes every fourth year.
+against it. **Calendar** dates the days by a setting calendar your books print, with
+holidays and seasons; a leap day the calendar marks comes every fourth year.
 
 ## 3. On the road
 

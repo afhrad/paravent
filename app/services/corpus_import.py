@@ -97,7 +97,7 @@ def _target(tag: str) -> str | None:
     if name.lower() in FORMATTING:
         return None
     parts = rest.split("|")
-    # {@deity Bahamut|Nonhuman|PHB|label} and {@card …|deck|source|label} shift the
+    # {@deity Name|Pantheon|PHB|label} and {@card …|deck|source|label} shift the
     # display text one slot along (TRANSLATION.md §3).
     shown = 3 if name.lower() in ("deity", "card") else 2
     kept = [p.strip().lower() for p in parts[:shown]]

@@ -68,7 +68,7 @@ class TestLinks:
         assert not same_links("{@condition prone}", "liegend")  # a lost link
         # Formatting tags hold text a translator translates.
         assert same_links("{@b Hit:} {@damage 1d6}", "{@b Treffer:} {@damage 1d6}")
-        assert same_links("{@deity Bahamut|Nonhuman|PHB}", "{@deity Bahamut|Nonhuman|PHB|Bahamut}")
+        assert same_links("{@deity Thorn|Reedfolk|PHB}", "{@deity Thorn|Reedfolk|PHB|Thorn}")
 
     def test_a_release_folder_reads_its_data(self, tmp_path: Path) -> None:
         (tmp_path / "data").mkdir()

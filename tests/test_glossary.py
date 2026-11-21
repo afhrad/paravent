@@ -402,7 +402,7 @@ class TestSuggestions:
         fake = _FakeClaude()
         suggestions = _suggester(registry, fake)
         registry.glossary.set("de", "monster", "Goblin", "Goblin")
-        registry.glossary.fill("de", {"monster": ["Owlbear", "Beholder", "Skip Me"]})
+        registry.glossary.fill("de", {"monster": ["Owlbear", "Chimera", "Skip Me"]})
 
         page = (await ac.get("/gm/glossary/open")).text
         assert "Vorschläge holen" in page and "3 Namen in dieser Ansicht" in page
@@ -415,7 +415,7 @@ class TestSuggestions:
         assert "Language: German" in prompt and "Goblin = Goblin" in prompt  # the table's own
         assert "Owlbear (MM)" in prompt
         assert suggestions.all("de") == {
-            "monster": {"Beholder": "Beholder (de)", "Owlbear": "Owlbear (de)"}
+            "monster": {"Chimera": "Chimera (de)", "Owlbear": "Owlbear (de)"}
         }
         assert registry.glossary.term("de", "monster", "Owlbear") is None  # not a name yet
         status = (await ac.get("/gm/glossary/open/progress", params={"lang": "de"})).text
@@ -434,21 +434,21 @@ class TestSuggestions:
                 "page": "1",
                 "take": "monster:Owlbear",
                 "n:monster:Owlbear": "",
-                "n:monster:Beholder": "",
+                "n:monster:Chimera": "",
                 "n:monster:Skip Me": "Überspring mich",
             },
         )
         assert registry.glossary.term("de", "monster", "Owlbear") == "Owlbear (de)"
         assert registry.glossary.term("de", "monster", "Skip Me") == "Überspring mich"
-        assert registry.glossary.term("de", "monster", "Beholder") is None
-        assert suggestions.all("de") == {"monster": {"Beholder": "Beholder (de)"}}
+        assert registry.glossary.term("de", "monster", "Chimera") is None
+        assert suggestions.all("de") == {"monster": {"Chimera": "Chimera (de)"}}
 
         # all of a page: a typed name wins over the suggestion
         await ac.post(
             "/gm/glossary/open",
-            data={"lang": "de", "action": "take_all", "n:monster:Beholder": "Betrachter"},
+            data={"lang": "de", "action": "take_all", "n:monster:Chimera": "Chimäre"},
         )
-        assert registry.glossary.term("de", "monster", "Beholder") == "Betrachter"
+        assert registry.glossary.term("de", "monster", "Chimera") == "Chimäre"
         assert suggestions.all("de") == {}
 
     async def test_take_all_fills_the_empty_fields(

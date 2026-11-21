@@ -60,13 +60,13 @@ class TestParseReference:
         assert parse_reference("longbow|XPHB|long") == ("longbow", "XPHB", "long")
 
     def test_deity_puts_the_pantheon_in_slot_two(self) -> None:
-        """``{@deity Bahamut|Nonhuman|PHB}`` — reading slot 2 as a source looks for a
+        """``{@deity Thorn|Reedfolk|PHB}`` — reading slot 2 as a source looks for a
         book called "Nonhuman"."""
-        assert parse_reference("Bahamut|Nonhuman|PHB", "deity") == ("Bahamut", "PHB", None)
+        assert parse_reference("Thorn|Reedfolk|PHB", "deity") == ("Thorn", "PHB", None)
 
     def test_deity_display_is_slot_four(self) -> None:
-        name, source, display = parse_reference("Bahamut|Nonhuman|PHB|the Platinum", "deity")
-        assert (name, source, display) == ("Bahamut", "PHB", "the Platinum")
+        name, source, display = parse_reference("Thorn|Reedfolk|PHB|the Ferryman", "deity")
+        assert (name, source, display) == ("Thorn", "PHB", "the Ferryman")
 
     def test_whitespace_is_stripped(self) -> None:
         assert parse_reference(" fireball | PHB ") == ("fireball", "PHB", None)
@@ -131,8 +131,8 @@ class TestStepTwoSourceSetFilter:
 
     def test_excluded_candidates_give_the_not_in_books_state(self) -> None:
         """A correct outcome, not an error — DESIGN.md §6 renders it as inert text."""
-        resolver = build(FakeEntry("Mind Flayer", "VGM"))
-        result = resolver.resolve("monster", "Mind Flayer", SourceSet(sources=["PHB", "MM"]))
+        resolver = build(FakeEntry("Reed Lurker", "VGM"))
+        result = resolver.resolve("monster", "Reed Lurker", SourceSet(sources=["PHB", "MM"]))
         assert result.outcome is Outcome.NOT_IN_SOURCE_SET
         assert result.candidates  # kept, so the UI can offer "add this book"
 

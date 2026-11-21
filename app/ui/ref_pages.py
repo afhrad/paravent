@@ -564,7 +564,7 @@ def _generic(page: Page, data: dict[str, Any], ctx: RenderContext) -> list[Node]
 
 VEHICLE_KINDS = {
     "SHIP": "Ship",
-    "SPELLJAMMER": "Spelljammer ship",
+    "SPELLJAMMER": "Void ship",
     "ELEMENTAL_AIRSHIP": "Elemental airship",
     "INFWAR": "Infernal war machine",
     "CREATURE": "Creature vehicle",

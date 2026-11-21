@@ -19,35 +19,37 @@ from tests.test_travel_downtime_shop import table
 
 __all__ = ["table"]
 
+# An invented calendar laid out as the books lay theirs out: a month's number, its name and
+# a common name, holidays between the months.
 REALMS = [
-    ["1", "Hammer", "Deepwinter"],
-    ["", "Annual holiday: Midwinter", ""],
-    ["2", "Alturiak", "The Claw of Winter"],
+    ["1", "Frostmoot", "Deepwinter"],
+    ["", "Annual holiday: Candlenight", ""],
+    ["2", "Thawmark", "The Grey Thaw"],
     *[[str(n), f"M{n}", "Something"] for n in range(3, 13)],
 ]
 
 
 def test_reading_calendars() -> None:
     realms = months_of(REALMS, 30)
-    assert [m.name for m in realms[:3]] == ["Hammer", "Midwinter", "Alturiak"]
+    assert [m.name for m in realms[:3]] == ["Frostmoot", "Candlenight", "Thawmark"]
     assert realms[1].holiday and realms[1].days == 1 and realms[0].days == 30
     assert sum(m.days for m in realms) == 361
     assert realms[0].season == "winter" and realms[1].season == "winter"
-    eberron = months_of([["1", "Zarantyr (mid-winter)"], ["2", "Olarune (late winter)"]], 28)
-    assert eberron[0].name == "Zarantyr" and eberron[0].season == "winter"
-    assert eberron[1].days == 28
-    theros = months_of([["1", "Lyokymion", "29 days", "Thassa"]], 30)
-    assert theros[0].days == 29
-    ravnica = months_of([["1", "Seleszeni (March)"]], 30)
-    assert ravnica[0].season == "spring"
+    seasons = months_of([["1", "Ashmonth (mid-winter)"], ["2", "Rimemonth (late winter)"]], 28)
+    assert seasons[0].name == "Ashmonth" and seasons[0].season == "winter"
+    assert seasons[1].days == 28
+    lengths = months_of([["1", "Brightwane", "29 days", "Lantern"]], 30)
+    assert lengths[0].days == 29
+    named = months_of([["1", "Greenwake (March)"]], 30)
+    assert named[0].season == "spring"
 
 
 def test_dates() -> None:
     calendar = Calendar("Realms", "DMG", months_of(REALMS, 30))
-    today = calendar.index(1492, 2, 14)  # 14 Alturiak (Midwinter between)
+    today = calendar.index(1492, 2, 14)  # 14 Thawmark (Candlenight between)
     date = calendar.date(today)
-    assert (date.year, date.month.name, date.day) == (1492, "Alturiak", 14)
-    assert calendar.date(calendar.index(1492, 0, 30) + 1).month.name == "Midwinter"
+    assert (date.year, date.month.name, date.day) == (1492, "Thawmark", 14)
+    assert calendar.date(calendar.index(1492, 0, 30) + 1).month.name == "Candlenight"
     assert calendar.date(calendar.index(1492, 13, 30) + 1).year == 1493
 
 
@@ -108,15 +110,15 @@ async def test_the_clock_reads_a_date(table: tuple[AsyncClient, StoreRegistry, s
     assert "not a date of this calendar" in bad.text
 
 
-def test_shieldmeet_every_fourth_year() -> None:
+def test_a_leap_day_every_fourth_year() -> None:
     rows = [
         *[[str(n), f"M{n}", ""] for n in range(1, 8)],
-        ["", "Annual holiday: Midsummer", ""],
-        ["", "Quadrennial holiday: Shieldmeet", ""],
+        ["", "Annual holiday: Highsun", ""],
+        ["", "Quadrennial holiday (leap day): Leapfeast", ""],
         *[[str(n), f"M{n}", ""] for n in range(8, 13)],
     ]
-    calendar = Calendar("Harptos", "FRHoF", months_of(rows, 30))
-    shieldmeet = next(n for n, m in enumerate(calendar.months) if m.name == "Shieldmeet")
+    calendar = Calendar("Reedmark", "DMG", months_of(rows, 30))
+    shieldmeet = next(n for n, m in enumerate(calendar.months) if m.name == "Leapfeast")
     assert calendar.months[shieldmeet].every == 4
     assert calendar.length_of(1492) == 362 and calendar.length_of(1493) == 361
     assert calendar.has(1492, shieldmeet, 1) and not calendar.has(1493, shieldmeet, 1)
@@ -125,7 +127,7 @@ def test_shieldmeet_every_fourth_year() -> None:
             date = calendar.date(calendar.index(year, month, 1))
             assert (date.year, date.month) == (year, calendar.months[month])
     after = calendar.date(calendar.index(1493, shieldmeet - 1, 1) + 1)
-    assert after.month.name == "M8"  # 1493 skips Shieldmeet
+    assert after.month.name == "M8"  # 1493 skips the leap day
     # An index counted with every leap day in every year names the same date.
     flat = 1493 * 362 + 30 * 3 + 4
     assert calendar.date(calendar.from_flat(flat)).month.name == "M4"

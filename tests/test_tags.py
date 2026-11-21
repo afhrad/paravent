@@ -62,7 +62,7 @@ class TestPlain:
                 "Dexterity Saving Throw: DC 13. Failure: The target",
             ),
             ("{@creature troll||trolls}", "trolls"),
-            ("{@deity Bahamut|Nonhuman|PHB}", "Bahamut"),
+            ("{@deity Thorn|Reedfolk|PHB}", "Thorn"),
             ("{@b bold {@i nested}}", "bold nested"),
         ],
     )

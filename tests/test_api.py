@@ -116,9 +116,9 @@ class TestGetEntry:
         assert body["cr"] == "1/4"
 
     async def test_missing_entry_is_404(self, client: AsyncClient) -> None:
-        response = await client.get("/api/compendium/monster/beholder|MM")
+        response = await client.get("/api/compendium/monster/reed lurker|MM")
         assert response.status_code == 404
-        assert "beholder" in response.json()["detail"].lower()
+        assert "reed lurker" in response.json()["detail"].lower()
 
 
 class TestSerialisedFieldNames:

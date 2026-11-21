@@ -349,8 +349,8 @@ VGM (110) — and step 3 clears all of it.
 
 ### Three consequences
 
-**Zero survivors is a feature, not a failure.** Running *Curse of Strahd* with `PHB`, `MM` and
-`CoS` declared means a stray `{@creature mind flayer|VGM}` renders as the designed "source not
+**Zero survivors is a feature, not a failure.** Running a published adventure with `PHB`, `MM` and
+its own book declared means a stray `{@creature …|VGM}` renders as the designed "source not
 imported" state rather than quietly pulling in a monster from a book nobody at the table owns.
 The source set is a **correctness boundary**, not merely a disambiguator.
 
@@ -366,7 +366,7 @@ tooltip fragments above all — must include the source-set identity in its cach
 ### Two traps the implementation hit
 
 **`{@deity}` puts the pantheon where every other tag puts the source.**
-`{@deity Bahamut|Nonhuman|PHB}` is `name|pantheon|source`, so a parser shared with
+`{@deity Name|Pantheon|PHB}` is `name|pantheon|source`, so a parser shared with
 `{@creature}` looks for a book called "Nonhuman" and resolves nothing. `{@card Sun|Deck of Many
 Things|DMG}` does the same with the deck (found 2026-10-19, when decks were loaded). Verified
 across the corpus: these two are the only entity tags that shift the source along.

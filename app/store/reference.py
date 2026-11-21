@@ -93,9 +93,9 @@ class Resolution:
         return self.superseded
 
 
-# Tags whose slot 2 is **not** a source. ``{@deity Bahamut|Nonhuman|PHB}`` puts the
+# Tags whose slot 2 is **not** a source. ``{@deity Name|Pantheon|PHB}`` puts the
 # pantheon there and the source in slot 3, so parsing a deity like a creature would look
-# for a book called "Nonhuman". ``{@card Sun|Deck of Many Things|DMG}`` does the same
+# for a book called after the pantheon. ``{@card Sun|Deck of Many Things|DMG}`` does the same
 # with the deck. Verified against the corpus: these are the only entity tags that shift
 # the source along (documentation/TRANSLATION.md §3 notes the same trap for label
 # substitution).

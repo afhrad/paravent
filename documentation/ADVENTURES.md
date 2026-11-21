@@ -755,7 +755,7 @@ must follow it.)
   For reading only: no grid, no tokens, no fog (not a virtual tabletop). A rulebook's
   contents list its maps the same way, and its chapters now show their pictures,
   a map's areas leading to their text there too (2026-11-14: 630 areas on 13 rulebooks'
-  maps, a heading or a named list item such as the 2024 guide's Greyhawk quarters).
+  maps, a heading or a named list item such as a city's quarters in the 2024 guide).
   **Search finds the maps** by title (⌘K, under Books): a rulebook's leads to its chapter
   at the map, within the world's books; a published adventure's to the chapter of the
   world's adventure started from that book that shows it — found only where there is

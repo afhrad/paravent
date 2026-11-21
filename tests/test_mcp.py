@@ -186,9 +186,9 @@ class TestReading:
         harptos = next(c for c in registry.calendars(world.id) if "Harptos" in c.key)
         mirtul = next(n for n, m in enumerate(harptos.months) if m.name == "Mirtul")
         registry.clock.dated(world.id, harptos.key, harptos.index(1492, mirtul, 14), "DR")
-        harpers = registry.factions.create(world.id, "Harpers", ranks=[])
+        wardens = registry.factions.create(world.id, "Reed Wardens", ranks=[])
         registry.factions.adjust(
-            harpers.id, world.id, registry.gamestate.characters.get(lyra), 3, "dm", "DM"
+            wardens.id, world.id, registry.gamestate.characters.get(lyra), 3, "dm", "DM"
         )
         async with session(table) as mcp:
             overview = await call(mcp, "world_overview", world_id=world.id)

@@ -93,7 +93,7 @@ links correctly from translated prose, and a translated name shows everywhere th
 mentioned — including inside entries nobody has translated.
 
 > ⚠️ **Two traps.** Slot 3 is positional and **not** display text for every tag: `{@area X|id|x}`
-> and `{@book ch|src|page}` use those slots for other things, and `{@deity Bahamut|Nonhuman|PHB}`
+> and `{@book ch|src|page}` use those slots for other things, and `{@deity Name|Pantheon|PHB}`
 > puts the pantheon in slot 2 (`{@card Sun|Deck of Many Things|DMG}` the deck), moving display
 > text to slot 4. Apply label substitution only to the entity tags listed above.
 > And **never machine-generate tags by pattern-matching translated prose** — a glossary word in

@@ -6,12 +6,6 @@ in here, and leaves when it is built (into PROGRESS.md) or dropped. The longer b
 ideas, from the Dungeon Master's Guides and from reviews, is [IDEAS.md](IDEAS.md).
 Sizes are rough — **S** a day's change, **M** a few, **L** a feature of its own.
 
-## Not yet committed
-
-- **One banner after a delete** (2026-11-20): the Undo bar says "Deleted." itself and the
-  page's own "deleted" notice is hidden while it shows (`trash.undo_hint`, one CSS rule
-  `main:has(.undo-notice)`). Built and checked; waiting for "commit and push".
-
 ## Next, agreed or recommended
 
 Nothing agreed is waiting; see the proposals below.
@@ -56,14 +50,6 @@ Nothing agreed is waiting; see the proposals below.
   `languages`, `cr`, `trait`/`action`/`legendary`/`reaction` (`name`, `text`, `attack`),
   `spell`, `slots`.
 
-- **Setting names in the repository** (check 2026-11-20). The repo should hold SRD material
-  only. About 30 files still name published settings (factions, calendars, places,
-  characters). Most are tests that check names in the user's own corpus, or code reading a
-  setting's calendar from it: references to user data, which may stay. Each is to be
-  judged; example text and invented fixtures get names of our own. Largest:
-  `tests/test_glossary.py`, `tests/test_reference.py`, `tests/test_factions.py` (its
-  corpus checks of the guide's example factions), `tests/test_published.py`,
-  `tests/test_calendar.py`, `app/services/calendar.py`, `documentation/TECHSTACK.md`. M
 - **Encounter notes at a glance** — the builder's notes now read folded under their
   editor ("How the notes read"), as on the treasure page; before, they stood under the
   title. Put back above the plan if the gamemaster wants tactics in view while planning.

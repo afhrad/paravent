@@ -172,7 +172,7 @@ class TestPages:
     ) -> None:
         ac, registry = client
         world = registry.gamestate.worlds.create(
-            World(name="Sword Coast", source_set=SourceSet(sources=["PHB", "MM", "DMG"]))
+            World(name="Grey Reed", source_set=SourceSet(sources=["PHB", "MM", "DMG"]))
         )
         assert (
             "Lost Mine of Phandelver (LMoP, Levels 1–5)"
@@ -300,7 +300,7 @@ class TestMaps:
             "adventure/LMoP/Cragmaw Hideout (Player).webp",
         )
         world = registry.gamestate.worlds.create(
-            World(name="Sword Coast", source_set=SourceSet(sources=["PHB", "MM", "DMG"]))
+            World(name="Grey Reed", source_set=SourceSet(sources=["PHB", "MM", "DMG"]))
         )
         made = await ac.post(f"/gm/worlds/{world.id}/adventures/from-book", data={"book": "LMoP"})
         adventure = registry.adventures.adventures(world.id)[0]
@@ -343,7 +343,7 @@ class TestMaps:
     ) -> None:
         ac, registry = client
         books = SourceSet(sources=["PHB", "MM", "DMG"])
-        world = registry.gamestate.worlds.create(World(name="Sword Coast", source_set=books))
+        world = registry.gamestate.worlds.create(World(name="Grey Reed", source_set=books))
         other = registry.gamestate.worlds.create(World(name="Elsewhere", source_set=books))
         await ac.post(f"/gm/worlds/{world.id}/adventures/from-book", data={"book": "LMoP"})
         adventure = registry.adventures.adventures(world.id)[0]

@@ -96,7 +96,7 @@ ITEM_KIND_NAMES: dict[str, str] = {
     "TB": "Trade bar",
     "SHP": "Ship",
     "AIR": "Airship",
-    "SPC": "Spelljammer equipment",
+    "SPC": "Void ship equipment",
 }
 
 ITEM_RARITIES = ("common", "uncommon", "rare", "very rare", "legendary", "artifact")

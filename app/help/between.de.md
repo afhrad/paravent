@@ -27,9 +27,9 @@ Der Knopf **Sitzung** in der Gruppenansicht öffnet die Sitzungsseite.
 
 Die Uhr in der Gruppenansicht hält Tag und Uhrzeit der Welt. Lass Zeit vergehen, lass die
 Gruppe rasten, starte eigene Erinnerungen; Fackeln, Laternen und Zauber mit Wirkungsdauer
-laufen gegen sie ab. **Kalender** datiert die Tage nach einem Kalender aus deinen Büchern
-(Harptos, Eberron, Exandria, Theros, Ravnica), mit Feiertagen und Jahreszeiten;
-Schildtreffen im Harptos-Kalender kommt jedes vierte Jahr.
+laufen gegen sie ab. **Kalender** datiert die Tage nach einem Kalender aus deinen Büchern,
+mit Feiertagen und Jahreszeiten; ein Schalttag, den der Kalender kennt, kommt jedes vierte
+Jahr.
 
 ## 3. Unterwegs
 

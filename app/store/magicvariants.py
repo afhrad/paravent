@@ -189,9 +189,9 @@ def specific_variants(
 ) -> Iterator[dict[str, Any]]:
     """Every specific item the variants make of the base items, each name once.
 
-    A variant without an edition (from a book of neither rules set, like *Wildemount*)
-    matches the 2014 and the 2024 longsword alike, and both would make the same
-    "Acheron Blade Longsword|EGW". Those books predate the 2024 rules, so the 2014
+    A variant without an edition (from a setting book of neither rules set) matches the
+    2014 and the 2024 longsword alike, and both would make the same "<Variant>
+    Longsword|<its book>". Those books predate the 2024 rules, so the 2014
     base wins.
     """
     base_list = [b for b in bases if not b.get("packContents")]

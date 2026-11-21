@@ -301,8 +301,8 @@ class Feat(Named):
 
 
 def subrace_name(race: str, name: str) -> str | None:
-    """A subrace's name as 5eTools composes it: "Elf (Wood)", or "Human (Innistrad;
-    Gavony)" where the race's own name has brackets; None where it is the race's."""
+    """A subrace's name as 5eTools composes it: "Elf (Wood)", or "Race (Region; Line)"
+    where the race's own name has brackets; None where it is the race's."""
     if not race or not name or name == race:
         return None
     if race.endswith(")"):
@@ -340,8 +340,8 @@ class Race(Named, Copyable):
     @property
     def composed_name(self) -> str | None:
         """A subrace's name as 5eTools composes it and tags write it ("Elf (Wood)" for
-        the Wood subrace of Elf, "Human (Innistrad; Gavony)" where the race's name has
-        its own brackets); None for a race or a base variant."""
+        the Wood subrace of Elf, "Race (Region; Line)" where the race's name has its own
+        brackets); None for a race or a base variant."""
         if not self.raceName or self.is_base_variant:
             return None
         return subrace_name(self.raceName, self.name)
@@ -695,7 +695,7 @@ class Psionic(Named):
 
 
 class Vehicle(Named):
-    """A ship, spelljammer, airship or infernal war machine. 39 entries.
+    """A ship, a void ship, an airship or a war machine. 39 entries.
 
     Most carry no ``entries``: a vehicle is its parts — hull, helm, weapons, stations —
     each a named block with its own AC, HP and text.

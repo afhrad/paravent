@@ -80,8 +80,8 @@ class TestBookCatalog:
                 {
                     "adventure": [
                         {
-                            "name": "Curse of Strahd",
-                            "source": "CoS",
+                            "name": "The Drowned Bell",
+                            "source": "TDB",
                             "group": "supplement",
                             "published": "2016-03-15",
                         },
@@ -89,10 +89,10 @@ class TestBookCatalog:
                 }
             )
         )
-        catalog = BookCatalog(tmp_path, {"PHB", "XPHB", "CoS", "HOMEBREW"})
+        catalog = BookCatalog(tmp_path, {"PHB", "XPHB", "TDB", "HOMEBREW"})
         groups = dict(catalog.grouped())
         assert [b.code for b in groups["core"]] == ["PHB", "XPHB"]
-        assert [b.name for b in groups["adventure"]] == ["Curse of Strahd"]
+        assert [b.name for b in groups["adventure"]] == ["The Drowned Bell"]
         assert "supplement" not in groups  # XGE has no loaded content
         assert groups["other"][0].name == "HOMEBREW"  # loaded but not indexed: its code
         assert catalog.get("xphb") is not None and catalog.get("xphb").is_2024  # type: ignore[union-attr]

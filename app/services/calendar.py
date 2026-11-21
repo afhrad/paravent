@@ -1,13 +1,13 @@
 """A world's calendar: the clock's days as dates of the setting's year.
 
-The books print their settings' calendars as tables: the Forgotten Realms' Calendar of
-Harptos (twelve months of thirty days and the annual holidays between them), Eberron's
-twelve months of twenty-eight days, Exandria's, Theros's and Ravnica's. A world whose
-books hold one may use it: the gamemaster says what date the clock's day is, and from
-then on every day reads as a date ("14 Mirtul 1492 DR"), a holiday by its name, each
-with its season. The months and their lengths are read from the table; where it prints
-no lengths, the setting's (thirty, Eberron's twenty-eight) apply. Harptos's Shieldmeet
-comes every fourth year, the day after Midsummer; other leap days are left to the table.
+Setting books print their calendars as tables: twelve months and the holidays between
+them. A world whose books hold one may use it: the gamemaster says what date the clock's
+day is, and from then on every day reads as a date (the day, the month's name, the year
+and its era), a holiday by its name, each with its season. The months and their lengths
+are read from the user's table; where it prints no lengths, the length listed below
+applies. A holiday the table marks as a leap day comes every fourth year; other leap days
+are left to the table. The captions below are how those tables are found in the user's
+corpus; Paravent carries none of them.
 """
 
 from __future__ import annotations
@@ -154,7 +154,8 @@ def months_of(rows: Rows, default_days: int) -> tuple[Month, ...]:
         if holiday is not None:
             name = holiday.partition(":")[2].strip() or holiday
             season = months[-1].season if months else ""
-            # Harptos's Shieldmeet comes every fourth year, the day after Midsummer.
+            # A leap-day holiday (named so, or by the one calendar's word for it) comes
+            # every fourth year.
             every = 4 if "shieldmeet" in name.lower() or "leap" in holiday.lower() else 1
             months.append(Month(name, 1, holiday=True, season=season, every=every))
             continue

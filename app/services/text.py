@@ -19,7 +19,7 @@ from typing import Any
 _INNERMOST = re.compile(r"\{@(\w+)(?:\s([^{}]*))?\}")
 
 # Entity tags whose third slot is display text (documentation/TRANSLATION.md §3).
-# Not deity or card: {@deity Bahamut|Nonhuman|PHB} puts the pantheon in slot 2 and the
+# Not deity or card: {@deity Name|Pantheon|PHB} puts the pantheon in slot 2 and the
 # source in slot 3 ({@card} the deck), so their display text is slot 4.
 _DISPLAY_IN_SLOT_3 = frozenset(
     {
