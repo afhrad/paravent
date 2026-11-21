@@ -434,7 +434,10 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         take along** (2026-11-20, `app/services/world_transfer.py`): Export world as one
         zip, Import world from one (here or at another table, every id given anew, the play
         so far optional), Duplicate world for a second group Claude's tools: `list_worlds`
-        marks the current world, an empty `world_id` means it
+        marks the current world, an empty `world_id` means it. **From Game Master 5e** (2026-11-21, `app/services/gm5_import.py`, CURRENT-WORLD.md
+        §9b): a campaign of a backup becomes a new world, its creatures and items matched in
+        the books chosen, home-made creatures as designs begun from the book creature in their
+        name, scenes as chapters with their fights
   - [x] **What a player may read** (2026-11-03, documentation/PLAYER-VIEW.md,
         `app/services/player_view.py`): per world the books players may read ("Players" on
         each book of the world form; the handbooks and supplements by default), only player

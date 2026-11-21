@@ -45,6 +45,7 @@ from app.routes import encounters as encounter_routes
 from app.routes import factions as faction_routes
 from app.routes import glossary as glossary_routes
 from app.routes import gm as gm_routes
+from app.routes import gm5_import as gm5_import_routes
 from app.routes import help as help_routes
 from app.routes import home as home_routes
 from app.routes import journal as journal_routes
@@ -342,6 +343,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_routes.router)
     app.include_router(current_world_routes.router)
     app.include_router(world_transfer_routes.router)
+    app.include_router(gm5_import_routes.router)
     app.include_router(world_links_routes.router)
     app.include_router(home_routes.router)
     app.include_router(players_routes.router)

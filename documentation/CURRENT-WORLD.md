@@ -217,3 +217,49 @@ The world menu also offers **Check links** (every broken link of the world, ADVE
   left, the log in the new world, the chapter check reporting what the original reports once
   the table plays in it (a character link resolves only in the table's world).
 
+
+### 9b. A campaign from Game Master 5e (2026-11-21)
+
+**Import from Game Master 5e** in the world menu (`/gm/import/gm5`; `app/services/gm5_backup.py`
+reads the file, `app/services/gm5_import.py` makes the world, `app/routes/gm5_import.py`)
+makes one campaign of a backup of Lion's Den's *Game Master 5e* into a **new world**. The
+user's decisions: match every creature and item against the books the gamemaster names, which
+become the world's books; home-made creatures become creature-builder designs; what the backup
+leaves out of a creature comes from the book creature it is based on.
+
+- **The file** is one XML document (`<data><version>`), refused with a DTD. It waits in
+  `library/.imports/` (owner-only) under a random token until imported, a day at most.
+- **Choosing**: a campaign, the new world's name (empty: the campaign's) and the books
+  (PHB, MM and DMG to start, where loaded). **Check** shows the plan before anything is
+  written: each creature name as from the books, a design begun from a book creature, a
+  design of its own, or left out (a name without a statblock); each item as a book item,
+  coins or a line in the treasure's notes; the counts.
+- **Creatures** are found by their name in the world's books, or by the name the table's
+  glossary gives one in the reader's language ("Irrlicht" is a Will-o'-Wisp). A combatant's
+  label becomes its "Shown as" without its number ("Skelett 1", "Skelett 2" → 2 × Skeleton
+  shown as "Skelett"); one that is not an enemy fights on the characters' side; one pointing
+  at an NPC brings that NPC's statblock under its name; player characters are left out.
+- **Home-made creatures** become designs (`Homebrew`, published at the end, the world's
+  books gaining Homebrew). Where a book creature's name stands within the name ("Moorleiche
+  (Zombie)", "Catelyn, Drow Elite Warrior", "Murloc Knight") the design begins from it, so
+  saves, skills, senses, defences or traits the backup does not state are the book's; what
+  it states wins. Without one, what it leaves out stays empty. The app's numbers are
+  decoded (a CR of `-1` is ¼, `-2` ⅛, `-3`/`-4` 0, `0` ½, none 1; sizes 0–5 T–G, else read
+  from the hit die; skills and saves by position), German words read through the UI
+  catalogue (types, damage types, conditions, senses, speeds, alignment), metres turned into
+  feet, and attack lines written as the corpus's tags (`{@atk mw} {@hit 5}`, `{@h}`,
+  `{@damage 1d8 + 3}`, `{@dc 13}`), in English or German, so the tracker rolls them. A name
+  the table's designs have already gets the world's name in brackets.
+- **The rest**: the campaign's picture is the world's cover, an adventure's its cover. Each
+  adventure keeps its notes as chapters, and **an encounter with notes is a scene**: a
+  chapter of its name with the notes as text and the fight (and its loot) placed in it as
+  cards, so the adventure reads in the backup's order. Notes and scenes of the campaign
+  itself go into an adventure named after it. An encounter without notes is an encounter of
+  its adventure (or the world); the saved fight state is dropped. NPCs keep their label as
+  name and their statblock by the same rules. Items become a treasure per adventure or
+  encounter: book items with their count, coins ("Gold (gp)") as coins, the rest as
+  `**name** (detail): text` lines in its notes.
+- **Left behind**: player characters (numbers only, no choices: built again in the wizard)
+  and the app's own compendium (the corpus has the books).
+- **Tried on a real backup** (2026-11-21, seven campaigns): 105 of 114 creature names were
+  book creatures; a campaign imports in about five seconds, most of it the homebrew publish.

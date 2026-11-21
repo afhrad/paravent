@@ -38,6 +38,8 @@ SELECT_URL = "/gm/world/select"
 SETTINGS_URL = "/gm/world/settings"
 EXPORT_URL = "/gm/world/export"
 IMPORT_URL = "/gm/world/import"
+# A Game Master 5e backup made into a world (app/routes/gm5_import.py).
+GM5_URL = "/gm/import/gm5"
 DUPLICATE_URL = "/gm/world/duplicate"
 LINKS_URL = "/gm/world/links"
 # The query field that brings an import or a duplicate back with what went wrong.
@@ -108,6 +110,9 @@ def world_menu(page: Page) -> Node:
                 ],
                 button(type="button", class_="usermenu-link", data_dialog="import-world")[
                     icon("upload", "sm"), span[t("transfer.import")]
+                ],
+                a(href=GM5_URL, class_="usermenu-link")[
+                    icon("download", "sm"), span[t("gm5.menu")]
                 ],
                 a(
                     href=f"{WORLDS_URL}/{current[0]}/edit",
@@ -226,6 +231,19 @@ def transfer_notice(page: Page) -> Node:
     """After an import or a duplicate, what came along and what was left out."""
     raw = (parse_qs(urlsplit(page.path).query).get(TRANSFERRED) or [""])[0]
     how, *numbers = raw.split(":")
+    if how == "gm5" and len(numbers) == 5 and all(n.isdigit() for n in numbers):
+        adventures, chapters, encounters, npcs, designs = (int(n) for n in numbers)
+        world = page.world[1] if page.world else ""
+        text = page.t(
+            "gm5.done",
+            world=world,
+            adventures=adventures,
+            chapters=chapters,
+            encounters=encounters,
+            npcs=npcs,
+            designs=designs,
+        )
+        return div(class_="notice", role="status")[icon("check"), span[text]]
     if (
         how not in ("import", "duplicate")
         or len(numbers) != 4
@@ -466,6 +484,7 @@ def world_dialogs(page: Page) -> Node:
 __all__ = [
     "DUPLICATE_URL",
     "EXPORT_URL",
+    "GM5_URL",
     "IMPORT_URL",
     "LINKS_URL",
     "SELECT_URL",
