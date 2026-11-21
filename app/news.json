@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-21T13:36:44+01:00",
+  "en": "Roll a place as a settlement: its size, government, leader, what it is known for, its trouble, a tavern and shops from your guide's tables, each part again on its own.",
+  "de": "Einen Ort als Siedlung erwürfeln: Größe, Regierung, Führung, wofür er bekannt ist, sein Unheil, eine Taverne und Läden aus den Tabellen deines Spielleiterhandbuchs, jeder Teil einzeln neu."
+ },
+ {
   "at": "2026-11-21T13:10:31+01:00",
   "en": "Award XP from the party view for a riddle solved or a deal struck, each or shared out, leaving out whoever was absent. NPCs and contacts show how they stand toward the party and when you last met them.",
   "de": "EP für gelöste Rätsel oder ausgehandelte Händel in der Spielübersicht vergeben, je Figur oder aufgeteilt, ohne die Abwesenden. NSC und Kontakte zeigen ihre Haltung zur Gruppe und wann ihr sie zuletzt getroffen habt."
@@ -293,10 +298,5 @@
   "at": "2026-11-18T22:27:26+01:00",
   "en": "Saving a chapter with an encounter or a box in it works again.",
   "de": "Ein Kapitel mit Begegnung oder Kasten lässt sich wieder speichern."
- },
- {
-  "at": "2026-11-18T22:06:15+01:00",
-  "en": "The table shows the party first, with the world's clock, checks, shop and chase beside it, and tidier character cards.",
-  "de": "Der Spieltisch zeigt zuerst die Gruppe, daneben Uhr, Proben, Laden und Verfolgung der Welt, und aufgeräumtere Figurenkarten."
  }
 ]
