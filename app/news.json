@@ -1,5 +1,30 @@
 [
  {
+  "at": "2026-11-21T22:20:01+01:00",
+  "en": "Right-click (or press and hold) NPCs, places, chapters, links, party cards, fight rows and your sheet's items and spells for what can be done there; deletes come back with Undo, and a missing link is made right where it stands.",
+  "de": "Rechtsklick (oder langes Drücken) auf NSC, Orte, Kapitel, Verweise, Gruppenkarten, Kampfzeilen und die Gegenstände und Zauber deines Bogens zeigt, was dort geht; Gelöschtes lässt sich rückgängig machen, und ein fehlender Verweis wird gleich dort angelegt."
+ },
+ {
+  "at": "2026-11-21T22:19:35+01:00",
+  "en": "Every drop-down and text box has the same look in every theme and in dark mode; quest texts and faction notes are written like chapters, and players read them without the secrets.",
+  "de": "Alle Auswahllisten und Textfelder sehen in jedem Design und im Dunkelmodus gleich aus; Questtexte und Fraktionsnotizen schreibt man wie Kapitel, und Spieler lesen sie ohne die Geheimnisse."
+ },
+ {
+  "at": "2026-11-21T22:19:11+01:00",
+  "en": "Grant blessings, charms and boons from a gift's page, a charm's uses spent on the sheet; and give a magic item's formula, which the character crafts in downtime by your guide's rules.",
+  "de": "Segen, Talismane und Gaben auf ihrer Seite verleihen, die Anwendungen eines Talismans werden auf dem Bogen verbraucht; und die Formel eines magischen Gegenstands geben, den die Figur in der Auszeit nach den Regeln deines Handbuchs herstellt."
+ },
+ {
+  "at": "2026-11-21T22:16:16+01:00",
+  "en": "Roll an NPC as a villain and an adventure's ideas on the guides' tables; Claude can roll them too.",
+  "de": "Einen NSC als Schurken und die Ideen eines Abenteuers nach den Tabellen der Handbücher auswürfeln; Claude kann das auch."
+ },
+ {
+  "at": "2026-11-21T22:15:57+01:00",
+  "en": "Madness from the party view: a save, psychic damage and a short-, long-term or indefinite madness rolled on your guide's tables for whoever fails.",
+  "de": "Wahnsinn aus der Spielübersicht: ein Rettungswurf, psychischer Schaden und ein kurz-, langzeitiger oder unbefristeter Wahnsinn nach den Tabellen deines Handbuchs für alle, die scheitern."
+ },
+ {
   "at": "2026-11-21T13:59:24+01:00",
   "en": "Importing a Game Master 5e backup brings every campaign you tick into one new world, each campaign one adventure with its adventures as chapters.",
   "de": "Der Import einer Game-Master-5e-Sicherung bringt alle angehakten Kampagnen in eine neue Welt, jede Kampagne ein Abenteuer mit ihren Abenteuern als Kapiteln."
@@ -273,30 +298,5 @@
   "at": "2026-11-19T10:38:16+01:00",
   "en": "The world, adventure, NPC and treasure pages fit a phone, and the encounter builder shows the monsters and the difficulty first there.",
   "de": "Welt, Abenteuer, NSC und Schätze passen aufs Handy, und der Begegnungsbaukasten zeigt dort zuerst die Monster und die Schwierigkeit."
- },
- {
-  "at": "2026-11-19T10:06:55+01:00",
-  "en": "Preparing spells, level-up and the shop fit a phone: no sideways scrolling, long spell lists in their own box, one row per ware, and a quick way to selling.",
-  "de": "Zauber vorbereiten, Stufenaufstieg und der Laden passen aufs Handy: kein seitliches Scrollen, lange Zauberlisten in eigenem Kasten, eine Zeile je Ware und ein schneller Weg zum Verkaufen."
- },
- {
-  "at": "2026-11-19T09:39:18+01:00",
-  "en": "On a phone the table opens with what is in play; the road's weather reads in German, temperatures in °C.",
-  "de": "Auf dem Handy beginnt der Spieltisch mit dem, was gerade läuft; das Wetter unterwegs steht auf Deutsch, Temperaturen in °C."
- },
- {
-  "at": "2026-11-19T09:27:42+01:00",
-  "en": "A chapter lists its NPCs, encounters (with Run), places and treasure beside the text, and names the previous and next chapter, the next one with Start.",
-  "de": "Ein Kapitel listet seine NSC, Begegnungen (mit Starten), Orte und Schätze neben dem Text und nennt das vorige und nächste Kapitel, das nächste mit Starten."
- },
- {
-  "at": "2026-11-19T09:03:26+01:00",
-  "en": "The combat tracker fits laptop, iPad and phone: one-line rows, the round pinned on a phone, and the statblock of whoever's turn it is opens by itself; the players' sheet and fight view take less room on a phone.",
-  "de": "Der Kampftracker passt auf Laptop, iPad und Handy: einzeilige Reihen, die Runde bleibt auf dem Handy oben, und die Werte dessen, der am Zug ist, öffnen sich von selbst; Charakterbogen und Kampfansicht der Spieler brauchen auf dem Handy weniger Platz."
- },
- {
-  "at": "2026-11-18T22:52:19+01:00",
-  "en": "Places, encounters, quests and factions have a title image you can drop on their page; tokens are for NPCs, monsters, characters and treasure.",
-  "de": "Orte, Begegnungen, Aufträge und Fraktionen haben ein Titelbild, das sich auf ihre Seite ziehen lässt; Token gibt es für NSC, Monster, Figuren und Schätze."
  }
 ]
