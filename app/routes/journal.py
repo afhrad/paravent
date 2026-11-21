@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import asyncio
+from functools import partial
 from pathlib import Path
 from typing import Annotated, Any
 from urllib.parse import quote, urlencode
@@ -24,6 +25,7 @@ from app.dependencies import GamemasterDep, IdentityDep, PageDep, RegistryDep
 from app.models.gamestate import Handout, World
 from app.routes.adventures import _chapter_context as chapter_context
 from app.routes.auth import html, redirect, safe_next
+from app.routes.paravent_markdown import players_markdown
 from app.services import image_effects, media
 from app.services.adventures import EditConflict, text_version
 from app.services.auth import Identity
@@ -251,7 +253,13 @@ def _journal(
         if identity.is_gamemaster or pc.player == identity.user.username
     ]
     quests = [
-        journal_quests(page, w.name, shown, w.milestone)
+        journal_quests(
+            page,
+            w.name,
+            shown,
+            w.milestone,
+            render=partial(players_markdown, page, registry, w.id),
+        )
         for w in _notes_worlds(identity, registry, world)
         if (shown := registry.quests.shown_to(w.id, mine_ids))
     ]

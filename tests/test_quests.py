@@ -109,3 +109,25 @@ async def test_a_deleted_faction_leaves_the_quest_finishable(
     done = await ac.post(f"/gm/quests/{world}/finish", data={"quest": quest.id})
     assert done.status_code == 303 and registry.quests.get(quest.id).status == "done"
     assert registry.gamestate.characters.get(lyra).experience == 64100
+
+
+@requires_corpus
+async def test_a_quests_text_is_paravent_markdown(
+    table: tuple[AsyncClient, StoreRegistry, str],
+) -> None:
+    ac, registry, lyra = table
+    world = registry.gamestate.characters.get(lyra).world_id or ""
+    text = (
+        "Ask **Mother Ilse** about {@spell light}.\n\n"
+        "> [!secret] The bell\n> It was never lost."
+    )
+    await ac.post(
+        f"/gm/quests/{world}/save", data={"name": "The Drowned Bell", "text": text, "shown": "1"}
+    )
+    page = (await ac.get(f"/gm/quests?world={world}")).text
+    assert 'class="prose-editor"' in page and f'data-scope="w:{world}"' in page
+    body = page.split('class="quest-text md-body"', 1)[1].split("</div>", 1)[0]
+    assert "<strong>Mother Ilse</strong>" in body and "/ref/spell/" in body
+    assert "never lost" in page  # the gamemaster reads the secret
+    journal = (await ac.get("/journal")).text.split('class="panel journal-quests"', 1)[1]
+    assert "<strong>Mother Ilse</strong>" in journal and "never lost" not in journal

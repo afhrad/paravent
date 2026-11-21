@@ -9,6 +9,27 @@ body{ min-height:100vh; min-height:100dvh; }
 /* Form fields write in the page's face, not the browser's; a field styled where it is
    defined keeps its own. */
 input, select, textarea{ font-family:inherit; }
+/* Every drop-down, text box and text field in the form look — the theme's surface, text,
+   border and body face, never the browser's white or grey box — unless the context sizes
+   or colours it otherwise. :where keeps these the weakest rules there are, so any class
+   rule still wins. */
+:where(select, textarea, input:not([type=checkbox], [type=radio], [type=range], [type=color],
+    [type=file], [type=hidden], [type=submit], [type=button], [type=reset], [type=image])){
+  font:inherit; font-family:var(--font-body); color:var(--text); background-color:var(--surface);
+  border:1px solid var(--border-strong); border-radius:var(--r-sm);
+  transition:border-color .12s, box-shadow .12s;
+}
+:where(select){ padding:4px 10px; }
+:where(input){ padding:4px 8px; }
+:where(textarea){ padding:8px 10px; line-height:1.5; resize:vertical; max-width:100%; }
+:where(select, textarea, input:not([type=checkbox], [type=radio], [type=range], [type=color], [type=file], [type=hidden], [type=submit], [type=button], [type=reset], [type=image])):hover{ border-color:var(--text-3); }
+:where(select, textarea, input:not([type=checkbox], [type=radio], [type=range], [type=color], [type=file], [type=hidden], [type=submit], [type=button], [type=reset], [type=image])):focus{
+  outline:none; border-color:var(--accent);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+:where(select, textarea, input:not([type=checkbox], [type=radio], [type=range], [type=color], [type=file], [type=hidden], [type=submit], [type=button], [type=reset], [type=image]))[readonly]{ background-color:var(--surface-2); }
+:where(input, textarea)::placeholder{ color:var(--text-3); opacity:1; }
+
 /* Every link in the theme's link colour unless its own rule says otherwise: never the
    browser's blue or visited purple. :where keeps it the weakest rule there is. */
 :where(a, a:visited){ color:var(--accent-text); }
@@ -661,6 +682,7 @@ dialog.palette[open] .palette-form{ animation:tip-in .12s ease-out; }
   flex:1; min-width:0; border:0; outline:0; background:transparent; color:var(--text);
   font:inherit; font-size:16px; padding:2px 0;   /* 16px: iOS does not zoom into the field */
 }
+.palette-input:focus, .palette-input:hover{ box-shadow:none; } /* its bar shows the focus */
 .palette-input::-webkit-search-cancel-button{ cursor:pointer; }
 dialog .palette-submit{ display:none; }
 .filterbar .chip{ display:inline-flex; align-items:center; position:relative; }
@@ -2885,7 +2907,10 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .quest-panel.is-done, .quest-panel.is-failed{ opacity:.8; }
 .quest-head{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 .quest-head h2{ margin:0; font-size:1.05rem; }
-.quest-text{ margin:0; white-space:pre-line; }
+/* A quest's text and a faction's note are Paravent Markdown, drawn as a short body. */
+.quest-text, .faction-note{ margin:0; font-size:14.5px; }
+.quest-text > :first-child, .faction-note > :first-child{ margin-top:0; }
+.quest-text > :last-child, .faction-note > :last-child{ margin-bottom:0; }
 .quest-steps, .quest-read{ list-style:none; margin:0; padding:0; display:grid; gap:4px; }
 .quest-done{ text-decoration:line-through; opacity:.75; }
 .quest-tick{ text-align:left; }

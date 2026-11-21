@@ -263,7 +263,9 @@ is still to come.
 campaign needs. It is not only for chapters — every text the gamemaster writes is
 rendered in it, as if written where its object is placed: adventures and worlds, NPC and
 treasure notes, **encounter notes** (on the builder, with the same editor, and folded
-under the board in the combat tracker), and session notes (§4b). One renderer, `app/ui/markdown.py`; one helper for a placed text,
+under the board in the combat tracker), session notes (§4b), and a quest's text and a
+faction's note (2026-11-21; players read those through `players_markdown`, secrets left
+out and campaign links as words, as a handout reads). One renderer, `app/ui/markdown.py`; one helper for a placed text,
 `app/routes/paravent_markdown.py` (`paravent_markdown(page, registry, scope, text)`).
 
 **CommonMark + GFM tables**, parsed with `markdown-it-py` and the `container` plugin from

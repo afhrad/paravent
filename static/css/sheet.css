@@ -391,7 +391,7 @@ a.fchip{ text-decoration:none; }
 .cs-save-choice{ display:flex; flex-wrap:wrap; gap:6px; }
 .cs .cbtn.cs-rage.on{ background:var(--dmg-weak); border-color:var(--dmg); color:var(--dmg-text); font-weight:600; }
 .cs-cast{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
-.cs-slot-pick{ min-height:32px; }
+.cs-slot-pick{ min-height:32px; padding-top:0; padding-bottom:0; font-size:13px; }
 @media (pointer: coarse){ .cs-slot-pick{ min-height:44px; } }
 .cs .roll.heal{ color:var(--heal-text); border-color:color-mix(in srgb, var(--heal) 40%, var(--border)); }
 .cs-heal-group{ border:0; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:4px 10px; flex-basis:100%; }

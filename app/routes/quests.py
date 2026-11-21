@@ -14,8 +14,9 @@ from fastapi.responses import HTMLResponse, Response
 from starlette.datastructures import FormData
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep, WorldsDep
-from app.models.gamestate import QuestItem, QuestStep, World
+from app.models.gamestate import QuestItem, QuestStep, Scope, World
 from app.routes.auth import html, redirect
+from app.routes.paravent_markdown import paravent_markdown
 from app.services.factions import FactionError
 from app.services.play import Actor
 from app.services.quests import Handout, QuestError
@@ -51,6 +52,9 @@ def _page(
             {q.id: registry.quests.party(q) for q in quests},
             milestone=world.milestone,
             error=error,
+            render=lambda text: (
+                paravent_markdown(page, registry, Scope(world_id=world.id), text).html
+            ),
         ),
         status_code=200 if error is None else 422,
     )

@@ -312,6 +312,27 @@ dialog. Exceptions on purpose: a naming style opens its editor (a style is a pat
 parts and samples, not a short form), and the world menu's **New world** is its own
 dialog already.
 
+### Form fields
+
+Every drop-down, text box and text field has one look (2026-11-21, the top of
+`static/css/app.css`): the theme's surface and text colours, its strong border and small
+corner, the body face, a darker border on hover and the accent ring on focus; a read-only
+one sits on the second surface. The rule is a `:where()` of zero specificity, so a context
+sizes a field (`.field` 44 px for forms, compact rows smaller) without restating its look,
+and no field falls back to the browser's white or grey box. Checkboxes, radios, file and
+range inputs and buttons keep their own. A field drawn borderless inside a bar (the ⌘K
+palette) clears the ring itself. A theme does not restyle fields; it changes the tokens.
+
+Where a text box holds what the gamemaster writes for the campaign, it is the Paravent
+Markdown editor (`textarea.prose-editor` with its `data-scope`: links completed as you type,
+the insert search, pictures dropped in) and the text is drawn rendered: chapters,
+adventures, worlds, NPC, place, treasure, encounter and session notes, **a quest's text and
+a faction's note** (2026-11-21; players read those with secrets left out and campaign links
+as words, `players_markdown`). Plain boxes stay plain where the text is a list read line by
+line (quest steps and items, lines and veils, a chase's creatures, naming parts), uses
+5eTools tags with an editor of its own (translations, the creature builder), is read by
+Claude (its instructions), or is the players' own (sheet notes, backstory, party notes).
+
 ### Challenge rating
 
 A creature's CR is the measure a gamemaster looks for first when judging an enemy, so it

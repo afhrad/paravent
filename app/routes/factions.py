@@ -11,8 +11,9 @@ from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse, Response
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep, WorldsDep
-from app.models.gamestate import World
+from app.models.gamestate import Scope, World
 from app.routes.auth import html, redirect
+from app.routes.paravent_markdown import paravent_markdown
 from app.services.factions import FactionError
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
@@ -37,6 +38,9 @@ def _page(
             registry.renown_tables(world.id),
             list(registry.faction_ranks(world.id)),
             error=error,
+            render=lambda text: (
+                paravent_markdown(page, registry, Scope(world_id=world.id), text).html
+            ),
         ),
         status_code=200 if error is None else 422,
     )

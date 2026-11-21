@@ -38,6 +38,7 @@ from app.dependencies import (
 from app.models.gamestate import BastionFacility, Combat, Shop
 from app.models.pc import PlayerCharacter
 from app.routes.auth import html, redirect
+from app.routes.paravent_markdown import players_markdown
 from app.routes.play_combat import strip
 from app.routes.rolls import announce_roll, new_roll
 from app.services import polymorph
@@ -952,6 +953,9 @@ def _downtime(
                     renown,
                     title_of(faction, renown),
                     granted(registry.renown_rewards(character.world_id, faction), renown),
+                    players_markdown(page, registry, faction.world_id, faction.note)
+                    if faction.note
+                    else None,
                 )
                 for faction, renown in registry.factions.standing(character.id, character.world_id)
             ],

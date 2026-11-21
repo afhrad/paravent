@@ -123,6 +123,8 @@ class FactionView:
     renown: int
     title: str
     rewards: Sequence[Reward]
+    # Its note as the reader may read it (Paravent Markdown, secrets left out).
+    note: Node = None
 
 
 def downtime_page(
@@ -282,7 +284,7 @@ def _factions(page: Page, factions: Sequence[FactionView]) -> Element:
                         span(class_="pill accent mono")[t("factions.renown", renown=view.renown)],
                         span(class_="pill")[view.title] if view.title else None,
                     ],
-                    p(class_="muted")[view.faction.note] if view.faction.note else None,
+                    div(class_="faction-note md-body")[view.note] if view.note else None,
                     ul(class_="faction-rewards")[
                         [
                             li[small(class_="mono muted")[f"{r.renown}+"], " ", span[r.text]]

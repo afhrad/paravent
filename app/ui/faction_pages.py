@@ -4,7 +4,7 @@ books."""
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from urllib.parse import quote, urlencode
 
 from htpy import (
@@ -57,10 +57,12 @@ def factions_page(
     examples: Sequence[str],
     *,
     error: str | None = None,
+    render: Callable[[str], Node] = str,
 ) -> Element:
     """Every faction of the world with the characters' renown (``members`` are the
     world's characters, ``(id, name)``); the forms that make a new one, by hand, from a
-    book's renown table (``tables``, ``(name, source)``) or the guide's examples."""
+    book's renown table (``tables``, ``(name, source)``) or the guide's examples.
+    ``render`` draws a faction's note (Paravent Markdown)."""
     t = page.t
     base = f"{FACTIONS_URL}/{quote(world.id)}"
     return app_shell(
@@ -75,7 +77,7 @@ def factions_page(
             ),
             alert(error),
             div(class_="faction-grid")[
-                [_faction(page, base, f, members) for f in factions]
+                [_faction(page, base, f, members, render) for f in factions]
                 if factions
                 else p(class_="muted")[t("factions.empty")],
             ],
@@ -91,7 +93,11 @@ def _post(base: str, op: str, *content: Node, cls: str = "inline-form") -> Eleme
 
 
 def _faction(
-    page: Page, base: str, faction: Faction, members: Sequence[tuple[str, str]]
+    page: Page,
+    base: str,
+    faction: Faction,
+    members: Sequence[tuple[str, str]],
+    render: Callable[[str], Node] = str,
 ) -> Element:
     t = page.t
     source = faction.table.partition("|")
@@ -104,7 +110,7 @@ def _faction(
             if faction.table
             else None,
         ],
-        p(class_="muted")[faction.note] if faction.note else None,
+        div(class_="faction-note md-body")[render(faction.note)] if faction.note else None,
         ul(class_="faction-renown")[
             [
                 li(class_="faction-member")[
@@ -140,9 +146,14 @@ def _faction(
                 ],
                 div(class_="field")[
                     label(for_=f"fe-note-{faction.id}")[t("factions.note")],
-                    textarea(id=f"fe-note-{faction.id}", name="note", rows="4", maxlength="4000")[
-                        faction.note
-                    ],
+                    textarea(
+                        id=f"fe-note-{faction.id}",
+                        name="note",
+                        rows="6",
+                        maxlength="4000",
+                        class_="prose-editor",
+                        data_scope=f"w:{faction.world_id}",
+                    )[faction.note],
                 ],
                 div(class_="form-actions")[
                     button(type="submit", class_="btn btn-primary")[

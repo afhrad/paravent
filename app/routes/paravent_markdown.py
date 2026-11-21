@@ -10,11 +10,14 @@ names resolve nearest first from there and references in the right books.
 
 from __future__ import annotations
 
+from markupsafe import Markup
+
 from app.models.gamestate import Scope
 from app.store.registry import StoreRegistry
+from app.ui import tags
 from app.ui.adventure_pages import ProseServices, prose_context, render_body
 from app.ui.context import Page
-from app.ui.markdown import MarkdownContext, Rendered
+from app.ui.markdown import MarkdownContext, Rendered, render_markdown, without_secrets
 
 
 def services_of(registry: StoreRegistry) -> ProseServices:
@@ -53,4 +56,24 @@ def paravent_markdown(page: Page, registry: StoreRegistry, here: Scope, text: st
     return render_body(text, scoped_context(page, registry, here))
 
 
-__all__ = ["paravent_markdown", "scoped_context", "services_of"]
+def players_markdown(page: Page, registry: StoreRegistry, world_id: str, text: str) -> Markup:
+    """``text`` as a player reads it: its ``[!secret]`` boxes left out, references in the
+    world's books (and only those the reader may open), the campaign's own links as their
+    words alone — as a handout reads in the journal."""
+    world = registry.gamestate.worlds.find(world_id)
+    ctx = MarkdownContext(
+        tags=tags.localized_context(
+            page.t,
+            resolver=registry.references.resolver(),
+            source_set=world.source_set if world is not None else None,
+            world_id=world_id,
+            readable=page.readable,
+            units=page.u,
+        ),
+        t=page.t,
+        plain=True,
+    )
+    return render_markdown(without_secrets(text), ctx).html
+
+
+__all__ = ["paravent_markdown", "players_markdown", "scoped_context", "services_of"]

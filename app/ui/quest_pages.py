@@ -4,7 +4,7 @@ players' journal that lists the quests shown to them."""
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from urllib.parse import quote, urlencode
 
 from htpy import (
@@ -78,10 +78,12 @@ def quests_page(
     *,
     milestone: bool = False,
     error: str | None = None,
+    render: Callable[[str], Node] = str,
 ) -> Element:
     """Every quest of the world, open first, and the form for a new one. ``members``
     are the world's characters and ``factions`` its factions, each ``(id, name)``;
-    ``parties`` names who is on each quest, by its id."""
+    ``parties`` names who is on each quest, by its id; ``render`` draws a quest's text
+    (Paravent Markdown)."""
     t = page.t
     base = f"{QUESTS_URL}/{quote(world.id)}"
     names = dict(members)
@@ -101,7 +103,15 @@ def quests_page(
             div(class_="quest-list")[
                 [
                     _quest(
-                        page, base, q, members, factions, parties.get(q.id, ()), names, milestone
+                        page,
+                        base,
+                        q,
+                        members,
+                        factions,
+                        parties.get(q.id, ()),
+                        names,
+                        milestone,
+                        render,
                     )
                     for q in quests
                 ]
@@ -113,7 +123,7 @@ def quests_page(
                 page,
                 "quest",
                 t("quests.new"),
-                _fields(page, base, None, members, factions, milestone),
+                _fields(page, base, None, members, factions, milestone, world.id),
             ),
         ],
         main_class="shell-main shell-wide",
@@ -134,6 +144,7 @@ def _quest(
     party: Sequence[str],
     names: Mapping[str, str],
     milestone: bool,
+    render: Callable[[str], Node] = str,
 ) -> Element:
     t = page.t
     faction = dict(factions).get(quest.faction_id or "")
@@ -159,7 +170,7 @@ def _quest(
                 if x
             )
         ],
-        p(class_="quest-text")[quest.text] if quest.text else None,
+        div(class_="quest-text md-body")[render(quest.text)] if quest.text else None,
         ul(class_="quest-steps")[
             [
                 li[
@@ -236,7 +247,7 @@ def _quest(
         ],
         details(class_="quest-edit")[
             summary[t("quests.edit")],
-            _fields(page, base, quest, members, factions, milestone),
+            _fields(page, base, quest, members, factions, milestone, quest.world_id),
             title_image_panel(page, "quest", quest.id, found, owner=quest.world_id, heading=False),
         ]
         if is_open
@@ -251,8 +262,10 @@ def _fields(
     members: Sequence[tuple[str, str]],
     factions: Sequence[tuple[str, str]],
     milestone: bool,
+    world_id: str,
 ) -> Element:
-    """The quest's form: new, or editing ``quest``."""
+    """The quest's form: new, or editing ``quest``; its text in Paravent Markdown, with
+    the editor's links and search in ``world_id``."""
     t = page.t
     steps = "\n".join(("[x] " if s.done else "") + s.text for s in quest.steps) if quest else ""
     items = "\n".join(f"{i.count} {i.ref}" for i in quest.items) if quest else ""
@@ -290,7 +303,13 @@ def _fields(
         else None,
         label(class_="field quest-wide")[
             span(class_="field-label")[t("quests.text")],
-            textarea(name="text", rows="3", maxlength="8000")[quest.text if quest else ""],
+            textarea(
+                name="text",
+                rows="5",
+                maxlength="8000",
+                class_="prose-editor",
+                data_scope=f"w:{world_id}",
+            )[quest.text if quest else ""],
         ],
         label(class_="field quest-wide")[
             span(class_="field-label")[t("quests.steps")],
@@ -370,9 +389,14 @@ def _fields(
 
 
 def journal_quests(
-    page: Page, world: str, quests: Sequence[Quest], milestone: bool = False
+    page: Page,
+    world: str,
+    quests: Sequence[Quest],
+    milestone: bool = False,
+    render: Callable[[str], Node] = str,
 ) -> Element:
-    """A world's quests as its players read them, in the journal."""
+    """A world's quests as its players read them, in the journal; ``render`` draws a
+    quest's text for them (secrets left out, campaign links as words)."""
     t = page.t
     return section(class_="panel journal-quests")[
         div(class_="panel-head")[h2[t("quests.journal_heading", world=world)]],
@@ -386,7 +410,7 @@ def journal_quests(
                         ],
                     ],
                     small(class_="muted")[t("quests.given_by", giver=q.giver)] if q.giver else None,
-                    p(class_="quest-text")[q.text] if q.text else None,
+                    div(class_="quest-text md-body")[render(q.text)] if q.text else None,
                     ul(class_="quest-steps")[
                         [
                             li(class_="quest-done" if s.done else None)[
