@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-22T18:25:49+01:00",
+  "en": "Select several adventures, NPCs, places, treasure, encounters or creatures to copy or move together, or save them as a file and import it into a world at another table.",
+  "de": "Mehrere Abenteuer, NSC, Orte, Schätze, Begegnungen oder Kreaturen auswählen und gemeinsam kopieren oder verschieben – oder als Datei speichern und an einem anderen Spieltisch in eine Welt importieren."
+ },
+ {
   "at": "2026-11-22T17:52:27+01:00",
   "en": "Copy or move an adventure, NPC, place, treasure, encounter, quest, faction or creature to another world, with what its texts name brought along.",
   "de": "Abenteuer, NSC, Orte, Schätze, Begegnungen, Quests, Fraktionen und Kreaturen lassen sich in eine andere Welt kopieren oder verschieben, samt dem, was ihre Texte nennen."
@@ -293,10 +298,5 @@
   "at": "2026-11-19T13:10:33+01:00",
   "en": "Magic items cast at their own save DC, a wand can spend more charges for a higher level, and attunement follows who the item is for.",
   "de": "Magische Gegenstände wirken mit ihrem eigenen Rettungswurf-SG, ein Zauberstab kann mehr Ladungen für einen höheren Grad ausgeben, und die Einstimmung folgt dem, für wen der Gegenstand gedacht ist."
- },
- {
-  "at": "2026-11-19T12:56:30+01:00",
-  "en": "Spells from magic items: a Staff of Fire's Fireball or a wand's Magic Missile is cast from the sheet, spending the item's charges.",
-  "de": "Zauber aus magischen Gegenständen: Der Feuerball eines Zauberstecken des Feuers oder das Magische Geschoss eines Zauberstabs wird vom Bogen gewirkt und verbraucht die Ladungen des Gegenstands."
  }
 ]
