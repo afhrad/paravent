@@ -51,6 +51,16 @@ einen Trefferwürfel ausgeben und eine **Kurze Rast** oder **Lange Rast** machen
 lange Rast bringt Trefferpunkte, Zauberplätze und Ressourcen zurück (außer die Straße
 der Spielleitung oder eine Krankheit sagt etwas anderes).
 
+Deine Spielleitung kann in dieser Welt Variantregeln der Spielleiterhandbücher spielen.
+**Heldenpunkte** stehen oben auf dem Bogen: Drück direkt nach einem Angriff, einem Wurf oder
+einem Rettungswurf darauf, um einen W6 zu addieren, oder nach einem misslungenen
+Todesrettungswurf, um ihn zum Erfolg zu machen. **Ehre** und **Geistige Gesundheit** sind
+eigene Werte unter den Rettungswürfen: Leg deinen einmal fest und würfle sie wie die anderen.
+Mit **Heilerausrüstung nötig** verbraucht **Wunden versorgen** eine Anwendung deiner
+Ausrüstung, bevor Trefferwürfel ausgegeben werden; mit **Besiegt, nicht tot** liegst du nach
+dem dritten misslungenen Todesrettungswurf mit 1 Trefferpunkt bewusstlos, statt zu sterben.
+Die Rast-Knöpfe sagen, wie lange eine Rast in dieser Welt dauert.
+
 ## 4. Zauber
 
 Jeder Zauber hat seine Schadenswürfel, **Rettungswürfe fordern**, solange du kämpfst,

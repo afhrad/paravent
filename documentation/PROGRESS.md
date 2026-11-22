@@ -527,7 +527,9 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         on the shelf** (2026-11-15): put there by name, rolled by rarity from the world's
         books, or from a treasure's items, at their rarity's value by the world's guide
         (halved for a consumable, a scroll twice its scribing cost), with a count or no
-        end of them
+        end of them. **On a phone** (2026-11-22) the shelves wait for a shelf, a search or
+        **All** (each chip counting its wares), the rows stacked compactly; on a wider
+        screen every ware shows, a row each
   - [x] **Bastions, the rest** (2026-11-15): basic facilities with their space, Bastion
         Defenders on a roster, and the Maintain order, whose turn rolls the 2024
         guide's Bastion Events table from the corpus and shows the event's text; an
@@ -703,6 +705,26 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         applied. **Side initiative** gives each side one d20. A rule whose table the world's
         books lack is not offered. Also fixed: a world's milestone switch was never written
         into its file, so a restart turned milestone levelling off
+  - [x] **Variant rules for characters** (2026-11-22, `app/services/character_rules.py`,
+        CHARACTER-FORMAT.md §3): world switches in World settings. A **rest variant**
+        (epic heroism 5 min/1 h, gritty realism 8 h/7 days) sets how long a party rest
+        moves the clock (a night on the road only a short rest under gritty realism) and
+        what the sheet's rest buttons say; **hero points** (5 + half the level, renewed
+        at each level) add a d6 to the newest attack, check or save, or make a failed
+        death save a success, one per roll, a check called for answered again with the
+        new total; **Honor** and **Sanity** as scores with checks and saves, set once by
+        the player and moved by the gamemaster; **slow natural healing** (a long rest
+        restores no HP); **healer's kit dependency** (hit dice wait for a use of a kit,
+        ten to a kit); and the 2024 guide's **defeated, not dead** (a third failed death
+        save leaves the character unconscious at 1 HP, woken by Greater Restoration or
+        a DC 20 Constitution save after a long rest). Proficiency dice are not built
+  - [x] **Objects and doors in the tracker** (2026-11-22, `app/services/objects.py`,
+        COMBAT.md §3): a door from the 2024 guide's *Doors* table (AC, HP, DC to open) or
+        an object by the 2014 guide's substance and size tables joins a fight; it takes
+        no turn, is on no side, earns no XP, takes no poison or psychic damage and shows
+        Broken at 0. **Siege equipment** too: the books' objects with an action (ballista,
+        cannon, ram, cauldron) on a side, their attacks and save effects rolled from their
+        panel like a monster's, fired by the crew on its turns
   - [x] **The session note to the players** (2026-11-16): "Send to the players" puts the
         note, as it reads, into every character's journal as a handout
   - [x] **Sidekick classes** (2026-11-16): a sidekick may take one of the books' sidekick

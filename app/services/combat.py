@@ -46,10 +46,11 @@ from app.models.gamestate import (
     RepeatSave,
     SpellForm,
     Summoned,
+    Thing,
     health_word,
 )
 from app.models.protocol import EntryKind, ProtocolEntry, RollRecord, Scope
-from app.services import combat_rules
+from app.services import combat_rules, objects
 from app.services.book_tables import Rows
 from app.services.combat_rules import (
     FOE,
@@ -404,7 +405,12 @@ class CombatView:
     @property
     def waiting(self) -> tuple[Row, ...]:
         """Rows whose initiative is not rolled yet."""
-        return tuple(r for t in self.turns for r in t.rows if r.combatant.initiative is None)
+        return tuple(
+            r
+            for t in self.turns
+            for r in t.rows
+            if r.combatant.initiative is None and r.combatant.thing is None
+        )
 
     def row(self, combatant_id: str) -> Row | None:
         """The row of one combatant."""
@@ -841,6 +847,7 @@ class CombatService:
         shapes: Callable[[str | None, str, Fraction], builtins.list[Shape]] | None = None,
         table: Callable[[str | None, str, Sequence[str]], Rows | None] | None = None,
         injure: Callable[[str | None, str, str, str], object] | None = None,
+        objects_of: Callable[[str | None], Sequence[Mapping[str, Any]]] | None = None,
     ) -> None:
         """``monster(name, source)`` looks up a creature exactly, as the encounters do;
         ``shapes(world, spell, cr)`` what Polymorph may turn a creature of ``cr`` into;
@@ -857,8 +864,10 @@ class CombatService:
         ``spell(name, source, world)`` a spell's record in the world's books.
         ``table(world, caption, sources)`` a table the world's books print, for the
         optional rules; ``injure(world, character, name, note)`` keeps a lingering injury
-        on a character.
+        on a character; ``objects_of(world)`` the corpus's objects in the world's books,
+        of which siege equipment joins a fight (app/services/objects.py).
         """
+        self._objects_of = objects_of
         self._table = table
         self._injure = injure
         self._store = store
@@ -941,6 +950,7 @@ class CombatService:
             lead = members[0]
             unrolled = lead.initiative is None
             return (
+                lead.thing is not None,  # objects take no turn: after everyone
                 unrolled,
                 -(lead.initiative or 0),
                 -lead.initiative_bonus,
@@ -1452,6 +1462,8 @@ class CombatService:
         )
 
     def _defenses_of(self, target: Combatant) -> Mapping[str, Any] | None:
+        if target.thing is not None:
+            return {"immune": list(objects.IMMUNE)}
         monster = self.monster_of(target)
         if monster is not None:
             return self._monster_data(monster)
@@ -1576,7 +1588,9 @@ class CombatService:
 
     def summary(self, combat: Combat) -> Summary:
         """Rounds, who fell, and the XP for the defeated monsters."""
-        fallen = tuple(c for c in combat.combatants if not c.is_friend and self.is_down(c))
+        fallen = tuple(
+            c for c in combat.combatants if not c.is_friend and c.thing is None and self.is_down(c)
+        )
         defeated = []
         for combatant in fallen:
             monster = self.monster_of(combatant, own=True)
@@ -2147,6 +2161,8 @@ class CombatService:
     def _skippable(self, turn: Turn) -> bool:
         if turn.is_lair:  # no lair actions once its creatures are down
             return all(self.is_down(m) for m in turn.lair)
+        if all(m.thing is not None for m in turn.members):
+            return True  # an object takes no turn
         return not turn.is_character and all(self.is_down(m) for m in turn.members)
 
     def _log_turn(self, combat: Combat, turn: Turn, by: str) -> None:
@@ -3227,6 +3243,106 @@ class CombatService:
             self._log(combat, "add", by, subject=cleaned, amount=1)
 
         return self._mutate(combat_id, apply)
+
+    def add_object(
+        self,
+        combat_id: str,
+        label: str,
+        by: str,
+        *,
+        ac: int,
+        hp: int,
+        kind: str = "object",
+        dc: int | None = None,
+    ) -> Combat:
+        """An object or a door to break (app/services/objects.py): no turn, no XP."""
+        cleaned = _clean_label(label)
+        if hp < 1 or not 0 <= ac <= 40 or (dc is not None and not 0 <= dc <= 40):
+            raise CombatError("combat.error.numbers")
+        thing = Thing(kind="door" if kind == "door" else "object", dc=dc)
+
+        def apply(combat: Combat) -> None:
+            taken = [c.label for c in combat.combatants]
+            combat.combatants.append(
+                Combatant(
+                    label=_numbered(cleaned, taken, 1)[0], ac=ac, hp=hp, hp_max=hp, thing=thing
+                )
+            )
+            self._log(combat, "add", by, subject=cleaned, amount=1)
+
+        return self._mutate(combat_id, apply)
+
+    def add_from_guide(
+        self,
+        combat_id: str,
+        by: str,
+        *,
+        door: int | None = None,
+        substance: int | None = None,
+        size: int | None = None,
+        resilient: bool = False,
+        label: str = "",
+    ) -> Combat:
+        """A door from the 2024 guide's table, or an object of a substance and size by the
+        2014 guide's; ``label`` names it, else the table's row does."""
+        offer = self.objects_offered(self.get(combat_id).world_id)
+        if door is not None:
+            if not 0 <= door < len(offer.doors):
+                raise CombatError("combat.error.bad_input")
+            row = offer.doors[door]
+            return self.add_object(
+                combat_id, label or row.name, by, ac=row.ac, hp=row.hp, kind="door", dc=row.dc
+            )
+        if substance is None or size is None:
+            raise CombatError("combat.error.bad_input")
+        if not (0 <= substance < len(offer.substances) and 0 <= size < len(offer.sizes)):
+            raise CombatError("combat.error.bad_input")
+        ac, hp = offer.made_of(substance, size, resilient)
+        name = label or objects.label_for(offer.substances[substance].name, offer.sizes[size].name)
+        return self.add_object(combat_id, name, by, ac=ac, hp=hp)
+
+    def objects_offered(self, world_id: str | None) -> objects.Objects:
+        """What the world's guides offer to add as objects, siege equipment included."""
+        found = self._objects_of(world_id) if self._objects_of is not None else ()
+        return objects.offered(self._finder(world_id), found)
+
+    def add_siege(
+        self, combat_id: str, reference: str, by: str, *, ally: bool = False, label: str = ""
+    ) -> Combat:
+        """A siege weapon of the world's books (``Ballista|DMG``), on a side: its crew
+        fire it on their turns, so it takes none of its own."""
+        offer = self.objects_offered(self.get(combat_id).world_id)
+        weapon = next((x for x in offer.siege if x.reference == reference), None)
+        if weapon is None:
+            raise CombatError("combat.error.bad_input")
+        cleaned = _clean_label(label or weapon.name)
+
+        def apply(combat: Combat) -> None:
+            taken = [c.label for c in combat.combatants]
+            combat.combatants.append(
+                Combatant(
+                    label=_numbered(cleaned, taken, 1)[0],
+                    ac=weapon.ac,
+                    hp=weapon.hp,
+                    hp_max=weapon.hp,
+                    ally=ally,
+                    thing=Thing(kind="siege", ref=weapon.reference),
+                )
+            )
+            self._log(combat, "add", by, subject=cleaned, amount=1)
+
+        return self._mutate(combat_id, apply)
+
+    def siege_data(self, combat: Combat, combatant: Combatant) -> dict[str, Any] | None:
+        """A siege weapon's statblock, for its panel and attack buttons; None else."""
+        thing = combatant.thing
+        if thing is None or not thing.ref or self._objects_of is None:
+            return None
+        lowered = thing.ref.lower()
+        for data in self._objects_of(combat.world_id):
+            if f"{data.get('name')}|{data.get('source')}".lower() == lowered:
+                return objects.statblock(data)
+        return None
 
     def edit(
         self,

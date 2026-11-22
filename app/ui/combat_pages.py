@@ -63,6 +63,7 @@ from app.services.combat_rules import MORALE_DC
 from app.services.experience import Progress
 from app.services.knowledge import Revealable, action_name
 from app.services.monster_attacks import MonsterSpell, attack_of, encode, monster_spells, save_of
+from app.services.objects import Objects
 from app.services.polymorph import SPELLS as POLYMORPH_SPELLS
 from app.services.polymorph import Shape
 from app.services.polymorph import self_only as polymorph_self_only
@@ -318,6 +319,14 @@ def _initiative(page: Page, view: CombatView, turn: TurnView, sel: str) -> Eleme
     lead = turn.rows[0]
     value = turn.turn.initiative
     running = view.combat.running
+    thing = lead.combatant.thing
+    if thing is not None:  # an object takes no turn; a door shows the DC to force it
+        return div(class_="cb-init")[
+            span(
+                class_="mono cb-init-input cb-init-fixed",
+                title=t("combat.object_dc") if thing.dc is not None else t("combat.object_hint"),
+            )[t("combat.dc_short", dc=thing.dc) if thing.dc is not None else "–"]
+        ]
     return div(class_="cb-init")[
         _row_form(
             view,
@@ -395,12 +404,19 @@ def _pills(page: Page, view: CombatView, row: Row, sel: str) -> list[Node]:
     t = page.t
     c = row.combatant
     pills: list[Node] = []
-    if row.dead:
-        pills.append(span(class_="pill cb-dead")[icon("skull", "xs"), t("combat.dead")])
-    if c.is_character:
-        pills.append(span(class_="pill side-friend")[t("combat.pc")])
+    if c.thing is not None:  # an object: broken, not dead; only siege equipment has a side
+        if row.dead:
+            pills.append(span(class_="pill cb-dead")[t("combat.broken")])
+        pills.append(span(class_="pill neutral")[t(f"combat.thing.{c.thing.kind}")])
+        if c.thing.kind == "siege":
+            pills.append(_side(page, view, row, sel))
     else:
-        pills.append(_side(page, view, row, sel))
+        if row.dead:
+            pills.append(span(class_="pill cb-dead")[icon("skull", "xs"), t("combat.dead")])
+        if c.is_character:
+            pills.append(span(class_="pill side-friend")[t("combat.pc")])
+        else:
+            pills.append(_side(page, view, row, sel))
     if c.hidden:
         pills.append(span(class_="pill neutral")[icon("eye", "xs"), t("combat.hidden")])
     timers = row.timers
@@ -2127,8 +2143,10 @@ def add_panel(
     characters: Sequence[tuple[str, str]],
     *,
     ally: bool = False,
+    offer: Objects | None = None,
 ) -> Element:
-    """A monster through the picker, a character from the world, or someone ad hoc.
+    """A monster through the picker, a character from the world, someone ad hoc, or an
+    object or door by the world's guides (``offer``).
 
     Monsters and ad-hoc combatants join as foes, or as friends when chosen: the choice
     sits inside each form, so it goes with whichever "add" is pressed.
@@ -2209,7 +2227,89 @@ def add_panel(
                     icon("plus", "sm"), t("combat.add_other")
                 ],
             ],
+            _object_forms(page, url, offer, ally),
         ],
+    ]
+
+
+def _object_forms(page: Page, url: str, offer: Objects | None, ally: bool = False) -> Node:
+    """A door from the 2024 guide's table, an object of a substance and size by the 2014
+    guide's: each joins with its AC and hit points, and takes no turn."""
+    if offer is None or not offer.any:
+        return None
+    t = page.t
+    name = input_el(
+        type="text",
+        name="label",
+        placeholder=t("combat.object_name"),
+        aria_label=t("combat.object_name"),
+    )
+    doors = (
+        form(method="post", action=f"{url}/objects", class_="cb-line cb-object")[
+            select(name="door", aria_label=t("combat.object_door"))[
+                [
+                    option(value=str(i))[
+                        t("combat.object_door_row", name=d.name, ac=d.ac, hp=d.hp, dc=d.dc or "—")
+                    ]
+                    for i, d in enumerate(offer.doors)
+                ]
+            ],
+            name,
+            button(type="submit", class_="btn btn-sm")[icon("plus", "sm"), t("combat.add_door")],
+        ]
+        if offer.doors
+        else None
+    )
+    things = (
+        form(method="post", action=f"{url}/objects", class_="cb-line cb-object")[
+            select(name="substance", aria_label=t("combat.object_substance"))[
+                [
+                    option(value=str(i))[f"{x.name} · {t('combat.ac_label')} {x.ac}"]
+                    for i, x in enumerate(offer.substances)
+                ]
+            ],
+            select(name="size", aria_label=t("combat.object_size"))[
+                [option(value=str(i))[x.name] for i, x in enumerate(offer.sizes)]
+            ],
+            select(name="resilient", aria_label=t("combat.object_sturdy"))[
+                option(value="0")[t("combat.object_fragile")],
+                option(value="1")[t("combat.object_resilient")],
+            ],
+            name,
+            button(type="submit", class_="btn btn-sm")[icon("plus", "sm"), t("combat.add_object")],
+        ]
+        if offer.substances and offer.sizes
+        else None
+    )
+    siege = (
+        form(method="post", action=f"{url}/objects", class_="cb-line cb-object")[
+            select(name="siege", aria_label=t("combat.object_siege"))[
+                [
+                    option(value=x.reference)[
+                        t(
+                            "combat.object_siege_row",
+                            name=x.name,
+                            source=x.reference.partition("|")[2],
+                            ac=x.ac,
+                            hp=x.hp,
+                        )
+                    ]
+                    for x in offer.siege
+                ]
+            ],
+            name,
+            _side_choice(page, ally, "siege"),
+            button(type="submit", class_="btn btn-sm")[icon("plus", "sm"), t("combat.add_siege")],
+        ]
+        if offer.siege
+        else None
+    )
+    return div(class_="cb-objects")[
+        p(class_="field-hint")[t("combat.objects_hint")],
+        doors,
+        things,
+        siege,
+        p(class_="field-hint")[t("combat.siege_hint")] if siege is not None else None,
     ]
 
 

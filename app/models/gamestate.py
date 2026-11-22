@@ -220,6 +220,10 @@ class World(Record):
     # (app/services/combat_rules.py): ``massive_damage``, ``injuries``, ``morale``,
     # ``mobs``, ``side_initiative``. A fight keeps those on when it started.
     combat_rules: list[str] = Field(default_factory=list)
+    # The guides' variant rules for characters here, by key
+    # (app/services/character_rules.py): a rest variant, hero points, Honor, Sanity,
+    # slow natural healing, healer's kit dependency, defeated not dead.
+    character_rules: list[str] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod
@@ -738,6 +742,17 @@ class Summoned(GameStateModel):
     dc: int | None = None
 
 
+class Thing(GameStateModel):
+    """What makes a combatant an object (app/services/objects.py): a door, an object of
+    a substance and size, or siege equipment. It takes no turn and earns no XP."""
+
+    kind: Literal["object", "door", "siege"] = "object"
+    # The DC to force a door open, where the guide gives one.
+    dc: int | None = Field(default=None, ge=0, le=40)
+    # A siege weapon's object in the corpus (``Ballista|DMG``): its statblock and attacks.
+    ref: str = ""
+
+
 class Combatant(GameStateModel):
     """One participant in a combat: a monster, a character or someone ad hoc.
 
@@ -788,6 +803,8 @@ class Combatant(GameStateModel):
     # A character's follower (app/services/followers.py): its hit points go back to the
     # follower when the fight ends.
     follower_id: str | None = None
+    # An object or a door to break (app/services/objects.py), not a creature.
+    thing: Thing | None = None
 
     @model_validator(mode="after")
     def _one_identity(self) -> Combatant:

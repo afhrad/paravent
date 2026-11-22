@@ -29,7 +29,7 @@ from __future__ import annotations
 import re
 from datetime import datetime
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import (
     ConfigDict,
@@ -520,6 +520,18 @@ class PlayState(GameStateModel):
     death_saves: DeathSaves = Field(default_factory=DeathSaves)
     # Diseases, poisons and curses the character carries (app/services/afflictions.py).
     afflictions: list[Affliction] = Field(default_factory=list)
+    # Where the world plays the guides' variant rules (app/services/character_rules.py):
+    # the hero points spent at ``hero_level`` (a new level brings a new total), and the
+    # log entry the last one was spent on (one per roll).
+    hero_points_used: int = Field(default=0, ge=0)
+    hero_level: int = Field(default=0, ge=0, le=20)
+    hero_roll: str = ""
+    # Healer's kit dependency: a use of a healer's kit has treated the wounds since the
+    # last rest, so hit dice may be spent.
+    bandaged: bool = False
+    # Defeated, not dead (2024): would have died, and lies unconscious at 1 hit point
+    # until a Greater Restoration or a sudden awakening after a long rest.
+    defeated: bool = False
 
     @property
     def held_by_afflictions(self) -> int:
@@ -683,6 +695,10 @@ class PlayerCharacter(Record):
     # background's +2/+1, a species' "+1 to two of your choice". Fixed species bonuses
     # (a 2014 elf's +2 DEX) are read from the corpus and are not listed here.
     ability_improvements: list[dict[str, int]] = Field(default_factory=list)
+    # Honor and Sanity, where the world plays them (2014 guide): ``{"hon": 12}``.
+    extra_scores: dict[Literal["hon", "san"], Annotated[int, Field(ge=1, le=30)]] = Field(
+        default_factory=dict
+    )
 
     skills: list[ChosenOption] = Field(default_factory=list)
     # Saving throw proficiencies beyond the first class's: the ability a Resilient feat

@@ -207,6 +207,8 @@ class WorldFront(_Front):
     names: list[str] = Field(default_factory=list)
     # The optional combat rules the tracker applies (app/services/combat_rules.py).
     combat_rules: list[str] = Field(default_factory=list)
+    # The variant rules for characters (app/services/character_rules.py).
+    character_rules: list[str] = Field(default_factory=list)
 
 
 class AdventureFront(_Front):
@@ -255,6 +257,7 @@ def to_file(record: Record) -> tuple[dict[str, Any], str]:
             "milestone": record.milestone or None,
             "names": list(record.naming_styles),
             "combat_rules": list(record.combat_rules),
+            "character_rules": list(record.character_rules),
         }
         front = _clean(fields)
         if record.player_sources is not None:  # an empty list is a choice: nothing
@@ -484,6 +487,7 @@ class ProseStore:
                 player_sources=w.player_books,
                 naming_styles=w.names,
                 combat_rules=w.combat_rules,
+                character_rules=w.character_rules,
             )
         if place.kind == "adventure":
             a = AdventureFront.model_validate(fields)

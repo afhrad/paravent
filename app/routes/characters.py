@@ -71,7 +71,7 @@ from app.ui.downtime_pages import FactionView, FormulaView, StartOptions, downti
 from app.ui.follower_pages import followers_page
 from app.ui.names import name_text
 from app.ui.sheet_pages import sheet_fragment, sheet_page
-from app.ui.shop_pages import shop_page
+from app.ui.shop_pages import ALL_SHELVES, shop_page
 from app.ui.story_pages import story_page
 from app.ui.tags import localized_context, render_entries
 
@@ -772,6 +772,7 @@ def _shop(
             sellable=sellable,
             magic=[(item, priced(item.price, shop.markup)) for item in shop.stock],
             shelf_shown=shelf if shelf in SHELVES else "",
+            everything=shelf == ALL_SHELVES,
             query=query.strip()[:60],
             error=error,
             message=message,

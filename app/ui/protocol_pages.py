@@ -921,6 +921,23 @@ def rule_text(page: Page, subject: str, detail: str, amount: int | None, outcome
             hits=hits,
             damage=amount or 0,
         )
+    # The variant rules for characters (app/services/character_rules.py), from the sheet.
+    if head == "hero":
+        total, _, _what = rest.partition(":")
+        return t("rule.hero", subject=subject, die=amount or 0, total=total)
+    if head in ("hero_death", "defeated", "wake"):
+        return t(f"rule.{head}", subject=subject)
+    if head == "bandage":
+        return t("rule.bandage", subject=subject, left=rest)
+    if head == "awakening":
+        key = "rule.awakening_made" if made else "rule.awakening_failed"
+        return t(key, subject=subject, dc=rest)
+    if head == "score":
+        key, old, new = (rest.split(":") + ["", ""])[:3]
+        ability = t(f"ability.{key}")
+        if old:
+            return t("rule.score_moved", subject=subject, ability=ability, old=old, new=new)
+        return t("rule.score_set", subject=subject, ability=ability, new=new)
     return detail
 
 

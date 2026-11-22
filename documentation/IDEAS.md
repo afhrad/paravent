@@ -13,7 +13,9 @@ not listed: treasure and encounter tables, encounter shapes and ratings, NPCs, t
 builder, chases, traps, travel (weather, climate, altitude, food and water, navigation, foraging, encounter distance and surprise), factions and
 renown, quests, followers, bastions, downtime, the calendar and clock, session notes,
 milestone levelling, the reference screens, safety tools, the optional combat rules (morale,
-massive damage, lingering injuries, mobs, side initiative).
+massive damage, lingering injuries, mobs, side initiative), the variant rules for characters
+(rest variants, hero points, Honor and Sanity, slow healing, healer's kit, defeated not dead),
+objects, doors and siege equipment in the tracker.
 
 ### Smaller
 
@@ -21,20 +23,16 @@ massive damage, lingering injuries, mobs, side initiative).
 - **Marks of prestige** — titles, land, medals and favours on a character's story. S
 - **Running costs** — businesses and garrisons charged by the clock, like lifestyle and wages. S
 - **Follower loyalty** — a score that events move. S
-- **Objects and doors** — AC, hit points and break DC by material and size; an object as a
-  target in the tracker. S
-- **Siege equipment** in the tracker, with its crew. S
+- **Proficiency dice** — the 2014 guide's variant: a die instead of the flat bonus on every
+  roll the sheet makes. S
 - **Hazards by level** — environmental damage and DCs scaled to the party, as traps are. S
 - **Random checks in a dungeon** over game time, not only on the road. S
 - **Treasure by a monster's preferences**, and trade goods. S
-- **Scaling lethality** — gentler or harsher death saves as a world switch. S
 - **Session zero** — the expectations sheet kept per world, beside lines and veils. S
 
 ### Bigger
 
 - **Planar effects** — the rules of the plane the party is on, rolled or applied. M
-- **Character variants** — hero points, proficiency dice, honor and sanity, rest variants
-  such as gritty realism, as world switches. M
 - **Sentient items and artifacts** — a sentient item's mind and purpose, an artifact's
   properties rolled. M
 - **Random dungeon generator** (2014) — passages, doors, chambers and their contents into a
@@ -44,9 +42,6 @@ massive damage, lingering injuries, mobs, side initiative).
 
 ## From reviews and passes of the app
 
-- **The shop on a phone** — every shelf item has its own count and Buy, so the page runs
-  very long; the search and category chips narrow it. A compact row, or the list shown only
-  once a category or search is chosen. S (phone pass 2026-11-16)
 - **One shared form for the sheet's buttons** — about 85 small forms become one; measured
   to save about 5 of the sheet's 38 ms, and it touches every button, so it waits. M
   (measured 2026-11-16)

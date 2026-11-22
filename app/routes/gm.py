@@ -38,6 +38,7 @@ from app.dependencies import (
 from app.routes.adventures import upload_messages
 from app.routes.auth import html, redirect, safe_next
 from app.routes.rolls import announce_roll, new_roll
+from app.services import character_rules
 from app.services.activities import RARITIES
 from app.services.auth import AuthError
 from app.services.characters import CharacterService
@@ -148,7 +149,15 @@ def _clock(page: Page, registry: StoreRegistry, world_id: str | None) -> Element
         calendars=registry.calendars(shown),
         calendar=clock.calendar,
         era=clock.calendar_era,
+        rests=_rest_minutes(registry, shown),
     )
+
+
+def _rest_minutes(registry: StoreRegistry, world_id: str) -> tuple[int, int]:
+    """How long a party's short and long rest take in the world (its rest variant)."""
+    world = registry.gamestate.worlds.find(world_id)
+    rules = world.character_rules if world is not None else []
+    return character_rules.rest_minutes(rules, "short"), character_rules.rest_minutes(rules, "long")
 
 
 def _environments(registry: StoreRegistry, world_id: str) -> list[Environment]:
@@ -460,9 +469,12 @@ async def change_clock(
             if kind == "long":  # their companions, mounts and sidekicks rest too
                 for pc in registry.gamestate.characters.of_world(world_id):
                     registry.followers.rest(pc.id)
+            rested = registry.gamestate.worlds.find(world_id)
+            rules = rested.character_rules if rested is not None else []
             clock.advance(
-                world_id, 480 if kind == "long" else 60, user.username, name, f"{kind}_rest"
-            )
+                world_id, character_rules.rest_minutes(rules, kind), user.username, name,
+                f"{kind}_rest",
+            )  # fmt: skip
         elif op == "timer":
             clock.start(world_id, "custom", str(form.get("label", "")), _minutes(form))
         elif op == "travel":
@@ -1165,6 +1177,7 @@ def _world_input(
     encumbrance: str = "",
     milestone: str = "",
     combat_rules: list[str] | None = None,
+    character_rules: list[str] | None = None,
 ) -> WorldInput:
     """What the world form posted; the players' ticks stored only where they differ from
     the defaults."""
@@ -1178,6 +1191,7 @@ def _world_input(
         variant_encumbrance=bool(encumbrance),
         milestone=bool(milestone),
         combat_rules=tuple(combat_rules or ()),
+        character_rules=tuple(character_rules or ()),
         language=_language(registry, language),
         player_sources=tuple(chosen) if chosen is not None else None,
     )
@@ -1216,6 +1230,7 @@ async def create_world(
     encumbrance: Annotated[str, Form()] = "",
     milestone: Annotated[str, Form()] = "",
     combat_rules: Annotated[list[str] | None, Form()] = None,
+    character_rules: Annotated[list[str] | None, Form()] = None,
 ) -> Response:
     """Create a world, or show the form again with the reason it was refused. The world
     menu's dialog names no language: the world is written in the maker's."""
@@ -1230,6 +1245,7 @@ async def create_world(
         encumbrance,
         milestone,
         combat_rules,
+        character_rules,
     )
     try:
         world = worlds.create(data)
@@ -1246,6 +1262,7 @@ async def create_world(
             encumbrance=data.variant_encumbrance,
             milestone=data.milestone,
             combat_rules=data.combat_rules,
+            character_rules=data.character_rules,
             language=data.language,
             languages=_languages(registry),
             error=page.t.error(exc),
@@ -1291,6 +1308,7 @@ async def edit_world(
             encumbrance=world.variant_encumbrance,
             milestone=world.milestone,
             combat_rules=world.combat_rules,
+            character_rules=world.character_rules,
             language=world.language,
             languages=_languages(registry),
             extra=[notice(notice_text), alert(message), images],
@@ -1314,6 +1332,7 @@ async def update_world(
     encumbrance: Annotated[str, Form()] = "",
     milestone: Annotated[str, Form()] = "",
     combat_rules: Annotated[list[str] | None, Form()] = None,
+    character_rules: Annotated[list[str] | None, Form()] = None,
     next: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
 ) -> Response:
     """Save a world's name, description and books, then back to ``next`` (the page the
@@ -1330,6 +1349,7 @@ async def update_world(
         encumbrance,
         milestone,
         combat_rules,
+        character_rules,
     )
     try:
         worlds.update(world_id, data)
@@ -1346,6 +1366,7 @@ async def update_world(
             encumbrance=data.variant_encumbrance,
             milestone=data.milestone,
             combat_rules=data.combat_rules,
+            character_rules=data.character_rules,
             language=data.language,
             languages=_languages(registry),
             error=page.t.error(exc),
@@ -1415,6 +1436,7 @@ async def world_settings(
                 encumbrance=world.variant_encumbrance,
                 milestone=world.milestone,
                 combat_rules=world.combat_rules,
+                character_rules=world.character_rules,
                 language=world.language,
                 languages=_languages(registry),
                 next_url=back,

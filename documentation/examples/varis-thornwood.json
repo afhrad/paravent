@@ -24,6 +24,7 @@
   "abilities": {"str": 12, "dex": 15, "con": 14, "int": 8, "wis": 13, "cha": 10},
   "ability_rolls": [],
   "ability_improvements": [{"dex": 1, "con": 1}, {"dex": 2}],
+  "extra_scores": {},
   "skills": ["Acrobatics", "Athletics", "Insight", "Perception", "Survival"],
   "saving_throws": [],
   "resistances": [],
@@ -84,7 +85,12 @@
     "wild_shape_hp": null,
     "polymorph": null,
     "death_saves": {"successes": 0, "failures": 0},
-    "afflictions": []
+    "afflictions": [],
+    "hero_points_used": 0,
+    "hero_level": 0,
+    "hero_roll": "",
+    "bandaged": false,
+    "defeated": false
   },
   "overrides": {}
 }

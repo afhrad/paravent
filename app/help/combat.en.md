@@ -143,6 +143,18 @@ A fight keeps the rules it started with.
 - **Side initiative**: each side rolls one d20 at the start, and everyone on the higher side
   acts first. Changing a member's initiative changes its whole side's.
 
+## 5c. Objects and doors
+
+Under **Add to the fight**, add a door from the 2024 guide (its AC, hit points and the DC to
+force it open) or an object of a substance and size by the 2014 guide. It stands at the end of
+the order, never takes a turn, earns no XP and takes no poison or psychic damage. Attack it and
+damage it like a creature; at 0 hit points it is **Broken**. The door's DC is shown where the
+initiative would be, for a Strength check to force it.
+
+Siege equipment from your books (a ballista, a ram, a cauldron of boiling oil) joins the same
+way, on a side you choose. Select it and its panel shows its attacks: its crew fire it on their
+turns with **Attack**, and the hit waits under *Attacks to resolve* like a monster's.
+
 ## 6. Ending
 
 **End combat** shows the summary: XP per defeated foe (allies earn none). **Award to …

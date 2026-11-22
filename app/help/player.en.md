@@ -46,6 +46,14 @@ On **Track**: tick a condition on or off, raise or lower exhaustion, spend a hit
 take a **Short rest** or **Long rest**. A long rest brings back hit points, slots and
 resources (unless the gamemaster's road or a disease says otherwise).
 
+Your gamemaster may play the guides' variant rules in this world. **Hero points** sit at the
+top of the sheet: press it right after an attack, a check or a save to add a d6, or after a
+failed death save to make it a success. **Honor** and **Sanity** are scores of their own under
+the saves: set yours once, then roll them like the others. With **healer's kit dependency**,
+**Treat wounds** spends a use of your kit before hit dice can be spent; with **defeated, not
+dead**, a third failed death save leaves you unconscious at 1 hit point instead of dying.
+The rest buttons say how long a rest takes in this world.
+
 ## 4. Spells
 
 Each spell has its damage dice, **Call for saves** while you are in a fight, and **Cast**.

@@ -62,6 +62,7 @@ from markupsafe import Markup
 
 from app.models.gamestate import SourceSet
 from app.models.pc import DraftStatus
+from app.services.character_rules import AWAKENING_DC, HEALERS_KIT, KIT_USES, rest_minutes
 from app.services.condition_rolls import affected
 from app.services.experience import Progress, progress
 from app.services.lifestyle import LIFESTYLES
@@ -319,10 +320,58 @@ def _hp_box(page: Page, sheet: Sheet) -> Element:
         quick,
         amount_form,
         death,
-        div(class_="cs-hd-line")[span(class_="eyebrow")[t("sheet.hit_dice")], hit_dice]
+        _defeated(page, sheet),
+        div(class_="cs-hd-line")[
+            span(class_="eyebrow")[t("sheet.hit_dice")], hit_dice, _bandage(page, sheet)
+        ]
         if sheet.hit_dice
         else None,
     ]
+
+
+def _defeated(page: Page, sheet: Sheet) -> Node:
+    """Defeated, not dead (2024): unconscious until a Greater Restoration or a sudden
+    awakening after a long rest."""
+    if not sheet.character.state.defeated:
+        return None
+    t = page.t
+    return div(class_="notice cs-defeated", role="status")[
+        icon("moon"),
+        span[t("sheet.defeated", dc=AWAKENING_DC)],
+        act(
+            sheet,
+            "wake",
+            {},
+            name_text(page, "spell", "Greater Restoration"),
+            title=t("sheet.wake_hint"),
+        ),
+    ]
+
+
+def _bandage(page: Page, sheet: Sheet) -> Node:
+    """Healer's kit dependency: hit dice wait for a use of a healer's kit."""
+    if "healers_kit" not in sheet.rules:
+        return None
+    t = page.t
+    if sheet.character.state.bandaged:
+        return span(class_="pill heal", title=t("sheet.bandaged_hint"))[t("sheet.bandaged")]
+    kit = next(
+        (
+            line
+            for line in sheet.character.inventory
+            if line.quantity > 0 and line.item.name.lower() == HEALERS_KIT
+        ),
+        None,
+    )
+    if kit is None:
+        return span(class_="field-hint")[t("sheet.no_kit")]
+    return act(
+        sheet,
+        "bandage",
+        {},
+        [icon("heart"), span[t("sheet.bandage", n=KIT_USES - kit.charges_used)]],
+        title=t("sheet.bandage_hint"),
+    )
 
 
 def form_pill(
@@ -428,6 +477,67 @@ def _left(page: Page, sheet: Sheet) -> Element:
             h3(class_="eyebrow")[t("sheet.saves")],
             div(class_="cs-rows")[[_save_row(page, sheet, ab) for ab in sheet.abilities]],
         ],
+        _extra_scores(page, sheet),
+    ]
+
+
+def _extra_scores(page: Page, sheet: Sheet) -> Node:
+    """Honor and Sanity where the world plays them: a check, a save, and the score set
+    once by the player, moved by the gamemaster (app/services/character_rules.py)."""
+    if not sheet.extra_abilities:
+        return None
+    t = page.t
+    gm = page.identity is not None and page.identity.is_gamemaster
+    rows = []
+    for ab in sheet.extra_abilities:
+        if ab.score.value is None:
+            url = _url(sheet, "/act/extra_score")
+            rows.append(
+                form(method="post", action=url, hx_post=url, class_="cs-extra inline-form")[
+                    hidden("key", ab.key),
+                    label(for_=f"cs-score-{ab.key}")[t(f"ability.{ab.key}")],
+                    input_el(
+                        id=f"cs-score-{ab.key}",
+                        type="number",
+                        name="score",
+                        min="1",
+                        max="20",
+                        value="10",
+                        inputmode="numeric",
+                        class_="mono",
+                    ),
+                    button(type="submit", class_="btn btn-sm")[t("sheet.score_set")],
+                ]
+            )
+            continue
+        rows.append(
+            div(class_="cs-extra")[
+                _ability(page, sheet, ab),
+                _save_row(page, sheet, ab),
+                act(
+                    sheet,
+                    "extra_score",
+                    {"key": ab.key, "delta": -1},
+                    "−",
+                    label=t("sheet.score_down"),
+                )
+                if gm
+                else None,
+                act(
+                    sheet,
+                    "extra_score",
+                    {"key": ab.key, "delta": 1},
+                    "+",
+                    label=t("sheet.score_up"),
+                )
+                if gm
+                else None,
+            ]
+        )
+    return section(class_="cs-block", data_m="stats")[
+        h3(class_="eyebrow")[t("sheet.extra_scores")],
+        p(class_="field-hint")[t("sheet.score_ask")] if sheet.open_scores else None,
+        div(class_="cs-rows")[rows],
     ]
 
 
@@ -1886,6 +1996,9 @@ def _right(page: Page, sheet: Sheet) -> Element:
                 {"kind": "short"},
                 [icon("hourglass"), span[t("sheet.rest_short")]],
                 cls="btn btn-sm",
+                title=t(
+                    "sheet.rest_takes", time=remaining(page, rest_minutes(sheet.rules, "short"))
+                ),
             ),
             act(
                 sheet,
@@ -1893,6 +2006,9 @@ def _right(page: Page, sheet: Sheet) -> Element:
                 {"kind": "long"},
                 [icon("moon"), span[t("sheet.rest_long")]],
                 cls="btn btn-sm",
+                title=t(
+                    "sheet.rest_takes", time=remaining(page, rest_minutes(sheet.rules, "long"))
+                ),
             ),
         ],
     ]
@@ -1996,6 +2112,16 @@ def _head(page: Page, sheet: Sheet, *, file_label: str | None) -> Element:
                 cls=f"btn btn-sm {'is-on' if pc.state.inspiration else ''}",
                 pressed=pc.state.inspiration,
             ),
+            act(
+                sheet,
+                "hero_point",
+                {},
+                [icon("zap"), span[t("sheet.hero_points", n=sheet.hero_points)]],
+                title=t("sheet.hero_point_hint"),
+                disabled=sheet.hero_points < 1,
+            )
+            if sheet.hero_points is not None
+            else None,
             a(href=f"/characters/{pc.id}/bastion", class_="btn btn-sm")[
                 icon("vault", "sm"), span[t("bastion.short")]
             ]

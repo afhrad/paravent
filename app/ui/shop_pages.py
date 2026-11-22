@@ -3,6 +3,7 @@ and the shop a character buys and sells at."""
 
 from __future__ import annotations
 
+from collections import Counter
 from collections.abc import Sequence
 from urllib.parse import quote, urlencode
 
@@ -45,6 +46,10 @@ from app.ui.tags import ref_url
 from app.ui.tool_dialog import tool_button, tool_dialog
 
 SHOP_URL = "/gm/shop"
+
+
+# The "All" chip's shelf: every shelf, asked for (a phone shows none until asked).
+ALL_SHELVES = "all"
 
 
 def shop_url(character_id: str) -> str:
@@ -373,31 +378,34 @@ def shop_page(
     magic: Sequence[tuple[ShopItem, int]] = (),
     shelf_shown: str,
     query: str,
+    everything: bool = False,
     error: str | None = None,
     message: str | None = None,
 ) -> Element:
     """The shelves at the shop's prices, a purse that runs down, and what the character
-    could sell."""
+    could sell. ``everything`` is "All" asked for, which a phone shows too."""
     t = page.t
     url = shop_url(character_id)
     money = worth(purse)
-    shown = [
+    found = [
         w
         for w in wares
-        if (not shelf_shown or shelf(w.offer) == shelf_shown)
-        and (
-            not query
-            or query.lower() in w.offer.name.lower()
-            or query.lower() in str(name_text(page, ("item", "baseitem"), w.offer.name)).lower()
-        )
+        if not query
+        or query.lower() in w.offer.name.lower()
+        or query.lower() in str(name_text(page, ("item", "baseitem"), w.offer.name)).lower()
     ]
+    shown = [w for w in found if not shelf_shown or shelf(w.offer) == shelf_shown]
+    counts = Counter(shelf(w.offer) for w in found)
+    # Neither a shelf, a search nor "All" asked for: a phone shows the chips and waits.
+    browsing = not shelf_shown and not query and not everything
 
     def chip(key: str, text: str) -> Element:
-        params = {k: v for k, v in (("shelf", key), ("q", query)) if v}
+        params = {k: v for k, v in (("shelf", key or ALL_SHELVES), ("q", query)) if v}
+        n = counts[key] if key else len(found)
         return a(
             href=f"{url}?{urlencode(params)}" if params else url,
             class_="chip" + (" is-on" if key == shelf_shown else ""),
-        )[text]
+        )[text, " ", small(class_="mono")[str(n)]]
 
     return app_shell(
         page,
@@ -433,7 +441,7 @@ def shop_page(
             ]
             if magic
             else None,
-            section(class_="panel shop-wares")[
+            section(class_="panel shop-wares" + (" is-browsing" if browsing else ""))[
                 div(class_="panel-head")[h2[t("shop.wares")]],
                 form(method="get", action=url, class_="shop-search")[
                     hidden("shelf", shelf_shown) if shelf_shown else None,
@@ -448,8 +456,13 @@ def shop_page(
                 ],
                 div(class_="chips shop-shelves")[
                     chip("", t("chargen.shop.all")),
-                    [chip(k, t(f"chargen.shop.kind.{k}")) for k in SHELVES],
+                    [
+                        chip(k, t(f"chargen.shop.kind.{k}"))
+                        for k in SHELVES
+                        if counts[k] or k == shelf_shown
+                    ],
                 ],
+                p(class_="muted shop-choose")[t("shop.choose", n=len(shown))] if browsing else None,
                 ul(class_="shop-list")[[_ware(page, url, w, money, world_id) for w in shown]]
                 if shown
                 else p(class_="muted")[t("shop.nothing")],

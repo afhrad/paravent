@@ -314,6 +314,24 @@ side initiative need no table.
 
 Rolls are logged as one entry kind, `rule`, worded by `rule_text`.
 
+### Objects and doors (2026-11-22)
+
+`app/services/objects.py`. **Add to the fight** offers a door from the 2024 guide's *Doors*
+table (its AC, hit points and the DC to force it open) and an object of a substance and size
+by the 2014 guide's *Object Armor Class* and *Object Hit Points* (fragile or resilient, the
+dice's average), each with an optional name; a world without the guide is offered neither,
+and anything can still be added by hand. An object is a combatant with a `thing`
+(`{"kind": "door", "dc": 15}`): it stands after everyone in the order and never takes a
+turn, is on no side, earns no XP and counts toward no rating, is immune to poison and
+psychic damage, and shows **Broken** at 0 hit points. Its row shows the door's DC where the
+initiative would be. It is attacked and damaged like any creature. **Siege equipment**
+(2026-11-22): the corpus's objects of type `SW` in the world's books that have an action
+(a ballista, cannon, ram, trebuchet, suspended cauldron) join on a side, chosen when added,
+with the object's AC and hit points (`{"kind": "siege", "ref": "Ballista|DMG"}`). Its panel
+shows the object as a statblock (`objects.statblock`: no scores, senses or challenge), whose
+attacks and save effects roll like a monster's; its crew fire it on their turns, so it takes
+none of its own.
+
 ## 4. Initiative and turns
 
 ```txt

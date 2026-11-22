@@ -99,7 +99,12 @@ def _ctx(page: Page, registry: StoreRegistry, combat: Combat) -> RenderContext:
 
 
 def _entry(registry: StoreRegistry, combat: Combat, row: Row | None) -> ReferenceEntry | None:
-    if row is None or row.combatant.shown_ref is None:
+    if row is None:
+        return None
+    siege = registry.combats.siege_data(combat, row.combatant)
+    if siege is not None:  # a siege weapon's object, read as a statblock
+        return ReferenceEntry("monster", siege, combat.world_id)
+    if row.combatant.shown_ref is None:
         return None
     summoned = registry.combats.summoned_data(row.combatant)
     if summoned is not None:  # scaled to the spell's level and its caster
@@ -369,7 +374,12 @@ async def tracker(
             term=page.t.terms(),
         )
         add = add_panel(
-            page, view, result, _characters_to_add(registry, combat), ally=side == FRIEND
+            page,
+            view,
+            result,
+            _characters_to_add(registry, combat),
+            ally=side == FRIEND,
+            offer=registry.combats.objects_offered(combat.world_id),
         )
     return html(
         combat_page(
@@ -685,6 +695,20 @@ async def _add(
             )
         elif what == "characters":
             service.add_character(combat_id, form.get("character_id", ""), by)
+        elif what == "objects" and form.get("siege"):
+            service.add_siege(
+                combat_id, form.get("siege", ""), by, ally=ally, label=form.get("label", "")
+            )
+        elif what == "objects":
+            service.add_from_guide(
+                combat_id,
+                by,
+                door=_int(form, "door"),
+                substance=_int(form, "substance"),
+                size=_int(form, "size"),
+                resilient=form.get("resilient") == "1",
+                label=form.get("label", ""),
+            )
         else:
             service.add_other(
                 combat_id,
@@ -714,6 +738,14 @@ async def add_character(
 ) -> Response:
     """A character from the world."""
     return await _add(request, gm, page, registry, combat_id, "characters")
+
+
+@router.post(f"{COMBATS_URL}/{{combat_id}}/objects")
+async def add_object(
+    request: Request, gm: GamemasterDep, page: PageDep, registry: RegistryDep, combat_id: str
+) -> Response:
+    """An object or a door from the world's guides (app/services/objects.py)."""
+    return await _add(request, gm, page, registry, combat_id, "objects")
 
 
 @router.post(f"{COMBATS_URL}/{{combat_id}}/others")

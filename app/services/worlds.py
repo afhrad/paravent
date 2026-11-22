@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any
 
 from app.models.gamestate import ONE_EDITION_SOURCES, SourceSet, World
+from app.services import character_rules
 from app.services.auth import AuthError
 from app.services.combat_rules import kept
 from app.services.table import TableService
@@ -133,6 +134,8 @@ class WorldInput:
     milestone: bool = False
     # The optional combat rules the tracker applies (app/services/combat_rules.py).
     combat_rules: tuple[str, ...] = ()
+    # The variant rules for characters (app/services/character_rules.py).
+    character_rules: tuple[str, ...] = ()
     # What the world's own texts are written in; Claude writes drafts in it (MCP.md §5).
     language: str = "en"
     # The declared books players may read; None: the defaults (PLAYER-VIEW.md).
@@ -191,6 +194,7 @@ class WorldService:
             variant_encumbrance=data.variant_encumbrance,
             milestone=data.milestone,
             combat_rules=kept(data.combat_rules),
+            character_rules=character_rules.kept(data.character_rules),
             language=data.language,
             player_sources=_players(data),
         )
@@ -209,6 +213,7 @@ class WorldService:
             variant_encumbrance=data.variant_encumbrance,
             milestone=data.milestone,
             combat_rules=kept(data.combat_rules),
+            character_rules=character_rules.kept(data.character_rules),
             language=data.language,
             player_sources=_players(data),
         )

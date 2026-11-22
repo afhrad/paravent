@@ -260,17 +260,24 @@ def _creature(page: Page, data: dict[str, Any], ctx: RenderContext) -> list[Node
     # A score given as text (a Wild Shape form's "equal to your Wisdom score") shows as a
     # dash, its text written once beneath the scores.
     special = list(dict.fromkeys(filter(None, (score_text(data.get(k)) for k in ABILITIES))))
-    abilities = div(class_="sb-abilities")[
-        [
-            div(class_="sb-ability")[
-                span(class_="k")[t(f"abbr.{key}")],
-                _ability_chip(score, ctx)
-                if (score := score_of(data.get(key, 10))) is not None
-                else span(class_="v")["—"],
+    # An object read as a statblock (siege equipment, app/services/objects.py) has no
+    # mind: scores only where it states them, and no senses, languages or challenge.
+    thing = data.get("type") == "object"
+    abilities = (
+        None
+        if thing and not any(k in data for k in ABILITIES)
+        else div(class_="sb-abilities")[
+            [
+                div(class_="sb-ability")[
+                    span(class_="k")[t(f"abbr.{key}")],
+                    _ability_chip(score, ctx)
+                    if (score := score_of(data.get(key, 10))) is not None
+                    else span(class_="v")["—"],
+                ]
+                for key in ABILITIES
             ]
-            for key in ABILITIES
         ]
-    ]
+    )
     saves = rules_text.saves(page, data)
     skills = rules_text.skills(page, data)
     senses = rules_text.senses(page, data)
@@ -285,7 +292,7 @@ def _creature(page: Page, data: dict[str, Any], ctx: RenderContext) -> list[Node
         div(class_="sb-core")[
             _line(t("ref.ac"), _armor(page, data, ctx)),
             _line(t("ref.hp"), _hit_points(data, ctx)),
-            _line(t("ref.speed"), rules_text.speed(page, data)),
+            None if thing else _line(t("ref.speed"), rules_text.speed(page, data)),
         ],
         abilities,
         [p(class_="sb-note muted")[render(text, ctx)] for text in special],
@@ -307,14 +314,16 @@ def _creature(page: Page, data: dict[str, Any], ctx: RenderContext) -> list[Node
             )
             if data.get("conditionImmune")
             else None,
-            _line(t("ref.senses"), _joined(senses, ctx)),
-            _line(
+            None if thing else _line(t("ref.senses"), _joined(senses, ctx)),
+            None
+            if thing
+            else _line(
                 t("ref.languages"),
                 _joined(rules_text.languages(page, data["languages"]), ctx)
                 if data.get("languages")
                 else "—",
             ),
-            _line(t("ref.cr"), rules_text.challenge(page, data)),
+            None if thing else _line(t("ref.cr"), rules_text.challenge(page, data)),
         ],
         section(class_="sb-section")[
             render_entries(traits, ctx),
@@ -1185,6 +1194,8 @@ def statblock(page: Page, entry: ReferenceEntry, ctx: RenderContext) -> Element:
         "psionic": _psionic,
     }.get(entry.category, _generic)
     kind = t(CATEGORY_KEY.get(entry.category, "ref.kind.rule"))
+    if entry.category == "monster" and data.get("type") == "object":
+        kind = t("ref.kind.object")
     where = f"{entry.source}{' p. ' + str(data['page']) if data.get('page') else ''}"
     cr = coerce_cr(data.get("cr")) if entry.category == "monster" else None
     return div(class_=f"panel statblock ref-{entry.category}")[

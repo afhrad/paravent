@@ -806,6 +806,34 @@
           },
           "title": "Afflictions",
           "type": "array"
+        },
+        "hero_points_used": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Hero Points Used",
+          "type": "integer"
+        },
+        "hero_level": {
+          "default": 0,
+          "maximum": 20,
+          "minimum": 0,
+          "title": "Hero Level",
+          "type": "integer"
+        },
+        "hero_roll": {
+          "default": "",
+          "title": "Hero Roll",
+          "type": "string"
+        },
+        "bandaged": {
+          "default": false,
+          "title": "Bandaged",
+          "type": "boolean"
+        },
+        "defeated": {
+          "default": false,
+          "title": "Defeated",
+          "type": "boolean"
         }
       },
       "title": "PlayState",
@@ -1115,6 +1143,21 @@
       },
       "title": "Ability Improvements",
       "type": "array"
+    },
+    "extra_scores": {
+      "additionalProperties": {
+        "maximum": 30,
+        "minimum": 1,
+        "type": "integer"
+      },
+      "propertyNames": {
+        "enum": [
+          "hon",
+          "san"
+        ]
+      },
+      "title": "Extra Scores",
+      "type": "object"
     },
     "skills": {
       "items": {

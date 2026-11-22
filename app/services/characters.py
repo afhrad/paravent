@@ -157,12 +157,14 @@ class CharacterService:
         revision = store.revision(character.id)
         file_error = store.error(character.id)
         encumbrance = world is not None and world.variant_encumbrance
+        rules = tuple(world.character_rules) if world is not None else ()
         key = (
             character.model_dump_json(),
             source_set.identity if source_set is not None else None,
             revision,
             file_error,
             encumbrance,
+            rules,
             getattr(self._compendium, "generation", None),
         )
         with self._sheets_lock:
@@ -177,6 +179,7 @@ class CharacterService:
                 revision=revision,
                 file_error=file_error,
                 variant_encumbrance=encumbrance,
+                character_rules=rules,
             )
             with self._sheets_lock:
                 self._sheets[key] = sheet
@@ -233,6 +236,12 @@ class CharacterService:
             # A shape is taken through :meth:`polymorph`, where the spell's rules are checked.
             raise PlayError("play.error.bad_input")
         sheet = self.sheet(character)
+        if action == "extra_score" and not identity.is_gamemaster:
+            # Honor and Sanity are the player's to set once; the gamemaster moves them.
+            key = params.get("key", "")
+            if params.get("delta") or key in character.extra_scores:
+                raise PlayError("play.error.gamemaster_only")
+        boosted = self.play.hero_target(character) if action == "hero_point" else None
         lit = None
         if action == "light":
             index = params.get("index", "")
@@ -244,6 +253,12 @@ class CharacterService:
             rolled = self.newest_roll(changed)
             if rolled is not None and rolled.roll is not None:
                 self._on_roll(character_id, kind, params.get("subject", ""), rolled.roll.total)
+        if boosted is not None and boosted.roll is not None and self._on_roll is not None:
+            # A hero point's d6 answers a check called for with the new total.
+            head, _, subject = boosted.what.partition(":")
+            spent = self.newest_roll(changed)
+            if head in ("skill", "check", "save") and spent is not None and spent.amount:
+                self._on_roll(character_id, head, subject, boosted.roll.total + spent.amount)
         if self._on_timed is not None:
             if lit is not None:
                 self._on_timed(changed, "light", lit.reference, light_minutes(lit.name), False)

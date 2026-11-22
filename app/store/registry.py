@@ -1164,7 +1164,10 @@ class StoreRegistry:
             return characters.sheet(pc).ability("con").save.value or 0
 
         def rest(world_id: str) -> None:
-            characters.rest_party(world_id, "long", Actor("Paravent", username=""))
+            # A night on the road; under gritty realism only a short rest.
+            world = self.gamestate.worlds.find(world_id)
+            gritty = world is not None and "rest_gritty" in world.character_rules
+            characters.rest_party(world_id, "short" if gritty else "long", Actor("Paravent"))
 
         def sheltered(pc: PlayerCharacter, climate: str) -> bool:
             sheet = characters.sheet(pc)
@@ -2063,6 +2066,7 @@ class StoreRegistry:
             ),
             table=self.book_table,
             injure=lambda *args: self.afflictions.injure(*args),
+            objects_of=lambda world_id: [o.data for o in self.catalogue(world_id).rows("object")],
         )
 
     def summoning_for(self, spell: str) -> Summoning | None:

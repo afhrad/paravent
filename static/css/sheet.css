@@ -436,3 +436,12 @@ a.fchip{ text-decoration:none; }
 .cs-recharge{ font-size:12px; }
 @media (max-width: 640px){ .cs-recharge{ flex-basis:100%; } }
 .cs-item-spells{ margin:16px 0 6px; }
+
+/* The guides' variant rules (app/services/character_rules.py): Honor and Sanity, each a
+   score button, its save and, for the gamemaster, −/+; the defeated notice. */
+.cs-extra{ display:grid; grid-template-columns:4.5rem minmax(0,1fr) auto auto; gap:6px; align-items:center; }
+.cs-extra .cs-ab{ min-height:0; }
+.cs-extra.inline-form{ grid-template-columns:minmax(0,1fr) 4.5rem auto; }
+.cs-extra.inline-form input{ width:100%; }
+.cs-defeated{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:8px; }
+.cs-defeated > span{ flex:1 1 12rem; min-width:0; }

@@ -29,7 +29,7 @@ from __future__ import annotations
 import threading
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
-from typing import Any
+from typing import Any, Literal, cast
 
 from app.models.gamestate import SpellForm
 from app.models.pc import (
@@ -41,7 +41,7 @@ from app.models.pc import (
     Recharge,
 )
 from app.models.protocol import EntryKind, ProtocolEntry, RollRecord, Scope, Visibility
-from app.services import coins, polymorph, wild_shape
+from app.services import character_rules, coins, polymorph, wild_shape
 from app.services.clock import OIL, OIL_LIGHTS, light_minutes
 from app.services.condition_rolls import bend
 from app.services.dice import Advantage, Dice, DiceError, Roll, is_expression
@@ -70,6 +70,13 @@ RATIONS = frozenset({"rations", "rations (1 day)"})
 # How long a character's own notes may grow.
 NOTES_LIMIT = 20_000
 INCAPACITATING = frozenset({"incapacitated", "paralyzed", "petrified", "stunned", "unconscious"})
+# The rolls a hero point may go on: attacks, checks and saves, a death save.
+HERO_KINDS = frozenset(
+    {
+        EntryKind.ATTACK, EntryKind.CHECK, EntryKind.SAVE, EntryKind.SKILL,
+        EntryKind.INITIATIVE, EntryKind.DEATH_SAVE,
+    }
+)  # fmt: skip
 
 
 class PlayError(Translatable):
@@ -216,6 +223,10 @@ class PlayService:
             "identify": self._identify,
             "lift_curse": self._lift_curse,
             "item_secret": self._item_secret,
+            "hero_point": self._hero_point,
+            "bandage": self._bandage,
+            "wake": self._wake,
+            "extra_score": self._extra_score,
         }
 
     @property
@@ -418,6 +429,8 @@ class PlayService:
         if current <= 0 and rest > 0:
             state.death_saves.failures = min(3, state.death_saves.failures + 1)
         state.hp = max(0, current - rest)
+        if current <= 0 and rest > 0:
+            self._defeat(pc, sheet, actor)
         if state.hp == 0 and state.wild_shape is not None:
             self._leave_form(pc, actor)
         if state.hp == 0 and state.polymorph is not None:
@@ -671,8 +684,10 @@ class PlayService:
         }
         state.pact_slots_used = 0
         state.raging = False  # a rest ends a Rage
+        state.bandaged = False  # healer's kit dependency: the wounds want treating again
         if kind == "long":
-            state.hp = None
+            if "slow_healing" not in sheet.rules:  # slow natural healing: hit dice only
+                state.hp = None
             state.temp_hp = 0
             state.slots_used = {}
             state.death_saves.successes = state.death_saves.failures = 0
@@ -693,6 +708,8 @@ class PlayService:
                 dice_back -= back
             state.hit_dice_used = {k: v for k, v in used.items() if v > 0}
         self._log(pc, actor, LogKind.REST, kind)
+        if kind == "long" and state.defeated:
+            self._awakening(pc, sheet, actor)
 
     def _hit_die(
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
@@ -701,6 +718,8 @@ class PlayService:
         pool = next((p for p in sheet.hit_dice if p.faces == faces), None)
         if pool is None or pool.available <= 0:
             raise PlayError("play.error.no_hit_die")
+        if "healers_kit" in sheet.rules and not pc.state.bandaged:
+            raise PlayError("play.error.not_bandaged")
         con = sheet.ability("con").modifier
         roll = self._dice.roll(f"1d{faces}{con:+d}" if con else f"1d{faces}")
         healed = max(0, roll.total)
@@ -744,6 +763,7 @@ class PlayService:
             outcome=outcome,
             record=roll_record(roll),
         )
+        self._defeat(pc, sheet, actor)
 
     def _stabilize(
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
@@ -802,7 +822,10 @@ class PlayService:
             return d20(value.value or 0, value.sources)
 
         if kind in ("check", "save"):
-            ability = next((a for a in sheet.abilities if a.key == subject), None)
+            ability = next(
+                (a for a in (*sheet.abilities, *sheet.extra_abilities) if a.key == subject),
+                None,
+            )
             if ability is None:
                 raise PlayError("play.error.bad_input")
             if kind == "check":
@@ -877,6 +900,157 @@ class PlayService:
                 raise PlayError("play.error.bad_dice", expression=expression) from exc
         else:
             raise PlayError("play.error.bad_input")
+
+    # -- the guides' variant rules (app/services/character_rules.py) -------------------
+
+    def _rule_log(
+        self,
+        pc: PlayerCharacter,
+        actor: Actor,
+        detail: str,
+        roll: Roll | None = None,
+        *,
+        amount: int | None = None,
+        outcome: str = "",
+    ) -> None:
+        """A variant rule at work, phrased like the tracker's optional rules (``rule:``)."""
+        self._stage(
+            pc,
+            actor,
+            EntryKind.CUSTOM,
+            what=f"rule:{detail}",
+            roll=roll_record(roll, rest="modifier") if roll is not None else None,
+            outcome=outcome or outcome_of(roll),
+            amount=amount,
+        )
+
+    def _hero_point(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Spend a hero point on the character's newest d20 roll: a d6 added to an attack
+        roll, a check or a save, or a failed death save made a success. One per roll."""
+        if sheet.hero_points is None:
+            raise PlayError("play.error.bad_input")
+        if sheet.hero_points < 1:
+            raise PlayError("play.error.no_hero_points")
+        target = self.hero_target(pc)
+        if target is None or target.roll is None or target.id == pc.state.hero_roll:
+            raise PlayError("play.error.no_hero_roll")
+        state = pc.state
+        if state.hero_level != sheet.level:  # a new level, a new total
+            state.hero_level, state.hero_points_used = sheet.level, 0
+        state.hero_points_used += 1
+        state.hero_roll = target.id
+        if target.kind is EntryKind.DEATH_SAVE:
+            if target.outcome not in ("failure", "fumble") or sheet.hp_current > 0:
+                raise PlayError("play.error.no_hero_roll")
+            saves = state.death_saves
+            saves.failures = max(0, saves.failures - (2 if target.outcome == "fumble" else 1))
+            saves.successes = min(3, saves.successes + 1)
+            self._rule_log(pc, actor, "hero_death", outcome="success")
+            return
+        die = self._dice.roll(f"1d{character_rules.HERO_DIE}")
+        total = target.roll.total + die.total
+        self._rule_log(pc, actor, f"hero:{total}:{target.what}", die, amount=die.total)
+
+    def hero_target(self, pc: PlayerCharacter) -> ProtocolEntry | None:
+        """The character's newest d20 roll a hero point may go on."""
+        if self._protocol is None:
+            return None
+        newest = self._protocol.newest(f"character:{pc.id}", pc.world_id, rolled=True)
+        if newest is None or newest.kind not in HERO_KINDS:
+            return None
+        return newest
+
+    def _bandage(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Treat the wounds with a use of a healer's kit (ten to a kit), so hit dice may be
+        spent after this rest (healer's kit dependency)."""
+        if "healers_kit" not in sheet.rules or pc.state.bandaged:
+            raise PlayError("play.error.bad_input")
+        index = next(
+            (
+                n
+                for n, line in enumerate(pc.inventory)
+                if line.quantity > 0 and line.item.name.lower() == character_rules.HEALERS_KIT
+            ),
+            None,
+        )
+        if index is None:
+            raise PlayError("play.error.no_healers_kit")
+        kit = pc.inventory[index]
+        kit.charges_used += 1
+        left = character_rules.KIT_USES - kit.charges_used
+        if left <= 0:  # the kit is used up; the next of a stack is whole
+            kit.charges_used = 0
+            left = character_rules.KIT_USES if kit.quantity > 1 else 0
+            _take_one(pc, index)
+        pc.state.bandaged = True
+        self._rule_log(pc, actor, f"bandage:{left}")
+
+    def _defeat(self, pc: PlayerCharacter, sheet: Sheet, actor: Actor) -> None:
+        """Defeated, not dead (2024): a character whose third death save failed lies
+        unconscious at 1 hit point instead."""
+        state = pc.state
+        if "defeated" not in sheet.rules or state.death_saves.failures < 3:
+            return
+        state.death_saves.successes = state.death_saves.failures = 0
+        state.hp = 1
+        state.defeated = True
+        if "unconscious" not in state.conditions:
+            state.conditions = [*state.conditions, "unconscious"]
+        self._rule_log(pc, actor, "defeated")
+
+    def _awakening(self, pc: PlayerCharacter, sheet: Sheet, actor: Actor) -> None:
+        """A sudden awakening: after a long rest, a DC 20 Constitution save ends it."""
+        save = sheet.ability("con").save
+        roll = self._dice.d20(save.value or 0)
+        made = roll.total >= character_rules.AWAKENING_DC
+        if made:
+            self._end_defeat(pc)
+        self._rule_log(
+            pc,
+            actor,
+            f"awakening:{character_rules.AWAKENING_DC}",
+            roll,
+            outcome="success" if made else "failure",
+        )
+
+    @staticmethod
+    def _end_defeat(pc: PlayerCharacter) -> None:
+        pc.state.defeated = False
+        pc.state.conditions = [c for c in pc.state.conditions if c != "unconscious"]
+
+    def _wake(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """A Greater Restoration ends a defeated character's sleep."""
+        if not pc.state.defeated:
+            raise PlayError("play.error.bad_input")
+        self._end_defeat(pc)
+        self._rule_log(pc, actor, "wake")
+
+    def _extra_score(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Set Honor or Sanity (``score``), or move it by ``delta``: 1 to 20, as the guide
+        keeps Honor (30 where a score is set higher by hand)."""
+        key = params.get("key", "")
+        if key not in character_rules.extra_abilities(sheet.rules):
+            raise PlayError("play.error.bad_input")
+        score = cast(Literal["hon", "san"], key)
+        old = pc.extra_scores.get(score)
+        if params.get("delta"):
+            if old is None:
+                raise PlayError("play.error.bad_input")
+            new = max(1, min(20, old + _int(params, "delta")))
+        else:
+            new = _int(params, "score")
+            if not 1 <= new <= 20:
+                raise PlayError("play.error.bad_input")
+        pc.extra_scores = {**pc.extra_scores, score: new}
+        self._rule_log(pc, actor, f"score:{key}:{old or ''}:{new}")
 
     @staticmethod
     def _label(sheet: Sheet, subject: str) -> str:

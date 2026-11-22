@@ -28,6 +28,7 @@ from htpy import (
 from htpy import input as input_el
 
 from app.models.gamestate import Adventure, Chapter, World
+from app.services import character_rules as variants
 from app.services.combat_rules import RULES
 from app.services.experience import progress
 from app.services.news import NewsLine
@@ -523,6 +524,7 @@ def world_form(
     encumbrance: bool = False,
     milestone: bool = False,
     combat_rules: Sequence[str] = (),
+    character_rules: Sequence[str] = (),
     language: str = "en",
     languages: Sequence[tuple[str, str]] = (),
     error: str | None = None,
@@ -637,6 +639,7 @@ def world_form(
                     for rule in RULES
                 ],
             ],
+            _character_rules(page, character_rules),
             div(class_="form-actions")[
                 button(type="submit", class_="btn btn-primary")[
                     icon("check"),
@@ -646,6 +649,33 @@ def world_form(
                 if in_dialog
                 else a(href=back, class_="btn btn-ghost")[t("common.cancel")],
             ],
+        ],
+    ]
+
+
+def _character_rules(page: Page, chosen: Sequence[str]) -> Element:
+    """The variant rules for characters: the rest variant as a choice, the rest ticked."""
+    t = page.t
+    return section(class_="field world-rules")[
+        h2(class_="eyebrow")[t("worlds.character_rules")],
+        p(class_="field-hint")[t("worlds.character_rules_hint")],
+        select_field(
+            "character_rules",
+            t("worlds.rest_variant"),
+            [("", t("worlds.rest.standard"))]
+            + [(r, t(f"worlds.rule.{r}")) for r in variants.REST_VARIANTS],
+            selected=variants.rest_variant(chosen),
+            hint=t("worlds.rest_variant_hint"),
+        ),
+        [
+            checkbox_field(
+                "character_rules",
+                t(f"worlds.rule.{rule}"),
+                checked=rule in chosen,
+                hint=t(f"worlds.rule.{rule}_hint"),
+                value=rule,
+            )
+            for rule in variants.SWITCHES
         ],
     ]
 
@@ -663,6 +693,7 @@ def world_form_page(
     encumbrance: bool = False,
     milestone: bool = False,
     combat_rules: Sequence[str] = (),
+    character_rules: Sequence[str] = (),
     language: str = "en",
     languages: Sequence[tuple[str, str]] = (),
     error: str | None = None,
@@ -693,6 +724,7 @@ def world_form_page(
                 encumbrance=encumbrance,
                 milestone=milestone,
                 combat_rules=combat_rules,
+                character_rules=character_rules,
                 language=language,
                 languages=languages,
                 error=error,

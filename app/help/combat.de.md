@@ -161,6 +161,20 @@ Spielleiterhandbuchs von 2014 ankreuzen. Ein Kampf behält die Regeln, mit denen
   Seite steht, handelt zuerst. Änderst du die Initiative eines Mitglieds, ändert sich die
   seiner ganzen Seite.
 
+## 5c. Gegenstände und Türen
+
+Unter **Zum Kampf hinzufügen** fügst du eine Tür aus dem Spielleiterhandbuch von 2024 hinzu
+(RK, Trefferpunkte und der SG, um sie aufzubrechen) oder einen Gegenstand aus Material und
+Größe nach dem Handbuch von 2014. Er steht am Ende der Reihenfolge, ist nie am Zug, bringt
+keine EP und nimmt keinen Gift- oder psychischen Schaden. Greif ihn an und füge ihm Schaden zu
+wie einer Kreatur; bei 0 Trefferpunkten ist er **Zerbrochen**. Der SG der Tür steht dort, wo
+sonst die Initiative steht, für einen Stärkewurf, um sie aufzubrechen.
+
+Belagerungsgerät aus deinen Büchern (eine Balliste, ein Rammbock, ein Kessel mit siedendem Öl)
+kommt genauso hinzu, auf einer Seite deiner Wahl. Wähl es aus, und sein Bereich zeigt seine
+Angriffe: Seine Mannschaft feuert es in ihren Zügen mit **Angriff**, und der Treffer wartet wie
+der eines Monsters unter *Offene Angriffe*.
+
 ## 6. Das Ende
 
 **Kampf beenden** zeigt die Zusammenfassung: EP pro besiegtem Feind (Verbündete bringen

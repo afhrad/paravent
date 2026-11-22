@@ -172,6 +172,7 @@ def clock_panel(
     terrains: Sequence[str] = (),
     abundance: bool = False,
     rules: str = "classic",
+    rests: tuple[int, int] = (60, 480),
 ) -> Element:
     """The time, the moves, a party rest, the timers and what is due; the party's last
     journey and the forms to travel on and to grant downtime. ``vessels`` are the ships
@@ -179,7 +180,8 @@ def clock_panel(
     the setting calendars they print, ``calendar`` the one in use (its key) and
     ``era`` what follows its year; ``terrains`` those the world's guide has travel
     rules for, ``abundance`` whether foraging's DC is chosen by the land's abundance
-    (2014), ``rules`` the world's (``one`` for 2024)."""
+    (2014), ``rules`` the world's (``one`` for 2024); ``rests`` how long a party's short
+    and long rest take (a rest variant, app/services/character_rules.py)."""
     t = page.t
     base = f"{CLOCK_URL}/{quote(world_id)}"
 
@@ -223,16 +225,20 @@ def clock_panel(
                 post(
                     "rest",
                     hidden("kind", "short"),
-                    button(type="submit", class_="btn btn-sm", title=t("clock.short_rest_hint"))[
-                        icon("coffee", "sm"), span[t("clock.short_rest")]
-                    ],
+                    button(
+                        type="submit",
+                        class_="btn btn-sm",
+                        title=t("clock.short_rest_hint", time=remaining(page, rests[0])),
+                    )[icon("coffee", "sm"), span[t("clock.short_rest")]],
                 ),
                 post(
                     "rest",
                     hidden("kind", "long"),
-                    button(type="submit", class_="btn btn-sm", title=t("clock.long_rest_hint"))[
-                        icon("moon", "sm"), span[t("clock.long_rest")]
-                    ],
+                    button(
+                        type="submit",
+                        class_="btn btn-sm",
+                        title=t("clock.long_rest_hint", time=remaining(page, rests[1])),
+                    )[icon("moon", "sm"), span[t("clock.long_rest")]],
                 ),
             ],
         ],

@@ -559,6 +559,10 @@ class TestAtTheTable:
         assert f"/characters/{lyra}/shop" in sheet and "The Anvil" in sheet
         assert "Torch" in (await ac.get(f"/characters/{lyra}/shop?q=torch")).text
         shop = f"/characters/{lyra}/shop"
+        # Unnarrowed, a phone waits for a shelf, a search or "All" (shop-browsing).
+        assert "shop-wares is-browsing" in (await ac.get(shop)).text
+        everything = (await ac.get(f"{shop}?shelf=all")).text
+        assert "is-browsing" not in everything and "Torch" in everything
         await ac.post(shop, data={"op": "buy", "item": "Longsword|PHB", "count": "1"})
         pc = registry.gamestate.characters.get(lyra)
         # 15 gp at 200 % is more than the purse holds.

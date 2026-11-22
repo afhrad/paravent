@@ -32,7 +32,14 @@ from app.models.pc import (
     Recharge,
 )
 from app.models.protocol import ProtocolEntry
-from app.services import feature_options, granted_spells, identify, polymorph, wild_shape
+from app.services import (
+    character_rules,
+    feature_options,
+    granted_spells,
+    identify,
+    polymorph,
+    wild_shape,
+)
 from app.services.character import (
     HEAVY_ARMOR,
     LIGHT_ARMOR,
@@ -692,6 +699,13 @@ class Sheet:
     lifestyle_costs: dict[str, int] = field(default_factory=dict)
     wild_shape: WildShapeView | None = None
     spell_form: SpellFormView | None = None
+    # The world's variant rules for characters (app/services/character_rules.py), the
+    # extra scores they add (Honor, Sanity; ``open_scores`` those the file lacks), and
+    # the hero points left, None where the world plays without them.
+    rules: frozenset[str] = frozenset()
+    extra_abilities: list[AbilityView] = field(default_factory=list)
+    open_scores: list[str] = field(default_factory=list)
+    hero_points: int | None = None
 
     @property
     def casting_modifier(self) -> int:
@@ -966,9 +980,11 @@ def build_sheet(
     revision: str | None = None,
     file_error: str | None = None,
     variant_encumbrance: bool = False,
+    character_rules: Sequence[str] = (),
 ) -> Sheet:
     """Derive the whole sheet for ``character``; ``variant_encumbrance`` where its world
-    plays the PHB's optional rule."""
+    plays the PHB's optional rule, ``character_rules`` the guides' variant rules it plays
+    (app/services/character_rules.py)."""
     corpus = _Corpus(compendium, source_set)
     sheet = Sheet(character=character, revision=revision, file_error=file_error)
     real = character
@@ -997,6 +1013,7 @@ def build_sheet(
 
     _abilities(sheet, character, species, subspecies, primary, prof_bonus)
     mods = {a.key: a.modifier for a in sheet.abilities}
+    _variant_rules(sheet, character, character_rules)
 
     _skills(sheet, character, corpus, mods, prof_bonus)
     training = _training(character, corpus, (species, subspecies))
@@ -1204,6 +1221,30 @@ def _abilities(
         sheet.abilities.append(
             AbilityView(key, ABILITY_NAMES[key], score, modifier, save, proficient)
         )
+
+
+def _variant_rules(sheet: Sheet, character: PlayerCharacter, rules: Sequence[str]) -> None:
+    """Honor and Sanity as scores with checks and saves, and the hero points left."""
+    sheet.rules = frozenset(rules)
+    for key in character_rules.extra_abilities(sheet.rules):
+        score = next((v for k, v in character.extra_scores.items() if k == key), None)
+        if score is None:
+            sheet.open_scores.append(key)
+        modifier = ability_modifier(score)
+        sheet.extra_abilities.append(
+            AbilityView(
+                key,
+                key,
+                Value(score, f"{key.upper()} {score}" if score is not None else ""),
+                modifier,
+                Value(modifier, sources=((f"ability:{key}", modifier),) if modifier else ()),
+                False,
+            )
+        )
+    if "hero_points" in sheet.rules:
+        state = character.state
+        spent = state.hero_points_used if state.hero_level == sheet.level else 0
+        sheet.hero_points = max(0, character_rules.hero_points_max(sheet.level) - spent)
 
 
 def _skills(

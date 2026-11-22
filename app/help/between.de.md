@@ -31,6 +31,12 @@ laufen gegen sie ab. **Kalender** datiert die Tage nach einem Kalender aus deine
 mit Feiertagen und Jahreszeiten; ein Schalttag, den der Kalender kennt, kommt jedes vierte
 Jahr.
 
+Eine Rastvariante in den **Welteinstellungen** ändert, wie lange eine Rast der Gruppe dauert:
+episches Heldentum (5 Minuten, 1 Stunde) oder harter Realismus (8 Stunden, 7 Tage, und eine
+Nacht unterwegs ist nur eine kurze Rast). Dort stehen auch die anderen Variantregeln für
+Charaktere: Heldenpunkte, Ehre und geistige Gesundheit, langsame natürliche Heilung,
+Heilerausrüstung nötig und besiegt, nicht tot.
+
 ## 3. Unterwegs
 
 **Aufbrechen** in der Uhr: wie lange, wie schnell, durch welche Begegnungstabelle, wie oft

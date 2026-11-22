@@ -1151,6 +1151,12 @@ h2.book-heading{ font-size:22px; } h3.book-heading{ font-size:18px; } h4.book-he
 .cb-add-fold[open] > .cb-add-head > svg:last-child{ transform:rotate(180deg); }
 .cb-add-fold:not([open]){ padding-top:12px; padding-bottom:12px; }
 .cb-other input[type="number"]{ width:72px; }
+/* Objects and doors (app/services/objects.py): the name takes a line of its own when
+   the selects fill the row. */
+.cb-objects{ display:grid; gap:6px; }
+.cb-objects .field-hint{ margin:0; }
+.cb-object input[type="text"]{ flex:1 1 9rem; min-width:9rem; }
+.cb-object select{ max-width:100%; }
 .cb-side-hint{ color:var(--text-3); font-size:13.5px; padding:16px; border:1px dashed var(--border); border-radius:var(--r); margin:0; }
 .cb-summary p{ margin:4px 0; }
 .cb-list{ list-style:none; margin:0; padding:0; display:grid; gap:6px; }
@@ -2792,11 +2798,27 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .shop-search input{ flex:1 1 auto; min-width:0; font:inherit; padding:6px 10px; }
 .shop-shelves{ display:flex; flex-wrap:wrap; gap:6px; }
 .shop-list, .downtime-list{ list-style:none; margin:0; padding:0; display:grid; gap:6px; }
-.shop-row{ display:flex; align-items:center; gap:8px 12px; flex-wrap:wrap; padding:4px 0; border-bottom:1px solid var(--border); }
-.shop-row > a, .shop-row > span:first-child{ flex:1 1 160px; min-width:0; }
+/* One row per item: the name, its book and price, the trade. On a phone the name sits
+   over its book and price, the trade beside both. */
+.shop-row{ display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:0 12px; padding:4px 0; border-bottom:1px solid var(--border); }
+.shop-row > a, .shop-row > span:first-child{ min-width:0; justify-self:start; }
+.shop-meta{ display:flex; gap:8px; align-items:baseline; }
 .shop-price{ white-space:nowrap; }
 .shop-trade{ display:inline-flex; align-items:center; gap:6px; }
-.shop-trade input[type=number]{ width:64px; font:inherit; padding:4px 6px; }
+@media (max-width: 640px){
+  .shop-row{ grid-template-columns:minmax(0,1fr) auto; }
+  .shop-row > a, .shop-row > span:first-child, .shop-row > .shop-meta, .shop-row > .shop-price{ grid-column:1; }
+  .shop-row > .shop-meta, .shop-row > .shop-price{ font-size:12.5px; }
+  .shop-trade{ grid-column:2; grid-row:1 / span 2; }
+}
+.shop-trade input[type=number]{ width:56px; font:inherit; padding:4px 6px; }
+.shop-shelves a.chip small{ color:var(--text-3); }
+.shop-choose{ display:none; margin:0; }
+/* A phone shows a long shelf only once a shelf or a search narrows it. */
+@media (max-width: 640px){
+  .shop-wares.is-browsing .shop-list{ display:none; }
+  .shop-wares.is-browsing .shop-choose{ display:block; }
+}
 .downtime-days{ display:flex; align-items:center; gap:6px; }
 .downtime-row{ display:grid; grid-template-columns:1fr auto; align-items:center; gap:6px 12px; padding:6px 0; border-bottom:1px solid var(--border); }
 .downtime-what{ grid-column:1 / -1; }
