@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-22T11:21:37+01:00",
+  "en": "Give an item to another character of the party, or drop it, from its menu on the sheet; pictures in a chapter and entries in the log have menus too.",
+  "de": "Gegenstände über ihr Menü auf dem Bogen einer anderen Figur der Gruppe geben oder wegwerfen; auch Bilder in einem Kapitel und Einträge im Protokoll haben nun Menüs."
+ },
+ {
   "at": "2026-11-21T22:20:01+01:00",
   "en": "Right-click (or press and hold) NPCs, places, chapters, links, party cards, fight rows and your sheet's items and spells for what can be done there; deletes come back with Undo, and a missing link is made right where it stands.",
   "de": "Rechtsklick (oder langes Drücken) auf NSC, Orte, Kapitel, Verweise, Gruppenkarten, Kampfzeilen und die Gegenstände und Zauber deines Bogens zeigt, was dort geht; Gelöschtes lässt sich rückgängig machen, und ein fehlender Verweis wird gleich dort angelegt."
@@ -293,10 +298,5 @@
   "at": "2026-11-19T10:54:18+01:00",
   "en": "The character wizard fits a phone: choices two to a row, the skills table on the screen, and the summary in German abbreviations and metres.",
   "de": "Der Charakterassistent passt aufs Handy: Auswahlen zu zweit in einer Reihe, die Fertigkeitentabelle auf dem Bildschirm und die Übersicht mit deutschen Kürzeln und in Metern."
- },
- {
-  "at": "2026-11-19T10:38:16+01:00",
-  "en": "The world, adventure, NPC and treasure pages fit a phone, and the encounter builder shows the monsters and the difficulty first there.",
-  "de": "Welt, Abenteuer, NSC und Schätze passen aufs Handy, und der Begegnungsbaukasten zeigt dort zuerst die Monster und die Schwierigkeit."
  }
 ]
