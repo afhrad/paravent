@@ -1,6 +1,6 @@
 # Context menus
 
-**Status:** built 2026-11-21 (§10 says what, and what is left). The decisions of §9 were
+**Status:** built 2026-11-21, the rest 2026-11-22 (§10 says what). The decisions of §9 were
 taken as proposed.
 
 A context menu gathers the actions on one thing where it is: a right-click on a tracker
@@ -209,6 +209,32 @@ Taken as proposed when the user asked for the menus to be built:
 - A menu stays open through live updates elsewhere and closes when its element is swapped
   away.
 
-**Left for later:** pictures in chapters and log entries (§2) have no menu yet; session
-notes, creatures, sounds, naming styles and characters keep their trash icon and
-confirmation page; "give to …" and "drop" on the sheet wait for actions of their own.
+**The rest (2026-11-22):**
+
+- **Lists deleted for good** — session notes, creature designs, sounds, naming styles (the
+  table's own, in the workshop) and both character lists (the gamemaster's and a player's
+  `/play`): the trash icon became the **⋯**, whose **Delete …** opens the confirmation as a
+  dialog saying "for good". Without the script the ⋯ leads to the confirmation page. A row
+  that is no `.list-row` takes a right-click through `data-menu-row`. `/menu/link` knows
+  `/gm/sessions/…`, `/gm/creatures/…` and `/gm/names/…`; `/menu/character/{id}` serves a
+  player their own character's pages, `/menu/sound/{id}` plays a sound on the speaker or
+  here. The creature and character confirmations are `confirm_page` now (`eyebrow`).
+- **Pictures in a chapter** (`/menu/image?share=…&src=…`, from the share button's
+  address): share with the players, the original in a new tab, **Frame and effects …**
+  (the chapter's editor), and the other places of the world that show it
+  (`MediaUses`), the chapter itself left out.
+- **Log entries** (`/menu/log/{entry}`, `?reveal=1` while the players do not read it in
+  full): **Reveal**, **Only <character>** for its subject and target, their sheets, **Only
+  this fight**, **The whole log** — as the reader may (a player only their own
+  characters). In the log panel the menu sits inside the open dialog, and its items carry
+  the panel's own `data-log-query` and `data-log-reveal`, so the panel filters in place
+  (`MenuItem.data`).
+- **Give to … and Drop …** on a sheet item (not one whose curse binds its bearer):
+  `GET /characters/{id}/hand?index=…[&drop=1]` asks to whom (the party's other ready
+  characters, `CharacterService.companions`) and how many of a stack, a dialog from the
+  menu (`dialog_or_page`); `POST` hands it over (`CharacterService.hand`: the internal
+  play actions `part` on the giver, `take` on the recipient). It arrives neither worn nor
+  attuned, joins a stack of the same plain thing, and keeps its charges, scroll, secret
+  and curse otherwise; the form names the item it was drawn for, so another in its place
+  is refused. One log entry, the giver's: `give:<item>*<count>` with the recipient as its
+  target, or `drop:<item>*<count>`; an unidentified item is logged as `?`.

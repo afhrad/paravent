@@ -2,10 +2,15 @@
 as the reader may use it; ``static/js/menu.js`` shows it.
 
 * ``GET  /menu/link?href=…``        — a campaign link, card or list row by where it leads
-  (NPC, place, treasure, encounter, chapter, adventure, character), or a missing link
+  (NPC, place, treasure, encounter, chapter, adventure, character, session note, creature
+  design, naming style), or a missing link
 * ``GET  /menu/party/{character}``  — a party card
 * ``GET  /menu/item/{character}/{n}`` — an item on the sheet
 * ``GET  /menu/spell/{character}?ref=…`` — a spell on the sheet
+* ``GET  /menu/character/{character}`` — a row of a character list, a player's own too
+* ``GET  /menu/sound/{sound}``      — a sound of the library
+* ``GET  /menu/image?share=…&src=…`` — a picture in a chapter
+* ``GET  /menu/log/{entry}``        — an entry of the log
 * ``POST /menu/duplicate``          — a copy of an NPC, place, treasure or encounter
 * ``POST /menu/move``               — an object placed in a chapter or adventure, moved up
 
@@ -18,7 +23,7 @@ from __future__ import annotations
 
 import re
 from typing import Annotated, Any
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, urlencode, urlsplit
 
 from fastapi import APIRouter, Form, HTTPException
 from fastapi.responses import HTMLResponse, Response
@@ -29,11 +34,18 @@ from app.routes.adventures import meant_objects
 from app.routes.auth import html, redirect, safe_next
 from app.services import copies
 from app.services import scope as scopes
+from app.services.creature_builder import CreatureNotFound
 from app.services.holdings import HoldingsError
+from app.services.protocol_view import ProtocolReader, hidden_from_players
+from app.services.session_notes import SessionNoteNotFound
+from app.store.errors import EntryNotFound
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
 from app.ui.context_menu import MenuGroup, MenuItem, menu_fragment
+from app.ui.creature_links import CREATURES_URL, creature_url
 from app.ui.encounter_pages import ENCOUNTERS_URL, encounter_url
+from app.ui.hand_pages import hand_url
+from app.ui.journal_pages import SHARE_URL
 from app.ui.library_links import (
     ADVENTURES_URL,
     CHAPTERS_URL,
@@ -49,6 +61,10 @@ from app.ui.library_links import (
     world_url,
 )
 from app.ui.names import name_text
+from app.ui.naming_pages import NAMING_URL, style_url
+from app.ui.protocol_pages import LOG_URL
+from app.ui.session_pages import SESSIONS_URL, day_text, note_url
+from app.ui.sound_panel import SOUND_URL, SOUNDS_URL
 from app.ui.tags import ref_url
 
 router = APIRouter(tags=["menus"])
@@ -58,6 +74,7 @@ _ADDRESS = re.compile(
     f"(?P<npc>{NPCS_URL})|(?P<place>{LOCATIONS_URL})|(?P<encounter>{ENCOUNTERS_URL})"
     f"|(?P<treasure>{TREASURE_URL})|(?P<chapter>{CHAPTERS_URL})|(?P<adventure>{ADVENTURES_URL})"
     "|(?P<character>/characters)"
+    f"|(?P<note>{SESSIONS_URL})|(?P<creature>{CREATURES_URL})|(?P<style>{NAMING_URL})"
     ")/(?P<id>[A-Za-z0-9_-]+)$"
 )
 # The kinds a copy can be made of, and the collection each lives in.
@@ -311,6 +328,109 @@ def _character_items(page: Page, character_id: str, next_page: str) -> list[Menu
     ]
 
 
+def _character_delete(page: Page, character_id: str) -> MenuGroup:
+    """Deleting a character's file: asked in a dialog, for good."""
+    return MenuGroup(
+        [
+            MenuItem(
+                page.t("menu.delete_ask"),
+                "trash-2",
+                dialog=f"/characters/{character_id}/delete",
+                danger=True,
+                hint=page.t("menu.for_good"),
+            )
+        ]
+    )
+
+
+def _delete_ask(page: Page, url: str) -> MenuGroup:
+    """Delete…, asked in a dialog: a kind deleted for good (CONTEXT-MENUS.md §5)."""
+    return MenuGroup(
+        [
+            MenuItem(
+                page.t("menu.delete_ask"),
+                "trash-2",
+                dialog=url,
+                danger=True,
+                hint=page.t("menu.for_good"),
+            )
+        ]
+    )
+
+
+def _note_menu(page: Page, registry: StoreRegistry, note_id: str) -> HTMLResponse:
+    """A session note: edit it, send it to the players, delete it (asked)."""
+    t = page.t
+    try:
+        note = registry.session_notes.get(note_id)
+    except SessionNoteNotFound as exc:
+        raise HTTPException(status_code=404) from exc
+    url = note_url(note.id)
+    return _menu(
+        page,
+        day_text(page, note.day),
+        t("menu.kind.note"),
+        [
+            MenuGroup(
+                [
+                    MenuItem(t("menu.edit"), "pencil", href=f"{url}/edit"),
+                    MenuItem(t("sessions.share"), "send", post=f"{url}/share"),
+                ]
+            ),
+            _delete_ask(page, f"{url}/delete"),
+        ],
+    )
+
+
+def _creature_menu(page: Page, registry: StoreRegistry, design_id: str) -> HTMLResponse:
+    """A creature design: open it in the builder, delete it (asked)."""
+    t = page.t
+    try:
+        design = registry.creatures.get(design_id)
+    except CreatureNotFound as exc:
+        raise HTTPException(status_code=404) from exc
+    url = creature_url(design.id)
+    return _menu(
+        page,
+        design.name,
+        t("menu.kind.creature"),
+        [
+            MenuGroup(
+                [
+                    MenuItem(t("menu.open"), "arrow-right", href=url),
+                    MenuItem(t("menu.open_tab"), "arrow-up", href=url, new_tab=True),
+                ]
+            ),
+            _delete_ask(page, f"{url}/delete"),
+        ],
+    )
+
+
+def _style_menu(page: Page, registry: StoreRegistry, style_id: str) -> HTMLResponse:
+    """One of the table's naming styles: open, edit, its raw text, delete (asked)."""
+    t = page.t
+    try:
+        style = registry.naming_workshop.get(style_id)
+    except EntryNotFound as exc:
+        raise HTTPException(status_code=404) from exc
+    url = style_url(style.id)
+    return _menu(
+        page,
+        style.name,
+        " · ".join(x for x in (t("menu.kind.style"), style.race) if x),
+        [
+            MenuGroup(
+                [
+                    MenuItem(t("menu.open"), "arrow-right", href=url),
+                    MenuItem(t("menu.edit"), "pencil", href=f"{url}/edit"),
+                    MenuItem(t("naming.raw"), "list", href=f"{url}/raw"),
+                ]
+            ),
+            _delete_ask(page, f"{url}/delete"),
+        ],
+    )
+
+
 @router.get("/menu/link", response_class=HTMLResponse)
 async def link_menu(
     _gm: GamemasterDep,
@@ -335,6 +455,12 @@ async def link_menu(
         return _chapter_menu(page, registry, record_id, next_page)
     if kind == "adventure":
         return _adventure_menu(page, registry, record_id, next_page)
+    if kind == "note":
+        return _note_menu(page, registry, record_id)
+    if kind == "creature":
+        return _creature_menu(page, registry, record_id)
+    if kind == "style":
+        return _style_menu(page, registry, record_id)
     pc = registry.gamestate.characters.find(record_id)
     if pc is None:
         raise HTTPException(status_code=404)
@@ -342,7 +468,7 @@ async def link_menu(
         page,
         pc.name or "?",
         page.t("menu.kind.character"),
-        _character_items(page, pc.id, next_page),
+        [*_character_items(page, pc.id, next_page), _character_delete(page, pc.id)],
     )
 
 
@@ -358,7 +484,7 @@ async def party_menu(
     pc = registry.gamestate.characters.find(character_id)
     if pc is None:
         raise HTTPException(status_code=404)
-    summary = " · ".join(f"{c.name} {c.level}" for c in pc.classes)
+    summary = " · ".join(f"{name_text(page, 'class', c.name)} {c.level}" for c in pc.classes)
     return _menu(page, pc.name or "?", summary, _character_items(page, pc.id, safe_next(next)))
 
 
@@ -428,7 +554,15 @@ async def item_menu(
         )
         if x
     )
-    return _menu(page, shown, meta, [MenuGroup(using), MenuGroup(reading)])
+    handing: list[MenuItem] = []
+    if not item.bound:
+        form_url = f"{hand_url(pc.id)}?index={index}"
+        if registry.characters.companions(pc):
+            handing.append(MenuItem(t("menu.give"), "send", dialog=form_url))
+        handing.append(
+            MenuItem(t("menu.drop"), "trash-2", dialog=f"{form_url}&drop=1", danger=True)
+        )
+    return _menu(page, shown, meta, [MenuGroup(using), MenuGroup(reading), MenuGroup(handing)])
 
 
 @router.get("/menu/spell/{character_id}", response_class=HTMLResponse)
@@ -483,6 +617,190 @@ async def spell_menu(
         str(name_text(page, "spell", spell.name)),
         meta,
         [MenuGroup(casting), MenuGroup(reading)],
+    )
+
+
+@router.get("/menu/character/{character_id}", response_class=HTMLResponse)
+async def character_menu(
+    identity: IdentityDep,
+    page: PageDep,
+    characters: CharactersDep,
+    character_id: str,
+    next: str = "",  # noqa: A002 — the query's name
+) -> HTMLResponse:
+    """A row of a character list: the gamemaster's whole menu, a player's own pages of
+    their character and deleting it (asked)."""
+    t = page.t
+    pc = characters.get_for(identity, character_id)
+    summary = " · ".join(f"{name_text(page, 'class', c.name)} {c.level}" for c in pc.classes)
+    if identity.is_gamemaster:
+        groups = _character_items(page, pc.id, safe_next(next))
+    else:
+        sheet = f"/characters/{pc.id}"
+        groups = [
+            MenuGroup(
+                [
+                    MenuItem(t("menu.open_sheet"), "arrow-right", href=sheet),
+                    MenuItem(t("menu.downtime"), "hourglass", href=f"{sheet}/downtime"),
+                    MenuItem(t("menu.followers"), "users", href=f"{sheet}/followers"),
+                    MenuItem(t("menu.story"), "scroll", href=f"{sheet}/story"),
+                ]
+            )
+        ]
+    return _menu(
+        page, pc.name or t("play.unnamed"), summary, [*groups, _character_delete(page, pc.id)]
+    )
+
+
+@router.get("/menu/sound/{sound_id}", response_class=HTMLResponse)
+async def sound_menu(
+    _gm: GamemasterDep, page: PageDep, registry: RegistryDep, sound_id: str
+) -> HTMLResponse:
+    """A sound of the library: play it on the speaker, hear it here, delete it (asked)."""
+    t = page.t
+    try:
+        sound = registry.sounds.sounds.get(sound_id)
+    except EntryNotFound as exc:
+        raise HTTPException(status_code=404) from exc
+    return _menu(
+        page,
+        sound.name,
+        t(f"sound.kind.{sound.kind}"),
+        [
+            MenuGroup(
+                [
+                    MenuItem(t("menu.speaker"), "volume-2", post=f"{SOUND_URL}/press/{sound.id}"),
+                    MenuItem(
+                        t("menu.listen"), "play", href=f"{SOUND_URL}/file/{sound.id}", new_tab=True
+                    ),
+                ]
+            ),
+            _delete_ask(page, f"{SOUNDS_URL}/{sound.id}/delete"),
+        ],
+    )
+
+
+_MEDIA_SRC = re.compile(r"^/media/(?P<record>[A-Za-z0-9_-]+)/(?P<path>[^?#]+)")
+
+
+@router.get("/menu/image", response_class=HTMLResponse)
+async def image_menu(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    share: str = "",
+    src: str = "",
+) -> HTMLResponse:
+    """A picture in a chapter: share it with the players, open the original, edit the
+    chapter, and every other place the world uses it."""
+    t = page.t
+    split = urlsplit(share)
+    query = {k: v[0] for k, v in parse_qs(split.query).items()}
+    chapter_id = query.get("chapter", "")
+    if split.path != SHARE_URL or not chapter_id or not query.get("image"):
+        raise HTTPException(status_code=404)
+    try:
+        view = registry.adventures.chapter_view(chapter_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404) from exc
+    found = _MEDIA_SRC.match(src)
+    original = f"/media/{found['record']}/{found['path']}" if found else ""
+    used: list[MenuItem] = []
+    if found:
+        world_path = registry.media_tags.world_path(found["record"], found["path"])
+        uses = registry.media_uses.uses(view.world.id).get(world_path or "", [])
+        used = [
+            MenuItem(use.name or use.owner, "arrow-right", href=use.url)
+            for use in uses
+            if not use.url.startswith(chapter_url(chapter_id))
+        ][:6]
+    name = query["image"].partition("|")[0].rsplit("/", 1)[-1]
+    return _menu(
+        page,
+        name,
+        t("menu.kind.picture"),
+        [
+            MenuGroup(
+                [
+                    MenuItem(t("journal.share"), "send", href=share),
+                    *(
+                        [MenuItem(t("menu.original"), "image", href=original, new_tab=True)]
+                        if original
+                        else []
+                    ),
+                    MenuItem(t("menu.frame"), "crop", href=f"{chapter_url(chapter_id)}/edit"),
+                ]
+            ),
+            MenuGroup(used, label=t("menu.used_in")),
+        ],
+    )
+
+
+@router.get("/menu/log/{entry_id}", response_class=HTMLResponse)
+async def log_menu(
+    identity: IdentityDep,
+    page: PageDep,
+    registry: RegistryDep,
+    entry_id: str,
+    reveal: bool = False,
+    next: str = "",  # noqa: A002 — the query's name
+) -> HTMLResponse:
+    """An entry of the log: reveal it to the players (the gamemaster; ``reveal`` when the
+    players do not read it in full yet), and narrow the log to its character or its
+    fight, as the reader may."""
+    t = page.t
+    viewer = registry.viewer(identity)
+    found = registry.protocol_reader.find(entry_id)
+    face = ProtocolReader.face(found, viewer) if found is not None else None
+    if found is None or face is None:
+        raise HTTPException(status_code=404)
+    doing: list[MenuItem] = []
+    if viewer.gamemaster and reveal and hidden_from_players(found):
+        doing.append(
+            MenuItem(
+                t("protocol.reveal"),
+                "eye",
+                post=f"{LOG_URL}/reveal",
+                fields={"entry": found.id, "next": safe_next(next) or LOG_URL},
+                data={"log-reveal": ""},
+            )
+        )
+    narrowing: list[MenuItem] = []
+    for ref, name in ((found.subject, found.subject_name), (found.target, found.target_name)):
+        if not ref or not ref.startswith("character:"):
+            continue
+        character = ref.removeprefix("character:")
+        if not (viewer.gamemaster or character in viewer.characters):
+            continue
+        query = urlencode({"filter": "character", "character": character})
+        narrowing.append(
+            MenuItem(
+                t("menu.log_only", name=name or "?"),
+                "filter",
+                href=f"{LOG_URL}?{query}",
+                data={"log-query": query},
+            )
+        )
+        narrowing.append(
+            MenuItem(
+                t("menu.open_sheet_of", name=name or "?"),
+                "book-open",
+                href=f"/characters/{character}",
+            )
+        )
+    if found.scope.combat:
+        query = urlencode({"filter": "fight", "combat": found.scope.combat})
+        narrowing.append(
+            MenuItem(
+                t("menu.log_fight"), "swords", href=f"{LOG_URL}?{query}", data={"log-query": query}
+            )
+        )
+    narrowing.append(
+        MenuItem(t("menu.log_all"), "list", href=LOG_URL, data={"log-query": "filter=all"})
+    )
+    who = face.subject_name or face.actor_name or "?"
+    return _menu(
+        page, who, face.at.astimezone().strftime("%H:%M"), [MenuGroup(doing), MenuGroup(narrowing)]
     )
 
 

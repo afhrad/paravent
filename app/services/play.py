@@ -60,7 +60,7 @@ PRIVATE_ACTIONS = frozenset({"roll", "death_save", "hit_die"})
 INTERNAL_ACTIONS = frozenset(
     {
         "receive", "buy", "sell", "spend", "learn", "eat", "inscribe", "scroll",
-        "identify", "lift_curse", "item_secret",
+        "identify", "lift_curse", "item_secret", "part", "take",
     }
 )  # fmt: skip
 # A day's food on the road, by item name.
@@ -202,6 +202,8 @@ class PlayService:
             "scroll": self._scroll,
             "buy": self._buy,
             "sell": self._sell,
+            "part": self._part,
+            "take": self._take,
             "spend": self._spend,
             "learn": self._learn,
             "eat": self._eat,
@@ -1215,6 +1217,58 @@ class PlayService:
             EntryKind.CUSTOM,
             what=f"sell:{item.item.reference}*{count}:{coins.text(earned)}",
         )
+
+    def _part(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Let ``count`` of the carried item at ``index`` go: given to the character ``to``
+        (``to_name`` for the log) or, without one, dropped. ``ref`` is the item the form
+        was drawn for, refused if another lies there; a cursed item that binds its bearer
+        stays."""
+        index = _int(params, "index")
+        count = max(1, _int(params, "count", 1))
+        if not 0 <= index < len(pc.inventory) or pc.inventory[index].quantity < count:
+            raise PlayError("play.error.bad_input")
+        item = pc.inventory[index]
+        if item.item.reference != params.get("ref"):
+            raise PlayError("play.error.bad_input")
+        _refuse_bound(sheet, index)
+        item.quantity -= count
+        if item.quantity == 0:
+            pc.inventory = [i for n, i in enumerate(pc.inventory) if n != index]
+        # An unidentified item's name stays the gamemaster's secret, as when it arrived.
+        logged = f"{'?' if item.unidentified else item.item.reference}*{count}"
+        to = params.get("to", "")
+        if to:
+            self._stage(
+                pc,
+                actor,
+                EntryKind.CUSTOM,
+                what=f"give:{logged}",
+                target=f"character:{to}",
+                target_name=params.get("to_name", ""),
+            )
+        else:
+            self._stage(pc, actor, EntryKind.CUSTOM, what=f"drop:{logged}")
+
+    def _take(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Take an item another character hands over (``item``, the carried item as
+        JSON): neither worn nor attuned, on a stack of the same thing when it is plain,
+        else on a line of its own with its charges, scroll and secret kept. The giver's
+        entry logs it."""
+        try:
+            given = InventoryItem.model_validate_json(params.get("item", ""))
+        except ValueError as exc:
+            raise PlayError("play.error.bad_input") from exc
+        if given.quantity < 1:
+            raise PlayError("play.error.bad_input")
+        given = given.model_copy(update={"equipped": False, "attuned": False})
+        if not (given.charges_used or given.shown_as or given.notes) and given.cursed is None:
+            self._add_items(pc, given.item, given.quantity, given.spell, given.unidentified)
+        else:
+            pc.inventory = [*pc.inventory, given]
 
     def _spend(
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor

@@ -57,13 +57,14 @@ from app.services.translation_targets import BUILDER_FIELDS, builder_key
 from app.store.creature_tables import BlockTemplate, CrRow, MonsterFeature
 from app.ui.auth_pages import message_panel
 from app.ui.context import Page
+from app.ui.context_menu import row_menu
 from app.ui.cr_badge import cr_badge
 from app.ui.creature_links import CREATURES_URL, creature_url
 from app.ui.forms import alert, hidden, notice, select_field, text_field
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
-from app.ui.library_links import delete_link
+from app.ui.library_links import confirm_page, delete_link
 from app.ui.palette import SearchTarget, search_form
 from app.ui.ref_pages import statblock
 from app.ui.rules_text import senses_shown
@@ -136,7 +137,12 @@ def creatures_page(
             else span(class_="pill cond")[t("creatures.unpublished")]
             if r.unpublished
             else None,
-            delete_link(page, f"{creature_url(r.design.id)}/delete", t("creatures.delete")),
+            row_menu(
+                page,
+                creature_url(r.design.id),
+                r.design.name,
+                fallback=f"{creature_url(r.design.id)}/delete",
+            ),
         ]
         for r in rows
     ]
@@ -897,30 +903,18 @@ def builder_page(
 
 
 def delete_page(page: Page, design: CreatureDesign) -> Element:
-    """Ask before deleting."""
+    """Ask before deleting (a dialog when a context menu asks)."""
     t = page.t
     url = creature_url(design.id)
-    return app_shell(
+    return confirm_page(
         page,
-        t("creatures.delete"),
-        div(class_="formpage")[
-            a(href=url, class_="backlink")[icon("arrow-left"), span[t("common.cancel")]],
-            div(class_="panel panel-danger")[
-                div(class_="panel-head")[
-                    span(class_="eyebrow")[t("creatures.eyebrow")],
-                    b[t("creatures.delete_heading", name=design.name)],
-                ],
-                p[t("creatures.delete_lede")],
-                form(method="post", action=f"{url}/delete")[
-                    div(class_="form-actions")[
-                        button(type="submit", class_="btn btn-dmg")[
-                            icon("x"), span[t("creatures.delete")]
-                        ],
-                        a(href=url, class_="btn btn-ghost")[t("common.cancel")],
-                    ]
-                ],
-            ],
-        ],
+        title=t("creatures.delete"),
+        heading=t("creatures.delete_heading", name=design.name),
+        lede=t("creatures.delete_lede"),
+        action=f"{url}/delete",
+        back=url,
+        submit=t("creatures.delete"),
+        eyebrow=t("creatures.eyebrow"),
     )
 
 

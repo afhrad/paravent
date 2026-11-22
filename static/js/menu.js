@@ -35,7 +35,7 @@
     var el = node.closest('[data-menu], [data-menu-local]');
     if (el) return el;
     // A list row hands a right-click or long press anywhere on it to its ⋯ menu.
-    var row = node.closest('.list-row');
+    var row = node.closest('.list-row, [data-menu-row]');
     if (row) {
       el = row.querySelector('[data-menu]');
       if (el) return el;
@@ -91,6 +91,8 @@
     var menu = holder.firstElementChild;
     if (!menu) return;
     var back = null;
+    // Inside an open modal dialog (the log panel) the menu must be in it to be on top.
+    var host = target.closest('dialog[open]') || document.body;
     if (sheet) {
       back = document.createElement('div');
       back.className = 'ctx-back';
@@ -99,9 +101,9 @@
       var grab = document.createElement('div');
       grab.className = 'ctx-grab';
       menu.insertBefore(grab, menu.firstChild);
-      document.body.appendChild(back);
+      host.appendChild(back);
     }
-    document.body.appendChild(menu);
+    host.appendChild(menu);
     if (!sheet) place(menu, at, target);
     if (window.htmx) window.htmx.process(menu);
     (target.closest('.list-row') || target).classList.add('ctx-target');

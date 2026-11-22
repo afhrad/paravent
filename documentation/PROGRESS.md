@@ -636,7 +636,13 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         places, treasure, encounters, adventures, chapters), campaign and missing links,
         party cards, tracker rows and the sheet's items and spells. Deletes from a menu come
         back with Undo, or ask in a dialog what goes with them; Duplicate, Move up, New …
-        here, create a missing link in the chapter, adventure or world
+        here, create a missing link in the chapter, adventure or world. **The rest**
+        (2026-11-22): session notes, creature designs, sounds, naming styles and the
+        character lists (a player's too) with ⋯ menus and a confirmation dialog; pictures
+        in a chapter (share, the original, framing, where else they are used) and log
+        entries (reveal, only this character or fight, also in the log panel); **Give to …**
+        and **Drop …** on the sheet's items (`app/routes/handing.py`): to another character
+        of the party with its charges, scroll and secret, how many of a stack, logged once
   - [x] **Supernatural gifts** (2026-11-21, `app/services/gifts.py`): **Grant** beside a
         blessing, charm or boon of the world's books gives it to the ticked characters,
         its uses ("has 3 charges", "used three times", "once used") and how long it lasts

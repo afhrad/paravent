@@ -172,17 +172,16 @@ def confirm_page(
     submit: str,
     hint: str | None = None,
     choice: Node = None,
+    eyebrow: str = "",
 ) -> Element:
     """Ask before deleting: what goes, and a button that does it; ``choice`` sits in the
     form above the button (how much goes with it). Asked from a context menu
     (``?dialog=1``, documentation/CONTEXT-MENUS.md §5) it is the panel alone, shown as a
     dialog, and the delete returns to the page the menu was opened on (``next``)."""
     t = page.t
-    query = parse_qs(urlsplit(page.path).query)
-    in_dialog = (query.get("dialog") or [""])[0] == "1"
-    next_page = (query.get("next") or [""])[0]
+    in_dialog, next_page = asked_in_dialog(page)
     panel = div(class_="panel panel-danger")[
-        div(class_="panel-head")[span(class_="eyebrow")[t("gm.eyebrow")], b[heading]],
+        div(class_="panel-head")[span(class_="eyebrow")[eyebrow or t("gm.eyebrow")], b[heading]],
         p[lede],
         p(class_="field-hint")[hint] if hint else None,
         form(method="post", action=action)[
@@ -190,21 +189,32 @@ def confirm_page(
             choice,
             div(class_="form-actions")[
                 button(type="submit", class_="btn btn-dmg")[icon("x"), span[submit]],
-                button(type="button", class_="btn btn-ghost", data_close="1")[
-                    t("common.cancel")
-                ]
+                button(type="button", class_="btn btn-ghost", data_close="1")[t("common.cancel")]
                 if in_dialog
                 else a(href=back, class_="btn btn-ghost")[t("common.cancel")],
             ],
         ],
     ]
-    if in_dialog:
+    return dialog_or_page(page, title, back, panel)
+
+
+def asked_in_dialog(page: Page) -> tuple[bool, str]:
+    """Whether the page was asked for as a context menu's dialog (``?dialog=1``), and
+    the page the menu was opened on (``next``), where the form returns."""
+    query = parse_qs(urlsplit(page.path).query)
+    return (query.get("dialog") or [""])[0] == "1", (query.get("next") or [""])[0]
+
+
+def dialog_or_page(page: Page, title: str, back: str, panel: Element) -> Element:
+    """``panel`` alone when a context menu asked for it as a dialog, else as a page of
+    its own with a way ``back``."""
+    if asked_in_dialog(page)[0]:
         return panel
     return app_shell(
         page,
         title,
         div(class_="formpage")[
-            a(href=back, class_="backlink")[icon("arrow-left"), span[t("common.cancel")]],
+            a(href=back, class_="backlink")[icon("arrow-left"), span[page.t("common.cancel")]],
             panel,
         ],
     )
@@ -321,7 +331,9 @@ __all__ = [
     "new_object_url",
     "confirm_page",
     "copy_snippet",
+    "asked_in_dialog",
     "delete_link",
+    "dialog_or_page",
     "ADVENTURES_URL",
     "CHAPTERS_URL",
     "MEDIA_UPLOAD_URL",

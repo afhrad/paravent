@@ -50,6 +50,7 @@ from app.services.naming_workshop import (
 )
 from app.services.style_drafts import DraftRun
 from app.ui.context import Page
+from app.ui.context_menu import row_menu
 from app.ui.forms import alert, hidden, origin_fields, text_field
 from app.ui.home_pages import page_head
 from app.ui.icons import icon
@@ -405,7 +406,8 @@ def _style_row(page: Page, entry: StyleEntry, examples: Sequence[str]) -> Elemen
             button(type="submit", class_="btn btn-sm")[icon("plus", "sm"), span[t("naming.copy")]],
         ]
     text = _summary(page, entry)
-    return li(class_="panel naming-row")[
+    own = entry.style if entry.kind == "own" else None
+    return li(class_="panel naming-row", data_menu_row="" if own is not None else None)[
         div[
             a(href=href)[b[entry_label(page, entry)]],
             " ",
@@ -420,6 +422,14 @@ def _style_row(page: Page, entry: StyleEntry, examples: Sequence[str]) -> Elemen
             small(class_="muted")[" · ".join(examples)],
         ],
         copy,
+        row_menu(
+            page,
+            style_url(own.id),
+            own.name,
+            fallback=f"{style_url(own.id)}/delete",
+        )
+        if own is not None
+        else None,
     ]
 
 

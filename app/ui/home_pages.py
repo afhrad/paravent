@@ -13,6 +13,7 @@ from htpy import Element, Node, a, div, h1, h2, li, p, span, ul
 
 from app.models.pc import DraftStatus, PlayerCharacter
 from app.ui.context import Page
+from app.ui.context_menu import data_menu, row_menu
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.tokens import token
@@ -60,19 +61,20 @@ def _character_row(page: Page, pc: PlayerCharacter) -> Element:
         span(class_="pill cond" if is_draft else "pill heal")[
             t("status.draft") if is_draft else t("status.ready")
         ],
-        delete_link(page, pc),
+        character_menu(page, pc),
     ]
 
 
-def delete_link(page: Page, pc: PlayerCharacter) -> Element:
-    """The button that leads to the confirmation, for a row of a character list."""
-    label = page.t("char_delete.action", name=pc.name or page.t("play.unnamed"))
-    return a(
-        href=f"/characters/{pc.id}/delete",
-        class_="btn btn-sm btn-ghost btn-danger",
-        title=label,
-        aria_label=label,
-    )[icon("trash-2")]
+def character_menu(page: Page, pc: PlayerCharacter) -> Element:
+    """The **⋯** of a row of a character list (documentation/CONTEXT-MENUS.md): its
+    pages and deleting it; without the script it leads to the confirmation."""
+    return row_menu(
+        page,
+        f"/characters/{pc.id}",
+        pc.name or page.t("play.unnamed"),
+        menu=data_menu("character", pc.id),
+        fallback=f"/characters/{pc.id}/delete",
+    )
 
 
 def player_home(
@@ -118,4 +120,4 @@ def player_home(
     )
 
 
-__all__ = ["delete_link", "empty_state", "page_head", "player_home"]
+__all__ = ["character_menu", "empty_state", "page_head", "player_home"]

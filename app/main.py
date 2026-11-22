@@ -48,6 +48,7 @@ from app.routes import gifts as gift_routes
 from app.routes import glossary as glossary_routes
 from app.routes import gm as gm_routes
 from app.routes import gm5_import as gm5_import_routes
+from app.routes import handing as hand_routes
 from app.routes import help as help_routes
 from app.routes import home as home_routes
 from app.routes import journal as journal_routes
@@ -350,6 +351,7 @@ def create_app() -> FastAPI:
     app.include_router(gm5_import_routes.router)
     app.include_router(story_seed_routes.router)
     app.include_router(gift_routes.router)
+    app.include_router(hand_routes.router)
     app.include_router(formula_routes.router)
     app.include_router(menu_routes.router)
     app.include_router(world_links_routes.router)

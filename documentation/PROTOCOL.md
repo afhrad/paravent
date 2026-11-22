@@ -203,7 +203,8 @@ What just happened, without stopping play.
   `downtime_done:<kind>:…` for a character's projects, and `downtime_spent:<kind>:5:…` for
   one of the book's activities (app/services/activities.py), its checks rolled into the
   character's log like any other; `shop:open:<name>` and
-  `shop:close:<name>`, `buy:` and `sell:<item>*<count>:<coins>`, `spend:<coins>:<for>`
+  `shop:close:<name>`, `buy:` and `sell:<item>*<count>:<coins>`, `give:<item>*<count>` (to
+  the entry's target, 2026-11-22) and `drop:<item>*<count>`, `spend:<coins>:<for>`
   (materials, a day of training) and `learn:<language|tool>:<ref>`. The bastion adds
   `bastion_defenders:<change>:<count>` and `bastion_event:<name>:<defenders lost>`.
   `lifestyle:<level>:<days>:<paid>:<owed>` (copper) for the days a character's lifestyle

@@ -27,7 +27,8 @@ MENU_URL = "/menu"
 class MenuItem:
     """One action: a link (``href``, ``new_tab``), a form posting ``fields`` to ``post``
     (through htmx onto ``hx_target`` when set), or a dialog whose fragment is fetched from
-    ``dialog``. ``danger`` marks a delete; ``hint`` is a short note at its end."""
+    ``dialog``. ``danger`` marks a delete; ``hint`` is a short note at its end; ``data``
+    adds ``data-*`` attributes a page's own script acts on (the log panel's filters)."""
 
     label: str
     icon: str
@@ -39,6 +40,7 @@ class MenuItem:
     dialog: str = ""
     danger: bool = False
     hint: str = ""
+    data: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -70,23 +72,24 @@ def menu_button(page: Page, label: str, fallback: str = "") -> Element:
     return button(type="button", **attrs)[icon("ellipsis", "sm")]
 
 
-def row_menu(page: Page, href: str, label: str) -> Element:
+def row_menu(page: Page, href: str, label: str, *, menu: str = "", fallback: str = "") -> Element:
     """The **⋯** of a list row, a campaign card: the menu of what ``href`` leads to
-    (``/menu/link``), which a right-click or long press on the row opens too; without the
-    script it leads there."""
+    (``/menu/link``) or ``menu``, which a right-click or long press on the row opens too;
+    without the script it leads to ``fallback`` or ``href``."""
     attrs = {
         "class_": "btn btn-sm btn-ghost ctx-more",
-        "data_menu": f"{MENU_URL}/link?{urlencode({'href': href})}",
+        "data_menu": menu or f"{MENU_URL}/link?{urlencode({'href': href})}",
         "data_menu_open": "",
         "aria_label": page.t("menu.more", name=label),
         "aria_haspopup": "menu",
         "title": page.t("menu.more", name=label),
     }
-    return a(href=href, **attrs)[icon("ellipsis", "sm")]
+    return a(href=fallback or href, **attrs)[icon("ellipsis", "sm")]
 
 
 def _item(item: MenuItem) -> Element:
     classes = "ctx-item" + (" danger" if item.danger else "")
+    data = {f"data-{k}": v for k, v in item.data.items()}
     inner = [
         icon(item.icon, "sm"),
         span(class_="ctx-label")[item.label],
@@ -98,7 +101,7 @@ def _item(item: MenuItem) -> Element:
             if item.hx_target
             else {}
         )
-        return form(method="post", action=item.post, class_="ctx-form", **htmx)[
+        return form(method="post", action=item.post, class_="ctx-form", **htmx, **data)[
             [hidden(k, v) for k, v in item.fields.items()],
             button(type="submit", class_=classes, role="menuitem")[inner],
         ]
@@ -112,6 +115,7 @@ def _item(item: MenuItem) -> Element:
         role="menuitem",
         target="_blank" if item.new_tab else None,
         rel="noopener" if item.new_tab else None,
+        **data,
     )[inner]
 
 

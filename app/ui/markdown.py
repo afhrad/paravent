@@ -54,6 +54,7 @@ import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
+from urllib.parse import urlencode
 
 from htpy import Element, Node, a, button, div, fragment, img, span
 from markdown_it import MarkdownIt
@@ -815,9 +816,12 @@ class _Renderer(RendererHTML):
         if not shared:
             return picture
         return _html(
-            span(class_="md-shareable")[
-                Markup(picture), share_link(shared, self.ctx.t("journal.share"))
-            ]
+            # Its context menu (documentation/CONTEXT-MENUS.md §2): share, the original,
+            # framing, where else the world uses it.
+            span(
+                class_="md-shareable",
+                data_menu=f"/menu/image?{urlencode({'share': shared, 'src': url})}",
+            )[Markup(picture), share_link(shared, self.ctx.t("journal.share"))]
         )
 
     def image(self, tokens: Sequence[Token], idx: int, options: OptionsDict, env: EnvType) -> str:

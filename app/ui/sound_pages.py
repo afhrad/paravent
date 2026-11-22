@@ -10,11 +10,12 @@ from htpy import input as input_el
 
 from app.models.gamestate import Sound
 from app.ui.context import Page
+from app.ui.context_menu import data_menu, row_menu
 from app.ui.forms import alert, notice, text_field
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
-from app.ui.library_links import confirm_page, delete_link
+from app.ui.library_links import confirm_page
 from app.ui.sound_panel import SOUND_KINDS, SOUND_URL, SOUNDS_URL
 from app.ui.tool_dialog import create_form, new_button, tool_dialog
 
@@ -79,7 +80,13 @@ def _row(page: Page, sound: Sound) -> Element:
             ),
             button(type="submit", class_="btn btn-sm")[t("worlds.save")],
         ],
-        delete_link(page, f"{url}/delete", t("sound.delete")),
+        row_menu(
+            page,
+            url,
+            sound.name,
+            menu=data_menu("sound", sound.id),
+            fallback=f"{url}/delete",
+        ),
     ]
 
 

@@ -57,7 +57,8 @@ class prepares them. A concentration spell shows as held until you drop it or lo
 
 - **Press and hold** an item or a spell (right-click with a mouse) for what can be done
   with it: equip or take off, attune, spend a charge, drink, cast at a level, read the full
-  entry.
+  entry, **give** it to another character of the party or **drop** it (how many of a
+  stack; the log says who gave what to whom).
 - **Equip** armour, shields and weapons: they set your armour class and your attacks.
 - **Attune** to a magic item that asks for it, up to three. Some items are only for some
   characters (a cleric's staff); the sheet says so if yours is not one of them.

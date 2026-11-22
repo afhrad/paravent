@@ -287,6 +287,44 @@ class CharacterService:
             params["spell"] = spell
         return self.play.act(character_id, "receive", params, self.sheet(pc), by)
 
+    def companions(self, pc: PlayerCharacter) -> list[PlayerCharacter]:
+        """The other characters of ``pc``'s party, ready to play: whom it can hand
+        something to."""
+        party = self._store.characters.of_world(pc.world_id, drafts=False)
+        return [c for c in party if c.id != pc.id]
+
+    def hand(
+        self,
+        character_id: str,
+        index: int,
+        count: int,
+        ref: str,
+        to: str | None,
+        by: Actor,
+    ) -> PlayerCharacter:
+        """Give ``count`` of the carried item at ``index`` (``ref``, as the form was drawn
+        for) to the party's character ``to``, or drop it without one; logged once, by the
+        giver. Its charges, scroll, secret and curse go with it."""
+        pc = self._store.characters.find(character_id)
+        if pc is None:
+            raise CharacterNotFound(character_id)
+        if not 0 <= index < len(pc.inventory) or count < 1:
+            raise PlayError("play.error.bad_input")
+        recipient = None
+        if to:
+            recipient = next((c for c in self.companions(pc) if c.id == to), None)
+            if recipient is None:
+                raise PlayError("play.error.bad_input")
+        moved = pc.inventory[index].model_copy(update={"quantity": count})
+        params = {"index": str(index), "count": str(count), "ref": ref}
+        if recipient is not None:
+            params |= {"to": recipient.id, "to_name": recipient.name or "?"}
+        changed = self.play.act(character_id, "part", params, self.sheet(pc), by)
+        if recipient is not None:
+            item = {"item": moved.model_dump_json()}
+            self.play.act(recipient.id, "take", item, self.sheet(recipient), by)
+        return changed
+
     def act_for(
         self, character_id: str, action: str, params: Mapping[str, str], by: Actor
     ) -> PlayerCharacter:

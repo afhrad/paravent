@@ -116,6 +116,24 @@ async def _login(ac: AsyncClient, name: str) -> None:
 
 
 class TestSharing:
+    async def test_a_picture_has_a_menu_for_the_gamemaster(
+        self, setup: tuple[AsyncClient, StoreRegistry, dict[str, str]]
+    ) -> None:
+        """Right-click on a chapter's picture (documentation/CONTEXT-MENUS.md §2)."""
+        ac, _registry, ids = setup
+        await _login(ac, "dm")
+        page = (await ac.get(f"/gm/chapters/{ids['chapter']}")).text
+        found = re.search(r'data-menu="(/menu/image\?[^"]*)"', page)
+        assert found is not None
+        menu = (await ac.get(found.group(1).replace("&amp;", "&"))).text
+        for words in ("map.png", "Share with players", "Open the original"):
+            assert words in menu
+        assert re.search(r'href="/media/[^"?]+/map\.png"', menu)
+        assert "Also used in" not in menu  # only this chapter shows it
+        assert (await ac.get("/menu/image?share=/elsewhere&src=")).status_code == 404
+        await _login(ac, "alice")
+        assert (await ac.get(found.group(1).replace("&amp;", "&"))).status_code == 403
+
     async def test_a_box_goes_to_the_characters_ticked_as_a_frozen_copy(
         self, setup: tuple[AsyncClient, StoreRegistry, dict[str, str]]
     ) -> None:

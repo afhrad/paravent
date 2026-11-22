@@ -6,9 +6,7 @@ from collections.abc import Mapping, Sequence
 
 from htpy import (
     Element,
-    Node,
     a,
-    b,
     button,
     div,
     form,
@@ -26,9 +24,10 @@ from app.models.pc import DraftStatus, PlayerCharacter
 from app.services.characters import CharacterSummary
 from app.ui.context import Page
 from app.ui.forms import alert, text_field
-from app.ui.home_pages import delete_link, empty_state, page_head
+from app.ui.home_pages import character_menu, empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
+from app.ui.library_links import confirm_page
 from app.ui.tokens import token
 from app.ui.tool_dialog import create_form, new_button, tool_dialog
 
@@ -82,37 +81,25 @@ def _row(page: Page, row: CharacterSummary, players: Sequence[User]) -> Element:
         a(href=f"/characters/{pc.id}", class_="btn btn-sm btn-primary")[
             icon("book-open"), span(class_="list-action-label")[t("chars.open")]
         ],
-        delete_link(page, pc),
+        character_menu(page, pc),
     ]
 
 
 def character_delete_page(page: Page, pc: PlayerCharacter, back: str, in_fight: bool) -> Element:
-    """Ask before a character's file is removed, and say that it cannot come back."""
+    """Ask before a character's file is removed, and say that it cannot come back (a
+    dialog when a context menu asks)."""
     t = page.t
     name = pc.name or t("play.unnamed")
-    warning: Node = p[b[t("char_delete.in_fight")]] if in_fight else None
-    return app_shell(
+    return confirm_page(
         page,
-        t("char_delete.page_title"),
-        div(class_="formpage")[
-            a(href=back, class_="backlink")[icon("arrow-left"), span[t("common.cancel")]],
-            div(class_="panel panel-danger")[
-                div(class_="panel-head")[
-                    span(class_="eyebrow")[t("char_delete.eyebrow")],
-                    b[t("char_delete.heading", name=name)],
-                ],
-                p[t("char_delete.lede")],
-                warning,
-                form(method="post", action=f"/characters/{pc.id}/delete")[
-                    div(class_="form-actions")[
-                        button(type="submit", class_="btn btn-dmg")[
-                            icon("trash-2"), span[t("char_delete.confirm")]
-                        ],
-                        a(href=back, class_="btn btn-ghost")[t("common.cancel")],
-                    ],
-                ],
-            ],
-        ],
+        title=t("char_delete.page_title"),
+        heading=t("char_delete.heading", name=name),
+        lede=t("char_delete.lede"),
+        action=f"/characters/{pc.id}/delete",
+        back=back,
+        submit=t("char_delete.confirm"),
+        hint=t("char_delete.in_fight") if in_fight else None,
+        eyebrow=t("char_delete.eyebrow"),
     )
 
 

@@ -12,9 +12,6 @@ Nothing agreed is waiting; see the proposals below.
 
 ## Proposed, not yet chosen
 
-- **Context menus, the rest** — pictures in chapters and log entries; session notes,
-  creatures, sounds, naming styles and characters with ⋯ menus and dialogs; "give to …"
-  and "drop" on the sheet (documentation/CONTEXT-MENUS.md §10). S
 - **Encounter notes at a glance** — the builder's notes now read folded under their
   editor ("How the notes read"), as on the treasure page; before, they stood under the
   title. Put back above the plan if the gamemaster wants tactics in view while planning.

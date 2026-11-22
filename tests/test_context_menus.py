@@ -5,15 +5,19 @@ as a dialog; a copy; moved up; New … here)."""
 from __future__ import annotations
 
 import html
+import io
+from datetime import date
 from urllib.parse import quote
 
 import pytest
 from httpx import AsyncClient
 
 from app.models.gamestate import Role, Scope
+from app.models.pc import PlayerCharacter
 from app.services.copies import copy_name
 from app.store.registry import StoreRegistry
 from tests.conftest import requires_corpus
+from tests.test_sound import _wav
 from tests.test_travel_downtime_shop import PASSWORD, table
 
 __all__ = ["table"]
@@ -146,3 +150,105 @@ async def test_unknown_menus_are_not_found(
 ) -> None:
     ac, _registry, _lyra = table
     assert (await ac.get(_menu_of(href))).status_code == 404
+
+
+def _second_character(registry: StoreRegistry, lyra: str, name: str = "Brunhild") -> str:
+    """Another character of Lyra's party, to hand things to."""
+    data = registry.gamestate.characters.get(lyra).model_dump(mode="json", exclude={"id"})
+    data |= {"name": name, "inventory": []}
+    return registry.gamestate.characters.create(PlayerCharacter.model_validate(data)).id
+
+
+def _index_of(registry: StoreRegistry, character: str, reference: str) -> int:
+    pc = registry.gamestate.characters.get(character)
+    return next(n for n, i in enumerate(pc.inventory) if i.item.reference == reference)
+
+
+@requires_corpus
+async def test_an_item_is_given_or_dropped(table: tuple[AsyncClient, StoreRegistry, str]) -> None:
+    ac, registry, lyra = table
+    brunhild = _second_character(registry, lyra)
+    daggers = _index_of(registry, lyra, "Dagger|PHB")
+    menu = html.unescape((await ac.get(f"/menu/item/{lyra}/{daggers}")).text)
+    assert f"/characters/{lyra}/hand?index={daggers}" in menu and "Give to" in menu
+    asked = (await ac.get(f"/characters/{lyra}/hand?index={daggers}&dialog=1&next=/gm")).text
+    assert asked.lstrip().startswith('<div class="panel"') and "Brunhild" in asked
+    assert 'max="2"' in asked and 'name="next" value="/gm"' in asked
+    given = await ac.post(
+        f"/characters/{lyra}/hand",
+        data={"index": daggers, "ref": "Dagger|PHB", "count": 1, "to": brunhild, "next": "/gm"},
+    )
+    assert given.headers["location"] == "/gm"
+    mine = registry.gamestate.characters.get(lyra).inventory
+    assert next(i for i in mine if i.item.reference == "Dagger|PHB").quantity == 1
+    theirs = registry.gamestate.characters.get(brunhild).inventory
+    assert [(i.item.reference, i.quantity) for i in theirs] == [("Dagger|PHB", 1)]
+    # Given again, it joins the stack; an item drawn for another index is refused.
+    daggers = _index_of(registry, lyra, "Dagger|PHB")
+    wrong = await ac.post(
+        f"/characters/{lyra}/hand",
+        data={"index": daggers, "ref": "Quarterstaff|PHB", "to": brunhild},
+    )
+    assert "flash=" in wrong.headers["location"]
+    await ac.post(
+        f"/characters/{lyra}/hand", data={"index": daggers, "ref": "Dagger|PHB", "to": brunhild}
+    )
+    theirs = registry.gamestate.characters.get(brunhild).inventory
+    assert [(i.item.reference, i.quantity) for i in theirs] == [("Dagger|PHB", 2)]
+    # Dropped, it is gone; the log says both.
+    staff = _index_of(registry, lyra, "Quarterstaff|PHB")
+    await ac.post(f"/characters/{lyra}/hand", data={"index": staff, "ref": "Quarterstaff|PHB"})
+    refs = [i.item.reference for i in registry.gamestate.characters.get(lyra).inventory]
+    assert "Quarterstaff|PHB" not in refs and "Dagger|PHB" not in refs
+    log = (await ac.get("/log")).text
+    assert "Gives Dagger" in log and "Brunhild" in log and "Drops Quarterstaff" in log
+    # Nobody else in the party: Drop only, and giving to a stranger is refused.
+    registry.gamestate.characters.delete(brunhild)
+    ring = _index_of(registry, lyra, "Ring of Protection|DMG")
+    assert "Give to" not in html.unescape((await ac.get(f"/menu/item/{lyra}/{ring}")).text)
+    stranger = await ac.post(
+        f"/characters/{lyra}/hand",
+        data={"index": ring, "ref": "Ring of Protection|DMG", "to": "nobody"},
+    )
+    assert "flash=" in stranger.headers["location"]
+
+
+@requires_corpus
+async def test_the_other_lists_ask_in_a_dialog(
+    table: tuple[AsyncClient, StoreRegistry, str],
+) -> None:
+    ac, registry, lyra = table
+    world = registry.gamestate.characters.get(lyra).world_id or ""
+    listing = (await ac.get("/gm/characters")).text
+    assert f'data-menu="/menu/character/{lyra}"' in listing
+    menu = html.unescape((await ac.get(f"/menu/character/{lyra}")).text)
+    assert f'data-menu-dialog="/characters/{lyra}/delete"' in menu and "for good" in menu
+    asked = (await ac.get(f"/characters/{lyra}/delete?dialog=1&next=/gm/characters")).text
+    assert asked.lstrip().startswith('<div class="panel panel-danger"')
+    note = registry.session_notes.create(world, date(2026, 11, 20))
+    sessions = (await ac.get(f"/gm/worlds/{world}/sessions")).text
+    assert "data-menu-open" in sessions and f"/gm/sessions/{note.id}/delete" in sessions
+    menu = html.unescape((await ac.get(_menu_of(f"/gm/sessions/{note.id}"))).text)
+    assert (
+        "Send to the players" in menu
+        and f'data-menu-dialog="/gm/sessions/{note.id}/delete"' in menu
+    )
+    for href in ("/gm/sessions/nope", "/gm/creatures/nope", "/gm/names/nope"):
+        assert (await ac.get(_menu_of(href))).status_code == 404
+    assert (await ac.get("/menu/sound/nope")).status_code == 404
+    rain = registry.sounds.add("rain.wav", io.BytesIO(_wav()), "ambience", name="Rain")
+    assert f'data-menu="/menu/sound/{rain.id}"' in (await ac.get("/gm/sounds")).text
+    menu = html.unescape((await ac.get(f"/menu/sound/{rain.id}")).text)
+    assert f"/gm/sound/press/{rain.id}" in menu and f"/gm/sounds/{rain.id}/delete" in menu
+
+
+@requires_corpus
+async def test_a_log_entry_narrows_the_log(table: tuple[AsyncClient, StoreRegistry, str]) -> None:
+    ac, registry, lyra = table
+    await ac.post(f"/characters/{lyra}/act/roll", data={"kind": "save", "subject": "dex"})
+    log = (await ac.get("/log")).text
+    entry = log.split('data-menu="/menu/log/', 1)[1].split('"', 1)[0].split("?")[0]
+    menu = html.unescape((await ac.get(f"/menu/log/{entry}")).text)
+    assert f"filter=character&character={lyra}" in menu and "Only Lyra" in menu
+    assert 'data-log-query="filter=all"' in menu
+    assert (await ac.get("/menu/log/nope")).status_code == 404

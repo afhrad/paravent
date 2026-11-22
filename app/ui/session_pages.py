@@ -25,11 +25,12 @@ from htpy import input as input_el
 
 from app.models.gamestate import SessionNote, World
 from app.ui.context import Page
+from app.ui.context_menu import row_menu
 from app.ui.forms import alert, hidden, notice
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
-from app.ui.library_links import WORLDS_URL, crumbs, delete_link, saved_version, world_url
+from app.ui.library_links import WORLDS_URL, crumbs, saved_version, world_url
 from app.ui.markdown import Rendered
 from app.ui.tool_dialog import create_form, new_button, tool_dialog
 
@@ -118,14 +119,19 @@ def sessions_page(
                 ),
             ),
             [
-                article(class_="panel session-note", id=f"note-{note.id}")[
+                article(class_="panel session-note", id=f"note-{note.id}", data_menu_row="")[
                     div(class_="session-head")[
                         h2[day_text(page, note.day)],
                         span(class_="muted")[adventure] if adventure else None,
                         a(href=f"{note_url(note.id)}/edit", class_="btn btn-sm btn-ghost")[
                             icon("pencil"), span[t("players.edit")]
                         ],
-                        delete_link(page, f"{note_url(note.id)}/delete", t("sessions.delete")),
+                        row_menu(
+                            page,
+                            note_url(note.id),
+                            day_text(page, note.day),
+                            fallback=f"{note_url(note.id)}/delete",
+                        ),
                     ],
                     div(class_="md-body")[rendered.html]
                     if rendered.html.strip()

@@ -263,7 +263,8 @@ def _row(page: Page, shown: Shown) -> Element:
         marks.append(span(class_="log-mark", title=t("protocol.private"))[icon("lock", "xs")])
     elif entry.visibility is Visibility.GM and not shown.revealed:
         marks.append(span(class_="log-mark gm", title=t("protocol.gm_only"))[icon("eye-off", "xs")])
-    return li(class_=" ".join(c for c in classes if c))[
+    menu = f"/menu/log/{entry.id}" + ("?reveal=1" if shown.revealable else "")
+    return li(class_=" ".join(c for c in classes if c), data_menu=menu)[
         div(class_="log-result mono")[_result(entry)],
         div(class_="log-body")[
             div(class_="log-who")[
@@ -513,6 +514,16 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
                 amount, denomination = coin[:-2], coin[-2:]
                 parts.append(f"{amount} {t(f'treasure.coin.{denomination}')}")
             return t("protocol.receive", what=", ".join(parts))
+        if head in ("give", "drop"):
+            # give:<ref>*<count> (to the entry's target), drop:<ref>*<count>
+            ref, _, count = rest.rpartition("*")
+            name = (
+                t("protocol.unidentified_item")
+                if ref == "?"
+                else name_text(page, ("item", "baseitem"), ref.partition("|")[0])
+            )
+            what_text = f"{name} ×{count}" if count not in ("", "1") else str(name)
+            return t(f"protocol.{head}", item=what_text)
         if head in ("buy", "sell"):
             item, _, purse = rest.partition(":")
             ref, _, count = item.rpartition("*")
