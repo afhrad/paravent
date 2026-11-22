@@ -270,3 +270,31 @@ leaves out of a creature comes from the book creature it is based on.
 - **Tried on a real backup** (2026-11-21, seven campaigns): 105 of 114 creature names were
   book creatures; all seven import into one world of seven adventures, 55 chapters and 92
   encounters in about five seconds, most of it the homebrew publish.
+
+### 9c. One piece into another world (2026-11-22)
+
+`app/services/world_copy.py`, `/gm/copy`. **Copy to world…** and **Move to world…** in the
+⋯ menu of an adventure, NPC, place, treasure, encounter and creature design, and on each
+quest's and faction's panel, open a page: the world it goes to (every other one), a tick
+**Bring along what it names** (on), and the plan — what is copied, what comes along, what the
+target has already, the name it takes, and the references outside the target's books.
+
+- **An adventure** goes with its chapters, its folder's pictures and everything placed in it,
+  its folder copied as an import copies a world's: every id new, replaced in front matter,
+  records and Markdown. A copy starts planned, chapters too; a move keeps its state.
+- **What its texts name** — `{@npc Mara}` and the other campaign tags, links to an object's
+  page (`/gm/npcs/<id>`), an adventure's ready-made objects (`uses`), a quest's faction —
+  comes along when it is the source world's own; one the target has by that name is not
+  copied, and links to it there (by name, or the address rewritten to the target's).
+- **A name the target has** takes " (2)", " (3)" …; a creature design counts every design of
+  the table, published creatures sharing one name space.
+- **Pictures and tokens** are copied into the target's folder; a different file of that name
+  there is kept, the copy taking a free name.
+- **What stays behind**: fights, the log, a quest's characters and steps done, renown.
+- **Move** copies, then deletes the original into *Recently deleted* (an adventure with what is
+  placed in it), so Restore works; what came along by name stays in the source too. A quest,
+  faction or creature design has no trash and moves in place, keeping its id (a quest's
+  faction copied or found in the target).
+
+Sharing a piece with another table as a file (the same plan, written to a zip) is not built.
+

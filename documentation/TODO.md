@@ -14,21 +14,6 @@ Nothing agreed is waiting; see the proposals below.
 
 Paused 2026-11-22 while the user playtests; their findings come first.
 
-- **Copy or move to another world** (asked by the user 2026-11-22) — today only a whole
-  world travels (Export, Import, Duplicate, `app/services/world_transfer.py`). Proposed:
-  **Copy to world…** and **Move to world…** in the ⋯ menu of an adventure (with its
-  chapters and what is scoped to it), an NPC, place, encounter, treasure, quest, faction and
-  creature design, and for a selection in the lists. Built on the world transfer: a partial
-  export read back into an existing world, ids given anew and links rewritten, pictures and
-  tokens copied into the target's folder; the same file could then be imported into a world
-  at another table ("share one adventure"). What stays behind: fights, the log, renown,
-  quests' characters. Before copying, a check against the target's books: monsters, items
-  and spells outside them listed (they stay as references and show "not in your books");
-  links to world-level objects not taken along become missing links, which Check links
-  mends. Move is a copy plus a delete into the trash, so Undo works. Open questions: copy
-  only, or move too; whether to bring along the world-level NPCs, places and treasure an
-  adventure names (a tick, default on?); a name clash in the target (rename "… (2)", as
-  Duplicate does). M
 - **Random checks in a dungeon** — an encounter table and an interval (every 10 minutes,
   every hour) while exploring; moving the clock rolls the checks, one that comes up becomes
   an encounter in one press, like the road's. S

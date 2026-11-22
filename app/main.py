@@ -76,6 +76,7 @@ from app.routes import themes as theme_routes
 from app.routes import title_images as title_image_routes
 from app.routes import tokens as token_routes
 from app.routes import translate as translate_routes
+from app.routes import world_copy as world_copy_routes
 from app.routes import world_instructions as instruction_routes
 from app.routes import world_links as world_links_routes
 from app.routes import world_transfer as world_transfer_routes
@@ -348,6 +349,7 @@ def create_app() -> FastAPI:
     app.include_router(auth_routes.router)
     app.include_router(current_world_routes.router)
     app.include_router(world_transfer_routes.router)
+    app.include_router(world_copy_routes.router)
     app.include_router(gm5_import_routes.router)
     app.include_router(story_seed_routes.router)
     app.include_router(gift_routes.router)

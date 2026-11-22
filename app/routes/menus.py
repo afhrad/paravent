@@ -42,6 +42,7 @@ from app.store.errors import EntryNotFound
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
 from app.ui.context_menu import MenuGroup, MenuItem, menu_fragment
+from app.ui.copy_links import copy_link
 from app.ui.creature_links import CREATURES_URL, creature_url
 from app.ui.encounter_pages import ENCOUNTERS_URL, encounter_url
 from app.ui.hand_pages import hand_url
@@ -141,6 +142,7 @@ def _object_menu(
                 fields={"kind": kind, "id": record_id, "next": next_page},
             )
         )
+    changing += _to_world(page, registry, kind, record_id)
     deleting = [
         MenuItem(
             t("menu.delete"),
@@ -225,11 +227,24 @@ def _adventure_menu(
                 ]
             ),
             _new_here(page, adventure.world_id, f"a:{adventure_id}"),
+            MenuGroup(_to_world(page, registry, "adventure", adventure_id)),
             MenuGroup(
                 [MenuItem(t("menu.delete_ask"), "trash-2", dialog=f"{url}/delete", danger=True)]
             ),
         ],
     )
+
+
+def _to_world(page: Page, registry: StoreRegistry, kind: str, record_id: str) -> list[MenuItem]:
+    """Copy or move a piece into another world (app/services/world_copy.py), where there
+    is another world."""
+    if len(registry.gamestate.worlds.list()) < 2:
+        return []
+    t = page.t
+    return [
+        MenuItem(t("menu.copy_world"), "copy", href=copy_link(kind, record_id)),
+        MenuItem(t("menu.move_world_other"), "send", href=copy_link(kind, record_id, "move")),
+    ]
 
 
 def _new_here(page: Page, world_id: str, here: str) -> MenuGroup:
@@ -401,6 +416,7 @@ def _creature_menu(page: Page, registry: StoreRegistry, design_id: str) -> HTMLR
                     MenuItem(t("menu.open_tab"), "arrow-up", href=url, new_tab=True),
                 ]
             ),
+            MenuGroup(_to_world(page, registry, "creature", design.id)),
             _delete_ask(page, f"{url}/delete"),
         ],
     )

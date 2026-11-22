@@ -33,6 +33,7 @@ from htpy import input as input_el
 
 from app.models.gamestate import Quest, World
 from app.ui.context import Page
+from app.ui.copy_links import copy_link
 from app.ui.forms import alert, hidden
 from app.ui.home_pages import page_head
 from app.ui.icons import icon
@@ -236,6 +237,12 @@ def _quest(
             )
             if quest.status == "failed"
             else None,
+            a(href=copy_link("quest", quest.id), class_="btn btn-sm btn-ghost")[
+                icon("copy", "sm"), span[t("menu.copy_world")]
+            ],
+            a(href=copy_link("quest", quest.id, "move"), class_="btn btn-sm btn-ghost")[
+                icon("send", "sm"), span[t("menu.move_world_other")]
+            ],
             _post(
                 base,
                 "delete",

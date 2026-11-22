@@ -141,6 +141,7 @@ from app.services.traps import TrapService
 from app.services.trash import Trash
 from app.services.travel import PACES, TERRAINS, Terrain, TravelService, Vessel
 from app.services.treasure_roll import roller_for
+from app.services.world_copy import WorldCopy
 from app.services.world_instructions import WorldInstructionService
 from app.services.world_transfer import WorldTransfer
 from app.services.worlds import BookCatalog, WorldService
@@ -2249,6 +2250,24 @@ class StoreRegistry:
     def trash(self) -> Trash:
         """Deleted NPCs, places, treasure and encounters, kept a while to restore."""
         return Trash(self.gamestate)
+
+    @cached_property
+    def world_copy(self) -> WorldCopy:
+        """One piece of a world copied or moved into another (app/services/world_copy.py)."""
+
+        def delete(kind: str, record_id: str) -> None:
+            if kind == "adventure":
+                self.adventures.delete(record_id, contents=True)
+            elif kind == "npc":
+                self.npcs.delete(record_id)
+            elif kind == "place":
+                self.locations.delete(record_id)
+            elif kind == "treasure":
+                self.treasure.delete(record_id)
+            elif kind == "encounter":
+                self.encounters.delete(record_id)
+
+        return WorldCopy(self.gamestate, self.tokens.folder, delete)
 
     @cached_property
     def world_transfer(self) -> WorldTransfer:

@@ -434,7 +434,13 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         take along** (2026-11-20, `app/services/world_transfer.py`): Export world as one
         zip, Import world from one (here or at another table, every id given anew, the play
         so far optional), Duplicate world for a second group Claude's tools: `list_worlds`
-        marks the current world, an empty `world_id` means it. **From Game Master 5e** (2026-11-21, `app/services/gm5_import.py`, CURRENT-WORLD.md
+        marks the current world, an empty `world_id` means it. **One piece into another world** (2026-11-22, `app/services/world_copy.py`,
+        CURRENT-WORLD.md §9c): Copy to world… and Move to world… for an adventure (its
+        chapters, pictures and what is placed in it), an NPC, place, treasure, encounter,
+        quest, faction or creature design, with new ids and links rewritten; what its texts
+        name comes along unless the target has it by name; a name the target has takes
+        " (2)"; the target's missing books are listed first; a move deletes into the trash.
+        **From Game Master 5e** (2026-11-21, `app/services/gm5_import.py`, CURRENT-WORLD.md
         §9b): a campaign of a backup becomes a new world, its creatures and items matched in
         the books chosen, home-made creatures as designs begun from the book creature in their
         name, scenes as chapters with their fights

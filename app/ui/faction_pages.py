@@ -10,6 +10,7 @@ from urllib.parse import quote, urlencode
 from htpy import (
     Element,
     Node,
+    a,
     b,
     button,
     details,
@@ -33,6 +34,7 @@ from htpy import input as input_el
 from app.models.gamestate import Faction, World
 from app.services.factions import title_of
 from app.ui.context import Page
+from app.ui.copy_links import copy_link
 from app.ui.forms import alert, hidden
 from app.ui.home_pages import page_head
 from app.ui.icons import icon
@@ -165,6 +167,12 @@ def _faction(
             title_image_panel(
                 page, "faction", faction.id, found, owner=faction.world_id, heading=False
             ),
+            a(href=copy_link("faction", faction.id), class_="btn btn-sm btn-ghost")[
+                icon("copy", "sm"), span[t("menu.copy_world")]
+            ],
+            a(href=copy_link("faction", faction.id, "move"), class_="btn btn-sm btn-ghost")[
+                icon("send", "sm"), span[t("menu.move_world_other")]
+            ],
             _post(
                 base,
                 "delete",
