@@ -19,24 +19,14 @@ objects, doors and siege equipment in the tracker.
 
 ### Smaller
 
-- **Divine intervention** — a pantheon per world and the intervention roll. S
 - **Marks of prestige** — titles, land, medals and favours on a character's story. S
-- **Running costs** — businesses and garrisons charged by the clock, like lifestyle and wages. S
 - **Follower loyalty** — a score that events move. S
-- **Proficiency dice** — the 2014 guide's variant: a die instead of the flat bonus on every
-  roll the sheet makes. S
-- **Hazards by level** — environmental damage and DCs scaled to the party, as traps are. S
-- **Random checks in a dungeon** over game time, not only on the road. S
 - **Treasure by a monster's preferences**, and trade goods. S
 - **Session zero** — the expectations sheet kept per world, beside lines and veils. S
 
 ### Bigger
 
 - **Planar effects** — the rules of the plane the party is on, rolled or applied. M
-- **Sentient items and artifacts** — a sentient item's mind and purpose, an artifact's
-  properties rolled. M
-- **Random dungeon generator** (2014) — passages, doors, chambers and their contents into a
-  chapter's skeleton. L
 - **Spell, magic item and background builders**, published as homebrew like the creature
   builder's creatures. L
 
