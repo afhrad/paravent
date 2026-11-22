@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-22T17:14:58+01:00",
+  "en": "Variant rules for characters per world — rest variants, hero points, Honor and Sanity, slow healing, healer's kit dependency and defeated, not dead. Doors, objects and siege equipment can join a fight, and the shop is much shorter on a phone.",
+  "de": "Variantregeln für Charaktere je Welt – Rastvarianten, Heldenpunkte, Ehre und geistige Gesundheit, langsame Heilung, Heilerausrüstung nötig und besiegt, nicht tot. Türen, Gegenstände und Belagerungsgerät können an einem Kampf teilnehmen, und der Laden ist auf dem Handy viel kürzer."
+ },
+ {
   "at": "2026-11-22T15:20:03+01:00",
   "en": "Optional combat rules from the 2014 guide — massive damage, lingering injuries, morale, mob attacks and side initiative — can be switched on per world in World settings.",
   "de": "Optionale Kampfregeln aus dem Spielleiterhandbuch 2014 – massiver Schaden, bleibende Verletzungen, Moral, Angriffe der Meute und Initiative nach Seiten – lassen sich je Welt in den Welteinstellungen einschalten."
@@ -293,10 +298,5 @@
   "at": "2026-11-19T12:33:33+01:00",
   "en": "Magic items on the sheet: attune up to three, spend charges with a tap, and they come back at dawn by the world's clock.",
   "de": "Magische Gegenstände auf dem Bogen: bis zu drei einstimmen, Ladungen per Tippen verbrauchen, und sie kehren bei Sonnenaufgang nach der Uhr der Welt zurück."
- },
- {
-  "at": "2026-11-19T11:59:39+01:00",
-  "en": "Players can roll a disease's or poison's save on their own sheets, and Claude can place diseases and poisons in its draft adventures.",
-  "de": "Spieler können den Rettungswurf gegen eine Krankheit oder ein Gift auf ihrem Bogen würfeln, und Claude kann Krankheiten und Gifte in seine Abenteuerentwürfe setzen."
  }
 ]
