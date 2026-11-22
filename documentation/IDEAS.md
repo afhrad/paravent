@@ -12,13 +12,8 @@ Both guides were read chapter by chapter against what Paravent does. Already cov
 not listed: treasure and encounter tables, encounter shapes and ratings, NPCs, the creature
 builder, chases, traps, travel (weather, climate, altitude, food and water, navigation, foraging, encounter distance and surprise), factions and
 renown, quests, followers, bastions, downtime, the calendar and clock, session notes,
-milestone levelling, the reference screens, safety tools.
-
-### Most useful at a table
-
-| Idea | Guides | What it would do | Today | Size |
-| --- | --- | --- | --- | --- |
-| Optional combat rules | 2014 | World switches the tracker applies: morale, massive damage, lingering injuries, mobs, side initiative | not covered | M |
+milestone levelling, the reference screens, safety tools, the optional combat rules (morale,
+massive damage, lingering injuries, mobs, side initiative).
 
 ### Smaller
 

@@ -216,6 +216,10 @@ class World(Record):
     # The naming styles names are rolled from here, by key (``own:…``, ``starter:…``,
     # a book's table); empty means every style, like the books (NAMES.md §5b).
     naming_styles: list[str] = Field(default_factory=list)
+    # The 2014 guide's optional combat rules the tracker applies here, by key
+    # (app/services/combat_rules.py): ``massive_damage``, ``injuries``, ``morale``,
+    # ``mobs``, ``side_initiative``. A fight keeps those on when it started.
+    combat_rules: list[str] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod
@@ -656,6 +660,8 @@ CombatLogKind = Literal[
     "condition_immune",
     "form_on",
     "form_off",
+    # An optional combat rule at work (app/services/combat_rules.py): what in ``detail``.
+    "rule",
 ]
 
 
@@ -882,6 +888,15 @@ class Combat(Record):
     # XP handed to the characters after the end, once: how much each, and when.
     awarded_xp: int | None = Field(default=None, ge=0)
     awarded_at: datetime | None = None
+    # The world's optional combat rules as the fight started (World.combat_rules).
+    rules: list[str] = Field(default_factory=list)
+    # Side initiative: each side's one roll, ``{"friend": 14, "foe": 9}``.
+    sides: dict[str, int] = Field(default_factory=dict)
+    # Morale: the groups whose nerve was already tested (once each).
+    morale: list[str] = Field(default_factory=list)
+    # Lingering injuries offered and not yet rolled or waved off: combatant ids, and why
+    # (``crit`` or ``down``).
+    injuries: dict[str, str] = Field(default_factory=dict)
 
     @model_validator(mode="before")
     @classmethod

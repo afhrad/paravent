@@ -281,6 +281,39 @@ piercing and slashing.
 
 ---
 
+### Optional rules (2026-11-22)
+
+A world may tick the 2014 guide's optional combat rules in its settings (`World.combat_rules`,
+`app/services/combat_rules.py`). A fight copies them when it starts (`Combat.rules`), so a
+change mid-fight leaves it alone. A rule that rolls on a table the world's books lack is not
+offered: massive damage, lingering injuries and mobs need the 2014 guide, while morale and
+side initiative need no table.
+
+- **Massive damage**: damage from one source of half the maximum HP or more, which the
+  creature survives, rolls a DC 15 Constitution save at once. On a failure the *System
+  Shock* d10 is rolled. A drop to 0 HP is carried out (for a character, stable where the row
+  says so), and a condition lasts until the end of the creature's next turn. Anything else
+  the row says is written into the log in the book's words.
+- **Lingering injuries**: a character who takes a critical hit, or drops to 0 HP, is offered
+  a roll above the order (`Combat.injuries`), with **Roll** and **Not this time**. The rolled
+  injury is kept on the character as an affliction of kind `injury`, named by the row's
+  bold lead with the rest as its note, until the gamemaster ends it.
+- **Morale**: at the turn start of a group that has lost half its number, or of a lone
+  creature at half its HP or fewer, a reminder offers a DC 10 Wisdom save. The group's
+  first creature still standing rolls it, once a fight (`Combat.morale`). Fleeing is the
+  gamemaster's call.
+- **Mobs**: each statblock attack of a group with two or more standing members gets **Mob**.
+  It takes a target on the other side and how many attack. The *Mob Attacks* table gives the
+  attackers needed per hit from the d20 they need against the target's AC. Each hit's damage
+  is rolled and applied separately, the target's defences counted, so massive damage judges
+  each hit.
+- **Side initiative**: at the start each side rolls one d20, again on a tie
+  (`Combat.sides`). Every friend sits on its side's number and every foe on theirs,
+  newcomers and turncoats included. Setting or rolling a member's initiative sets its side's
+  number, and a sheet's initiative roll is not taken.
+
+Rolls are logged as one entry kind, `rule`, worded by `rule_text`.
+
 ## 4. Initiative and turns
 
 ```txt

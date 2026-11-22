@@ -60,7 +60,7 @@ PRIVATE_ACTIONS = frozenset({"roll", "death_save", "hit_die"})
 INTERNAL_ACTIONS = frozenset(
     {
         "receive", "buy", "sell", "spend", "learn", "eat", "inscribe", "scroll",
-        "identify", "lift_curse", "item_secret", "part", "take",
+        "identify", "lift_curse", "item_secret", "part", "take", "stabilize",
     }
 )  # fmt: skip
 # A day's food on the road, by item name.
@@ -184,6 +184,7 @@ class PlayService:
             "rest": self._rest,
             "hit_die": self._hit_die,
             "death_save": self._death_save,
+            "stabilize": self._stabilize,
             "roll": self._roll,
             "equip": self._equip,
             "attune": self._attune,
@@ -743,6 +744,15 @@ class PlayService:
             outcome=outcome,
             record=roll_record(roll),
         )
+
+    def _stabilize(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """Stable at 0 HP: no more death saves (massive damage's "0 hit points but
+        stable"). Who made it so is in the tracker's log."""
+        if sheet.hp_current > 0:
+            raise PlayError("play.error.not_dying")
+        pc.state.death_saves.successes, pc.state.death_saves.failures = 3, 0
 
     # -- rolls ---------------------------------------------------------------------
 

@@ -49,6 +49,21 @@ from app.models.gamestate import (
     health_word,
 )
 from app.models.protocol import EntryKind, ProtocolEntry, RollRecord, Scope
+from app.services import combat_rules
+from app.services.book_tables import Rows
+from app.services.combat_rules import (
+    FOE,
+    FRIEND,
+    GUIDE_2014,
+    MORALE_DC,
+    SHOCK_DC,
+    TABLES,
+    lingering_injury,
+    massive,
+    mob_needs,
+    roll_sides,
+    system_shock,
+)
 from app.services.condition_rolls import bend
 from app.services.creature_sight import Sight
 from app.services.dice import Advantage, Dice, is_expression
@@ -340,12 +355,20 @@ class Reminders:
     concentration: tuple[tuple[str, str], ...] = ()
     # The lair's turn: each group's name and its lair actions (5eTools entries).
     lair: tuple[tuple[str, tuple[Any, ...]], ...] = ()
+    # Morale (an optional rule): the group's first member, its label, and why its nerve
+    # is tested — ``half`` its number down, or a lone creature ``hurt`` to half its HP.
+    morale: tuple[tuple[str, str, str], ...] = ()
 
     @property
     def empty(self) -> bool:
         """True when nothing is due."""
         return not (
-            self.legendary or self.recharge or self.regeneration or self.concentration or self.lair
+            self.legendary
+            or self.recharge
+            or self.regeneration
+            or self.concentration
+            or self.lair
+            or self.morale
         )
 
 
@@ -362,6 +385,8 @@ class CombatView:
     rating: Rating | None = None
     # Each combatant's round token, by id (documentation/TOKENS.md).
     tokens: Mapping[str, Token] = field(default_factory=dict)
+    # The optional rules at work in this fight (app/services/combat_rules.py).
+    rules: frozenset[str] = frozenset()
 
     @property
     def current(self) -> TurnView | None:
@@ -814,6 +839,8 @@ class CombatService:
         spell: Callable[[str, str | None, str | None], dict[str, Any] | None] | None = None,
         token: Callable[[Combatant, str | None], Token] | None = None,
         shapes: Callable[[str | None, str, Fraction], builtins.list[Shape]] | None = None,
+        table: Callable[[str | None, str, Sequence[str]], Rows | None] | None = None,
+        injure: Callable[[str | None, str, str, str], object] | None = None,
     ) -> None:
         """``monster(name, source)`` looks up a creature exactly, as the encounters do;
         ``shapes(world, spell, cr)`` what Polymorph may turn a creature of ``cr`` into;
@@ -828,7 +855,12 @@ class CombatService:
         ``sight(monster, lang)`` is what anyone sees of a creature, for the players' Details;
         ``known(world, ref)`` what the world's party learned of its kind;
         ``spell(name, source, world)`` a spell's record in the world's books.
+        ``table(world, caption, sources)`` a table the world's books print, for the
+        optional rules; ``injure(world, character, name, note)`` keeps a lingering injury
+        on a character.
         """
+        self._table = table
+        self._injure = injure
         self._store = store
         self._token = token
         self._shapes = shapes
@@ -1000,8 +1032,36 @@ class CombatService:
             if amount and (row.hp is None or row.hp_max is None or row.hp < row.hp_max):
                 regeneration.append(Regeneration(member.id, label, amount))
         return Reminders(
-            tuple(legendary), tuple(recharge), tuple(regeneration), tuple(concentration)
+            tuple(legendary),
+            tuple(recharge),
+            tuple(regeneration),
+            tuple(concentration),
+            morale=self._morale_due(combat, turn),
         )
+
+    def _morale_due(self, combat: Combat, turn: Turn) -> tuple[tuple[str, str, str], ...]:
+        """Whether the acting group's nerve is tested now (once a fight): half its
+        number down, or a lone creature at half its hit points or fewer."""
+        if (
+            turn.is_character
+            or not turn.members
+            or turn.group in combat.morale
+            or "morale" not in self.rules_of(combat)
+        ):
+            return ()
+        standing = [m for m in turn.members if not self.is_down(m)]
+        if not standing:
+            return ()
+        lead = standing[0]
+        if len(turn.members) > 1:
+            if (len(turn.members) - len(standing)) * 2 < len(turn.members):
+                return ()
+            reason = "half"
+        elif lead.hp_max and lead.hp * 2 <= lead.hp_max:
+            reason = "hurt"
+        else:
+            return ()
+        return ((lead.id, self._turn_label(turn), reason),)
 
     def _monster_data(self, monster: MonsterProjection) -> dict[str, Any]:
         data: dict[str, Any] = monster.entry.model_dump(by_alias=True, exclude_none=True)
@@ -1443,6 +1503,14 @@ class CombatService:
             hit_target, taken, taken_types = target, amount, types
 
         def mark(combat: Combat) -> None:
+            if (
+                hit_target is not None
+                and hit_target.character_id is not None
+                and taken
+                and (crit or entry.outcome == "crit")
+                and "injuries" in self.rules_of(combat)
+            ):
+                combat.injuries.setdefault(hit_target.id, "crit")
             self._stage(
                 attack_verdict(
                     combat,
@@ -1593,6 +1661,7 @@ class CombatService:
             reminders=self.reminders(combat) if combat.running else Reminders(),
             rating=self.difficulty(combat, snapshots),
             tokens={c.id: token(c, combat.world_id) for c in combat.combatants} if token else {},
+            rules=self.rules_of(combat),
         )
 
     def difficulty(
@@ -1948,11 +2017,18 @@ class CombatService:
             characters = [pc.id for pc in self._store.characters.of_world(encounter.world_id)]
         for character_id in characters:
             self._add_character(combat, character_id)
+        world = self._store.worlds.find(encounter.world_id) if encounter.world_id else None
+        combat.rules = combat_rules.kept(world.combat_rules) if world is not None else []
+        if "side_initiative" in self.rules_of(combat):
+            combat.sides = roll_sides(self._dice)
+            self._hold_sides(combat)
         staged: builtins.list[ProtocolEntry] = []
         outer = getattr(self._staged, "items", None)
         self._staged.items = staged
         try:
             self._log(combat, "start", by, subject=combat.name)
+            if combat.sides:
+                self._log_sides(combat, by)
         finally:
             self._staged.items = outer
         created = self._store.combats.create(combat)
@@ -2124,6 +2200,11 @@ class CombatService:
 
         def apply(combat: Combat) -> None:
             target = self._member(combat, combatant_id)
+            if combat.sides:
+                # Side initiative: the side's one roll, for all of it.
+                combat.sides[FRIEND if target.is_friend else FOE] = value
+                self._log_sides(combat, by)
+                return
             for member in combat.combatants:
                 if member.group == target.group:
                     member.initiative = value
@@ -2137,6 +2218,10 @@ class CombatService:
 
         def apply(combat: Combat) -> None:
             target = self._member(combat, combatant_id)
+            if combat.sides:
+                combat.sides[FRIEND if target.is_friend else FOE] = self._dice.die(20)
+                self._log_sides(combat, by)
+                return
             self._roll_group(combat, target.group, by)
 
         return self._mutate(combat_id, apply)
@@ -2212,7 +2297,10 @@ class CombatService:
 
         def apply(combat: Combat) -> None:
             target = self._member(combat, combatant_id)
+            before: CharacterSnapshot | None = None
             if target.character_id is not None:
+                if mode == "damage" and self.rules_of(combat):
+                    before = self._characters.snapshot(target.character_id)
                 self._characters.act(
                     target.character_id, "hp", {"mode": mode, "amount": str(amount)}, by, combat
                 )
@@ -2252,6 +2340,8 @@ class CombatService:
                     target.save_due = None
                     target.concentration = None
             self._log(combat, mode, by, subject=self.label_of(target), amount=amount)
+            if mode == "damage":
+                self._after_damage(combat, target, amount, before, by)
 
         return self._mutate(combat_id, apply)
 
@@ -2587,6 +2677,9 @@ class CombatService:
             "save_effect",
             "rage",
             "repeat_save",
+            "morale",
+            "injury",
+            "mob",
         }
     )
 
@@ -2698,7 +2791,276 @@ class CombatService:
             return self.roll_recharge(
                 combat_id, combatant_id, params.get("ability", ""), _number(params, "at"), by
             )
+        elif action == "morale":
+            return self.morale(combat_id, combatant_id, by, skip=params.get("skip") == "1")
+        elif action == "injury":
+            return self.injury(combat_id, combatant_id, by, skip=params.get("skip") == "1")
+        elif action == "mob":
+            return self.mob(
+                combat_id,
+                combatant_id,
+                params.get("name", ""),
+                _number(params, "hit"),
+                decode(params.get("dmg", "")),
+                params.get("target", ""),
+                _number(params, "count"),
+                by,
+            )
         raise CombatError("combat.error.bad_input")
+
+    # -- optional rules (app/services/combat_rules.py) ------------------------------------
+
+    def rules_of(self, combat: Combat) -> frozenset[str]:
+        """The optional rules at work in a fight: those it started with that the world's
+        books allow (a rule rolling on a table the books lack is not offered)."""
+        if not combat.rules:
+            return frozenset()
+        return frozenset(combat.rules) & combat_rules.available(self._finder(combat.world_id))
+
+    def _finder(self, world_id: str | None) -> combat_rules.Finder:
+        table = self._table
+        if table is None:
+            return lambda caption, sources: None
+        return lambda caption, sources: table(world_id, caption, sources)
+
+    @staticmethod
+    def _hold_sides(combat: Combat) -> None:
+        """Side initiative: every combatant on its side's roll, newcomers and turncoats
+        included."""
+        if not combat.sides:
+            return
+        for member in combat.combatants:
+            value = combat.sides.get(FRIEND if member.is_friend else FOE)
+            if value is not None and member.initiative != value:
+                member.initiative = value
+
+    def _log_sides(self, combat: Combat, by: str) -> None:
+        self._log(
+            combat,
+            "rule",
+            by,
+            detail=f"sides:{combat.sides.get(FRIEND, 0)}:{combat.sides.get(FOE, 0)}",
+        )
+
+    def _after_damage(
+        self,
+        combat: Combat,
+        target: Combatant,
+        amount: int,
+        before: CharacterSnapshot | None,
+        by: str,
+    ) -> None:
+        """What the optional rules make of a hit: massive damage's save, and a lingering
+        injury offered to a character who dropped to 0."""
+        rules = self.rules_of(combat)
+        if not rules & {"massive_damage", "injuries"}:
+            return
+        if target.character_id is not None:
+            after = self._characters.snapshot(target.character_id)
+            if before is None or after is None:
+                return
+            hp_max, standing = before.hp_max, after.hp > 0
+            if "injuries" in rules and before.hp > 0 and not standing:
+                combat.injuries.setdefault(target.id, "down")
+        else:
+            hp_max, standing = target.hp_max, target.hp > 0
+        if "massive_damage" in rules and standing and massive(amount, hp_max):
+            self._system_shock(combat, target, by)
+
+    def _system_shock(self, combat: Combat, target: Combatant, by: str) -> None:
+        """Massive damage: a DC 15 Constitution save, and on a failure the *System Shock*
+        table, its drop to 0 and its conditions carried out."""
+        rows = self._finder(combat.world_id)(TABLES["massive_damage"], [GUIDE_2014])
+        if not rows:
+            return
+        label = self.label_of(target)
+        roll = self._dice.d20(self._save_bonus(target, "con"))
+        success = roll.total >= SHOCK_DC
+        self._log(
+            combat,
+            "rule",
+            by,
+            subject=label,
+            amount=roll.total,
+            detail=f"massive:{SHOCK_DC}",
+            outcome="success" if success else "failure",
+            roll=roll_record(roll, rest=_bonus_source(target)),
+            against=SHOCK_DC,
+        )
+        if success:
+            return
+        shock = system_shock(rows, self._dice)
+        self._log(
+            combat, "rule", by, subject=label, amount=shock.roll, detail=f"shock:{shock.text}"
+        )
+        if shock.drop:
+            self._drop_to_zero(combat, target, shock.stable, by)
+        for condition in shock.conditions:
+            if condition in CONDITIONS and condition not in self._conditions(target):
+                self._put_on(combat, target, condition, 1, by)
+
+    def _drop_to_zero(self, combat: Combat, target: Combatant, stable: bool, by: str) -> None:
+        if target.character_id is not None:
+            now = self._characters.snapshot(target.character_id)
+            if now is not None and now.hp > 0:
+                self._characters.act(
+                    target.character_id,
+                    "hp",
+                    {"mode": "damage", "amount": str(now.hp + now.temp)},
+                    by,
+                    combat,
+                )
+            if stable:
+                self._characters.act(target.character_id, "stabilize", {}, by, combat)
+            if "injuries" in self.rules_of(combat):
+                combat.injuries.setdefault(target.id, "down")
+            return
+        target.hp = target.hp_temp = 0
+        target.save_due = None
+        target.concentration = None
+        if target.form is not None:
+            self._end_shape(combat, target, by, natural=True)
+
+    def _put_on(
+        self, combat: Combat, target: Combatant, condition: str, rounds: int, by: str
+    ) -> None:
+        """A condition for ``rounds`` rounds, ticking down at the end of its turns."""
+        if target.character_id is not None:
+            self._characters.act(target.character_id, "condition", {"key": condition}, by, combat)
+        else:
+            target.conditions = [*target.conditions, condition]
+            if condition in INCAPACITATING:
+                target.concentration = None
+                target.save_due = None
+        target.timers = [*target.timers, ConditionTimer(condition=condition, rounds=rounds)]
+        self._log(
+            combat,
+            "condition_on",
+            by,
+            subject=self.label_of(target),
+            detail=condition,
+            amount=rounds,
+        )
+
+    def morale(self, combat_id: str, combatant_id: str, by: str, *, skip: bool = False) -> Combat:
+        """Test a group's nerve: a DC 10 Wisdom save rolled for it, once a fight; or not
+        now (``skip``). Fleeing is the gamemaster's."""
+
+        def apply(combat: Combat) -> None:
+            target = self._member(combat, combatant_id)
+            if target.group in combat.morale:
+                raise CombatError("combat.error.morale_done")
+            combat.morale = [*combat.morale, target.group]
+            if skip:
+                return
+            roll = self._dice.d20(self._save_bonus(target, "wis"))
+            success = roll.total >= MORALE_DC
+            turn = next((t for t in self.order(combat) if t.group == target.group), None)
+            self._log(
+                combat,
+                "rule",
+                by,
+                subject=self._turn_label(turn) if turn is not None else self.label_of(target),
+                amount=roll.total,
+                detail=f"morale:{MORALE_DC}",
+                outcome="success" if success else "failure",
+                roll=roll_record(roll, rest=_bonus_source(target)),
+                against=MORALE_DC,
+            )
+
+        return self._mutate(combat_id, apply)
+
+    def injury(self, combat_id: str, combatant_id: str, by: str, *, skip: bool = False) -> Combat:
+        """Roll the lingering injury offered to a character, kept on it as an affliction;
+        or wave the offer off (``skip``)."""
+        combat = self.get(combat_id)
+        target = self._member(combat, combatant_id)
+        if target.id not in combat.injuries or target.character_id is None:
+            raise CombatError("combat.error.no_injury")
+        rolled = None
+        if not skip:
+            rows = self._finder(combat.world_id)(TABLES["injuries"], [GUIDE_2014])
+            if not rows:
+                raise CombatError("combat.error.no_table")
+            rolled = lingering_injury(rows, self._dice)
+            if self._injure is not None:
+                self._injure(combat.world_id, target.character_id, rolled.name, rolled.note)
+
+        def apply(record: Combat) -> None:
+            record.injuries = {k: v for k, v in record.injuries.items() if k != combatant_id}
+            if rolled is not None:
+                self._log(
+                    record,
+                    "rule",
+                    by,
+                    subject=self.label_of(self._member(record, combatant_id)),
+                    amount=rolled.roll,
+                    detail=f"injury:{rolled.name}",
+                )
+
+        return self._mutate(combat_id, apply)
+
+    def mob(
+        self,
+        combat_id: str,
+        combatant_id: str,
+        name: str,
+        hit: int,
+        damage: Sequence[Damage],
+        target_id: str,
+        count: int,
+        by: str,
+    ) -> Combat:
+        """Many of a group attack one target at once (the guide's *Mob Attacks*): how
+        many attackers it takes for one hit, from the d20 they need against its AC; each
+        hit's damage rolled and applied, the target's defences counted."""
+        combat = self.get(combat_id)
+        rows = self._finder(combat.world_id)(TABLES["mobs"], [GUIDE_2014])
+        if not rows or "mobs" not in self.rules_of(combat):
+            raise CombatError("combat.error.no_table")
+        attacker = self._member(combat, combatant_id)
+        target = self._member(combat, target_id)
+        standing = [
+            m for m in combat.combatants if m.group == attacker.group and not self.is_down(m)
+        ]
+        attackers = max(1, min(count, len(standing)))
+        ac = self.row(target).ac
+        if ac is None:
+            raise CombatError("combat.error.no_ac")
+        per = mob_needs(rows, ac, hit)
+        hits = attackers // per if per else 0
+        dealt: builtins.list[int] = []
+        types_total: dict[str, int] = {}
+        defenses = self._defenses_of(target)
+        for _ in range(hits):
+            by_type: dict[str, int] = {}
+            for part in damage:
+                rolled = self._dice.roll(part.expression)
+                by_type[part.kind] = by_type.get(part.kind, 0) + max(0, rolled.total)
+            for kind, value in by_type.items():
+                types_total[kind] = types_total.get(kind, 0) + value
+            dealt.append(against(by_type, defenses))
+        monster = self.monster_of(attacker)
+        who = monster.name if monster is not None else self.label_of(attacker)
+        aimed = self.label_of(target)
+
+        def note(record: Combat) -> None:
+            self._log(
+                record,
+                "rule",
+                by,
+                subject=who,
+                damage=sum(dealt),
+                detail=f"mob:{attackers}:{per or 0}:{hits}:{name.strip()[:80]}\u2192{aimed}",
+                damage_types=types_total,
+                actor=attacker.id,
+            )
+
+        result = self._mutate(combat_id, note)
+        for amount in dealt:
+            if amount:
+                result = self.damage(combat_id, target_id, amount, by)
+        return result
 
     # -- the roster --------------------------------------------------------------------
 
@@ -3116,6 +3478,8 @@ class CombatService:
         return roll
 
     def _take_roll(self, combat: Combat, combatant: Combatant) -> None:
+        if combat.sides:
+            return  # side initiative: one roll for the side, not the sheet's
         roll = self._sheet_roll(combat, combatant)
         if roll is None:
             return
@@ -3238,6 +3602,7 @@ class CombatService:
             spells_over.clear()
             self._writing.by = ""
             apply(draft)
+            self._hold_sides(draft)
             # Concentration on Polymorph lost in this change ends the shapes it held:
             # a monster's here, a character caster's as its sheet reported it.
             self._concentration_lost(record, draft, self._writing.by)

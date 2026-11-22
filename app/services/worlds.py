@@ -22,6 +22,7 @@ from typing import Any
 
 from app.models.gamestate import ONE_EDITION_SOURCES, SourceSet, World
 from app.services.auth import AuthError
+from app.services.combat_rules import kept
 from app.services.table import TableService
 from app.services.trash import Trash
 from app.store.gamestate import GameStateStore
@@ -130,6 +131,8 @@ class WorldInput:
     allow_rerolls: bool = False
     variant_encumbrance: bool = False
     milestone: bool = False
+    # The optional combat rules the tracker applies (app/services/combat_rules.py).
+    combat_rules: tuple[str, ...] = ()
     # What the world's own texts are written in; Claude writes drafts in it (MCP.md §5).
     language: str = "en"
     # The declared books players may read; None: the defaults (PLAYER-VIEW.md).
@@ -187,6 +190,7 @@ class WorldService:
             allow_rerolls=data.allow_rerolls,
             variant_encumbrance=data.variant_encumbrance,
             milestone=data.milestone,
+            combat_rules=kept(data.combat_rules),
             language=data.language,
             player_sources=_players(data),
         )
@@ -204,6 +208,7 @@ class WorldService:
             allow_rerolls=data.allow_rerolls,
             variant_encumbrance=data.variant_encumbrance,
             milestone=data.milestone,
+            combat_rules=kept(data.combat_rules),
             language=data.language,
             player_sources=_players(data),
         )

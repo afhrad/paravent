@@ -28,6 +28,7 @@ from htpy import (
 from htpy import input as input_el
 
 from app.models.gamestate import Adventure, Chapter, World
+from app.services.combat_rules import RULES
 from app.services.experience import progress
 from app.services.news import NewsLine
 from app.services.sheet import Sheet
@@ -521,6 +522,7 @@ def world_form(
     rerolls: bool = False,
     encumbrance: bool = False,
     milestone: bool = False,
+    combat_rules: Sequence[str] = (),
     language: str = "en",
     languages: Sequence[tuple[str, str]] = (),
     error: str | None = None,
@@ -621,6 +623,20 @@ def world_form(
                 checked=milestone,
                 hint=t("worlds.milestone_hint"),
             ),
+            section(class_="field world-rules")[
+                h2(class_="eyebrow")[t("worlds.combat_rules")],
+                p(class_="field-hint")[t("worlds.combat_rules_hint")],
+                [
+                    checkbox_field(
+                        "combat_rules",
+                        t(f"worlds.rule.{rule}"),
+                        checked=rule in combat_rules,
+                        hint=t(f"worlds.rule.{rule}_hint"),
+                        value=rule,
+                    )
+                    for rule in RULES
+                ],
+            ],
             div(class_="form-actions")[
                 button(type="submit", class_="btn btn-primary")[
                     icon("check"),
@@ -646,6 +662,7 @@ def world_form_page(
     rerolls: bool = False,
     encumbrance: bool = False,
     milestone: bool = False,
+    combat_rules: Sequence[str] = (),
     language: str = "en",
     languages: Sequence[tuple[str, str]] = (),
     error: str | None = None,
@@ -675,6 +692,7 @@ def world_form_page(
                 rerolls=rerolls,
                 encumbrance=encumbrance,
                 milestone=milestone,
+                combat_rules=combat_rules,
                 language=language,
                 languages=languages,
                 error=error,

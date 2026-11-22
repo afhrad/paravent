@@ -1164,6 +1164,7 @@ def _world_input(
     language: str,
     encumbrance: str = "",
     milestone: str = "",
+    combat_rules: list[str] | None = None,
 ) -> WorldInput:
     """What the world form posted; the players' ticks stored only where they differ from
     the defaults."""
@@ -1176,6 +1177,7 @@ def _world_input(
         allow_rerolls=bool(rerolls),
         variant_encumbrance=bool(encumbrance),
         milestone=bool(milestone),
+        combat_rules=tuple(combat_rules or ()),
         language=_language(registry, language),
         player_sources=tuple(chosen) if chosen is not None else None,
     )
@@ -1213,6 +1215,7 @@ async def create_world(
     language: Annotated[str, Form()] = "",
     encumbrance: Annotated[str, Form()] = "",
     milestone: Annotated[str, Form()] = "",
+    combat_rules: Annotated[list[str] | None, Form()] = None,
 ) -> Response:
     """Create a world, or show the form again with the reason it was refused. The world
     menu's dialog names no language: the world is written in the maker's."""
@@ -1226,6 +1229,7 @@ async def create_world(
         language or page.lang,
         encumbrance,
         milestone,
+        combat_rules,
     )
     try:
         world = worlds.create(data)
@@ -1241,6 +1245,7 @@ async def create_world(
             rerolls=data.allow_rerolls,
             encumbrance=data.variant_encumbrance,
             milestone=data.milestone,
+            combat_rules=data.combat_rules,
             language=data.language,
             languages=_languages(registry),
             error=page.t.error(exc),
@@ -1285,6 +1290,7 @@ async def edit_world(
             rerolls=world.allow_rerolls,
             encumbrance=world.variant_encumbrance,
             milestone=world.milestone,
+            combat_rules=world.combat_rules,
             language=world.language,
             languages=_languages(registry),
             extra=[notice(notice_text), alert(message), images],
@@ -1307,13 +1313,23 @@ async def update_world(
     language: Annotated[str, Form()] = "",
     encumbrance: Annotated[str, Form()] = "",
     milestone: Annotated[str, Form()] = "",
+    combat_rules: Annotated[list[str] | None, Form()] = None,
     next: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
 ) -> Response:
     """Save a world's name, description and books, then back to ``next`` (the page the
     settings dialog was opened on) or the world."""
     world = worlds.get(world_id)
     data = _world_input(
-        registry, name, description, sources, players, rerolls, language, encumbrance, milestone
+        registry,
+        name,
+        description,
+        sources,
+        players,
+        rerolls,
+        language,
+        encumbrance,
+        milestone,
+        combat_rules,
     )
     try:
         worlds.update(world_id, data)
@@ -1329,6 +1345,7 @@ async def update_world(
             rerolls=data.allow_rerolls,
             encumbrance=data.variant_encumbrance,
             milestone=data.milestone,
+            combat_rules=data.combat_rules,
             language=data.language,
             languages=_languages(registry),
             error=page.t.error(exc),
@@ -1397,6 +1414,7 @@ async def world_settings(
                 rerolls=world.allow_rerolls,
                 encumbrance=world.variant_encumbrance,
                 milestone=world.milestone,
+                combat_rules=world.combat_rules,
                 language=world.language,
                 languages=_languages(registry),
                 next_url=back,

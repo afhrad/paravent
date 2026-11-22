@@ -164,13 +164,26 @@ def origin_fields(
     ]
 
 
-def checkbox_field(name: str, caption: str, *, checked: bool, hint: str | None = None) -> Element:
-    """A labelled checkbox. Submits ``on`` when ticked and nothing when not."""
-    field_id = f"f-{name}"
+def checkbox_field(
+    name: str,
+    caption: str,
+    *,
+    checked: bool,
+    hint: str | None = None,
+    value: str | None = None,
+) -> Element:
+    """A labelled checkbox. Submits ``on`` (or ``value``) when ticked and nothing when
+    not; boxes sharing a ``name`` tell themselves apart by ``value``."""
+    field_id = f"f-{name}" if value is None else f"f-{name}-{value}"
     hint_node, hint_id = _hint(field_id, hint)
     return div(class_="field field-check")[
         input_el(
-            id=field_id, name=name, type="checkbox", checked=checked, aria_describedby=hint_id
+            id=field_id,
+            name=name,
+            type="checkbox",
+            value=value,
+            checked=checked,
+            aria_describedby=hint_id,
         ),
         div[label(for_=field_id)[caption], hint_node],
     ]

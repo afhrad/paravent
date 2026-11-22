@@ -202,8 +202,11 @@ class WorldFront(_Front):
     player_books: list[str] | None = None
     rerolls: bool = False
     encumbrance: bool = False
+    milestone: bool = False
     # The naming styles names come from (documentation/NAMES.md §5b); absent: every one.
     names: list[str] = Field(default_factory=list)
+    # The optional combat rules the tracker applies (app/services/combat_rules.py).
+    combat_rules: list[str] = Field(default_factory=list)
 
 
 class AdventureFront(_Front):
@@ -249,7 +252,9 @@ def to_file(record: Record) -> tuple[dict[str, Any], str]:
             "books": list(record.source_set.sources),
             "rerolls": record.allow_rerolls or None,
             "encumbrance": record.variant_encumbrance or None,
+            "milestone": record.milestone or None,
             "names": list(record.naming_styles),
+            "combat_rules": list(record.combat_rules),
         }
         front = _clean(fields)
         if record.player_sources is not None:  # an empty list is a choice: nothing
@@ -475,8 +480,10 @@ class ProseStore:
                 source_set=SourceSet(sources=w.books),
                 allow_rerolls=w.rerolls,
                 variant_encumbrance=w.encumbrance,
+                milestone=w.milestone,
                 player_sources=w.player_books,
                 naming_styles=w.names,
+                combat_rules=w.combat_rules,
             )
         if place.kind == "adventure":
             a = AdventureFront.model_validate(fields)

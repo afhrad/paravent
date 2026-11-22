@@ -124,6 +124,25 @@ end by themselves.
   attacks at the caster's spell attack, save DCs at the caster's. Its statblock has the
   usual Attack buttons. It vanishes when the caster's concentration ends.
 
+## 5b. Optional rules
+
+In **World settings**, under *Optional combat rules*, you can tick the 2014 guide's variants.
+A fight keeps the rules it started with.
+
+- **Massive damage**: a hit of half a creature's maximum hit points or more calls a DC 15
+  Constitution save, rolled at once. On a failure the *System Shock* table is rolled and
+  carried out: a drop to 0, or stunned until the end of the creature's next turn.
+- **Lingering injuries**: when a character takes a critical hit or drops to 0, a line above
+  the order asks whether to roll one. The injury stays on the character's sheet until you
+  end it there.
+- **Morale**: a group that has lost half its number, or a lone creature at half its hit
+  points, shows a reminder at its turn: **Roll** its DC 10 Wisdom save, or **Not needed**.
+- **Mob attacks**: under each attack of a group with two or more standing members, **Mob**
+  takes a target and how many attack. The guide's table says how many hit, and their damage
+  is applied.
+- **Side initiative**: each side rolls one d20 at the start, and everyone on the higher side
+  acts first. Changing a member's initiative changes its whole side's.
+
 ## 6. Ending
 
 **End combat** shows the summary: XP per defeated foe (allies earn none). **Award to …

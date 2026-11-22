@@ -434,6 +434,8 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
                 distance=page.u.distance(10),
             )
             return f"{rest.title()} — {rule}"
+        if head == "rule":
+            return rule_text(page, entry.subject_name, rest, entry.amount, entry.outcome)
         if head == "recharge":
             outcome = "success" if entry.outcome == "success" else "failure"
             return t(
@@ -884,6 +886,42 @@ def reason_word(page: Page, reason: str) -> str:
     if head == "condition" and rest:
         return _word(page, f"condition.{rest}", rest)
     return _word(page, f"protocol.reason.{head}", head)
+
+
+def rule_text(page: Page, subject: str, detail: str, amount: int | None, outcome: str) -> str:
+    """An optional combat rule at work (app/services/combat_rules.py), from what the
+    tracker logged: ``sides:<friend>:<foe>``, ``massive:<dc>``, ``shock:<text>``,
+    ``morale:<dc>``, ``injury:<name>``, ``mob:<n>:<per hit>:<hits>:<action>→<target>``.
+    ``amount`` is the roll (a mob's damage)."""
+    t = page.t
+    head, _, rest = detail.partition(":")
+    made = outcome == "success"
+    if head == "sides":
+        friend, _, foe = rest.partition(":")
+        return t("combat.rule.sides", friend=friend, foe=foe)
+    if head in ("massive", "morale"):
+        key = f"combat.rule.{head}_{'made' if made else 'failed'}"
+        return t(key, subject=subject, amount=amount if amount is not None else "—", dc=rest)
+    if head == "shock":
+        return t("combat.rule.shock", subject=subject, amount=amount or 0, text=rest)
+    if head == "injury":
+        return t("combat.rule.injury", subject=subject, amount=amount or 0, name=rest)
+    if head == "mob":
+        n, per, hits, aimed = (rest.split(":", 3) + ["", "", ""])[:4]
+        action, _, target = aimed.rpartition("\u2192")
+        if per in ("", "0"):
+            return t("combat.rule.mob_none", subject=subject, n=n, target=target, action=action)
+        return t(
+            "combat.rule.mob",
+            subject=subject,
+            n=n,
+            target=target,
+            action=action,
+            per=per,
+            hits=hits,
+            damage=amount or 0,
+        )
+    return detail
 
 
 def _word(page: Page, key: str, fallback: str) -> str:

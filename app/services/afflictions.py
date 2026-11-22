@@ -43,7 +43,7 @@ from app.store.gamestate import GameStateStore
 
 DAY = 24 * 60
 DAWN = 6 * 60  # the hour a "daily at dawn" save is rolled
-KINDS = ("disease", "poison", "curse", "madness")
+KINDS = ("disease", "poison", "curse", "madness", "injury")
 _UNIT = {"minute": 1, "hour": 60, "day": DAY}
 _WORDS = {"one": 1, "a": 1, "an": 1, "two": 2, "three": 3}
 _COURSE = re.compile(
@@ -406,6 +406,22 @@ class AfflictionService:
                 Visibility.PUBLIC,
             )
         return curse if pc is not None else None
+
+    def injure(self, world_id: str | None, character_id: str, name: str, note: str) -> bool:
+        """A lingering injury on a character (app/services/combat_rules.py), kept until the
+        gamemaster ends it; the fight's log tells it. False when the character is gone."""
+        injury = Affliction(
+            id=uuid.uuid4().hex[:12],
+            kind="injury",
+            name=" ".join(name.split())[:200] or "?",
+            note=note.strip()[:2000],
+            since=self._now(world_id) if world_id else 0,
+        )
+        pc = self._mutate(
+            character_id,
+            lambda pc: setattr(pc.state, "afflictions", [*pc.state.afflictions, injury]),
+        )
+        return pc is not None
 
     def madden(
         self,

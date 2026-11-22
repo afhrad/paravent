@@ -2061,6 +2061,8 @@ class StoreRegistry:
             shapes=lambda world_id, spell, cr: polymorph.shapes(
                 self.compendium, self.references.source_set(world_id), spell, cr
             ),
+            table=self.book_table,
+            injure=lambda *args: self.afflictions.injure(*args),
         )
 
     def summoning_for(self, spell: str) -> Summoning | None:

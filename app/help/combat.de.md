@@ -139,6 +139,28 @@ Zustände mit einer Rundenzahl enden von selbst.
   Rettungswurf-SG mit seinem. Ihr Werteblock hat die üblichen Angriffsschaltflächen. Sie
   verschwindet, wenn die Konzentration des Zaubernden endet.
 
+## 5b. Optionale Regeln
+
+In den **Welteinstellungen** kannst du unter *Optionale Kampfregeln* die Varianten des
+Spielleiterhandbuchs von 2014 ankreuzen. Ein Kampf behält die Regeln, mit denen er begann.
+
+- **Massiver Schaden**: Ein Treffer von der Hälfte der maximalen Trefferpunkte oder mehr
+  verlangt einen Konstitutionsrettungswurf gegen SG 15, sofort gewürfelt. Misslingt er, wird
+  die Tabelle *System Shock* gewürfelt und ausgeführt: ein Fall auf 0, oder betäubt bis zum
+  Ende des nächsten Zugs der Kreatur.
+- **Bleibende Verletzungen**: Erleidet ein Charakter einen kritischen Treffer oder fällt er
+  auf 0, fragt eine Zeile über der Reihenfolge, ob du eine würfeln willst. Die Verletzung
+  bleibt auf seinem Bogen, bis du sie dort beendest.
+- **Moral**: Eine Gruppe, die die Hälfte verloren hat, oder eine einzelne Kreatur mit der
+  Hälfte ihrer Trefferpunkte zeigt in ihrem Zug eine Erinnerung: **Würfeln** (ein
+  Weisheitsrettungswurf gegen SG 10) oder **Nicht nötig**.
+- **Angriffe einer Meute**: Unter jedem Angriff einer Gruppe mit mindestens zwei stehenden
+  Mitgliedern nimmt **Meute** ein Ziel und wie viele angreifen. Die Tabelle des Handbuchs
+  sagt, wie viele treffen, und ihr Schaden wird angewandt.
+- **Initiative nach Seiten**: Jede Seite würfelt zu Beginn einen W20, und wer auf der höheren
+  Seite steht, handelt zuerst. Änderst du die Initiative eines Mitglieds, ändert sich die
+  seiner ganzen Seite.
+
 ## 6. Das Ende
 
 **Kampf beenden** zeigt die Zusammenfassung: EP pro besiegtem Feind (Verbündete bringen

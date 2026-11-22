@@ -691,6 +691,18 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         which creatures a stealthy party would catch unaware — shown on the journey and
         written into the encounter made from it. Also fixed: a character hungry or thirsty
         past six levels of exhaustion no longer fails to save
+  - [x] **Optional combat rules** (2026-11-22, `app/services/combat_rules.py`, COMBAT.md
+        §3): the 2014 guide's variants as world switches in World settings, kept by a fight
+        from its start. **Massive damage** rolls the DC 15 Constitution save and, on a
+        failure, the *System Shock* table, carried out (a drop to 0, stable where it says so;
+        a condition until the end of the creature's next turn). **Lingering injuries** are
+        offered after a critical hit on a character or a drop to 0, rolled on the guide's
+        table and kept on the character as an affliction. **Morale** reminds a group at half
+        its number, or a lone creature at half its HP, to make its DC 10 Wisdom save, once.
+        **Mob attacks** gang a group up on one target by the *Mob Attacks* table, each hit
+        applied. **Side initiative** gives each side one d20. A rule whose table the world's
+        books lack is not offered. Also fixed: a world's milestone switch was never written
+        into its file, so a restart turned milestone levelling off
   - [x] **The session note to the players** (2026-11-16): "Send to the players" puts the
         note, as it reads, into every character's journal as a handout
   - [x] **Sidekick classes** (2026-11-16): a sidekick may take one of the books' sidekick

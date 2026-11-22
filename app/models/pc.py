@@ -424,10 +424,11 @@ class Affliction(GameStateModel):
     a level, a success takes one, cured at none), ``three`` (cured after three successes)
     or ``dc_drop`` (a success lowers the DC by ``drop``, cured at 0); none leaves it to
     the table. A curse is the gamemaster's: its name and ``note``. Madness
-    (app/services/madness.py) keeps its grade as ``name``, what the table says as ``note``."""
+    (app/services/madness.py) keeps its grade as ``name``, what the table says as ``note``;
+    a lingering injury (app/services/combat_rules.py) likewise, until the gamemaster ends it."""
 
     id: str
-    kind: Literal["disease", "poison", "curse", "madness"]
+    kind: Literal["disease", "poison", "curse", "madness", "injury"]
     name: str = Field(max_length=200)
     ref: str = Field(default="", max_length=300)
     note: str = Field(default="", max_length=2000)

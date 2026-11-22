@@ -59,6 +59,7 @@ from app.services.combat import (
     TurnView,
     pending_attacks,
 )
+from app.services.combat_rules import MORALE_DC
 from app.services.experience import Progress
 from app.services.knowledge import Revealable, action_name
 from app.services.monster_attacks import MonsterSpell, attack_of, encode, monster_spells, save_of
@@ -82,7 +83,7 @@ from app.ui.layout import app_shell
 from app.ui.markdown import Rendered
 from app.ui.names import classes_text, monster_label, name_text
 from app.ui.palette import SearchTarget, search_form
-from app.ui.protocol_pages import log_embed_slot
+from app.ui.protocol_pages import log_embed_slot, rule_text
 from app.ui.ref_pages import statblock
 from app.ui.rulebook_pages import screen_url
 from app.ui.sheet_pages import defenses, form_pill, speed_text
@@ -840,6 +841,7 @@ def board(
         # box: on a phone that box is short, and they would push the order out of it.
         _pending_attacks(page, view, sel),
         _repeat_saves(page, view, sel),
+        _injuries(page, view, sel),
         # The order scrolls on its own, so the round, whose turn and Next stay in view;
         # combat.js keeps the position across swaps.
         div(class_="cb-scroll", data_scroll_keep="combat-order")[
@@ -949,6 +951,46 @@ def _pending_attacks(page: Page, view: CombatView, sel: str) -> Node:
         )
     return section(class_="cb-pending-list", aria_label=t("combat.attacks_pending"))[
         span(class_="eyebrow")[icon("dices", "sm"), " ", t("combat.attacks_pending")],
+        ul[items],
+    ]
+
+
+def _injuries(page: Page, view: CombatView, sel: str) -> Node:
+    """Lingering injuries offered (an optional rule): a character took a critical hit or
+    dropped to 0 — rolled on the guide's table, or waved off."""
+    combat = view.combat
+    if not combat.running or not combat.injuries or "injuries" not in view.rules:
+        return None
+    t = page.t
+    items = []
+    for combatant_id, why in combat.injuries.items():
+        row = view.row(combatant_id)
+        if row is None:
+            continue
+        items.append(
+            li(class_="cb-pending")[
+                span(class_="cb-pending-text")[
+                    t(f"combat.injury_due_{why}", name=shown_label(page, row))
+                ],
+                _row_form(
+                    view,
+                    row,
+                    "injury",
+                    sel,
+                    button(type="submit", class_="btn btn-sm btn-dmg")[
+                        icon("dices", "sm"), span[t("combat.injury_roll")]
+                    ],
+                    button(type="submit", name="skip", value="1", class_="btn btn-sm btn-ghost")[
+                        t("combat.injury_skip")
+                    ],
+                    cls="cb-form cb-pending-form",
+                ),
+            ]
+        )
+    if not items:
+        return None
+    return section(class_="cb-pending-list", aria_label=t("combat.injuries"))[
+        span(class_="eyebrow")[icon("heart-crack", "sm"), " ", t("combat.injuries")],
         ul[items],
     ]
 
@@ -1190,6 +1232,28 @@ def _reminders(page: Page, view: CombatView, sel: str, ctx: RenderContext | None
                 ),
             ]
         )
+    for combatant_id, _label, reason in due.morale:
+        row = view.row(combatant_id)
+        if row is None:
+            continue
+        items.append(
+            div(class_="cb-due-line")[
+                span[t(f"combat.due_morale_{reason}", name=shown_label(page, row), dc=MORALE_DC)],
+                _row_form(
+                    view,
+                    row,
+                    "morale",
+                    sel,
+                    button(type="submit", class_="btn btn-sm")[
+                        icon("dices", "sm"), span[t("combat.morale_roll")]
+                    ],
+                    button(type="submit", name="skip", value="1", class_="btn btn-sm btn-ghost")[
+                        t("combat.morale_skip")
+                    ],
+                    cls="cb-form cb-inline",
+                ),
+            ]
+        )
     return section(class_="cb-due", aria_label=t("combat.due"))[
         span(class_="eyebrow")[icon("bell", "sm"), " ", t("combat.due")],
         items,
@@ -1217,6 +1281,9 @@ def log_text(page: Page, entry: CombatLogEntry) -> str:
     elif kind == "recharge":
         outcome = "success" if entry.outcome == "success" else "failure"
         return t(f"combat.log.recharge_{outcome}", **fields)
+    elif kind == "rule":
+        amount = entry.damage if entry.detail.startswith("mob:") else entry.amount
+        return rule_text(page, entry.subject, entry.detail, amount, entry.outcome)
     elif kind == "save_effect":
         ability = t(f"ability.{entry.save_ability}")
         if entry.damage:
@@ -1750,9 +1817,67 @@ def _attack_hook(page: Page, view: CombatView, row: Row) -> BlockHook:
             ],
             cls="cb-form cb-attack",
         )
-        return div(class_="cb-attack-entry")[default(), roll]
+        return div(class_="cb-attack-entry")[
+            default(), roll, _mob_form(page, view, row, name, attack.hit, encode(attack))
+        ]
 
     return hook
+
+
+def _mob_form(page: Page, view: CombatView, row: Row, name: str, hit: int, dmg: str) -> Node:
+    """Mob attacks (an optional rule): several of the group attack one target at once,
+    the guide's table saying how many hits that makes."""
+    if "mobs" not in view.rules or not view.combat.running:
+        return None
+    group = row.combatant.group
+    standing = [
+        r for turn in view.turns for r in turn.rows if r.combatant.group == group and not r.down
+    ]
+    if len(standing) < 2:
+        return None
+    side = _party(row)
+    targets = [
+        r
+        for turn in view.turns
+        for r in turn.rows
+        if _party(r) != side and not r.down and r.ac is not None
+    ]
+    if not targets:
+        return None
+    t = page.t
+    slug = re.sub(r"\W+", "-", name.lower())
+    count_id = f"mob-{row.combatant.id}-{slug}"
+    return details(class_="cb-mob")[
+        summary(class_="btn btn-sm btn-ghost")[icon("users", "sm"), span[t("combat.mob")]],
+        _row_form(
+            view,
+            row,
+            "mob",
+            row.combatant.id,
+            hidden("name", name),
+            hidden("hit", str(hit)),
+            hidden("dmg", dmg),
+            select(name="target", aria_label=t("combat.attack_target"))[
+                [option(value=r.combatant.id)[shown_label(page, r)] for r in targets]
+            ],
+            label(for_=count_id, class_="cb-mob-count")[
+                t("combat.mob_count"),
+                input_el(
+                    id=count_id,
+                    type="number",
+                    name="count",
+                    min="1",
+                    max=str(len(standing)),
+                    value=str(len(standing)),
+                ),
+            ],
+            button(type="submit", class_="btn btn-sm btn-dmg")[
+                icon("swords", "sm"), span[t("combat.mob_attack")]
+            ],
+            small(class_="field-hint")[t("combat.mob_hint")],
+            cls="cb-form cb-mob-form",
+        ),
+    ]
 
 
 def _sb_line(label: str, *content: Node) -> Element:

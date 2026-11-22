@@ -263,6 +263,8 @@ _COMBAT_KINDS: dict[str, EntryKind] = {
     # A creature turned into another by a spell, or back (Polymorph).
     "form_on": EntryKind.CUSTOM,
     "form_off": EntryKind.CUSTOM,
+    # An optional combat rule at work: massive damage, morale, a mob, side initiative.
+    "rule": EntryKind.CUSTOM,
     "end": EntryKind.COMBAT_END,
 }
 
@@ -307,6 +309,7 @@ def from_combat(
         "form_on": f"polymorph:on:{entry.detail}",
         "form_off": f"polymorph:off:{entry.detail}",
         "save_damage": f"save:{entry.detail}",
+        "rule": f"rule:{entry.detail}",
     }.get(entry.kind)
     if what is None:
         if kind in (EntryKind.COMBAT, EntryKind.COMBAT_START):
@@ -319,7 +322,7 @@ def from_combat(
         amount = entry.damage
     elif entry.kind == "save_effect":
         amount, against = entry.damage, entry.amount
-    elif entry.kind == "save_damage":
+    elif entry.kind == "save_damage" or (entry.kind == "rule" and entry.damage is not None):
         amount = entry.damage
     outcome: Outcome = entry.outcome
     # An attack's or effect's roll gets an id its verdicts can refer to.
