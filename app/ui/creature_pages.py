@@ -66,6 +66,7 @@ from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.library_links import confirm_page, delete_link
 from app.ui.palette import SearchTarget, search_form
+from app.ui.pick import pick_box, pick_scope
 from app.ui.ref_pages import statblock
 from app.ui.rules_text import senses_shown
 from app.ui.tags import RenderContext, ref_url
@@ -112,6 +113,7 @@ def creatures_page(
     draft = draft or {}
     items = [
         li(class_="list-row")[
+            pick_box(page, "creature", r.design.id, r.design.name),
             token(page.token_of("creature", r.design.world_id, r.design.id)),
             cr_badge(page, r.design.cr),
             div(class_="list-main")[
@@ -166,7 +168,7 @@ def creatures_page(
                 ],
             ),
             notice(notice_text),
-            ul(class_="list")[items]
+            pick_scope(page, "creature", ul(class_="list")[items])
             if items
             else empty_state("skull", t("creatures.empty_heading"), t("creatures.empty_text")),
             create,

@@ -296,5 +296,21 @@ target has already, the name it takes, and the references outside the target's b
   faction or creature design has no trash and moves in place, keeping its id (a quest's
   faction copied or found in the target).
 
-Sharing a piece with another table as a file (the same plan, written to a zip) is not built.
+**Several at once** (2026-11-22, `app/ui/pick.py`): the lists of adventures, NPCs, places,
+treasure, encounters and creatures have **Select…** above them; opened, each row shows a box
+(belonging to the bar's form by its id, no script) and three buttons send the ticked ones to
+the copy page: to another world, moved, or as a file. Pieces of one world at a time; one
+already inside a chosen adventure goes with it.
+
+**As a file for another table** (2026-11-22): **Save as a file** on the copy page (mode
+`file`, `GET /gm/copy/file`) writes the same bundle as `<name>.paravent-pieces.zip` —
+`paravent-pieces.json` (format 1, the source world's name, the pieces), `entries.json` (each
+record's data and role: chosen, inside, or named by a text), an adventure's folder under
+`adventures/<id>/`, pictures under `pictures/<id>/` and tokens under `tokens/` — with what the
+texts name, or without. **Import into this world** in the world menu (`/gm/copy/import`)
+reads such a file into the table's world, the same writing as a copy: new ids, names the
+world has taking " (2)", named pieces it has already found by name rather than added,
+pictures checked by content, records that do not validate left out and named; the page then
+lists what came, what took another name and what the world's books lack. The file is checked
+as a world package is (`world_transfer._checked`: no paths leaving it, size limits).
 

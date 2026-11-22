@@ -440,6 +440,8 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         quest, faction or creature design, with new ids and links rewritten; what its texts
         name comes along unless the target has it by name; a name the target has takes
         " (2)"; the target's missing books are listed first; a move deletes into the trash.
+        **Several at once** from a list's Select…, and **as a file** for another table
+        (`*.paravent-pieces.zip`), read in with Import into this world in the world menu.
         **From Game Master 5e** (2026-11-21, `app/services/gm5_import.py`, CURRENT-WORLD.md
         §9b): a campaign of a backup becomes a new world, its creatures and items matched in
         the books chosen, home-made creatures as designs begun from the book creature in their

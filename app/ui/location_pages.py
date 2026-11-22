@@ -53,6 +53,7 @@ from app.ui.library_links import (
 )
 from app.ui.markdown import Rendered
 from app.ui.name_roller import name_roller
+from app.ui.pick import pick_box, pick_scope
 from app.ui.title_images import title_image, title_image_panel, title_thumb
 from app.ui.tokens import token
 from app.ui.tool_dialog import create_form, new_button, tool_dialog
@@ -129,6 +130,7 @@ def locations_page(
     t = page.t
     items = [
         li(class_="list-row")[
+            pick_box(page, "place", location.id, location.name),
             _picture(page, location),
             div(class_="list-main")[
                 a(href=location_url(location.id), class_="list-title list-link")[location.name],
@@ -156,7 +158,7 @@ def locations_page(
             ),
             notice(notice_text),
             alert(error) if not new else None,
-            ul(class_="list")[items]
+            pick_scope(page, "place", ul(class_="list")[items])
             if items
             else empty_state("map", t("places.empty_heading"), t("places.empty_text")),
             _new_place_dialog(page, world, error if new else None, new),

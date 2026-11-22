@@ -30,6 +30,7 @@ from htpy import (
 from htpy import input as input_el
 
 from app.ui.context import Page
+from app.ui.copy_links import IMPORT_URL as PIECES_IMPORT_URL
 from app.ui.forms import alert
 from app.ui.icons import icon
 
@@ -111,6 +112,11 @@ def world_menu(page: Page) -> Node:
                 button(type="button", class_="usermenu-link", data_dialog="import-world")[
                     icon("upload", "sm"), span[t("transfer.import")]
                 ],
+                a(href=PIECES_IMPORT_URL, class_="usermenu-link")[
+                    icon("upload", "sm"), span[t("copy.import_menu")]
+                ]
+                if current
+                else None,
                 a(href=GM5_URL, class_="usermenu-link")[
                     icon("download", "sm"), span[t("gm5.menu")]
                 ],

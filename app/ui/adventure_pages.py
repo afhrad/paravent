@@ -113,6 +113,7 @@ from app.ui.library_links import (
 from app.ui.location_pages import location_card
 from app.ui.markdown import Heading, LibraryLink, MarkdownContext, Rendered, render_markdown
 from app.ui.palette import CATEGORY_ICON
+from app.ui.pick import pick_box, pick_scope
 from app.ui.play_buttons import play_button
 from app.ui.prose_check import Problem
 from app.ui.ref_pages import CATEGORY_KEY, statblock
@@ -523,6 +524,7 @@ def world_page(
     )
     rows = [
         li(class_="list-row adv-row")[
+            pick_box(page, "adventure", adv.id, adv.name),
             img(class_="thumb", src=media_url(adv.id, adv.cover), alt="")
             if adv.cover
             else span(class_="avatar", aria_hidden="true")[icon("map")],
@@ -583,7 +585,7 @@ def world_page(
             if bosses
             else None,
             section(class_="prose-section")[
-                ul(class_="list")[rows]
+                pick_scope(page, "adventure", ul(class_="list")[rows])
                 if rows
                 else empty_state("map", t("adventures.empty_heading"), t("adventures.empty_text")),
             ],
@@ -593,9 +595,7 @@ def world_page(
     )
 
 
-def _new_adventure_dialog(
-    page: Page, world: World, books: Sequence[PublishedAdventure]
-) -> Element:
+def _new_adventure_dialog(page: Page, world: World, books: Sequence[PublishedAdventure]) -> Element:
     """A new adventure of the world: by name, or started from a published one."""
     t = page.t
     return tool_dialog(

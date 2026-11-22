@@ -1,50 +1,54 @@
-"""Copying or moving a piece of one world into another (documentation/CURRENT-WORLD.md §9c).
+"""Copying or moving pieces of one world into another, or into a file for another table
+(documentation/CURRENT-WORLD.md §9c).
 
-A whole world travels by export and import (app/services/world_transfer.py); this takes one
-piece across: an **adventure** with its chapters, its pictures and everything placed in it,
-or an **NPC**, **place**, **treasure**, **encounter**, **quest**, **faction** or
-**creature design**. The copy is made the way an import makes a world — every id it carries
-given anew and replaced wherever it is written (front matter, records naming each other,
-Markdown) — into a world that already exists.
+A whole world travels by export and import (app/services/world_transfer.py); this takes
+pieces across: an **adventure** with its chapters, its pictures and everything placed in
+it, or **NPCs**, **places**, **treasure**, **encounters**, **quests**, **factions** and
+**creature designs**, one or several of a list at once. They are gathered into a
+:class:`Bundle` — records as data, an adventure's folder as files, pictures and tokens as
+bytes — which is written into a world, or saved as a file (``*.paravent-pieces.zip``) and
+read back into a world at any table. Writing gives every id new and replaces it wherever it
+is written (front matter, records naming each other, Markdown), as an import does.
 
 * **What a text names comes along**, when asked: the world-level NPCs, places, treasure
-  and encounters its Markdown links to (``{@npc Mara}``) or its adventure uses, and a
-  quest's faction. One the target world already has by that name is not copied: the link
-  finds the target's own, as links go by name.
+  and encounters its Markdown links to (``{@npc Mara}``, ``[Mara](/gm/npcs/<id>)``) or its
+  adventure uses, and a quest's faction. One the target world already has by that name is
+  not copied: the link finds the target's own.
 * **A name the target has** is given " (2)", " (3)" …, as Duplicate does; for a creature
   design any design of the table's counts, as published creatures share one name space.
 * **Pictures and tokens** are copied into the target's folder; a file of the same name
   there that differs is not overwritten, the copy taking a free name.
-* **What stays behind**: fights, the log, a quest's characters and progress, renown.
+* **What stays behind**: fights, the log, a quest's characters and progress, renown. A copy
+  starts planned (an adventure and its chapters); a move keeps its state.
 * **The target's books** are checked first: creatures, items and statblocks outside them
   are listed (they are copied as written and show "not in your books" there).
 
-**Move** is a copy and then a delete of what was copied, into *Recently deleted*, so Undo
+**Move** is a copy and then a delete of the pieces chosen, into *Recently deleted*, so Undo
 and Restore work as for any delete; what came along by name stays where it was too. A
 quest, faction or creature design has no trash and moves in place, keeping its id.
 """
 
 from __future__ import annotations
 
+import io
 import json
 import re
-import shutil
-from collections.abc import Callable, Iterable
-from dataclasses import dataclass, field
+import zipfile
+from collections.abc import Callable, Iterable, Sequence
+from dataclasses import dataclass, field, replace
+from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
-from typing import Any, Literal
+from typing import IO, Any, Literal
 
-from app.models.gamestate import (
-    Adventure,
-    Record,
-    Scope,
-    World,
-    new_id,
-)
+from pydantic import ValidationError
+
+from app import __version__
+from app.models.gamestate import Adventure, Record, Scope, World, new_id
 from app.services.i18n import Translatable
 from app.services.media import IMAGE_TYPES, sniff
+from app.services.world_transfer import WorldTransferError, _checked
 from app.store.gamestate import Collection, GameStateStore
-from app.store.prose import ADVENTURES_DIR, slugify
+from app.store.prose import ADVENTURE_FILE, ADVENTURES_DIR, slugify
 
 Kind = Literal["adventure", "npc", "place", "treasure", "encounter", "quest", "faction", "creature"]
 KINDS: tuple[Kind, ...] = (
@@ -60,9 +64,10 @@ COLLECTIONS: dict[str, str] = {
     "faction": "factions",
     "creature": "creatures",
 }
-# The kinds placed by a scope (world, adventure, chapter), and the ones that sit in a
-# world by ``world_id``.
+# The kinds placed by a scope (world, adventure, chapter).
 SCOPED = ("npc", "place", "treasure")
+# The kinds an adventure holds.
+HELD = ("npc", "place", "treasure", "encounter")
 # What a Markdown link names, by its tag.
 _LINK = re.compile(r"\{@(npc|place|treasure|encounter) ([^}|]+)")
 # A Markdown link to an object's page (``[Hob](/gm/npcs/<id>)``), by its address.
@@ -74,17 +79,35 @@ _ADDRESS_KIND = {
     "encounters": "encounter",
 }
 _ID = re.compile(r"(?<![0-9a-f])[0-9a-f]{12}(?![0-9a-f])")
+_FRONT_ID = re.compile(r"^id:\s*['\"]?([0-9a-f]{12})", re.MULTILINE)
 # The picture field of each kind, a path relative to its owner's folder.
-PICTURES = {"npc": "portrait", "place": "picture", "encounter": "cover", "quest": "cover",
-            "faction": "cover"}  # fmt: skip
+PICTURES = {
+    "npc": "portrait",
+    "place": "picture",
+    "encounter": "cover",
+    "quest": "cover",
+    "faction": "cover",
+}
 # The kinds that carry a token of the table's own (app/services/tokens.py OWN_KINDS).
 TOKENS = ("npc", "treasure", "creature")
 # The kinds a delete keeps in Recently deleted; the others move in place.
 TRASHED = ("adventure", "npc", "place", "treasure", "encounter")
 
+# The file a bundle is saved as.
+FORMAT = 1
+MANIFEST = "paravent-pieces.json"
+ENTRIES = "entries.json"
+ADVENTURES = "adventures/"
+PICTURE_DIR = "pictures/"
+TOKEN_DIR = "tokens/"
+SUFFIX = ".paravent-pieces.zip"
+
+Role = Literal["main", "inside", "named"]
+
 
 class WorldCopyError(Translatable):
-    """A copy that cannot be made: no such piece, the same world, no such target."""
+    """A copy that cannot be made: no such piece, the same world, no such target, a file
+    that is not a bundle."""
 
 
 @dataclass(frozen=True)
@@ -97,39 +120,84 @@ class Piece:
 
 
 @dataclass
-class Plan:
-    """What a copy will do, shown before it is made."""
+class Entry:
+    """One piece in a bundle: chosen (``main``), inside a chosen adventure, or named by a
+    text (``named``). An adventure or chapter has no ``data``: it is in the bundle's files."""
 
     kind: str
     id: str
     name: str
-    source: World
-    target: World
-    # Copied: the piece and what lies in it (an adventure's chapters and objects).
-    pieces: list[Piece] = field(default_factory=list)
-    # World-level objects its texts name, taken along (or offered, when not bringing).
+    role: Role
+    data: dict[str, Any] | None = None
+    # A picture outside a carried adventure's folder: its path and bytes.
+    picture: tuple[str, bytes] | None = None
+    # Its own tokens: (suffix, bytes).
+    tokens: list[tuple[str, bytes]] = field(default_factory=list)
+    # References to the books that its data alone does not show (an adventure's base).
+    refs: list[str] = field(default_factory=list)
+
+    @property
+    def piece(self) -> Piece:
+        return Piece(self.kind, self.id, self.name)
+
+
+@dataclass
+class Bundle:
+    """Pieces gathered to be written into a world or saved as a file."""
+
+    entries: list[Entry] = field(default_factory=list)
+    # Each carried adventure's folder: its id → {path in the folder: bytes}.
+    adventures: dict[str, dict[str, bytes]] = field(default_factory=dict)
+    source: str = ""  # the world it came from, by name
+    world_id: str = ""  # and by id, where it came from this table
+
+    @property
+    def mains(self) -> list[Entry]:
+        return [e for e in self.entries if e.role == "main"]
+
+    def entry(self, record_id: str) -> Entry | None:
+        return next((e for e in self.entries if e.id == record_id), None)
+
+
+@dataclass
+class Plan:
+    """What writing a bundle into a world will do, shown before it is made."""
+
+    pieces: list[Piece]
+    target: World | None
+    bring: bool = True
+    # World-level objects its texts name, taken along (or left behind, when not bringing).
     brought: list[Piece] = field(default_factory=list)
     # Named, but the target has one of that name: links find the target's.
     reused: list[Piece] = field(default_factory=list)
     # References outside the target's books (``Goblin|MM``), each once.
     outside: list[str] = field(default_factory=list)
-    # The name the copy takes where the target has the piece's (None: its own).
-    renamed: str | None = None
-    bring: bool = True
+    # The names the chosen pieces take where the target has theirs (id → name).
+    renamed: dict[str, str] = field(default_factory=dict)
+    source: str = ""
 
 
 @dataclass
 class Copied:
-    """What a copy made: the plan, and the id of the copy of the piece itself."""
+    """What a copy made: the plan, the chosen pieces' copies (old id → new), and how much."""
 
     plan: Plan
-    id: str
+    ids: dict[str, str]
+    kinds: dict[str, str] = field(default_factory=dict)
     moved: bool = False
     files: int = 0
+    skipped: list[str] = field(default_factory=list)
+
+    @property
+    def first(self) -> tuple[str, str] | None:
+        """The kind and new id of the first piece chosen, to lead to."""
+        for old, new in self.ids.items():
+            return self.kinds.get(old, ""), new
+        return None
 
 
 class WorldCopy:
-    """Copies or moves one piece of a world into another."""
+    """Copies or moves pieces of a world into another, or into a file and back."""
 
     def __init__(
         self,
@@ -143,7 +211,7 @@ class WorldCopy:
         self._token_folder = token_folder
         self._delete = delete
 
-    # -- reading -----------------------------------------------------------------
+    # -- reading the store -----------------------------------------------------------
 
     def _collection(self, kind: str) -> Collection[Any]:
         collection = getattr(self._store, COLLECTIONS[kind])
@@ -154,307 +222,396 @@ class WorldCopy:
         """The piece, or None."""
         if kind == "adventure":
             return self._store.adventures.find(record_id)
+        if kind == "chapter":
+            return self._store.chapters.find(record_id)
         if kind not in COLLECTIONS:
             return None
         found: Record | None = self._collection(kind).find(record_id)
         return found
 
-    def world_of(self, kind: str, record: Record) -> str | None:
+    def world_of(self, record: Record | None) -> str | None:
         """The world a piece belongs to."""
         scope = getattr(record, "scope", None)
         if isinstance(scope, Scope):
             return scope.world_id
         return getattr(record, "world_id", None)
 
-    def targets(self, kind: str, record_id: str) -> list[World]:
-        """The worlds a piece may go to: every other one, by name."""
-        record = self.find(kind, record_id)
-        here = self.world_of(kind, record) if record is not None else None
+    def targets(self, kind: str, ids: Sequence[str]) -> list[World]:
+        """The worlds pieces may go to: every other one, by name."""
+        here = self.world_of(self.find(kind, ids[0])) if ids else None
         worlds = [w for w in self._store.worlds.list() if w.id != here]
         return sorted(worlds, key=lambda w: w.name.casefold())
 
-    # -- planning ------------------------------------------------------------------
+    # -- gathering --------------------------------------------------------------------
 
-    def plan(self, kind: str, record_id: str, target_id: str, *, bring: bool = True) -> Plan:
-        """What copying the piece into ``target_id`` would do. Raises
-        :class:`WorldCopyError` for a piece or world that is not there, or the same world."""
-        record = self.find(kind, record_id)
-        if record is None:
+    def bundle(self, kind: str, ids: Sequence[str]) -> Bundle:
+        """The pieces of one kind and one world, with what lies in them and what their
+        texts name. Raises :class:`WorldCopyError` for a piece that is not there."""
+        records = [self.find(kind, i) for i in dict.fromkeys(ids)]
+        chosen = [r for r in records if r is not None]
+        if not chosen or len(chosen) != len(records):
             raise WorldCopyError("copy.error.no_piece")
-        source = self._store.worlds.find(self.world_of(kind, record) or "")
-        target = self._store.worlds.find(target_id)
-        if source is None or target is None:
-            raise WorldCopyError("copy.error.no_world")
-        if source.id == target.id:
-            raise WorldCopyError("copy.error.same_world")
-        name = _name_of(record)
-        plan = Plan(kind, record_id, name, source, target, bring=bring)
-        plan.pieces = self._gathered(kind, record)
-        own = {p.id for p in plan.pieces}
-        for piece in self._named(plan, own):
-            if self._target_has(target.id, piece.kind, piece.name) is not None:
-                plan.reused.append(piece)
-            else:
-                plan.brought.append(piece)
-        plan.renamed = self._free_name(kind, record, target.id)
-        carried = plan.pieces + (plan.brought if bring else [])
-        plan.outside = self._outside(carried, target)
-        return plan
+        worlds = {self.world_of(r) for r in chosen}
+        if len(worlds) != 1:
+            raise WorldCopyError("copy.error.mixed")
+        world_id = worlds.pop() or ""
+        world = self._store.worlds.find(world_id)
+        bundle = Bundle(source=world.name if world is not None else "", world_id=world_id)
+        for record in chosen:
+            if bundle.entry(record.id) is None:  # an NPC inside an adventure also chosen
+                self._gather(bundle, kind, record)
+        own = {e.id for e in bundle.entries}
+        bundle.entries.extend(self._named(bundle, world_id, own))
+        for entry in bundle.entries:
+            self._attach_files(bundle, entry, world_id)
+        return bundle
 
-    def _gathered(self, kind: str, record: Record) -> list[Piece]:
-        """The piece, and for an adventure its chapters and what is placed in it."""
-        pieces = [Piece(kind, record.id, _name_of(record))]
+    def _gather(self, bundle: Bundle, kind: str, record: Record) -> None:
         if kind != "adventure":
-            return pieces
-        store = self._store
-        for chapter in store.chapters.list(lambda c: c.adventure_id == record.id):
-            pieces.append(Piece("chapter", chapter.id, chapter.title))
-        for inner in ("npc", "place", "treasure", "encounter"):
+            bundle.entries.append(self._entry(kind, record, "main"))
+            return
+        assert isinstance(record, Adventure)
+        refs = [f"{record.name}|{record.based_on}"] if record.based_on else []
+        bundle.entries.append(Entry("adventure", record.id, record.name, "main", refs=refs))
+        for chapter in self._store.chapters.list(lambda c: c.adventure_id == record.id):
+            bundle.entries.append(Entry("chapter", chapter.id, chapter.title, "inside"))
+        for inner in HELD:
             for found in self._collection(inner).list():
                 scope = found.scope
                 if scope is not None and scope.adventure_id == record.id:
-                    pieces.append(Piece(inner, found.id, _name_of(found)))
-        return pieces
+                    bundle.entries.append(self._entry(inner, found, "inside"))
+        folder = self._store.prose.folder(record.id)
+        files: dict[str, bytes] = {}
+        bundle.adventures[record.id] = files
+        if folder is None:
+            return
+        for path in sorted(folder.rglob("*")):
+            if path.is_file() and not path.name.startswith("."):
+                suffix = path.suffix.lower()
+                if suffix in (".md", ".json") or suffix in IMAGE_TYPES:
+                    files[path.relative_to(folder).as_posix()] = path.read_bytes()
 
-    def _texts(self, pieces: Iterable[Piece]) -> list[str]:
+    @staticmethod
+    def _entry(kind: str, record: Record, role: Role) -> Entry:
+        return Entry(kind, record.id, _name_of(record), role, record.model_dump(mode="json"))
+
+    def _texts(self, bundle: Bundle) -> list[str]:
         texts: list[str] = []
-        for piece in pieces:
-            record = self._record(piece)
+        for entry in bundle.entries:
+            if entry.role == "named":
+                continue
+            record = self.find(entry.kind, entry.id)
             for key in ("body", "summary", "notes", "text", "note"):
                 value = getattr(record, key, None)
                 if isinstance(value, str) and value:
                     texts.append(value)
         return texts
 
-    def _record(self, piece: Piece) -> Record | None:
-        if piece.kind == "chapter":
-            return self._store.chapters.find(piece.id)
-        return self.find(piece.kind, piece.id)
-
-    def _named(self, plan: Plan, own: set[str]) -> list[Piece]:
+    def _named(self, bundle: Bundle, world: str, own: set[str]) -> list[Entry]:
         """The world-level objects the pieces' texts link to, an adventure uses, or a
-        quest serves (its faction) — not those copied anyway."""
-        world = plan.source.id
-        found: dict[str, Piece] = {}
-        for text in self._texts(plan.pieces):
+        quest serves (its faction) — not those carried anyway."""
+        found: dict[str, Entry] = {}
+
+        def add(kind: str, record: Record | None) -> None:
+            if record is not None and record.id not in own:
+                found.setdefault(record.id, self._entry(kind, record, "named"))
+
+        for text in self._texts(bundle):
             for tag, name in _LINK.findall(text):
-                hit = self._world_level(world, tag, name.strip())
-                if hit is not None and hit.id not in own:
-                    found.setdefault(hit.id, Piece(tag, hit.id, _name_of(hit)))
+                add(tag, self._world_level(world, tag, name.strip()))
             for address, ident in _ADDRESS.findall(text):
                 kind = _ADDRESS_KIND[address]
                 hit = self._collection(kind).find(ident)
-                scope = hit.scope if hit is not None else None
-                if (
-                    hit is not None
-                    and ident not in own
-                    and scope is not None
-                    and scope.world_id == world
-                ):
-                    found.setdefault(ident, Piece(kind, ident, _name_of(hit)))
-        adventure = self._store.adventures.find(plan.id) if plan.kind == "adventure" else None
-        for used in adventure.uses if adventure is not None else []:
-            for kind in ("npc", "place", "treasure", "encounter"):
-                hit = self._collection(kind).find(used)
-                if hit is not None and hit.id not in own:
-                    found.setdefault(hit.id, Piece(kind, hit.id, _name_of(hit)))
-        if plan.kind == "quest":
-            quest = self._store.quests.find(plan.id)
-            faction = (
-                self._store.factions.find(quest.faction_id) if quest and quest.faction_id else None
-            )
-            if faction is not None:
-                found.setdefault(faction.id, Piece("faction", faction.id, faction.name))
+                if hit is not None and hit.scope is not None and hit.scope.world_id == world:
+                    add(kind, hit)
+        for entry in bundle.mains:
+            if entry.kind == "adventure":
+                adventure = self._store.adventures.find(entry.id)
+                for used in adventure.uses if adventure is not None else []:
+                    for kind in HELD:
+                        add(kind, self._collection(kind).find(used))
+            faction = (entry.data or {}).get("faction_id") if entry.kind == "quest" else None
+            if faction:
+                add("faction", self._store.factions.find(faction))
         return list(found.values())
 
     def _world_level(self, world_id: str, kind: str, name: str) -> Record | None:
         """The world's own object of that kind and name (not one inside an adventure)."""
         wanted = name.casefold()
         for record in self._collection(kind).list():
-            scope = record.scope if kind != "faction" else None
-            if kind == "faction":
-                if record.world_id == world_id and record.name.casefold() == wanted:
+            if kind in ("faction", "quest"):
+                if record.world_id == world_id and _name_of(record).casefold() == wanted:
                     return record  # type: ignore[no-any-return]
                 continue
+            scope = record.scope
             if scope is None or scope.world_id != world_id or scope.adventure_id is not None:
                 continue
             if _name_of(record).casefold() == wanted:
                 return record  # type: ignore[no-any-return]
         return None
 
-    def _target_has(self, world_id: str, kind: str, name: str) -> Record | None:
-        return self._world_level(world_id, kind, name)
+    def _attach_files(self, bundle: Bundle, entry: Entry, world_id: str) -> None:
+        """A record's picture (where no carried adventure's folder holds it) and tokens."""
+        if entry.data is None:
+            return
+        key = PICTURES.get(entry.kind)
+        raw = entry.data.get(key) if key else None
+        owner = _owner_of_data(entry.data)
+        if isinstance(raw, str) and raw and owner and not self._carried_folder(bundle, owner):
+            folder = self._store.prose.folder(owner)
+            relative = raw.partition("|")[0]
+            source = folder / relative if folder is not None else None
+            if source is not None and source.is_file():
+                entry.picture = (relative, source.read_bytes())
+        if entry.kind in TOKENS:
+            tokens = self._token_folder(entry.data.get("world_id") or world_id, entry.kind)
+            for path in sorted(tokens.glob(f"{entry.id}.*")) if tokens is not None else ():
+                entry.tokens.append((path.suffix, path.read_bytes()))
 
-    def _free_name(self, kind: str, record: Record, target_id: str) -> str | None:
-        """The copy's name where the target has the piece's already, else None."""
-        name = _name_of(record)
+    @staticmethod
+    def _carried_folder(bundle: Bundle, owner: str) -> bool:
+        """Whether ``owner`` (an adventure or chapter) has its folder in the bundle."""
+        entry = bundle.entry(owner)
+        return entry is not None and entry.kind in ("adventure", "chapter")
+
+    # -- planning ---------------------------------------------------------------------
+
+    def plan(self, bundle: Bundle, target_id: str | None, *, bring: bool = True) -> Plan:
+        """What writing the bundle into ``target_id`` would do (None: into a file)."""
+        target = self._store.worlds.find(target_id) if target_id else None
+        if target_id and target is None:
+            raise WorldCopyError("copy.error.no_world")
+        if target is not None and target.id == bundle.world_id:
+            raise WorldCopyError("copy.error.same_world")
+        plan = Plan(
+            [e.piece for e in bundle.entries if e.role != "named"],
+            target,
+            bring=bring,
+            source=bundle.source,
+        )
+        for entry in bundle.entries:
+            if entry.role != "named":
+                continue
+            if target is not None and self._world_level(target.id, entry.kind, entry.name):
+                plan.reused.append(entry.piece)
+            else:
+                plan.brought.append(entry.piece)
+        if target is not None:
+            plan.renamed = self._renames(bundle, target.id)
+            reused = {p.id for p in plan.reused}
+            plan.outside = _outside(_carried(bundle, bring, reused), target)
+        return plan
+
+    def _renames(self, bundle: Bundle, target_id: str) -> dict[str, str]:
+        """The names the chosen pieces take where the target (or another chosen piece)
+        has theirs."""
+        renamed: dict[str, str] = {}
+        taken_by_kind: dict[str, set[str]] = {}
+        for entry in bundle.mains:
+            if entry.kind not in taken_by_kind:
+                taken_by_kind[entry.kind] = self._taken(entry.kind, target_id)
+            taken = taken_by_kind[entry.kind]
+            name = entry.name
+            if name.casefold() in taken:
+                number = 2
+                while f"{name} ({number})".casefold() in taken:
+                    number += 1
+                name = f"{name} ({number})"
+                renamed[entry.id] = name
+            taken.add(name.casefold())
+        return renamed
+
+    def _taken(self, kind: str, target_id: str) -> set[str]:
+        """The names of that kind a piece may not take in the target."""
         if kind == "adventure":
-            taken = {
-                a.name.casefold()
-                for a in self._store.adventures.list(lambda a: a.world_id == target_id)
-            }
-        elif kind == "creature":
-            taken = {d.name.casefold() for d in self._store.creatures.list() if d.id != record.id}
-        elif kind in ("quest", "faction"):
-            taken = {
-                _name_of(r).casefold()
-                for r in self._collection(kind).list()
-                if getattr(r, "world_id", None) == target_id
-            }
-        else:
-            hit = self._target_has(target_id, kind, name)
-            taken = {name.casefold()} if hit is not None else set()
-            if hit is not None:
-                taken |= {
-                    _name_of(r).casefold()
-                    for r in self._collection(kind).list()
-                    if r.scope is not None and r.scope.world_id == target_id
-                }
-        if name.casefold() not in taken:
-            return None
-        number = 2
-        while f"{name} ({number})".casefold() in taken:
-            number += 1
-        return f"{name} ({number})"
+            rows = self._store.adventures.list(lambda a: a.world_id == target_id)
+            return {a.name.casefold() for a in rows}
+        if kind == "creature":
+            return {d.name.casefold() for d in self._store.creatures.list()}
+        names: set[str] = set()
+        for record in self._collection(kind).list():
+            if kind in ("quest", "faction"):
+                if record.world_id == target_id:
+                    names.add(_name_of(record).casefold())
+                continue
+            scope = record.scope
+            if scope is not None and scope.world_id == target_id and scope.adventure_id is None:
+                names.add(_name_of(record).casefold())
+        return names
 
-    def _outside(self, pieces: Iterable[Piece], target: World) -> list[str]:
-        """The references the pieces make that the target's books lack, each once."""
-        books = target.source_set
-        if books.is_unrestricted:
-            return []
-        missing: dict[str, None] = {}
-        for piece in pieces:
-            record = self._record(piece)
-            for ref in _references(piece.kind, record):
-                source = ref.rpartition("|")[2]
-                if source and not books.allows(source):
-                    missing.setdefault(ref, None)
-        return list(missing)
-
-    # -- copying ---------------------------------------------------------------------
+    # -- writing ----------------------------------------------------------------------
 
     def copy(
-        self, kind: str, record_id: str, target_id: str, *, bring: bool = True, fresh: bool = True
+        self,
+        kind: str,
+        ids: Sequence[str],
+        target_id: str,
+        *,
+        bring: bool = True,
+        fresh: bool = True,
     ) -> Copied:
-        """Copy the piece (and what comes with it) into the target world; ``fresh``, as a
-        new group meets it: an adventure and its chapters planned again."""
-        plan = self.plan(kind, record_id, target_id, bring=bring)
-        carried = plan.pieces + (plan.brought if bring else [])
-        ids = {p.id: _text_id() for p in carried}
-        reused = {
-            p.id: hit.id
-            for p in plan.reused
-            if (hit := self._target_has(plan.target.id, p.kind, p.name))
-        }
+        """Copy pieces (and what comes with them) into another world; ``fresh``, as a new
+        group meets them: an adventure and its chapters planned again."""
+        return self.write(self.bundle(kind, ids), target_id, bring=bring, fresh=fresh)
+
+    def write(
+        self, bundle: Bundle, target_id: str, *, bring: bool = True, fresh: bool = True
+    ) -> Copied:
+        """Write a bundle into a world: every id new, links pointed there."""
+        plan = self.plan(bundle, target_id, bring=bring)
+        target = plan.target
+        if target is None:
+            raise WorldCopyError("copy.error.no_world")
+        reused_ids = {p.id for p in plan.reused}
+        carried = _carried(bundle, bring, reused_ids)
+        ids = {e.id: _text_id() for e in carried}
+        for files in bundle.adventures.values():  # ids only the files know
+            for relative, content in files.items():
+                if relative.endswith(".md"):
+                    for old in _FRONT_ID.findall(content.decode("utf-8", "replace")):
+                        ids.setdefault(old, _text_id())
+        reused: dict[str, str] = {}
+        for piece in plan.reused:
+            hit = self._world_level(target.id, piece.kind, piece.name)
+            if hit is not None:
+                reused[piece.id] = hit.id
         remap = _remapper(ids | reused)
-        done = Copied(plan, ids[record_id])
-        if kind == "adventure":
-            done.files += self._copy_adventure(plan, remap, fresh)
-        for piece in carried:
-            if piece.kind in ("adventure", "chapter"):
-                continue
-            done.files += self._copy_record(plan, piece, ids, reused, remap)
+        done = Copied(
+            plan,
+            {e.id: ids[e.id] for e in bundle.mains},
+            {e.id: e.kind for e in bundle.mains},
+        )
+        for adventure_id, files in bundle.adventures.items():
+            done.files += self._write_adventure(plan, adventure_id, files, remap, fresh)
+        copied_ids = set(ids.values())
+        for entry in carried:
+            if entry.data is not None:
+                done.files += self._write_record(plan, entry, ids, reused, copied_ids, remap, done)
         return done
 
-    def move(self, kind: str, record_id: str, target_id: str, *, bring: bool = True) -> Copied:
-        """Copy the piece into the target, then delete it here into the trash; a quest,
-        faction or creature design moves in place."""
+    def move(self, kind: str, ids: Sequence[str], target_id: str, *, bring: bool = True) -> Copied:
+        """Copy pieces into the target, then delete them here into the trash; quests,
+        factions and creature designs move in place."""
         if kind not in TRASHED:
-            return self._move_in_place(kind, record_id, target_id, bring=bring)
-        done = self.copy(kind, record_id, target_id, bring=bring, fresh=False)
-        self._delete(kind, record_id)
+            return self._move_in_place(kind, ids, target_id, bring=bring)
+        done = self.copy(kind, ids, target_id, bring=bring, fresh=False)
+        for record_id in dict.fromkeys(ids):
+            if self.find(kind, record_id) is not None:  # not gone with an adventure moved
+                self._delete(kind, record_id)
         done.moved = True
         return done
 
-    def _move_in_place(self, kind: str, record_id: str, target_id: str, *, bring: bool) -> Copied:
-        plan = self.plan(kind, record_id, target_id, bring=bring)
-        record = self.find(kind, record_id)
-        assert record is not None
-        changes: dict[str, Any] = {"world_id": target_id}
-        if plan.renamed:
-            changes["name"] = plan.renamed
-        if kind == "quest":
-            faction = getattr(record, "faction_id", None)
-            changes.update(adventure_id=None, characters=[], status="open")
-            if faction is not None:
-                found = self._store.factions.find(faction)
-                hit = self._target_has(target_id, "faction", found.name) if found else None
-                if hit is not None:
-                    changes["faction_id"] = hit.id
-                elif bring and found is not None:
-                    changes["faction_id"] = self.copy("faction", faction, target_id).id
-                else:
-                    changes["faction_id"] = None
-        if kind == "faction":
-            changes["renown"] = {}
-        files = self._carry_files(
-            plan, Piece(kind, record_id, plan.name), record, record_id, changes
-        )
-        self._collection(kind).update(record_id, **changes)
-        return Copied(plan, record_id, moved=True, files=files)
-
-    def _copy_adventure(self, plan: Plan, remap: Callable[[str], str], fresh: bool) -> int:
-        """The adventure's folder into the target's, text with its ids replaced."""
-        store = self._store
-        source = store.prose.folder(plan.id)
-        world_folder = store.prose.world_folder(plan.target.id)
-        if source is None or world_folder is None:
+    def _move_in_place(
+        self, kind: str, ids: Sequence[str], target_id: str, *, bring: bool
+    ) -> Copied:
+        bundle = self.bundle(kind, ids)
+        plan = self.plan(bundle, target_id, bring=bring)
+        if plan.target is None:
             raise WorldCopyError("copy.error.no_world")
-        adventure = store.adventures.find(plan.id)
-        slug = slugify(plan.renamed or (adventure.name if adventure else "adventure"), "adventure")
-        folder = _free(world_folder / ADVENTURES_DIR / slug)
-        files = 0
-        for path in sorted(source.rglob("*")):
-            if not path.is_file() or path.name.startswith("."):
+        done = Copied(plan, {}, moved=True)
+        for entry in bundle.mains:
+            changes: dict[str, Any] = {"world_id": target_id}
+            if entry.id in plan.renamed:
+                changes["name"] = plan.renamed[entry.id]
+            if kind == "quest":
+                changes.update(adventure_id=None, characters=[], status="open")
+                changes["faction_id"] = self._faction_in(bundle, entry, target_id, bring, done)
+            if kind == "faction":
+                changes["renown"] = {}
+            data = {**(entry.data or {}), **changes}
+            done.files += self._place_files(entry, data, target_id, entry.id, None)
+            key = PICTURES.get(kind)
+            if key and data.get(key) != (entry.data or {}).get(key):
+                changes[key] = data[key]
+            self._collection(kind).update(entry.id, **changes)
+            done.ids[entry.id] = entry.id
+            done.kinds[entry.id] = kind
+        return done
+
+    def _faction_in(
+        self, bundle: Bundle, quest: Entry, target_id: str, bring: bool, done: Copied
+    ) -> str | None:
+        """The faction a moved quest serves in the target: its namesake there, a copy, or
+        none."""
+        faction = (quest.data or {}).get("faction_id")
+        entry = bundle.entry(faction) if faction else None
+        if entry is None:
+            return None
+        hit = self._world_level(target_id, "faction", entry.name)
+        if hit is not None:
+            return hit.id
+        if not bring:
+            return None
+        alone = Bundle([replace(entry, role="main")], source=bundle.source)
+        made = self.write(alone, target_id)
+        done.files += made.files
+        return made.ids.get(entry.id)
+
+    def _write_adventure(
+        self,
+        plan: Plan,
+        adventure_id: str,
+        files: dict[str, bytes],
+        remap: Callable[[str], str],
+        fresh: bool,
+    ) -> int:
+        """An adventure's folder into the target's, text with its ids replaced."""
+        store = self._store
+        assert plan.target is not None
+        world_folder = store.prose.world_folder(plan.target.id)
+        if world_folder is None or ADVENTURE_FILE not in files:
+            return 0
+        name = plan.renamed.get(adventure_id) or _front_name(files[ADVENTURE_FILE])
+        folder = _free(world_folder / ADVENTURES_DIR / slugify(name or "adventure", "adventure"))
+        written = 0
+        for relative, content in files.items():
+            path = PurePosixPath(relative)
+            if path.is_absolute() or ".." in path.parts or "\\" in relative:
                 continue
-            relative = path.relative_to(source)
             suffix = path.suffix.lower()
-            content = path.read_bytes()
             if suffix in (".md", ".json"):
                 content = remap(content.decode("utf-8", "replace")).encode("utf-8")
             elif suffix not in IMAGE_TYPES or sniff(content) is None:
                 continue
-            target = folder / remap(relative.as_posix())
+            target = folder / remap(relative)
             target.parent.mkdir(parents=True, exist_ok=True)
             target.write_bytes(content)
-            files += 1
+            written += 1
         store.prose.reload_paths(folder.rglob("*.md"))
-        new_id = remap(plan.id)
+        new_id = remap(adventure_id)
         copied = store.adventures.find(new_id)
         if copied is not None:
             uses = [u for u in (remap(x) for x in copied.uses) if self._held(u)]
             changes: dict[str, Any] = {"uses": uses, "drafted_by": None, "revision_of": None}
-            if plan.renamed:
-                changes["name"] = plan.renamed
+            if adventure_id in plan.renamed:
+                changes["name"] = plan.renamed[adventure_id]
             if fresh:
                 changes["status"] = "planned"
                 for chapter in store.chapters.list(lambda c: c.adventure_id == new_id):
                     if chapter.status != "planned":
                         store.chapters.update(chapter.id, status="planned")
             store.adventures.update(new_id, **changes)
-        return files
+        return written
 
     def _held(self, record_id: str) -> bool:
-        return any(self._collection(k).find(record_id) is not None for k in SCOPED + ("encounter",))
+        return any(self._collection(k).find(record_id) is not None for k in HELD)
 
-    def _copy_record(
+    def _write_record(
         self,
         plan: Plan,
-        piece: Piece,
+        entry: Entry,
         ids: dict[str, str],
         reused: dict[str, str],
+        copied_ids: set[str],
         remap: Callable[[str], str],
+        done: Copied,
     ) -> int:
         """One record into the target, its world and links pointed there."""
-        record = self.find(piece.kind, piece.id)
-        if record is None:
-            return 0
-        collection = self._collection(piece.kind)
-        data = json.loads(remap(json.dumps(record.model_dump(mode="json"))))
+        assert entry.data is not None and plan.target is not None
         target = plan.target.id
-        copied_ids = set(ids.values())
-        if piece.kind in SCOPED:
-            scope = data["scope"]
+        data = json.loads(remap(json.dumps(entry.data)))
+        if entry.kind in SCOPED:
+            scope = data.get("scope") or {}
             inside = scope.get("adventure_id") in copied_ids
             data["scope"] = {
                 "world_id": target,
@@ -463,66 +620,188 @@ class WorldCopy:
             }
         else:
             data["world_id"] = target
-        if piece.kind == "encounter":
-            inside = data.get("adventure_id") in copied_ids
-            if not inside:
-                data["adventure_id"] = data["chapter_id"] = None
-        if piece.kind == "quest":
+        if entry.kind == "encounter" and data.get("adventure_id") not in copied_ids:
+            data["adventure_id"] = data["chapter_id"] = None
+        if entry.kind == "quest":
             data.update(adventure_id=None, characters=[], status="open")
             data["steps"] = [{**s, "done": False} for s in data.get("steps", [])]
             if data.get("faction_id") not in copied_ids | set(reused.values()):
                 data["faction_id"] = None
-        if piece.kind == "faction":
+        if entry.kind == "faction":
             data["renown"] = {}
-        if piece.kind == "creature":
+        if entry.kind == "creature":
             data.update(published_at=None, published_hash=None)
-        if piece.id == plan.id and plan.renamed:
-            data["name"] = plan.renamed
-        files = self._carry_files(plan, piece, record, ids[piece.id], data)
-        collection.upsert_many([type(record).model_validate(data)])
+        if entry.id in plan.renamed:
+            data["name"] = plan.renamed[entry.id]
+        files = self._place_files(entry, data, target, ids[entry.id], copied_ids)
+        collection = self._collection(entry.kind)
+        try:
+            record = collection._model.model_validate(data)
+        except ValidationError:
+            done.skipped.append(f"{entry.kind}: {entry.name}")
+            return files
+        collection.upsert_many([record])
         return files
 
-    def _carry_files(
-        self, plan: Plan, piece: Piece, record: Record, new_id: str, data: dict[str, Any]
+    def _place_files(
+        self,
+        entry: Entry,
+        data: dict[str, Any],
+        target_world: str,
+        new_id: str,
+        copied_ids: set[str] | None,
     ) -> int:
-        """A record's picture and token into the target's folder; ``data`` gets the
+        """A record's picture and tokens into the target's folder; ``data`` gets the
         picture's path where it had to take another name."""
-        store = self._store
         files = 0
-        key = PICTURES.get(piece.kind)
-        raw = getattr(record, key, None) if key else None
-        old_owner = _owner(piece.kind, record)
-        new_owner = _owner_of_data(piece.kind, data)
-        if isinstance(raw, str) and raw and old_owner and new_owner and old_owner != new_owner:
-            relative, bar, effects = raw.partition("|")
-            source = store.prose.folder(old_owner)
-            # A new owner inside the copied adventure has its folder already, with the file.
-            target = store.prose.folder(new_owner)
-            if source is not None and target is not None:
-                src = source / relative
-                placed = _place(src, target, relative)
+        key = PICTURES.get(entry.kind)
+        owner = _owner_of_data(data)
+        # Inside a copied adventure, its folder brought the picture along.
+        inside = copied_ids is not None and owner in copied_ids
+        if entry.picture is not None and key and owner and not inside:
+            folder = self._store.prose.folder(owner)
+            relative, content = entry.picture
+            if folder is not None:
+                placed = _place(content, folder, relative)
                 if placed is not None:
-                    data[key or ""] = placed + bar + effects
+                    raw = str(data.get(key) or "")
+                    data[key] = placed + raw[len(raw.partition("|")[0]) :]
                     files += 1
-        if piece.kind in TOKENS:
-            old_world = self.world_of(piece.kind, record)
-            new_world = plan.target.id
-            files += self._copy_token(piece.kind, old_world, piece.id, new_world, new_id)
+        if entry.tokens:
+            tokens = self._token_folder(target_world, entry.kind)
+            if tokens is not None:
+                tokens.mkdir(parents=True, exist_ok=True)
+                for suffix, content in entry.tokens:
+                    if suffix.lower() in IMAGE_TYPES and sniff(content) is not None:
+                        (tokens / f"{new_id}{suffix.lower()}").write_bytes(content)
+                        files += 1
         return files
 
-    def _copy_token(
-        self, kind: str, old_world: str | None, old_id: str, new_world: str, new_id: str
-    ) -> int:
-        source = self._token_folder(old_world, kind)
-        target = self._token_folder(new_world, kind)
-        if source is None or target is None or not source.is_dir():
-            return 0
-        count = 0
-        for path in source.glob(f"{old_id}.*"):
-            target.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(path, target / f"{new_id}{path.suffix}")
-            count += 1
-        return count
+    # -- files ------------------------------------------------------------------------
+
+    def save(self, bundle: Bundle, out: IO[bytes], *, bring: bool = True) -> None:
+        """Write a bundle as a zip file into ``out``; without ``bring``, what its texts
+        name stays out."""
+        entries = [e for e in bundle.entries if e.role != "named" or bring]
+        with zipfile.ZipFile(out, "w", zipfile.ZIP_DEFLATED) as pack:
+            manifest = {
+                "paravent": "pieces",
+                "format": FORMAT,
+                "app": __version__,
+                "saved_at": datetime.now(UTC).isoformat(),
+                "source": bundle.source,
+                "pieces": [{"kind": e.kind, "name": e.name} for e in bundle.mains],
+            }
+            pack.writestr(MANIFEST, json.dumps(manifest, ensure_ascii=False, indent=1))
+            rows = []
+            for entry in entries:
+                row: dict[str, Any] = {
+                    "kind": entry.kind,
+                    "id": entry.id,
+                    "name": entry.name,
+                    "role": entry.role,
+                    "data": entry.data,
+                    "refs": entry.refs,
+                }
+                if entry.picture is not None:
+                    relative, content = entry.picture
+                    row["picture"] = relative
+                    member = f"{PICTURE_DIR}{entry.id}/{PurePosixPath(relative).name}"
+                    pack.writestr(member, content)
+                for suffix, content in entry.tokens:
+                    pack.writestr(f"{TOKEN_DIR}{entry.id}{suffix}", content)
+                rows.append(row)
+            pack.writestr(ENTRIES, json.dumps(rows, ensure_ascii=False))
+            for adventure_id, files in bundle.adventures.items():
+                for relative, content in files.items():
+                    pack.writestr(f"{ADVENTURES}{adventure_id}/{relative}", content)
+
+    def saved(self, bundle: Bundle, *, bring: bool = True) -> bytes:
+        """A bundle as a zip file, in memory."""
+        out = io.BytesIO()
+        self.save(bundle, out, bring=bring)
+        return out.getvalue()
+
+    def read(self, data: bytes | IO[bytes]) -> Bundle:
+        """A bundle from a saved file. Raises :class:`WorldCopyError` for anything else."""
+        try:
+            pack = zipfile.ZipFile(io.BytesIO(data) if isinstance(data, bytes) else data)
+        except zipfile.BadZipFile as exc:
+            raise WorldCopyError("copy.error.not_pieces") from exc
+        with pack:
+            try:
+                members = _checked(pack.infolist())
+            except WorldTransferError as exc:
+                raise WorldCopyError("copy.error.not_pieces") from exc
+            manifest = _json(pack, members, MANIFEST)
+            if not isinstance(manifest, dict) or manifest.get("paravent") != "pieces":
+                raise WorldCopyError("copy.error.not_pieces")
+            if int(manifest.get("format", 0)) > FORMAT:
+                raise WorldCopyError("copy.error.newer")
+            rows = _json(pack, members, ENTRIES)
+            if not isinstance(rows, list):
+                raise WorldCopyError("copy.error.not_pieces")
+            bundle = Bundle(source=str(manifest.get("source", ""))[:120])
+            for row in rows:
+                entry = _entry_of(row, pack, members)
+                if entry is not None and bundle.entry(entry.id) is None:
+                    bundle.entries.append(entry)
+            for name, info in members.items():
+                if not name.startswith(ADVENTURES):
+                    continue
+                adventure_id, _, relative = name[len(ADVENTURES) :].partition("/")
+                held = bundle.entry(adventure_id)
+                if held is not None and held.kind == "adventure" and relative:
+                    bundle.adventures.setdefault(adventure_id, {})[relative] = pack.read(info)
+        if not bundle.mains:
+            raise WorldCopyError("copy.error.not_pieces")
+        return bundle
+
+
+def _carried(bundle: Bundle, bring: bool, reused: set[str]) -> list[Entry]:
+    """The entries written: all but the named ones left behind or found in the target."""
+    return [e for e in bundle.entries if e.role != "named" or (bring and e.id not in reused)]
+
+
+def _entry_of(row: Any, pack: zipfile.ZipFile, members: dict[str, zipfile.ZipInfo]) -> Entry | None:
+    """One saved entry, or None for one that is not of a known kind and shape."""
+    if not isinstance(row, dict):
+        return None
+    kind, ident, role = str(row.get("kind", "")), str(row.get("id", "")), row.get("role")
+    if kind not in (*KINDS, "chapter") or not _ID.fullmatch(ident):
+        return None
+    if role not in ("main", "inside", "named"):
+        return None
+    data = row.get("data")
+    if kind in COLLECTIONS and not isinstance(data, dict):
+        return None
+    entry = Entry(
+        kind,
+        ident,
+        str(row.get("name", ""))[:200],
+        role,
+        data if isinstance(data, dict) else None,
+    )
+    refs = row.get("refs")
+    entry.refs = [str(r)[:200] for r in refs] if isinstance(refs, list) else []
+    picture = row.get("picture")
+    if isinstance(picture, str):
+        member = f"{PICTURE_DIR}{ident}/{PurePosixPath(picture).name}"
+        if member in members:
+            entry.picture = (picture, pack.read(members[member]))
+    for name, info in members.items():
+        if name.startswith(f"{TOKEN_DIR}{ident}."):
+            entry.tokens.append((PurePosixPath(name).suffix, pack.read(info)))
+    return entry
+
+
+def _json(pack: zipfile.ZipFile, members: dict[str, zipfile.ZipInfo], name: str) -> Any:
+    if name not in members:
+        raise WorldCopyError("copy.error.not_pieces")
+    try:
+        return json.loads(pack.read(members[name]))
+    except (ValueError, UnicodeDecodeError) as exc:
+        raise WorldCopyError("copy.error.not_pieces") from exc
 
 
 def _name_of(record: Record | None) -> str:
@@ -531,46 +810,61 @@ def _name_of(record: Record | None) -> str:
     return str(getattr(record, "name", None) or getattr(record, "title", "") or "")
 
 
-def _references(kind: str, record: Record | None) -> list[str]:
+def _front_name(content: bytes) -> str:
+    found = re.search(r"^name:\s*(.+)$", content.decode("utf-8", "replace"), re.MULTILINE)
+    return found.group(1).strip("'\" ") if found else ""
+
+
+def _references(entry: Entry) -> list[str]:
     """The ``Name|SOURCE`` references a piece makes to the books."""
-    if record is None:
+    data = entry.data or {}
+    refs = list(entry.refs)
+    if entry.kind == "encounter":
+        refs += [f"{m.get('name')}|{m.get('source')}" for m in data.get("monsters") or []]
+    if entry.kind == "npc" and "|" in str(data.get("statblock") or ""):
+        refs.append(str(data["statblock"]))
+    if entry.kind == "treasure":
+        refs += [f"{i.get('name')}|{i.get('source')}" for i in data.get("items") or []]
+    return refs
+
+
+def _outside(entries: Iterable[Entry], target: World) -> list[str]:
+    """The references the entries make that the target's books lack, each once."""
+    books = target.source_set
+    if books.is_unrestricted:
         return []
-    if kind == "encounter":
-        return [f"{m.name}|{m.source}" for m in getattr(record, "monsters", [])]
-    if kind == "npc":
-        statblock = getattr(record, "statblock", None)
-        return [statblock] if statblock and "|" in statblock else []
-    if kind == "treasure":
-        return [f"{i.name}|{i.source}" for i in getattr(record, "items", [])]
-    if kind == "adventure" and isinstance(record, Adventure) and record.based_on:
-        return [f"{record.name}|{record.based_on}"]
-    return []
+    missing: dict[str, None] = {}
+    for entry in entries:
+        for ref in _references(entry):
+            source = ref.rpartition("|")[2]
+            if source and not books.allows(source):
+                missing.setdefault(ref, None)
+    return list(missing)
 
 
-def _owner(kind: str, record: Record) -> str | None:
-    """The record whose folder holds the piece's picture."""
-    scope = getattr(record, "scope", None)
-    if isinstance(scope, Scope):
-        return scope.record_id
-    return getattr(record, "world_id", None)
-
-
-def _owner_of_data(kind: str, data: dict[str, Any]) -> str | None:
+def _owner_of_data(data: dict[str, Any]) -> str | None:
+    """The record whose folder holds a piece's picture: its scope's narrowest, else its
+    world."""
     scope = data.get("scope")
     if isinstance(scope, dict):
-        return scope.get("chapter_id") or scope.get("adventure_id") or scope.get("world_id")
-    return data.get("world_id")
+        found = scope.get("chapter_id") or scope.get("adventure_id") or scope.get("world_id")
+        return str(found) if found else None
+    world = data.get("world_id")
+    return str(world) if world else None
 
 
-def _place(source: Path, folder: Path, relative: str) -> str | None:
-    """Copy ``source`` to ``folder/relative``, or to a free name beside it when a different
-    file is there; the relative path used, None when there is nothing to copy."""
-    if not source.is_file():
-        return None
-    target = folder / relative
-    if target.is_file() and target.read_bytes() == source.read_bytes():
-        return relative
+def _place(content: bytes, folder: Path, relative: str) -> str | None:
+    """Write a picture to ``folder/relative``, or to a free name beside it when a different
+    file is there; the relative path used. A path that leaves the folder, or bytes that are
+    no picture, are refused (None)."""
     path = PurePosixPath(relative)
+    if path.is_absolute() or ".." in path.parts or path.suffix.lower() not in IMAGE_TYPES:
+        return None
+    if sniff(content) is None:
+        return None
+    target = folder / str(path)
+    if target.is_file() and target.read_bytes() == content:
+        return str(path)
     number = 2
     while target.exists():
         path = PurePosixPath(relative).with_name(
@@ -579,7 +873,7 @@ def _place(source: Path, folder: Path, relative: str) -> str | None:
         target = folder / str(path)
         number += 1
     target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(source, target)
+    target.write_bytes(content)
     return str(path)
 
 
@@ -608,4 +902,14 @@ def _remapper(ids: dict[str, str]) -> Callable[[str], str]:
     return remap
 
 
-__all__ = ["KINDS", "Copied", "Piece", "Plan", "WorldCopy", "WorldCopyError"]
+__all__ = [
+    "KINDS",
+    "SUFFIX",
+    "Bundle",
+    "Copied",
+    "Entry",
+    "Piece",
+    "Plan",
+    "WorldCopy",
+    "WorldCopyError",
+]

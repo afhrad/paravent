@@ -68,6 +68,7 @@ from app.ui.markdown import Rendered
 from app.ui.name_roller import name_roller
 from app.ui.names import name_text
 from app.ui.palette import SearchTarget, search_form
+from app.ui.pick import pick_box, pick_scope
 from app.ui.tags import ref_url
 from app.ui.title_images import title_image, title_image_panel, title_thumb
 from app.ui.tokens import token
@@ -157,6 +158,7 @@ def encounters_page(
     t = page.t
     rows = [
         li(class_="list-row")[
+            pick_box(page, "encounter", v.encounter.id, v.encounter.name),
             title_thumb(encounter_title(v.encounter), v.encounter.name)
             or token(page.token_of("encounter", v.encounter.world_id, v.encounter.id)),
             div(class_="list-main")[
@@ -211,7 +213,7 @@ def encounters_page(
             ),
             notice(notice_text),
             create,
-            ul(class_="list")[rows]
+            pick_scope(page, "encounter", ul(class_="list")[rows])
             if rows
             else empty_state("skull", t("encounters.empty_heading"), t("encounters.empty_text")),
         ],

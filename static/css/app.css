@@ -3413,3 +3413,16 @@ dialog.ctx-dialog{
 }
 dialog.ctx-dialog::backdrop{ background:rgba(10,12,16,.45); }
 dialog.ctx-dialog .panel{ margin:0; }
+
+/* Choosing several pieces of a list (app/ui/pick.py): the boxes show while Select… is open. */
+.pick{ margin:0 0 8px; padding:0; border:0; background:none; box-shadow:none; }
+.pick > summary{ list-style:none; display:inline-flex; width:auto; }
+.pick > summary::-webkit-details-marker{ display:none; }
+.pick-actions{ display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:8px 0 4px; }
+.pick-actions .field-hint{ flex:1 1 100%; margin:0; }
+.pick-box{ display:none; width:18px; height:18px; flex:0 0 auto; margin:0 4px 0 0; accent-color:var(--accent); }
+.pick-scope:has(details.pick[open]) .pick-box{ display:inline-block; }
+/* The copy page's lists. */
+.copy-plan{ display:grid; gap:12px; }
+.copy-group{ display:grid; gap:4px; }
+.copy-list{ margin:0; padding-left:18px; display:grid; gap:3px; }

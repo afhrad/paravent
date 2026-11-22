@@ -1,16 +1,19 @@
-"""Copying or moving a piece into another world (app/services/world_copy.py): choose the
-world, see what goes and what its books lack, then copy or move."""
+"""Copying or moving pieces into another world, or into a file and back
+(app/services/world_copy.py): choose the world, see what goes and what its books lack,
+then copy, move or save; read a saved file into the table's world."""
 
 from __future__ import annotations
 
 from collections.abc import Sequence
+from urllib.parse import urlencode
 
-from htpy import Element, Node, a, b, button, div, form, h2, li, p, section, span, ul
+from htpy import Element, Node, a, b, button, div, form, h2, label, li, p, section, span, ul
+from htpy import input as input_el
 
 from app.models.gamestate import World
 from app.services.world_copy import Copied, Piece, Plan
 from app.ui.context import Page
-from app.ui.copy_links import COPY_URL
+from app.ui.copy_links import COPY_URL, FILE_URL, IMPORT_URL
 from app.ui.creature_links import creature_url
 from app.ui.encounter_pages import encounter_url
 from app.ui.faction_pages import FACTIONS_URL
@@ -21,9 +24,21 @@ from app.ui.layout import app_shell
 from app.ui.library_links import adventure_url, location_url, npc_url, treasure_url
 from app.ui.quest_pages import QUESTS_URL
 
+# Each kind's list, to go back to.
+LISTS = {
+    "adventure": "/gm/adventures",
+    "npc": "/gm/npcs",
+    "place": "/gm/places",
+    "treasure": "/gm/treasure",
+    "encounter": "/gm/encounters",
+    "creature": "/gm/creatures",
+    "quest": QUESTS_URL,
+    "faction": FACTIONS_URL,
+}
+
 
 def piece_url(kind: str, record_id: str) -> str:
-    """Where a copied piece is read."""
+    """Where a piece is read."""
     pages = {
         "adventure": adventure_url,
         "npc": npc_url,
@@ -49,61 +64,88 @@ def _pieces(page: Page, heading: str, pieces: Sequence[Piece], muted: bool = Fal
     ]
 
 
+def _plan_panel(page: Page, plan: Plan, heading: str) -> list[Node]:
+    """What goes, what comes along, what the world has, new names, missing books."""
+    t = page.t
+    world = plan.target.name if plan.target is not None else ""
+    renamed = [
+        t("copy.renamed_one", old=x.name, name=plan.renamed[x.id])
+        for x in plan.pieces
+        if x.id in plan.renamed
+    ]
+    return [
+        div(class_="panel-head")[h2[heading]],
+        _pieces(page, t("copy.goes"), plan.pieces),
+        _pieces(
+            page,
+            t("copy.brought") if plan.bring else t("copy.not_brought"),
+            plan.brought,
+            muted=not plan.bring,
+        ),
+        _pieces(page, t("copy.reused", world=world), plan.reused, muted=True),
+        div(class_="note")[[p[x] for x in renamed]] if renamed else None,
+        div(class_="copy-group copy-outside")[
+            b[icon("triangle-alert", "sm"), " ", t("copy.outside", world=world)],
+            p(class_="muted")[", ".join(x.replace("|", " · ") for x in plan.outside)],
+            p(class_="field-hint")[t("copy.outside_hint")],
+        ]
+        if plan.outside
+        else None,
+    ]
+
+
 def copy_page(
     page: Page,
     *,
     kind: str,
-    record_id: str,
+    ids: Sequence[str],
     name: str,
     mode: str,
     worlds: Sequence[World],
     plan: Plan | None,
+    bring: bool = True,
     error: str | None = None,
 ) -> Element:
-    """The world to copy into, what the copy holds, and the button."""
+    """The world to copy into (none for a file), what goes, and the button."""
     t = page.t
-    moving = mode == "move"
-    title = t("copy.move_title" if moving else "copy.copy_title", name=name)
-    target = plan.target.id if plan is not None else (worlds[0].id if worlds else "")
+    title = t(f"copy.{mode}_title", name=name)
+    target = plan.target.id if plan is not None and plan.target is not None else ""
+    pieces = [hidden("id", i) for i in ids]
     choose = form(method="get", action=COPY_URL, class_="stack-form copy-choose")[
         hidden("kind", kind),
-        hidden("id", record_id),
+        pieces,
         hidden("mode", mode),
-        select_field("target", t("copy.target"), [(w.id, w.name) for w in worlds], selected=target),
+        select_field("target", t("copy.target"), [(w.id, w.name) for w in worlds], selected=target)
+        if mode != "file"
+        else None,
         checkbox_field(
-            "bring",
-            t("copy.bring"),
-            checked=plan.bring if plan is not None else True,
-            hint=t("copy.bring_hint"),
-            value="1",
+            "bring", t("copy.bring"), checked=bring, hint=t("copy.bring_hint"), value="1"
         ),
         hidden("checked", "1"),
         button(type="submit", class_="btn btn-sm")[icon("refresh-cw", "sm"), t("copy.check")],
     ]
     shown = None
-    if plan is not None:
+    if plan is not None and mode == "file":
+        query = urlencode(
+            [("kind", kind), *(("id", i) for i in ids), ("bring", "1" if bring else "")]
+        )
         shown = section(class_="panel copy-plan")[
-            div(class_="panel-head")[h2[t("copy.plan", world=plan.target.name)]],
-            _pieces(page, t("copy.goes"), plan.pieces),
-            _pieces(
-                page,
-                t("copy.brought") if plan.bring else t("copy.not_brought"),
-                plan.brought,
-                muted=not plan.bring,
-            ),
-            _pieces(page, t("copy.reused", world=plan.target.name), plan.reused, muted=True),
-            p(class_="note")[t("copy.renamed", name=plan.renamed)] if plan.renamed else None,
-            div(class_="copy-group copy-outside")[
-                b[icon("triangle-alert", "sm"), " ", t("copy.outside", world=plan.target.name)],
-                p(class_="muted")[", ".join(x.replace("|", " · ") for x in plan.outside)],
-                p(class_="field-hint")[t("copy.outside_hint")],
-            ]
-            if plan.outside
-            else None,
+            _plan_panel(page, plan, t("copy.file_plan")),
+            p(class_="field-hint")[t("copy.file_hint")],
+            div(class_="form-actions")[
+                a(href=f"{FILE_URL}?{query}", class_="btn btn-primary", download="")[
+                    icon("download"), span[t("copy.file_now")]
+                ]
+            ],
+        ]
+    elif plan is not None and plan.target is not None:
+        moving = mode == "move"
+        shown = section(class_="panel copy-plan")[
+            _plan_panel(page, plan, t("copy.plan", world=plan.target.name)),
             p(class_="field-hint")[t("copy.move_hint" if moving else "copy.copy_hint")],
             form(method="post", action=COPY_URL, class_="form-actions")[
                 hidden("kind", kind),
-                hidden("id", record_id),
+                pieces,
                 hidden("mode", mode),
                 hidden("target", plan.target.id),
                 hidden("bring", "1" if plan.bring else ""),
@@ -113,45 +155,102 @@ def copy_page(
                 ],
             ],
         ]
+    no_world = mode != "file" and not worlds
+    if not ids:  # nothing ticked: only why, and the way back
+        title = t("copy.eyebrow")
+        choose = a(href=LISTS.get(kind, "/gm"), class_="btn btn-ghost")[t("copy.back_list")]
+        no_world = False
     return app_shell(
         page,
         title,
         div(class_="formpage")[
-            page_head(t("copy.eyebrow"), title, t("copy.lede")),
+            page_head(t("copy.eyebrow"), title, t("copy.lede")) if ids else None,
             alert(error),
-            p(class_="muted")[t("copy.no_worlds")] if not worlds else choose,
+            p(class_="muted")[t("copy.no_worlds")] if no_world else choose,
             shown,
         ],
     )
 
 
-def copied_page(page: Page, done: Copied, back: str) -> Element:
-    """What the copy made, with the way to it."""
+def copied_page(page: Page, done: Copied, back: str, *, imported: bool = False) -> Element:
+    """What the copy or import made, with the way to it."""
     t = page.t
     plan = done.plan
-    key = "copy.moved" if done.moved else "copy.copied"
+    world = plan.target.name if plan.target is not None else ""
+    names = [plan.renamed.get(x.id, x.name) for x in plan.pieces if x.id in done.ids]
+    shown = names[0] if len(names) == 1 else t.plural("copy.pieces", len(names), n=len(names))
+    key = "copy.imported" if imported else "copy.moved" if done.moved else "copy.copied"
+    heading = t(key, name=shown, world=world)
     count = len(plan.pieces) + (len(plan.brought) if plan.bring else 0)
+    first = done.first
     return app_shell(
         page,
-        t(key, name=plan.renamed or plan.name, world=plan.target.name),
+        heading,
         div(class_="formpage")[
             page_head(
                 t("copy.eyebrow"),
-                t(key, name=plan.renamed or plan.name, world=plan.target.name),
-                t("copy.done_lede", n=count, files=done.files),
+                heading,
+                t.plural("copy.done_lede", count, n=count, files=done.files),
             ),
+            div(class_="panel copy-plan")[_plan_panel(page, plan, t("copy.what_came"))]
+            if imported
+            else None,
             p(class_="note warn")[
                 icon("triangle-alert", "sm"),
                 " ",
-                t("copy.outside_done", n=len(plan.outside), world=plan.target.name),
+                t.plural("copy.outside_done", len(plan.outside), n=len(plan.outside), world=world),
             ]
-            if plan.outside
+            if plan.outside and not imported
+            else None,
+            p(class_="note warn")[t("copy.skipped", names=", ".join(done.skipped))]
+            if done.skipped
             else None,
             div(class_="form-actions")[
-                a(href=piece_url(plan.kind, done.id), class_="btn btn-primary")[
+                a(href=piece_url(*first), class_="btn btn-primary")[
                     icon("arrow-right"), span[t("copy.open")]
+                ]
+                if first is not None
+                else None,
+                a(href=back, class_="btn btn-ghost")[t("copy.back")]
+                if not done.moved and not imported
+                else None,
+            ],
+        ],
+    )
+
+
+def import_page(page: Page, world: World, *, error: str | None = None) -> Element:
+    """A saved file of pieces, read into the table's world."""
+    t = page.t
+    title = t("copy.import_title", world=world.name)
+    return app_shell(
+        page,
+        title,
+        div(class_="formpage")[
+            page_head(t("copy.eyebrow"), title, t("copy.import_lede")),
+            alert(error),
+            form(
+                method="post",
+                action=IMPORT_URL,
+                enctype="multipart/form-data",
+                class_="stack-form",
+            )[
+                div(class_="field")[
+                    label(for_="f-file")[t("copy.import_file")],
+                    input_el(id="f-file", type="file", name="file", accept=".zip", required=True),
                 ],
-                a(href=back, class_="btn btn-ghost")[t("copy.back")] if not done.moved else None,
+                checkbox_field(
+                    "bring",
+                    t("copy.import_bring"),
+                    checked=True,
+                    hint=t("copy.import_bring_hint"),
+                    value="1",
+                ),
+                div(class_="form-actions")[
+                    button(type="submit", class_="btn btn-primary")[
+                        icon("upload"), span[t("copy.import_now")]
+                    ]
+                ],
             ],
         ],
     )

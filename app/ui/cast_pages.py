@@ -78,6 +78,7 @@ from app.ui.library_links import (
 from app.ui.markdown import Rendered
 from app.ui.name_roller import name_roller
 from app.ui.palette import SearchTarget, search_form
+from app.ui.pick import pick_box, pick_scope
 from app.ui.ref_pages import statblock
 from app.ui.tags import RenderContext, ref_url
 from app.ui.tokens import token, token_panel
@@ -574,6 +575,7 @@ def npcs_page(
     ordered = sorted(rows, key=lambda r: ("boss" not in r[0].roles, r[0].name.casefold()))
     items = [
         li(class_="list-row")[
+            pick_box(page, "npc", npc.id, npc.name),
             # The token is made from the portrait: one picture, shown once.
             token(page.token_of("npc", npc.scope.world_id, npc.id)),
             div(class_="list-main")[
@@ -607,7 +609,7 @@ def npcs_page(
             ),
             notice(notice_text),
             alert(error) if not new else None,
-            ul(class_="list")[items]
+            pick_scope(page, "npc", ul(class_="list")[items])
             if items
             else empty_state("circle-user", t("npcs.empty_heading"), t("npcs.empty_text")),
             _new_npc_dialog(
@@ -640,6 +642,7 @@ def treasures_page(
     t = page.t
     items = [
         li(class_="list-row")[
+            pick_box(page, "treasure", x.id, x.name),
             token(page.token_of("treasure", x.scope.world_id, x.id)),
             div(class_="list-main")[
                 a(href=treasure_url(x.id), class_="list-title list-link")[x.name],
@@ -679,7 +682,7 @@ def treasures_page(
             ),
             notice(notice_text),
             alert(error) if not new else None,
-            ul(class_="list")[items]
+            pick_scope(page, "treasure", ul(class_="list")[items])
             if items
             else empty_state("gem", t("treasure.empty_heading"), t("treasure.empty_text")),
             _create_dialog(
