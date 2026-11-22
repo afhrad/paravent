@@ -10,7 +10,7 @@ Sizes are rough — **S** a day's change, **M** a few, **L** a feature of its ow
 
 Both guides were read chapter by chapter against what Paravent does. Already covered and so
 not listed: treasure and encounter tables, encounter shapes and ratings, NPCs, the creature
-builder, chases, traps, travel (weather, climate, altitude, food and water), factions and
+builder, chases, traps, travel (weather, climate, altitude, food and water, navigation, foraging, encounter distance and surprise), factions and
 renown, quests, followers, bastions, downtime, the calendar and clock, session notes,
 milestone levelling, the reference screens, safety tools.
 
@@ -18,7 +18,6 @@ milestone levelling, the reference screens, safety tools.
 
 | Idea | Guides | What it would do | Today | Size |
 | --- | --- | --- | --- | --- |
-| More of the road | both | Foraging, getting lost and navigation each travelling day; encounter distance and surprise when one comes up | travel has none of these | M |
 | Optional combat rules | 2014 | World switches the tracker applies: morale, massive damage, lingering injuries, mobs, side initiative | not covered | M |
 
 ### Smaller

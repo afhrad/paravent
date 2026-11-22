@@ -41,6 +41,15 @@ often to check, with rations and water, mounted or aboard a ship.
   end of every travelling hour, a failure costing a level of exhaustion; resistance (or
   cold weather gear against cold) spares them. **High altitude** halves the day's
   distance. The journey links the books' hazards it met.
+- **Terrain** (from the encounter table, or chosen) brings the world's guide's rules for
+  it. A **navigator** checks Wisdom (Survival) each morning; a failure sends the party
+  astray, and the journey says how far. Characters ticked to **forage** look for food
+  and water at each day's end: what they find replaces rations and tops up the water.
+  Under the 2024 rules the terrain also caps the pace (mountains and swamps: slow).
+- When an encounter comes up, the journey rolls its **distance** and works out
+  **surprise**: who would be caught if the creatures lie in wait, and which creatures a
+  party **moving stealthily** would catch unaware. Use it or not; it goes into the
+  encounter's notes.
 - The travel form chooses *mounted* by itself when every character has a mount.
 
 ## 4. Days off

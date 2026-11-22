@@ -29,7 +29,7 @@ from htpy import input as input_el
 from app.models.gamestate import ClockTimer, Journey
 from app.services.calendar import Calendar
 from app.services.clock import DAY, day_of, part_of_day, time_of
-from app.services.travel import CLIMATES, PACES, WATER
+from app.services.travel import ABUNDANCE, CLIMATES, PACES, WATER
 from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
@@ -169,12 +169,17 @@ def clock_panel(
     era: str = "",
     mounted: bool = False,
     hazards: Mapping[str, str] | None = None,
+    terrains: Sequence[str] = (),
+    abundance: bool = False,
+    rules: str = "classic",
 ) -> Element:
     """The time, the moves, a party rest, the timers and what is due; the party's last
     journey and the forms to travel on and to grant downtime. ``vessels`` are the ships
     of the world's books; ``weather`` whether they print a weather table; ``calendars``
     the setting calendars they print, ``calendar`` the one in use (its key) and
-    ``era`` what follows its year."""
+    ``era`` what follows its year; ``terrains`` those the world's guide has travel
+    rules for, ``abundance`` whether foraging's DC is chosen by the land's abundance
+    (2014), ``rules`` the world's (``one`` for 2024)."""
     t = page.t
     base = f"{CLOCK_URL}/{quote(world_id)}"
 
@@ -250,7 +255,18 @@ def clock_panel(
             page,
             "travel",
             t("travel.heading"),
-            _travel_form(page, post, environments, vessels, weather, mounted),
+            _travel_form(
+                page,
+                post,
+                environments,
+                vessels,
+                weather,
+                mounted,
+                terrains=terrains,
+                party=names,
+                abundance=abundance,
+                rules=rules,
+            ),
         ),
         tool_dialog(
             page,
@@ -482,8 +498,14 @@ def _travel_form(
     vessels: Sequence[str] = (),
     weather: bool = False,
     mounted: bool = False,
+    *,
+    terrains: Sequence[str] = (),
+    party: Mapping[str, str] | None = None,
+    abundance: bool = False,
+    rules: str = "classic",
 ) -> Element:
-    """How long, how fast, through what, how watchful, with what."""
+    """How long, how fast, through what, how watchful, with what; with ``terrains``, who
+    navigates and forages there (of ``party``, characters' names by id)."""
     t = page.t
 
     def check(name: str, caption: str, *, on: bool = False, title: str | None = None) -> Element:
@@ -568,6 +590,7 @@ def _travel_form(
             check("around", t("travel.around"), title=t("travel.around_hint")) if vessels else None,
             check("weather", t("travel.weather"), on=True) if weather else None,
         ],
+        _terrain_fields(page, terrains, party or {}, abundance, rules) if terrains else None,
         p(class_="field-hint")[t("travel.hint")],
         div(class_="form-actions")[
             button(type="submit", class_="btn btn-primary")[
@@ -576,6 +599,100 @@ def _travel_form(
         ],
         cls="tool-section party-travel-form",
     )
+
+
+def _terrain_fields(
+    page: Page,
+    terrains: Sequence[str],
+    party: Mapping[str, str],
+    abundance: bool,
+    rules: str,
+) -> Element:
+    """The terrain, its navigator and foragers, and moving stealthily."""
+    t = page.t
+
+    def check(name: str, caption: str, value: str = "1", title: str | None = None) -> Element:
+        return label(class_="check-inline", title=title)[
+            input_el(type="checkbox", name=name, value=value), span[caption]
+        ]
+
+    return div(class_="tool-section-part")[
+        div(class_="tool-grid")[
+            _field(
+                "tv-terrain",
+                t("travel.terrain"),
+                select(id="tv-terrain", name="terrain")[
+                    option(value="")[t("travel.terrain.from_table")],
+                    [option(value=n)[t(f"travel.terrain.{n.lower()}")] for n in terrains],
+                ],
+            ),
+            _field(
+                "tv-navigator",
+                t("travel.navigator"),
+                select(id="tv-navigator", name="navigator")[
+                    option(value="")[t("travel.navigator.none")],
+                    [option(value=cid)[name] for cid, name in party.items()],
+                ],
+            ),
+            _field(
+                "tv-abundance",
+                t("travel.abundance"),
+                select(id="tv-abundance", name="abundance")[
+                    [
+                        option(value=a, selected=a == "limited")[t(f"travel.abundance.{a}")]
+                        for a in ABUNDANCE
+                    ]
+                ],
+            )
+            if abundance
+            else None,
+        ],
+        div(class_="tool-checks")[
+            check(
+                "helped",
+                t("travel.helped"),
+                title=t("travel.helped_hint_one" if rules == "one" else "travel.helped_hint"),
+            ),
+            check(
+                "stealthy",
+                t("travel.stealthy"),
+                title=t("travel.stealthy_hint_one" if rules == "one" else "travel.stealthy_hint"),
+            ),
+        ],
+        div(class_="tool-checks")[
+            span(class_="muted")[t("travel.foragers")],
+            [check("forager", name, value=cid) for cid, name in party.items()],
+        ]
+        if party
+        else None,
+    ]
+
+
+def spotting(page: Page, journey: Journey) -> list[str]:
+    """What the road's encounter came with, as sentences: its distance, who it would
+    surprise if the creatures lay in wait, whom a stealthy party would catch unaware."""
+    t = page.t
+    out = []
+    if journey.distance:
+        out.append(t("travel.distance", distance=page.u.distance(journey.distance)))
+    if journey.lurk_stealth is not None:
+        out.append(
+            t(
+                "travel.ambush",
+                stealth=journey.lurk_stealth,
+                names=", ".join(journey.ambush) or t("travel.nobody"),
+            )
+        )
+    if journey.party_stealth is not None:
+        out.append(
+            t(
+                "travel.unaware",
+                stealth=journey.party_stealth,
+                names=", ".join(str(name_text(page, "monster", n)) for n in journey.unaware)
+                or t("travel.nobody"),
+            )
+        )
+    return out
 
 
 def _part(weather: str, index: int) -> str:
@@ -608,8 +725,57 @@ def _journey(
             span(class_="muted")[f" · {journey.environment.partition('|')[0]}"]
             if journey.environment
             else None,
+            span(class_="muted")[" · ", t(f"travel.terrain.{journey.terrain.lower()}")]
+            if journey.terrain
+            else None,
         ]
     ]
+    if journey.slowed:
+        lines.append(
+            p(class_="muted")[
+                t(
+                    "travel.slowed",
+                    terrain=t(f"travel.terrain.{journey.terrain.lower()}"),
+                    pace=t(f"travel.pace.{journey.pace}"),
+                )
+            ]
+        )
+    if journey.navigator:
+        checks = ", ".join(
+            f"{total} {'✓' if int(total) >= int(dc) else '✗'}"
+            for total, _, dc in (c.partition("/") for c in journey.navigation)
+        )
+        lines.append(
+            p[
+                icon("compass", "sm"),
+                " ",
+                t.plural(
+                    "travel.lost",
+                    journey.lost_days,
+                    name=journey.navigator,
+                    n=journey.lost_days,
+                    distance=page.u.miles(journey.astray),
+                )
+                if journey.lost_days
+                else t("travel.on_course", name=journey.navigator),
+                span(class_="muted")[f" · {t('travel.navigation_checks', checks=checks)}"]
+                if checks
+                else None,
+            ]
+        )
+    if journey.foraged_food or journey.foraged_water:
+        lines.append(
+            p(class_="muted")[
+                icon("backpack", "sm"),
+                " ",
+                t(
+                    "travel.foraged",
+                    food=page.u.weight(journey.foraged_food),
+                    water=page.u.gallons(journey.foraged_water),
+                    meals=journey.foraged_meals,
+                ),
+            ]
+        )
     if journey.rations:
         lines.append(
             p(class_="muted")[t.plural("travel.rations_eaten", journey.rations, n=journey.rations)]
@@ -733,6 +899,7 @@ def _journey(
                 p(class_="muted")[t("travel.unresolved", names=", ".join(journey.unresolved))]
                 if journey.unresolved
                 else None,
+                [p(class_="muted")[line] for line in spotting(page, journey)],
                 a(href=f"/gm/encounters/{journey.encounter_id}", class_="btn btn-sm")[
                     icon("swords", "sm"), span[t("travel.open_encounter")]
                 ]
@@ -854,6 +1021,7 @@ def sheet_timers(
 
 
 __all__ = [
+    "spotting",
     "CLOCK_URL",
     "clock_label",
     "clock_panel",

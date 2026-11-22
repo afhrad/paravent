@@ -44,6 +44,16 @@ geprüft wird, mit Rationen und Wasser, beritten oder an Bord eines Schiffs.
   einen Rettungswurf auf Konstitution; ein Fehlschlag kostet eine Stufe Erschöpfung.
   Resistenz (oder gegen Kälte Winterkleidung) bewahrt davor. **Große Höhe** halbiert die
   Tagesstrecke. Die Reise verlinkt die Gefahren der Bücher, die ihr begegnet sind.
+- Das **Gelände** (aus der Begegnungstabelle oder gewählt) bringt die Regeln des
+  Spielleiterhandbuchs der Welt dafür mit. Die **Führung** würfelt jeden Morgen auf
+  Weisheit (Überlebenskunst); ein Fehlschlag führt die Gruppe in die Irre, und die Reise
+  sagt, wie weit. Figuren, die **sammeln**, suchen am Ende jedes Tages Nahrung und Wasser:
+  Was sie finden, ersetzt Rationen und füllt das Wasser auf. Nach den Regeln von 2024
+  begrenzt das Gelände auch das Tempo (Gebirge und Sumpf: langsam).
+- Kommt eine Begegnung, würfelt die Reise ihre **Entfernung** und ermittelt die
+  **Überraschung**: wer überrascht wäre, wenn die Kreaturen auflauern, und welche
+  Kreaturen eine **heimlich reisende** Gruppe überraschen würde. Ob du es nutzt, liegt bei
+  dir; es steht auch in den Notizen der Begegnung.
 - Das Reiseformular wählt *beritten* von selbst, wenn jede Figur ein Reittier hat.
 
 ## 4. Freie Tage

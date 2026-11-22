@@ -601,10 +601,11 @@ class PlayService:
         delta = _int(params, "delta")
         state.exhaustion = max(0, min(6, state.exhaustion + delta))
         cause = params.get("cause", "")
+        # At most six, as exhaustion: a seventh day hungry at six levels adds nothing.
         if delta > 0 and cause == "hunger":
-            state.hunger_levels += delta
+            state.hunger_levels = min(6, state.hunger_levels + delta)
         elif delta > 0 and cause == "thirst":
-            state.thirst_levels += delta
+            state.thirst_levels = min(6, state.thirst_levels + delta)
         _fit_privation(state)
 
     def _lifestyle(

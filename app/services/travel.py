@@ -33,10 +33,30 @@ DC 5 for the first hour and one more for each hour after, under the 2014 rules o
 without enough water), a failure costing a level of exhaustion; resistance or
 immunity to cold or fire (or, against cold, cold weather gear) spares it. At high
 altitude each hour of travel counts as two: the day covers half the way.
+
+The terrain gives the rest, from the world's guide: the 2024 *Travel Terrain* table (the
+fastest pace it allows, the encounter distance, the foraging and navigation DCs), or
+the 2014 guide's *Wilderness Navigation* and *Foraging DCs* tables. Off a path, the
+party's navigator makes a Wisdom (Survival) check at the start of each travelling day:
+under the 2014 rules +5 at a slow pace and -5 at a fast one, with advantage given a map
+or the sky, and a failure sends the party astray for 1d6 hours before the next check;
+under the 2024 rules advantage at a slow pace and disadvantage at a fast one (a helper
+gives advantage), and a failure lengthens the day's way by 1d6 × 10 percent. Each
+forager makes the same check at the end of the day (under the 2014 rules not at a fast
+pace): a success finds 1d6 + its Wisdom modifier pounds of food and as many gallons of
+water. A pound of food is a character's meal instead of a ration; the water found
+counts toward the day's (a character needs a gallon, two in extreme heat). When an
+encounter comes up, the terrain's encounter distance is rolled, and so is surprise, for
+the gamemaster to use or not: which characters would be surprised if the creatures lay
+in wait (their lowest Stealth against each watcher's passive Perception, -5 at a fast
+pace; under the 2014 rules the navigator and the foragers are not watching), and which
+creatures a party moving stealthily would catch unaware (2014: only at a slow pace;
+2024: with disadvantage at a normal or fast one).
 """
 
 from __future__ import annotations
 
+import re
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Literal
@@ -44,6 +64,7 @@ from typing import Literal
 from app.models.gamestate import EncounterMonster, Journey
 from app.models.pc import PlayerCharacter
 from app.models.protocol import EntryKind, ProtocolEntry, Scope, Visibility
+from app.services.book_tables import roll_amount
 from app.services.clock import DAY, ClockService
 from app.services.dice import Dice
 from app.services.encounter_roll import EncounterRoller, Resolve
@@ -79,6 +100,39 @@ ROAD_HAZARDS = (
 )
 
 
+# The terrains of the 2024 *Travel Terrain* table, by the English names its rows go by.
+TERRAINS = (
+    "Arctic",
+    "Coastal",
+    "Desert",
+    "Forest",
+    "Grassland",
+    "Hill",
+    "Mountain",
+    "Swamp",
+    "Underdark",
+    "Urban",
+    "Waterborne",
+)
+# How much food and water each forager may find: the 2014 guide's three rows.
+ABUNDANCE = ("abundant", "limited", "scarce")
+# A character's water for a day, in gallons (twice that in extreme heat).
+GALLONS_A_DAY = 1
+_PACE_ORDER = ("slow", "normal", "fast")
+
+
+def terrain_of(environment: str) -> str:
+    """The terrain an encounter table's environment travels through ("Sylvan Forest"
+    Forest, "At Sea" Waterborne); "" when none fits."""
+    text = environment.lower()
+    for name in TERRAINS:
+        if re.search(rf"\b{name.lower()}", text):
+            return name
+    if "under" not in text and re.search(r"\b(sea|water|ship)", text):
+        return "Waterborne"
+    return ""
+
+
 class TravelError(Translatable):
     """A journey the rules refuse."""
 
@@ -90,6 +144,19 @@ class Vessel:
     name: str
     mph: float
     around_the_clock: bool = False
+
+
+@dataclass(frozen=True)
+class Terrain:
+    """What the world's guide says of a terrain: the navigation and foraging DCs, the
+    encounter distance as dice ("6d6 × 10", in feet) and the fastest pace it allows
+    (2024 rules; "" for any)."""
+
+    name: str
+    navigation_dc: int | None = None
+    foraging_dc: int | None = None
+    distance: str = ""
+    max_pace: str = ""
 
 
 @dataclass(frozen=True)
@@ -110,6 +177,11 @@ class Plan:
     weather: bool = False
     climate: Literal["", "cold", "heat"] = ""
     altitude: bool = False
+    terrain: Terrain | None = None
+    navigator: str = ""  # a character's id; "" on a path or with a landmark in sight
+    helped: bool = False  # a map, the sky or a helper: advantage on navigating
+    foragers: tuple[str, ...] = ()  # characters' ids
+    stealthy: bool = False
 
 
 def hunger_limit(con_mod: int, rules: str) -> int:
@@ -133,6 +205,10 @@ class TravelService:
         con_save: Callable[[PlayerCharacter], int] | None = None,
         quench: Callable[[PlayerCharacter], None] | None = None,
         sheltered: Callable[[PlayerCharacter, str], bool] | None = None,
+        skill: Callable[[PlayerCharacter, str], int] | None = None,
+        wis_mod: Callable[[PlayerCharacter], int] | None = None,
+        passive: Callable[[PlayerCharacter], int] | None = None,
+        lurk: Callable[[str, str], tuple[int, int]] | None = None,
         dice: Dice | None = None,
     ) -> None:
         """``party(world)`` the characters on the road; ``eat(pc)`` takes a day's
@@ -142,7 +218,10 @@ class TravelService:
         modifier and ``con_save(pc)`` its Constitution saving throw bonus (the modifier
         when not given); ``rest(world)`` a long rest for the party;
         ``sheltered(pc, climate)`` whether the character weathers extreme cold or heat
-        unharmed (resistance or immunity to it, or cold weather gear)."""
+        unharmed (resistance or immunity to it, or cold weather gear);
+        ``skill(pc, key)`` its bonus to a skill (``survival``, ``stealth``),
+        ``wis_mod(pc)`` its Wisdom modifier and ``passive(pc)`` its passive Perception;
+        ``lurk(name, source)`` a creature's Stealth bonus and passive Perception."""
         self._clock = clock
         self._protocol = protocol
         self._party = party
@@ -153,6 +232,10 @@ class TravelService:
         self._rest = rest
         self._quench = quench
         self._sheltered = sheltered or (lambda _pc, _climate: False)
+        self._skill = skill or (lambda _pc, _key: 0)
+        self._wis_mod = wis_mod or (lambda _pc: 0)
+        self._passive = passive or (lambda _pc: 10)
+        self._lurk = lurk
         self._dice = dice or Dice()
 
     def travel(
@@ -178,10 +261,22 @@ class TravelService:
         party = [pc for pc in self._party(world_id) if not pc.in_wizard]
         levels = [max(1, pc.total_level) for pc in party] or [1]
         level = round(sum(levels) / len(levels))
+        pace = plan.pace
+        terrain = plan.terrain
+        # Under the 2024 rules the terrain allows no faster than its pace.
+        slowed = bool(
+            rules == "one"
+            and plan.vessel is None
+            and terrain is not None
+            and terrain.max_pace in _PACE_ORDER
+            and _PACE_ORDER.index(pace) > _PACE_ORDER.index(terrain.max_pace)
+        )
+        if slowed and terrain is not None:
+            pace = terrain.max_pace  # type: ignore[assignment]
         if plan.vessel is not None:
             mph = plan.vessel.mph
         else:
-            mph = PACES[plan.pace] / (2 if plan.difficult else 1)
+            mph = PACES[pace] / (2 if plan.difficult else 1)
             # High in the mountains each hour counts as two: half the way in a day.
             mph /= 2 if plan.altitude else 1
         day_length = (
@@ -193,7 +288,9 @@ class TravelService:
         journey = Journey(
             started=start,
             ended=start,
-            pace=plan.pace,
+            pace=pace,
+            slowed=slowed,
+            terrain=terrain.name if terrain is not None else "",
             planned=plan.hours,
             difficult=plan.difficult and plan.vessel is None,
             environment=plan.environment.key if plan.environment else "",
@@ -204,6 +301,9 @@ class TravelService:
             altitude=plan.altitude and plan.vessel is None,
         )
         exposure: dict[str, int] = {}
+        navigator = next((pc for pc in party if pc.id == plan.navigator), None)
+        if navigator is not None and terrain is not None and terrain.navigation_dc:
+            journey.navigator = navigator.name or "?"
         # The road already covered today, when the last stretch stopped partway.
         travelled = held.road if held.road_day == start // DAY and held.road < day_length else 0
         offset = travelled
@@ -220,6 +320,10 @@ class TravelService:
             into = travelled % day_length
             today = min(left, day_length - into)
             moved = today
+            # The navigator's check as the day's road begins (one stretch a day).
+            astray = (0, 0)
+            if into == 0 and journey.navigator and navigator is not None and terrain:
+                astray = self._navigate(journey, navigator, plan, pace, rules, today)
             if every:
                 check_at = (travelled // every + 1) * every
                 while check_at <= travelled + today:
@@ -228,9 +332,17 @@ class TravelService:
                         moved = check_at - travelled
                         stopped = True
                         self._meet(journey, roll, plan.environment, level, resolve)
+                        self._spot(journey, plan, party, pace, rules, on_road=True)
                         break
                     check_at += every
             miles += moved / 60 * mph
+            lost_minutes, percent = astray
+            journey.astray = round(
+                journey.astray
+                + min(lost_minutes, moved) / 60 * mph
+                + moved / 60 * mph * percent / 100,
+                1,
+            )
             if journey.mounted:
                 miles += max(0, min(60, into + moved) - into) / 60 * mph
             for pc in self._expose(party, plan, into, moved, rules, exposure):
@@ -243,8 +355,9 @@ class TravelService:
             # The end of a travelling day, though an encounter came with it: supper,
             # then the night if the road goes on.
             party = self._fresh(world_id, party)
-            tired = self._supper(journey, party, hungry, plan.rations, rules)
-            tired += self._drink(journey, party, plan.water, rules)
+            food, gallons = self._forage(journey, party, plan, pace, rules)
+            tired = self._supper(journey, party, hungry, plan.rations, rules, meals=food)
+            tired += self._drink(journey, party, _water_with(plan, gallons, len(party)), rules)
             if left > 0 and not stopped:
                 night = DAY - day_length
                 if plan.night_check and night > 0:
@@ -254,6 +367,7 @@ class TravelService:
                         stopped = True
                         journey.night = True
                         self._meet(journey, roll, plan.environment, level, resolve)
+                        self._spot(journey, plan, party, pace, rules, on_road=False)
                         elapsed += self._dice.die(max(1, night // 60)) * 60
                 if not stopped:
                     if plan.rest:
@@ -315,13 +429,21 @@ class TravelService:
         hungry: dict[str, int],
         rations: bool,
         rules: str,
+        *,
+        meals: int = 0,
     ) -> list[tuple[PlayerCharacter, str]]:
-        """Everyone eats or goes hungry; those whose hunger now costs them a level of
-        exhaustion (applied after the night's rest, which cannot take it away)."""
+        """Everyone eats (``meals`` of them what was foraged, the rest rations) or goes
+        hungry; those whose hunger now costs them a level of exhaustion (applied after
+        the night's rest, which cannot take it away)."""
         tired: list[tuple[PlayerCharacter, str]] = []
         if not rations:
             return tired
         for pc in party:
+            if meals > 0:
+                meals -= 1
+                journey.foraged_meals += 1
+                hungry.pop(pc.id, None)
+                continue
             if self._eat(pc):
                 journey.rations += 1
                 hungry.pop(pc.id, None)
@@ -333,6 +455,128 @@ class TravelService:
             if days > hunger_limit(self._con_mod(pc), rules):
                 tired.append((pc, "hunger"))
         return tired
+
+    def _d20(self, edge: int) -> int:
+        """A d20, the higher of two with advantage (``edge`` > 0), the lower with
+        disadvantage (< 0)."""
+        first = self._dice.die(20)
+        if edge == 0:
+            return first
+        second = self._dice.die(20)
+        return max(first, second) if edge > 0 else min(first, second)
+
+    def _edge(self, plan: Plan, pace: str, rules: str, *, helped: bool = False) -> int:
+        """Advantage (1), disadvantage (-1) or neither on a Perception or Survival check
+        on the road: a slow pace gives advantage and a fast one disadvantage under the
+        2024 rules (not aboard a vessel); ``helped`` advantage either way."""
+        edge = 1 if helped else 0
+        if rules == "one" and plan.vessel is None:
+            edge += {"slow": 1, "fast": -1}.get(pace, 0)
+        return max(-1, min(1, edge))
+
+    def _navigate(
+        self,
+        journey: Journey,
+        navigator: PlayerCharacter,
+        plan: Plan,
+        pace: str,
+        rules: str,
+        today: int,
+    ) -> tuple[int, int]:
+        """The navigator's Wisdom (Survival) checks for a day: the minutes spent astray
+        (2014: 1d6 hours for each failure, until a check succeeds) and the percentage
+        the way grows by (2024: 1d6 × 10 on a failure)."""
+        terrain = plan.terrain
+        dc = terrain.navigation_dc if terrain is not None else None
+        if not dc:
+            return (0, 0)
+        bonus = self._skill(navigator, "survival")
+        if rules != "one" and plan.vessel is None:
+            bonus += {"slow": 5, "fast": -5}.get(pace, 0)
+        edge = self._edge(plan, pace, rules, helped=plan.helped)
+        total = self._d20(edge) + bonus
+        journey.navigation.append(f"{total}/{dc}")
+        if total >= dc:
+            return (0, 0)
+        journey.lost_days += 1
+        if rules == "one":
+            return (0, self._dice.die(6) * 10)
+        lost = 0
+        while total < dc:
+            lost += self._dice.die(6) * 60
+            if lost >= today:
+                break
+            total = self._d20(edge) + bonus
+            journey.navigation.append(f"{total}/{dc}")
+        return (min(lost, today), 0)
+
+    def _forage(
+        self,
+        journey: Journey,
+        party: Sequence[PlayerCharacter],
+        plan: Plan,
+        pace: str,
+        rules: str,
+    ) -> tuple[int, int]:
+        """Each forager's Wisdom (Survival) check at the day's end: the pounds of food
+        and gallons of water found (1d6 + its Wisdom modifier each on a success). None
+        aboard a vessel, nor at a fast pace under the 2014 rules."""
+        terrain = plan.terrain
+        dc = terrain.foraging_dc if terrain is not None else None
+        if not dc or not plan.foragers or plan.vessel is not None:
+            return (0, 0)
+        if rules != "one" and pace == "fast":
+            return (0, 0)
+        edge = self._edge(plan, pace, rules)
+        food = water = 0
+        for pc in party:
+            if pc.id not in plan.foragers:
+                continue
+            if self._d20(edge) + self._skill(pc, "survival") < dc:
+                continue
+            wis = self._wis_mod(pc)
+            food += max(0, self._dice.die(6) + wis)
+            water += max(0, self._dice.die(6) + wis)
+        journey.foraged_food += food
+        journey.foraged_water += water
+        return (food, water)
+
+    def _spot(
+        self,
+        journey: Journey,
+        plan: Plan,
+        party: Sequence[PlayerCharacter],
+        pace: str,
+        rules: str,
+        *,
+        on_road: bool,
+    ) -> None:
+        """The encounter's distance by the terrain, and surprise for the gamemaster to
+        use: who would be surprised if the creatures lay in wait, and which creatures a
+        party moving stealthily would catch unaware."""
+        terrain = plan.terrain
+        if terrain is not None and terrain.distance:
+            journey.distance = roll_amount(terrain.distance, self._dice) or None
+        if self._lurk is None or not journey.monsters or not party:
+            return
+        kinds = [(m.name, *self._lurk(m.name, m.source)) for m in journey.monsters]
+        walking = on_road and plan.vessel is None
+        # Watching for danger: -5 at a fast pace; under the 2024 rules +5 at a slow one.
+        shift = {"fast": -5, "slow": 5 if rules == "one" else 0}.get(pace, 0) if walking else 0
+        busy = {plan.navigator, *plan.foragers} if rules != "one" and on_road else set()
+        stealth = min(self._d20(0) + bonus for _name, bonus, _passive in kinds)
+        journey.lurk_stealth = stealth
+        journey.ambush = [
+            pc.name or "?" for pc in party if pc.id in busy or self._passive(pc) + shift < stealth
+        ]
+        if not plan.stealthy or not on_road:
+            return
+        if rules != "one" and walking and pace != "slow":
+            return  # 2014: only a slow pace lets the party move stealthily
+        edge = -1 if rules == "one" and walking and pace != "slow" else 0
+        sneak = min(self._d20(edge) + self._skill(pc, "stealth") for pc in party)
+        journey.party_stealth = sneak
+        journey.unaware = [name for name, _bonus, passive in kinds if passive < sneak]
 
     def _expose(
         self,
@@ -425,19 +669,33 @@ class TravelService:
         self._protocol.append(entries)
 
 
+def _water_with(plan: Plan, gallons: int, people: int) -> Water:
+    """The day's water once what was foraged is added to what the party carries: enough,
+    half or none, a character needing a gallon (two in extreme heat)."""
+    if plan.water == "enough" or gallons <= 0 or people <= 0:
+        return plan.water
+    need = people * GALLONS_A_DAY * (2 if plan.climate == "heat" else 1)
+    have = {"enough": 1.0, "half": 0.5, "none": 0.0}[plan.water] * need + gallons
+    return "enough" if have >= need else "half" if have >= need / 2 else "none"
+
+
 def _names(names: Sequence[str]) -> str:
     return ",".join(n.replace(":", " ").replace(",", " ") for n in names)
 
 
 __all__ = [
+    "ABUNDANCE",
     "ENCOUNTER_ON",
     "PACES",
     "THIRST_DC",
+    "TERRAINS",
     "TRAVEL_DAY",
     "WATER",
     "Plan",
+    "Terrain",
     "TravelError",
     "TravelService",
     "Vessel",
     "hunger_limit",
+    "terrain_of",
 ]

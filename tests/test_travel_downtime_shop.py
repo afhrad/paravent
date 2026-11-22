@@ -29,7 +29,7 @@ from app.services.downtime import (
     training_plan,
 )
 from app.services.shop import bought_back, priced
-from app.services.travel import Plan, TravelService, hunger_limit
+from app.services.travel import Plan, Terrain, TravelService, hunger_limit, terrain_of
 from app.store.encounter_tables import EncounterTable, Environment
 from app.store.gamestate import GameStateStore
 from app.store.registry import StoreRegistry
@@ -201,6 +201,129 @@ class TestTravel:
         assert held["a"].state.exhaustion == 3
 
 
+class TestTerrain:
+    """Navigation, foraging, the terrain's pace and an encounter's distance and surprise."""
+
+    @staticmethod
+    def _road(tmp_path: Path, dice: Dice, party: list[PlayerCharacter]) -> TravelService:
+        def eat(pc: PlayerCharacter) -> bool:
+            for item in pc.inventory:
+                if item.quantity:
+                    item.quantity -= 1
+                    return True
+            return False
+
+        return TravelService(
+            ClockService(GameStateStore(tmp_path), None),
+            None,
+            party=lambda _w: party,
+            eat=eat,
+            tire=lambda pc, cause: None,
+            con_mod=lambda _pc: 0,
+            rest=lambda _w: None,
+            skill=lambda _pc, _key: 2,
+            wis_mod=lambda _pc: 1,
+            passive=lambda pc: 14 if pc.id == "a" else 9,
+            lurk=lambda name, source: (4, 13),
+            dice=dice,
+        )
+
+    @staticmethod
+    def _go(service: TravelService, plan: Plan, rules: str = "classic") -> Any:
+        resolved = {"wolf": ("Wolf", "MM")}
+        return service.travel(
+            "w",
+            plan,
+            rules=rules,
+            resolve=lambda n, s: resolved.get(n.lower()),
+            by="dm",
+            by_name="DM",
+        )
+
+    def test_the_terrain_an_environment_travels_through(self) -> None:
+        assert terrain_of("Sylvan Forest") == "Forest" and terrain_of("Hill") == "Hill"
+        assert terrain_of("At Sea") == "Waterborne" and terrain_of("Open Water") == "Waterborne"
+        assert terrain_of("Underwater") == "" and terrain_of("Sigil") == ""
+
+    def test_a_navigator_loses_the_way_under_the_2014_rules(self, tmp_path: Path) -> None:
+        party = [_pc("a", "Ana", 5)]
+        # Fast: Survival +2 - 5. 10 fails, three hours astray, then 18 finds the way.
+        journey = self._go(
+            self._road(tmp_path, FixedDice([10, 3, 18]), party),
+            Plan(hours=8, pace="fast", terrain=Terrain("Forest", navigation_dc=15), navigator="a"),
+        )
+        assert journey.navigator == "Ana" and journey.navigation == ["7/15", "15/15"]
+        assert journey.lost_days == 1 and journey.astray == 12.0 and journey.miles == 32.0
+
+    def test_a_navigator_and_the_terrains_pace_under_the_2024_rules(self, tmp_path: Path) -> None:
+        party = [_pc("a", "Ana", 5)]
+        mountain = Terrain("Mountain", navigation_dc=15, max_pace="slow")
+        # Fast is held to slow, which gives advantage: the higher of 5 and 12, +2 fails;
+        # the way grows by 40 percent.
+        journey = self._go(
+            self._road(tmp_path, FixedDice([5, 12, 4]), party),
+            Plan(hours=8, pace="fast", terrain=mountain, navigator="a"),
+            rules="one",
+        )
+        assert journey.pace == "slow" and journey.slowed and journey.miles == 16.0
+        assert journey.navigation == ["14/15"] and journey.astray == 6.4
+
+    def test_foraging_feeds_and_waters_the_party(self, tmp_path: Path) -> None:
+        party = [_pc("a", "Ana", 5), _pc("b", "Bo", 0)]
+        forest = Terrain("Forest", foraging_dc=10)
+        # The day's check misses (10); Bo forages 12 + 2: 4 + 1 pounds, 2 + 1 gallons.
+        journey = self._go(
+            self._road(tmp_path, FixedDice([10, 12, 4, 2]), party),
+            Plan(hours=8, terrain=forest, foragers=("b",), water="none"),
+        )
+        assert (journey.foraged_food, journey.foraged_water) == (5, 3)
+        assert journey.foraged_meals == 2 and journey.rations == 0 and not journey.hungry
+        assert party[0].inventory[0].quantity == 5
+        # Three gallons for two: enough, so nobody goes thirsty.
+        assert not journey.thirsty
+        # Under the 2014 rules nobody forages at a fast pace.
+        fast = self._go(
+            self._road(tmp_path / "fast", FixedDice([10, 12, 4, 2]), party),
+            Plan(hours=8, pace="fast", terrain=forest, foragers=("b",)),
+        )
+        assert fast.foraged_food == 0
+
+    def test_an_encounter_comes_with_distance_and_surprise(self, tmp_path: Path) -> None:
+        party = [_pc("a", "Ana", 5), _pc("b", "Bo", 5)]
+        forest = Terrain("Forest", distance="2d8 × 10")
+        # The check meets (19), the table rolls 2: 2d4 wolves (1 + 1). 2d8 × 10 feet
+        # (3 + 4). The wolves' Stealth 8 + 4 beats Bo's passive 9, not Ana's 14; the
+        # party's lowest, 12 + 2, beats the wolves' passive 13.
+        journey = self._go(
+            self._road(tmp_path, FixedDice([19, 2, 1, 1, 3, 4, 8, 15, 12]), party),
+            Plan(
+                hours=8,
+                pace="slow",
+                environment=_table(["a fox", "{@dice 2d4} {@creature wolf||wolves}", "x", "y"]),
+                terrain=forest,
+                stealthy=True,
+            ),
+        )
+        assert journey.distance == 70
+        assert journey.lurk_stealth == 12 and journey.ambush == ["Bo"]
+        assert journey.party_stealth == 14 and journey.unaware == ["Wolf"]
+
+    def test_the_navigator_and_foragers_are_not_watching_in_2014(self, tmp_path: Path) -> None:
+        party = [_pc("a", "Ana", 5), _pc("b", "Bo", 5)]
+        journey = self._go(
+            # The navigator's 10 first, then the check meets (19).
+            self._road(tmp_path, FixedDice([10, 19, 2, 1, 1, 1]), party),
+            Plan(
+                hours=8,
+                environment=_table(["a fox", "{@dice 2d4} {@creature wolf||wolves}", "x", "y"]),
+                terrain=Terrain("Forest", navigation_dc=5),
+                navigator="a",
+            ),
+        )
+        # The wolves' Stealth 1 + 4 is noticed by Bo alone: Ana was navigating.
+        assert journey.ambush == ["Ana"] and journey.party_stealth is None
+
+
 class TestDowntime:
     def test_projects(self, tmp_path: Path) -> None:
         store = GameStateStore(tmp_path)
@@ -358,6 +481,49 @@ class TestAtTheTable:
         assert journey is not None and journey.climate == "cold"
         page = (await ac.get(f"/gm?world={world}")).text
         assert "Extreme cold" in page and "/ref/hazard/XDMG/Extreme%20Cold" in page
+
+    async def test_the_terrain_from_the_worlds_guide(
+        self, table: tuple[AsyncClient, StoreRegistry, str]
+    ) -> None:
+        ac, registry, lyra = table
+        world = registry.gamestate.characters.get(lyra).world_id
+        assert world is not None
+        # A 2024 world: the Travel Terrain table, every terrain.
+        mountain = registry.terrain(world, "Mountain")
+        assert mountain is not None and mountain.max_pace == "slow"
+        assert (mountain.navigation_dc, mountain.foraging_dc) == (15, 20)
+        assert mountain.distance == "4d10 × 10" and len(registry.terrains(world)) == 11
+        # A 2014 world: the DMG's navigation by terrain, foraging by abundance.
+        old = registry.gamestate.worlds.create(
+            World(name="Old", source_set=SourceSet(sources=["PHB", "DMG", "MM"]))
+        )
+        hills = registry.terrain(old.id, "Hill", "scarce")
+        assert hills is not None and (hills.navigation_dc, hills.foraging_dc) == (10, 20)
+        assert hills.distance == "" and hills.max_pace == ""
+        assert registry.terrain(old.id, "Urban") is None
+        assert registry.foraging_by_abundance(old.id)
+        registry.table.select(world)  # the party: the characters of the table's world
+        page = (await ac.get(f"/gm?world={world}")).text
+        assert 'name="navigator"' in page and 'name="forager"' in page
+        assert 'name="abundance"' not in page
+        # Through the forest, navigating and foraging; the terrain comes from the table.
+        await ac.post(
+            f"/gm/clock/{world}/travel",
+            data={
+                "amount": "1",
+                "unit": "day",
+                "checks": "0",
+                "environment": "Forest|XGE",
+                "navigator": lyra,
+                "forager": lyra,
+                "rations": "1",
+            },
+        )
+        journey = registry.clock.of(world).journey
+        assert journey is not None and journey.terrain == "Forest"
+        assert journey.navigator == "Lyra Mooncaller" and len(journey.navigation) >= 1
+        page = (await ac.get(f"/gm?world={world}")).text
+        assert "kept the party on course" in page or "lost the way" in page
 
     async def test_an_encounter_on_the_road_becomes_one(
         self, table: tuple[AsyncClient, StoreRegistry, str]

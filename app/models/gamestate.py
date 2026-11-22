@@ -1172,6 +1172,28 @@ class Journey(GameStateModel):
     climate: Literal["", "cold", "heat"] = ""
     altitude: bool = False
     exposed: list[str] = Field(default_factory=list)
+    # The terrain (a row of the 2024 *Travel Terrain* table's names), and whether it held
+    # the party to a slower pace than chosen.
+    terrain: str = ""
+    slowed: bool = False
+    # The navigator, each Wisdom (Survival) check ``"<total>/<DC>"``, the days the party
+    # lost its way and the miles of the road that went astray.
+    navigator: str = ""
+    navigation: list[str] = Field(default_factory=list)
+    lost_days: int = Field(default=0, ge=0)
+    astray: float = Field(default=0, ge=0)
+    # Foraged: pounds of food and gallons of water found, and the meals they made.
+    foraged_food: int = Field(default=0, ge=0)
+    foraged_water: int = Field(default=0, ge=0)
+    foraged_meals: int = Field(default=0, ge=0)
+    # When an encounter came up: its distance in feet, the creatures' lowest Stealth and
+    # who it would surprise if they lay in wait, and, for a party moving stealthily, its
+    # lowest Stealth and the creatures it would catch unaware.
+    distance: int | None = None
+    lurk_stealth: int | None = None
+    ambush: list[str] = Field(default_factory=list)
+    party_stealth: int | None = None
+    unaware: list[str] = Field(default_factory=list)
 
 
 class WorldClock(Record):

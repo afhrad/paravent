@@ -55,7 +55,17 @@ from app.services.references import ReferenceNotFound
 from app.services.shop import ShopError
 from app.services.table import TableError
 from app.services.traps import Target, TrapEffect, read_trap
-from app.services.travel import CLIMATES, PACES, TRAVEL_DAY, WATER, Plan, TravelError, Vessel
+from app.services.travel import (
+    ABUNDANCE,
+    CLIMATES,
+    PACES,
+    TRAVEL_DAY,
+    WATER,
+    Plan,
+    TravelError,
+    Vessel,
+    terrain_of,
+)
 from app.services.units import feet_from
 from app.services.worlds import WorldInput
 from app.store.encounter_tables import Environment
@@ -63,7 +73,7 @@ from app.store.registry import StoreRegistry
 from app.ui.adventure_pages import images_panel
 from app.ui.chase_pages import CHASE_URL, chase_panel
 from app.ui.check_pages import CHECKS_URL, checks_panel
-from app.ui.clock_pages import CLOCK_URL, clock_label, clock_panel
+from app.ui.clock_pages import CLOCK_URL, clock_label, clock_panel, spotting
 from app.ui.combat_pages import party_combats
 from app.ui.context import Page
 from app.ui.forms import alert, notice
@@ -131,6 +141,9 @@ def _clock(page: Page, registry: StoreRegistry, world_id: str | None) -> Element
         vessels=[v.name for v in registry.vessels(shown)],
         mounted=registry.followers.mounted([pc.id for pc in members]),
         hazards=registry.hazard_links(shown),
+        terrains=registry.terrains(shown),
+        abundance=registry.foraging_by_abundance(shown),
+        rules=registry.rules_of(shown),
         weather=registry.weather(shown) is not None,
         calendars=registry.calendars(shown),
         calendar=clock.calendar,
@@ -173,6 +186,15 @@ def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_
         vessel = Vessel(vessel.name, vessel.mph, around_the_clock=True)
     water = str(form.get("water", "enough"))
     climate = str(form.get("climate", ""))
+    # The terrain chosen, else the one the encounter table's environment travels through.
+    abundance = str(form.get("abundance", "limited"))
+    terrain = registry.terrain(
+        world_id,
+        str(form.get("terrain", "")) or (terrain_of(environment.name) if environment else ""),
+        abundance if abundance in ABUNDANCE else "limited",
+    )
+    party = {pc.id for pc in registry.gamestate.characters.of_world(world_id, drafts=False)}
+    navigator = str(form.get("navigator", ""))
     registry.travel.travel(
         world_id,
         Plan(
@@ -190,6 +212,11 @@ def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_
             weather=form.get("weather") == "1",
             climate=climate if climate in CLIMATES else "",  # type: ignore[arg-type]
             altitude=form.get("altitude") == "1",
+            terrain=terrain,
+            navigator=navigator if navigator in party else "",
+            helped=form.get("helped") == "1",
+            foragers=tuple(str(f) for f in form.getlist("forager") if str(f) in party),
+            stealthy=form.get("stealthy") == "1",
         ),
         rules=registry.rules_of(world_id),
         resolve=resolve,
@@ -459,7 +486,7 @@ async def change_clock(
                     world_id,
                 )
                 registry.encounters.set_monsters(made.id, journey.monsters)
-                notes = journey.encounter
+                notes = "\n\n".join(x for x in (journey.encounter, *spotting(page, journey)) if x)
                 registry.encounters.update(
                     made.id,
                     name=made.name,

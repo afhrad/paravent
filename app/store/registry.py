@@ -139,7 +139,7 @@ from app.services.translation_targets import FLUFF_OF, TranslationTargets, fluff
 from app.services.translations import TranslationStore, record_key
 from app.services.traps import TrapService
 from app.services.trash import Trash
-from app.services.travel import TravelService, Vessel
+from app.services.travel import PACES, TERRAINS, Terrain, TravelService, Vessel
 from app.services.treasure_roll import roller_for
 from app.services.world_instructions import WorldInstructionService
 from app.services.world_transfer import WorldTransfer
@@ -1175,6 +1175,21 @@ class StoreRegistry:
                 "cold weather" in i.item.name.lower() for i in pc.inventory
             )
 
+        def skill(pc: PlayerCharacter, key: str) -> int:
+            found = (s.value.value for s in characters.sheet(pc).skills if s.key == key)
+            return next(found, None) or 0
+
+        def wis_mod(pc: PlayerCharacter) -> int:
+            return characters.sheet(pc).ability("wis").modifier
+
+        def passive(pc: PlayerCharacter) -> int:
+            return characters.sheet(pc).passive_perception.value or 10
+
+        def lurk(name: str, source: str) -> tuple[int, int]:
+            # The creature as a chase reads it: its Stealth and passive Perception.
+            found = self.chase_runner(None, f"{name}|{source}", "pursuer")
+            return (found[0].stealth, found[0].passive) if found else (0, 10)
+
         return TravelService(
             self.clock,
             self.protocol,
@@ -1186,6 +1201,62 @@ class StoreRegistry:
             rest=rest,
             quench=quench,
             sheltered=sheltered,
+            skill=skill,
+            wis_mod=wis_mod,
+            passive=passive,
+            lurk=lurk,
+        )
+
+    def terrains(self, world_id: str | None) -> list[str]:
+        """The terrains the world's guide gives travel rules for (TERRAINS' names):
+        every row of the 2024 *Travel Terrain* table, else those the 2014 *Wilderness
+        Navigation* table names; none when the world has neither guide."""
+        return [name for name in TERRAINS if self.terrain(world_id, name, "limited")]
+
+    def foraging_by_abundance(self, world_id: str | None) -> bool:
+        """Whether foraging's DC is chosen by how much food the land holds (the 2014
+        guide's *Foraging DCs*) rather than read from the terrain (2024)."""
+        return self.rules_of(world_id) != "one" and bool(
+            self.book_table(world_id, "Foraging DCs", ["DMG"])
+        )
+
+    def terrain(self, world_id: str | None, name: str, abundance: str = "") -> Terrain | None:
+        """What the world's guide says of travelling through ``name``: under the 2024
+        rules the *Travel Terrain* table's row; under the 2014 rules the *Wilderness
+        Navigation* DC of the row naming it and the *Foraging DCs* row of ``abundance``
+        (abundant, limited, scarce), with the 2024 table's encounter distance where the
+        world has that guide too. None when the books say nothing of it."""
+        if name not in TERRAINS:
+            return None
+        both = self.book_table(world_id, "Travel Terrain", ["XDMG"]) or []
+        row = next((r for r in both if strip_tags(r[0]).strip(" *†").lower() == name.lower()), None)
+        distance = ""
+        if row is not None and len(row) > 4:
+            found = re.search(r"\{@dice ([^}|]+)", row[2])
+            distance = found[1].strip() if found else ""
+        if self.rules_of(world_id) == "one":
+            if row is None or len(row) < 5:
+                return None
+            pace = strip_tags(row[1]).strip(" *†").lower()
+            return Terrain(
+                name,
+                navigation_dc=_number(row[4]),
+                foraging_dc=_number(row[3]),
+                distance=distance,
+                max_pace=pace if pace in PACES else "",
+            )
+        navigating = self.book_table(world_id, "Wilderness Navigation", ["DMG"]) or []
+        nav = next((r for r in navigating if re.search(rf"\b{name.lower()}", r[0].lower())), None)
+        foraging = self.book_table(world_id, "Foraging DCs", ["DMG"]) or []
+        first = {"abundant": "abundant", "limited": "limited", "scarce": "very"}.get(abundance, "")
+        forage = next((r for r in foraging if first and r[0].lower().startswith(first)), None)
+        if nav is None and not distance:
+            return None
+        return Terrain(
+            name,
+            navigation_dc=_number(nav[-1]) if nav else None,
+            foraging_dc=_number(forage[-1]) if forage else None,
+            distance=distance,
         )
 
     def hazard_links(self, world_id: str | None) -> dict[str, str]:
@@ -2458,6 +2529,12 @@ def both_row(rows: Rows, roll: int) -> list[str]:
     """The row a d20 lands on, padded so every column reads."""
     row = row_for(rows, roll) or (rows[0] if rows else [])
     return [*row, "", "", "", ""]
+
+
+def _number(text: str) -> int | None:
+    """The first whole number in a table's cell ("15", "DC 10"); None for none."""
+    found = re.search(r"\d+", strip_tags(text))
+    return int(found[0]) if found else None
 
 
 __all__ = ["ReferenceRootViolation", "StoreRegistry"]

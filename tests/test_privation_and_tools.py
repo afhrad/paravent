@@ -60,6 +60,12 @@ class TestHungerAndThirst:
         rogue.act("exhaustion", delta=-1)
         assert rogue.now.state.hunger_levels == 1
 
+    def test_a_week_of_hunger_past_the_last_level(self, rogue: Table) -> None:
+        # Hungry day after day at six levels: the hold stays at six, the file valid.
+        for _ in range(8):
+            rogue.act("exhaustion", delta=1, cause="hunger")
+        assert (rogue.now.state.exhaustion, rogue.now.state.hunger_levels) == (6, 6)
+
 
 class TestToolChecks:
     def test_the_proficiency_is_in_the_roll(self, rogue: Table) -> None:

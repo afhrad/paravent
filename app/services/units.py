@@ -23,6 +23,7 @@ UNIT_SYSTEMS = ("feet", "metres")
 FOOT = Decimal("0.3")  # metres
 MILE = Decimal("1.5")  # kilometres
 POUND = Decimal("0.5")  # kilograms
+GALLON = Decimal("4")  # litres
 IMPERIAL_LANGUAGES = frozenset({"en"})
 COMMA_LANGUAGES = frozenset({"de", "fr", "es", "it", "nl", "pt", "pl"})
 
@@ -93,6 +94,12 @@ class UnitFormat:
         if not self.metric:
             return f"{self.number(pounds)} lb."
         return f"{self.number(Decimal(str(pounds)) * POUND)} kg"
+
+    def gallons(self, gallons: int | float | Decimal) -> str:
+        """``2`` → ``"2 gal."`` or ``"8 l"``, an amount of water."""
+        if not self.metric:
+            return f"{self.number(gallons)} gal."
+        return f"{self.number(Decimal(str(gallons)) * GALLON)} l"
 
     def text(self, value: str) -> str:
         """A structured value already written with units ("Self (15 ft cone)",

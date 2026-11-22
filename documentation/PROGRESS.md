@@ -675,6 +675,22 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         resistance or immunity (or cold weather gear); at high altitude a day covers half
         the way; the journey links the books' hazards it met, the day's strong wind and
         heavy precipitation among them
+  - [x] **Navigation, foraging and surprise on the road** (2026-11-22,
+        `app/services/travel.py`): a terrain (from the encounter table or chosen) reads
+        the world's guide — the 2024 *Travel Terrain* table (fastest pace, encounter
+        distance, foraging and navigation DCs) or the 2014 *Wilderness Navigation* and
+        *Foraging DCs* (by the land's abundance), `StoreRegistry.terrain`; a navigator's
+        Wisdom (Survival) each travelling morning (2014: ±5 by pace, advantage with a map
+        or the sky, 1d6 hours astray per failure; 2024: advantage slow, disadvantage fast,
+        the day's way 1d6 × 10 % longer), the miles astray on the journey; foragers at the
+        day's end (2014: not at a fast pace), 1d6 + WIS pounds of food each eaten instead of
+        rations and as many gallons counted toward the day's water; under the 2024 rules
+        the terrain caps the pace. An encounter rolls its distance and works out surprise
+        as a suggestion — who the creatures' lowest Stealth would catch (passive Perception,
+        −5 fast; under the 2014 rules the navigator and foragers are not watching), and
+        which creatures a stealthy party would catch unaware — shown on the journey and
+        written into the encounter made from it. Also fixed: a character hungry or thirsty
+        past six levels of exhaustion no longer fails to save
   - [x] **The session note to the players** (2026-11-16): "Send to the players" puts the
         note, as it reads, into every character's journal as a handout
   - [x] **Sidekick classes** (2026-11-16): a sidekick may take one of the books' sidekick
