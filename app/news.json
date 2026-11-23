@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-23T16:30:59+01:00",
+  "en": "Players' phones now sound when a handout arrives, their turn comes, a check is called for them, a level is granted or a shop opens; the gamemaster hears a faint tick when the X-card is tapped.",
+  "de": "Die Handys der Spieler klingen jetzt, wenn ein Handout kommt, ihr Zug beginnt, eine Probe verlangt, eine Stufe gewährt oder ein Laden geöffnet wird; die Spielleitung hört ein leises Ticken, wenn die X-Karte getippt wird."
+ },
+ {
   "at": "2026-11-22T18:25:49+01:00",
   "en": "Select several adventures, NPCs, places, treasure, encounters or creatures to copy or move together, or save them as a file and import it into a world at another table.",
   "de": "Mehrere Abenteuer, NSC, Orte, Schätze, Begegnungen oder Kreaturen auswählen und gemeinsam kopieren oder verschieben – oder als Datei speichern und an einem anderen Spieltisch in eine Welt importieren."
@@ -293,10 +298,5 @@
   "at": "2026-11-19T13:21:07+01:00",
   "en": "Players have a guide in the app: how the sheet, rolls, fights and magic items work.",
   "de": "Spieler haben eine Anleitung in der App: wie Bogen, Würfe, Kämpfe und magische Gegenstände funktionieren."
- },
- {
-  "at": "2026-11-19T13:10:33+01:00",
-  "en": "Magic items cast at their own save DC, a wand can spend more charges for a higher level, and attunement follows who the item is for.",
-  "de": "Magische Gegenstände wirken mit ihrem eigenen Rettungswurf-SG, ein Zauberstab kann mehr Ladungen für einen höheren Grad ausgeben, und die Einstimmung folgt dem, für wen der Gegenstand gedacht ist."
  }
 ]
