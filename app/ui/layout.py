@@ -178,7 +178,8 @@ def theme_toggle(page: Page) -> Element:
 
 
 def sound_toggle(page: Page) -> Element:
-    """Dice sounds on or off, for this device. ``sound.js`` remembers the choice."""
+    """Sounds on or off for this device — the dice and the players' cues (app/ui/cues.py).
+    ``sound.js`` remembers the choice."""
     t = page.t
     return div(
         class_="themetoggle icontoggle soundtoggle", role="group", aria_label=t("sound.label")

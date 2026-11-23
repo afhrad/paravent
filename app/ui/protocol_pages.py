@@ -21,9 +21,11 @@ from htpy import Element, Node, a, b, button, dialog, div, form, li, ol, p, span
 from app.models.protocol import Die, EntryKind, ProtocolEntry, RollRecord, Visibility
 from app.services import coins
 from app.services.protocol_view import Filter, LogPage, Shown
+from app.services.safety import XCARD
 from app.services.travel import PACES
 from app.ui.clock_pages import clock_label, remaining
 from app.ui.context import Page
+from app.ui.cues import cue
 from app.ui.forms import hidden
 from app.ui.icons import icon
 from app.ui.names import name_text
@@ -98,6 +100,16 @@ def toast_layer(page: Page) -> Element:
     )
 
 
+def _toast_cue(page: Page, entry: ProtocolEntry) -> str | None:
+    """The sound a toast makes: a handout's for its player, the X-card's for the
+    gamemaster (app/ui/cues.py)."""
+    if entry.kind is EntryKind.HANDOUT:
+        return cue(page, "handout", entry.id)
+    if entry.kind is EntryKind.CUSTOM and entry.what == XCARD:
+        return cue(page, "xcard", entry.id)
+    return None
+
+
 def toast_cards(page: Page, shown: Sequence[Shown]) -> Element:
     """Toasts for these entries, newest first: the result large, what and who, ✕."""
     t = page.t
@@ -110,6 +122,7 @@ def toast_cards(page: Page, shown: Sequence[Shown]) -> Element:
             div(
                 class_=f"log-toast {_OUTCOME_CLASS.get(outcome, '')}".strip(),
                 data_entry=entry.id,
+                data_cue=_toast_cue(page, entry),
                 tabindex="0",
             )[
                 div(class_="log-result mono")[_result(entry)],

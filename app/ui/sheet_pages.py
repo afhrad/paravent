@@ -93,6 +93,7 @@ from app.ui.check_pages import check_banner
 from app.ui.clock_pages import remaining, sheet_time, sheet_timers
 from app.ui.context import Page
 from app.ui.context_menu import data_menu
+from app.ui.cues import cue
 from app.ui.downtime_pages import sheet_downtime_link
 from app.ui.follower_pages import sheet_followers_link
 from app.ui.forms import hidden
@@ -2199,9 +2200,11 @@ def _level_up(page: Page, sheet: Sheet) -> Node:
     if not pending and not gamemaster and xp is None:
         return None
     take = (
-        a(href=f"/characters/{pc.id}/level-up", class_="btn btn-primary btn-sm")[
-            icon("sparkles", "sm"), span[t("levelup.banner", level=sheet.level + 1)]
-        ]
+        a(
+            href=f"/characters/{pc.id}/level-up",
+            class_="btn btn-primary btn-sm",
+            data_cue=cue(page, "level", f"{pc.id}:{sheet.level}:{pending}"),
+        )[icon("sparkles", "sm"), span[t("levelup.banner", level=sheet.level + 1)]]
         if pending
         else None
     )

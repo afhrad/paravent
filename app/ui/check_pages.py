@@ -29,6 +29,7 @@ from htpy import input as input_el
 from app.models.gamestate import CheckCall
 from app.services.checks import ABILITIES, SKILLS
 from app.ui.context import Page
+from app.ui.cues import cue
 from app.ui.forms import hidden
 from app.ui.icons import icon
 
@@ -232,7 +233,8 @@ def check_banner(page: Page, call: CheckCall, character_id: str, roll: Node) -> 
     ``roll`` is the sheet's own roll button for that check."""
     t = page.t
     total = call.results.get(character_id)
-    return div(class_="notice cs-call", role="status")[
+    heard = cue(page, "check", f"{call.id}:{character_id}") if total is None else None
+    return div(class_="notice cs-call", role="status", data_cue=heard)[
         icon("dices"),
         span[t("checks.asked", what=check_label(page, call))],
         small(class_="muted")[call.purpose] if call.purpose else None,

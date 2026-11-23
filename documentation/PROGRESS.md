@@ -1269,6 +1269,14 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       chime, a natural 1 a "wah-wah". Told by an `HX-Trigger` on the roll's answer — sheet,
       party card, tracker, and the reference page's local chips. On/off per device in the
       user menu. A natural 20 or 1 lights up its row in the sheet's log and the party card
+      **The players' cues** (2026-11-23, `app/ui/cues.py`, `static/js/sound.js`): made the
+      same way, heard on a player's device when something arrives for them — a handout
+      (parchment and two bells), their turn in a fight or a chase (a drum and a gong), a
+      check or save called for them (a horn call), a level granted (a fanfare), a shop
+      opened or a chase begun (a bell) — and on the gamemaster's only the X-card's faint
+      tick. An element carries `data-cue="<sound>|<key>"`; the script plays a key the first
+      time it appears after the page loaded (never at load, never twice, the most urgent
+      of several), under the same switch as the dice
 - [x] **First wizard for character generation** — built 2026-10-18 (CHARGEN-WIZARD.md §8): any
       starting level, both rule editions, from a draft to a ready character with its sheet
       **The last gaps** (2026-11-02, §8): an ability increase past 20 refused, here and on level

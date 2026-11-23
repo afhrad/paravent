@@ -40,6 +40,7 @@ from app.services.text import strip_tags
 from app.services.tokens import Token
 from app.store.projections import coerce_type
 from app.ui.context import Page
+from app.ui.cues import cue
 from app.ui.forms import hidden
 from app.ui.icons import icon
 from app.ui.knowledge_text import fact_detail, fact_kind, fact_label, ordered
@@ -372,6 +373,7 @@ def _save_calls(
                     hx_target=target,
                     hx_swap="outerHTML",
                     class_="pv-save",
+                    data_cue=cue(page, "check", f"{view.id}:{call.at}:{character_id}"),
                 )[
                     hidden("at", call.at),
                     hidden("character_id", character_id),
@@ -419,6 +421,12 @@ def _repeat_calls(
     ]
 
 
+def _turn_cue(page: Page, view: PlayerView) -> str | None:
+    """The sound of a turn beginning: the fight, its round and which place is acting."""
+    place = next((i for i, turn in enumerate(view.turns) if turn.active), -1)
+    return cue(page, "turn", f"{view.id}:{view.round}:{place}")
+
+
 def player_board(
     page: Page, view: PlayerView, mine: frozenset[str], flash: str | None = None
 ) -> Element:
@@ -427,7 +435,7 @@ def player_board(
     current = view.current
     yours = view.running and view.acting(mine)
     if yours:
-        banner: Node = div(class_="pv-yours", role="status")[
+        banner: Node = div(class_="pv-yours", role="status", data_cue=_turn_cue(page, view))[
             icon("zap"), span[t("combat.your_turn")]
         ]
     elif view.running and current is not None:
@@ -488,7 +496,9 @@ def fights_list(page: Page, views: Sequence[PlayerView], mine: frozenset[str]) -
             div(class_=f"pv-strip{' yours' if v.acting(mine) else ''}")[
                 a(href=play_combat_url(v.id), class_="pv-strip-link")[icon("zap"), b[v.name]],
                 _state(page, v),
-                b(class_="pv-strip-yours")[t("combat.your_turn")] if v.acting(mine) else None,
+                b(class_="pv-strip-yours", data_cue=_turn_cue(page, v))[t("combat.your_turn")]
+                if v.acting(mine)
+                else None,
             ]
             for v in views
         ]
@@ -508,7 +518,9 @@ def combat_strip(
         yours = view.acting(mine)
         turn: Node = None
         if yours:
-            turn = b(class_="pv-strip-yours")[icon("zap"), t("combat.your_turn")]
+            turn = b(class_="pv-strip-yours", data_cue=_turn_cue(page, view))[
+                icon("zap"), t("combat.your_turn")
+            ]
         elif view.round and current is not None:
             turn = span(class_="muted pv-strip-turn")[
                 _seen_token(current.members[0], "sm") if current.members else None,

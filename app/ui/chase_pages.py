@@ -29,6 +29,7 @@ from htpy import input as input_el
 from app.models.gamestate import Chase, ChaseRunner
 from app.services.chase import ENVIRONMENTS
 from app.ui.context import Page
+from app.ui.cues import cue
 from app.ui.forms import hidden
 from app.ui.icons import icon
 from app.ui.tool_dialog import tool_button, tool_dialog
@@ -312,7 +313,15 @@ def chase_banner(page: Page, chase: Chase, character_id: str) -> Node:
     else:
         whose = t("chase.round_end")
     htmx = {"hx_swap": "none"}
-    return div(class_="notice cs-chase" + (" is-turn" if own_turn else ""), role="status")[
+    # Heard as the chase begins, and again on each of the runner's own turns.
+    heard = (
+        cue(page, "turn", f"chase:{chase.created_at.isoformat()}:{chase.round}:{chase.turn}")
+        if own_turn
+        else cue(page, "bell", f"chase:{chase.created_at.isoformat()}")
+    )
+    return div(
+        class_="notice cs-chase" + (" is-turn" if own_turn else ""), role="status", data_cue=heard
+    )[
         icon("footprints"),
         b[t("chase.heading")],
         span(class_="pill accent")[t("chase.round", round=chase.round)] if not chase.over else None,

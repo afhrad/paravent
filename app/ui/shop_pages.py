@@ -37,6 +37,7 @@ from app.services.chargen.catalogue import SHELVES, shelf
 from app.services.coins import VALUES, worth
 from app.services.shop import Ware
 from app.ui.context import Page
+from app.ui.cues import cue
 from app.ui.forms import alert, hidden, notice
 from app.ui.home_pages import page_head
 from app.ui.icons import icon
@@ -566,9 +567,11 @@ def _sellable(page: Page, url: str, index: int, item: InventoryItem, price: int)
 
 def sheet_shop_link(page: Page, character_id: str, name: str) -> Node:
     """The sheet's way into an open shop (``name`` "" for an unnamed one)."""
-    return a(href=shop_url(character_id), class_="btn btn-sm is-on")[
-        icon("coins", "sm"), span[name or page.t("shop.heading")]
-    ]
+    return a(
+        href=shop_url(character_id),
+        class_="btn btn-sm is-on",
+        data_cue=cue(page, "bell", f"shop:{character_id}:{name}"),
+    )[icon("coins", "sm"), span[name or page.t("shop.heading")]]
 
 
 __all__ = [

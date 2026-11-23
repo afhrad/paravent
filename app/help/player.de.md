@@ -113,6 +113,12 @@ am Zug ist. Mit den zwei Knöpfen oben wechselst du zwischen deinem Charakter un
 - Verlangt der Zauber oder Odem eines Monsters deinen Rettungswurf, erscheint er auf
   deinem Handy: würfle ihn dort. Den SG zeigt dir die Spielleitung nie.
 
+Dein Gerät spielt auch einen kurzen Klang, wenn etwas für dich ankommt: ein Handout, dein
+Zug in einem Kampf oder einer Verfolgungsjagd, ein Wurf oder Rettungswurf, den die
+Spielleitung verlangt, eine neue Stufe, ein Laden, der öffnet. Der Klang-Schalter im
+Benutzermenü schaltet sie zusammen mit den Würfeln aus. Ein Handy spielt Klänge erst, wenn
+du einmal auf die Seite getippt hast.
+
 ## 7. Wenn die Spielleitung fragt
 
 Ein grüner Kasten auf deinem Bogen — *Die Spielleitung verlangt: Wahrnehmung* — ist ein

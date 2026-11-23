@@ -98,6 +98,11 @@ is. Switch between your character and **Fight** with the two buttons at the top.
 - When a monster's spell or breath asks for your save, it appears on your phone: roll it
   there. The gamemaster never shows you the DC.
 
+Your device also plays a short sound when something arrives for you: a handout, your turn
+in a fight or a chase, a check or save the gamemaster calls for, a level to take, a shop
+opening. The sound switch in the user menu turns them off with the dice. A phone plays
+sounds only after you have tapped the page once.
+
 ## 7. When the gamemaster asks
 
 A green box on your sheet — *The gamemaster asks for Perception* — is a check called for
