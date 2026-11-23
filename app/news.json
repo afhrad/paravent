@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-23T16:54:17+01:00",
+  "en": "On the phone, the character sheet has a letter button to the journal with the number of unopened handouts, and tapping a new handout's pop-up opens it.",
+  "de": "Auf dem Handy hat der Charakterbogen einen Brief-Knopf zum Journal mit der Zahl ungeöffneter Handouts, und ein Tipp auf die Einblendung eines neuen Handouts öffnet es."
+ },
+ {
   "at": "2026-11-23T16:30:59+01:00",
   "en": "Players' phones now sound when a handout arrives, their turn comes, a check is called for them, a level is granted or a shop opens; the gamemaster hears a faint tick when the X-card is tapped.",
   "de": "Die Handys der Spieler klingen jetzt, wenn ein Handout kommt, ihr Zug beginnt, eine Probe verlangt, eine Stufe gewährt oder ein Laden geöffnet wird; die Spielleitung hört ein leises Ticken, wenn die X-Karte getippt wird."
@@ -293,10 +298,5 @@
   "at": "2026-11-19T16:06:48+01:00",
   "en": "A new image dialog frames covers and pictures without cutting them, finds the world's pictures by name, tag or shape, places are created in their own dialog, and adventures take the world's ready-made NPCs, places, encounters and treasure from a list",
   "de": "Ein neuer Bilddialog rahmt Titelbilder und Bilder, ohne sie zu beschneiden, findet die Bilder der Welt nach Name, Schlagwort oder Format, Orte entstehen in einem eigenen Dialog, und Abenteuer übernehmen die fertigen NSC, Orte, Begegnungen und Schätze der Welt aus einer Liste"
- },
- {
-  "at": "2026-11-19T13:21:07+01:00",
-  "en": "Players have a guide in the app: how the sheet, rolls, fights and magic items work.",
-  "de": "Spieler haben eine Anleitung in der App: wie Bogen, Würfe, Kämpfe und magische Gegenstände funktionieren."
  }
 ]
