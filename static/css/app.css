@@ -2199,6 +2199,18 @@ main:has(.undo-notice) .notice:not(.undo-notice){ display:none; }
   line-height:18px; text-align:center; font-family:var(--font-ui);
 }
 .log-badge[hidden]{ display:none; }
+/* The journal's own button shows only on a player's phone page without the bottom bar
+   (the sheet); elsewhere the Journal link in the sections carries the count. */
+.shell-journal{ display:none; position:relative; min-height:44px; min-width:44px; padding:0 8px; color:var(--text-2); }
+.journal-badge{
+  position:absolute; top:2px; right:0; min-width:18px; height:18px; padding:0 5px;
+  border-radius:9px; background:var(--accent); color:var(--on-accent); font-size:11px; font-weight:700;
+  line-height:18px; text-align:center; font-family:var(--font-ui);
+}
+.journal-badge[hidden]{ display:none; }
+.shell-nav a, .player-bar a{ position:relative; }
+.shell-nav .journal-badge{ top:-4px; right:-6px; }
+.player-bar .journal-badge{ top:0; right:calc(50% - 22px); }
 dialog.logpanel{
   border:0; padding:0; margin:0 0 0 auto; height:100dvh; max-height:none;
   width:min(440px, 100vw); max-width:none; color:var(--text);
@@ -2298,6 +2310,7 @@ dialog.logpanel::backdrop{ background:rgba(10,12,16,.35); }
   /* One compact row on top — the name, search, the user menu (which holds "New
      character") — and the sections in a bar at the bottom, in reach of the thumb. */
   .role-player-shell .shell-nav{ display:none; }
+  .role-player-shell:not(.with-player-bar) .shell-journal{ display:inline-flex; align-items:center; justify-content:center; }
   .role-player-shell .shell-home{ display:inline-flex; align-items:center; min-height:44px; }
   .role-player-shell .shell-home svg{ display:block; width:32px; height:32px; }
   .with-player-bar .shell-main{ padding-bottom:calc(96px + env(safe-area-inset-bottom)); }

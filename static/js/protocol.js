@@ -131,6 +131,14 @@
       if (!batch) return;
       if (batch.dataset.newest) since = batch.dataset.newest;
       if (panel.open) return;  // the panel shows them already
+      // New handouts count on the journal's links at once.
+      var handouts = batch.querySelectorAll('[data-href]').length;
+      if (handouts) {
+        document.querySelectorAll('.journal-badge').forEach(function (badge) {
+          badge.textContent = String((parseInt(badge.textContent, 10) || 0) + handouts);
+          badge.hidden = false;
+        });
+      }
       Array.prototype.slice.call(batch.children).reverse().forEach(function (card) {
         layer.insertBefore(card, layer.firstChild);
         keep(card);
@@ -147,7 +155,10 @@
       var card = e.target.closest('.log-toast');
       if (!card) return;
       dismiss(card);
-      if (!e.target.closest('[data-toast-close]')) { panel.showModal(); load(); }
+      if (e.target.closest('[data-toast-close]')) return;
+      // A handout's toast opens the handout; any other the panel.
+      if (card.dataset.href) { window.location.href = card.dataset.href; return; }
+      panel.showModal(); load();
     });
     layer.addEventListener('keydown', function (e) {
       var card = e.target.closest('.log-toast');

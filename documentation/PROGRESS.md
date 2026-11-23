@@ -457,8 +457,9 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
   - [x] **The players' journal** (2026-11-05, documentation/JOURNAL.md): a send button on
         every box but a secret and every picture of a chapter hands a frozen copy to the
         characters ticked (pictures copied with their effects); a private log entry per
-        character pops up as a toast; `/journal` lists a player's handouts, new until
-        opened, and the gamemaster's with recipients, who opened them, and Withdraw
+        character pops up as a toast, a tap on it opening the handout; `/journal` lists a
+        player's handouts, new until opened, counted on its links and on a letter button
+        in the sheet's top bar on a phone (2026-11-23), and the gamemaster's with recipients, who opened them, and Withdraw
         **The books' own boxes and pictures** too, in chapters of a published adventure,
         the pictures now shown from the image folder (2026-11-05). **Party notes**
         (2026-11-15, `app/services/party_notes.py`): one shared text per world on the

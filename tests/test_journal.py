@@ -306,3 +306,36 @@ class TestTheBooksBoxes:
         assert (
             await ac.get(f"/gm/share?chapter={ids['chapter']}&book=nonsense")
         ).status_code == 404
+
+
+class TestFindingWhatWasSent:
+    async def test_the_journal_counts_what_is_unread_and_the_log_leads_to_it(
+        self, setup: tuple[AsyncClient, StoreRegistry, dict[str, str]]
+    ) -> None:
+        ac, registry, ids = setup
+        await _login(ac, "dm")
+        await ac.post(
+            "/gm/share",
+            data={
+                "chapter": ids["chapter"],
+                "image": "map.png",
+                "title": "The map",
+                "characters": [ids["torvald"]],
+            },
+        )
+        (handout,) = registry.gamestate.handouts.list()
+        await _login(ac, "alice")
+        sheet = (await ac.get(f"/characters/{ids['torvald']}")).text
+        # The sheet has no bottom bar of sections: the journal sits in its top bar.
+        button = sheet.split('shell-journal"', 1)[1].split("</a>", 1)[0]
+        assert 'href="/journal"' in sheet and 'journal-badge" aria-live="polite">1<' in button
+        home = (await ac.get("/play")).text
+        assert "shell-journal" not in home and 'journal-badge" aria-live="polite">1<' in home
+        log = (await ac.get("/log/panel")).text
+        assert f'href="/journal/{handout.id}"' in log
+        toasts = (await ac.get("/log/toasts?since=2000-01-01T00:00:00%2B00:00")).text
+        assert f'data-href="/journal/{handout.id}"' in toasts
+        await ac.get(f"/journal/{handout.id}")
+        assert 'class="journal-badge" hidden' in (await ac.get("/play")).text
+        await _login(ac, "bob")
+        assert 'class="journal-badge" hidden' in (await ac.get("/play")).text

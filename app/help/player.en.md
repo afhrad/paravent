@@ -117,7 +117,9 @@ see your own total; the gamemaster decides what it means.
   carousing and more.
 - **Followers**, **Bastion** (from level 5) and **Story** sit in the sheet's head.
 - The **Journal** holds the letters, notes and pictures the gamemaster gave you, the
-  session notes, and **Party notes** the whole group writes together.
+  session notes, and **Party notes** the whole group writes together. On a phone the
+  sheet has a letter button at the top for it, with a number while something sent to
+  you is unopened; tapping the pop-up of a new handout opens it straight away.
 
 ## 9. Safety
 

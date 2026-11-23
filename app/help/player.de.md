@@ -135,7 +135,9 @@ es bedeutet, entscheidet die Spielleitung.
 - **Gefolge**, **Bastion** (ab Stufe 5) und **Geschichte** sitzen im Kopf des Bogens.
 - Das **Journal** hält Briefe, Notizen und Bilder, die dir die Spielleitung gegeben hat,
   die Sitzungsnotizen und die **Gruppennotizen**, die die ganze Gruppe gemeinsam
-  schreibt.
+  schreibt. Auf dem Handy hat der Bogen dafür oben einen Brief-Knopf, mit einer Zahl,
+  solange etwas Geschicktes ungeöffnet ist; ein Tipp auf die Einblendung eines neuen
+  Handouts öffnet es sofort.
 
 ## 9. Sicherheit
 

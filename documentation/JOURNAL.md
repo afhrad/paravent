@@ -57,11 +57,16 @@ book prints one (the map without its secrets), else the map.
 
 **The toast**: sharing writes one log entry per character (`EntryKind.HANDOUT`, private,
 the character as subject, the title as note), which the log's own rules pop up on that
-player's screen and file in their log (PROTOCOL.md §6).
+player's screen and file in their log (PROTOCOL.md §6). A tap on that toast, or on the
+entry's line in the log panel, opens the handout itself (`data-href` on the card), not the
+panel (2026-11-23).
 
 ## 3. Reading
 
-`/journal` — in a player's bottom bar and top bar as **Journal**; for the gamemaster on
+`/journal` — in a player's bottom bar and top bar as **Journal**, with the count of
+unopened handouts on it (`Page.unread_handouts`, raised live by `protocol.js` as a handout's
+toast arrives); on a phone page without the bottom bar (the sheet) as a letter button in
+the top bar, beside the log (2026-11-23); for the gamemaster on
 *Journal* in the top bar, the table's world (documentation/CURRENT-WORLD.md) — lists what the reader may read, newest first. A
 player's list marks what they have not opened; the gamemaster's names who each went to.
 

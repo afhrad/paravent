@@ -421,6 +421,29 @@ def public_shell(page: Page, page_title: str, content: Node) -> Element:
     )
 
 
+JOURNAL = "/journal"
+
+
+def _journal_badge(page: Page, href: str) -> Element | None:
+    """The count of unread handouts on a link to the journal, kept live by
+    ``protocol.js`` as handouts arrive."""
+    if href != JOURNAL or page.identity is None or page.identity.is_gamemaster:
+        return None
+    count = page.unread_handouts
+    return span(class_="journal-badge", hidden=not count, aria_live="polite")[
+        str(count) if count else ""
+    ]
+
+
+def journal_button(page: Page) -> Element:
+    """The journal in a player's top bar, for a phone page without the bottom bar (the
+    sheet): what the gamemaster sent is one tap away, its unread count on it."""
+    label = page.t("nav.journal")
+    return a(
+        href=JOURNAL, class_="btn btn-ghost shell-journal", aria_label=label, title=label
+    )[icon("mail", "md"), _journal_badge(page, JOURNAL)]
+
+
 def _player_bar(page: Page) -> Element:
     """A player's bottom bar on a phone: the sections. A new character is in the user
     menu."""
@@ -431,7 +454,7 @@ def _player_bar(page: Page) -> Element:
             a(
                 href=nav_href(item, path, page.nav_memory),
                 aria_current="page" if item.contains(path) else None,
-            )[icon(item.icon, "lg"), span[t(item.key)]]
+            )[icon(item.icon, "lg"), span[t(item.key)], _journal_badge(page, item.href)]
             for item in NAV[Role.PLAYER]
         ]
     ]
@@ -452,7 +475,7 @@ def _nav(page: Page, role: Role) -> Element:
             class_=cls,
             aria_current="page" if item.contains(path) else None,
             title=t(item.key),
-        )[icon(item.icon), span[t(item.key)]]
+        )[icon(item.icon), span[t(item.key)], _journal_badge(page, item.href)]
 
     gm = role == Role.GAMEMASTER
     inside_more = any(item.contains(path) for item in items if item.rank)
@@ -528,6 +551,7 @@ def app_shell(
                 _nav(page, user.role),
                 div(class_="shell-spacer"),
                 sound_button(page),
+                journal_button(page) if not identity.is_gamemaster and not bar else None,
                 log_button(page),
                 search_trigger(page),
                 settings_menu(page),

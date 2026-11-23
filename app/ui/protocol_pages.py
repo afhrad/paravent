@@ -31,6 +31,9 @@ from app.ui.icons import icon
 from app.ui.names import name_text
 from app.ui.rules_text import dice as dice_words
 
+# A handout in the journal (app/ui/journal_pages.py), which imports from here.
+HANDOUT_URL = "/journal"
+
 LOG_URL = "/log"
 SESSION_GAP = timedelta(hours=3)
 _OUTCOME_CLASS = {
@@ -110,6 +113,11 @@ def _toast_cue(page: Page, entry: ProtocolEntry) -> str | None:
     return None
 
 
+def _handout_url(entry: ProtocolEntry) -> str | None:
+    """Where a handout's entry leads: the handout itself, in the journal."""
+    return f"{HANDOUT_URL}/{entry.what}" if entry.kind is EntryKind.HANDOUT and entry.what else None
+
+
 def toast_cards(page: Page, shown: Sequence[Shown]) -> Element:
     """Toasts for these entries, newest first: the result large, what and who, ✕."""
     t = page.t
@@ -122,6 +130,7 @@ def toast_cards(page: Page, shown: Sequence[Shown]) -> Element:
             div(
                 class_=f"log-toast {_OUTCOME_CLASS.get(outcome, '')}".strip(),
                 data_entry=entry.id,
+                data_href=_handout_url(entry),
                 data_cue=_toast_cue(page, entry),
                 tabindex="0",
             )[
@@ -288,7 +297,9 @@ def _row(page: Page, shown: Shown) -> Element:
                 marks,
             ],
             div(class_="log-what")[
-                span[headline(page, entry)],
+                a(href=href)[headline(page, entry)]
+                if (href := _handout_url(entry))
+                else span[headline(page, entry)],
                 _mode_chip(page, roll),
                 span(class_=f"pill log-outcome {_OUTCOME_CLASS.get(outcome, '')}")[
                     _outcome_word(page, outcome)
