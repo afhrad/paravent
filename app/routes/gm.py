@@ -51,6 +51,8 @@ from app.services.delve import DelveError
 from app.services.dice import Advantage
 from app.services.downtime import DowntimeError
 from app.services.events import PARTY, revision_stream
+from app.services.hazards import KINDS, Hazard, HazardError, Scale, party_level, scale
+from app.services.hazards import effect as hazard_effect
 from app.services.madness import rolls_2014
 from app.services.play import Actor, PlayError
 from app.services.player_view import player_choice, player_ticks
@@ -92,10 +94,18 @@ from app.ui.gm_pages import (
     world_form,
     world_form_page,
 )
+from app.ui.hazard_pages import hazard_form, hazard_tool
 from app.ui.madness_pages import madness_tool
 from app.ui.nav import WORLD_SECTIONS, world_section_of
 from app.ui.shop_pages import SHOP_URL, shop_panel
-from app.ui.trap_pages import TRAP_CATEGORIES, TRAPS_URL, spring_form, spring_result
+from app.ui.trap_pages import (
+    HAZARDS_URL,
+    IMPROVISED,
+    TRAP_CATEGORIES,
+    TRAPS_URL,
+    spring_form,
+    spring_result,
+)
 from app.ui.xp_pages import XP_DONE, XP_URL, xp_tool
 
 router = APIRouter(tags=["gamemaster"])
@@ -380,6 +390,7 @@ async def party(
     (documentation/CURRENT-WORLD.md); ``world`` names another, as its own forms do."""
     chosen = worlds.find(world) or registry.table.world()
     world_id = chosen.id if chosen else None
+    members = _party_names(characters, world_id)
     return html(
         party_page(
             page,
@@ -400,6 +411,9 @@ async def party(
                 tables=rolls_2014(lambda c, b: registry.book_table(world_id, c, b)),
             )
             if registry.feature(world_id, "madness")
+            else None,
+            hazard=hazard_tool(page, world_id, *_scale(registry, world_id))
+            if world_id is not None and registry.feature(world_id, "hazards") and members
             else None,
         )
     )
@@ -725,11 +739,31 @@ def _chase_runners(registry: StoreRegistry, world_id: str, form: FormData) -> li
 # -- traps and hazards ------------------------------------------------------------------
 
 
+def _scale(registry: StoreRegistry, world_id: str) -> tuple[Scale | None, int]:
+    """The world's guide's prices for harm at its party's level, and that level."""
+    party = registry.gamestate.characters.of_world(world_id, drafts=False)
+    level = party_level([pc.total_level for pc in party])
+    rules = registry.rules_of(world_id)
+    return scale(rules, level, lambda c, b: registry.book_table(world_id, c, [b])), level
+
+
 def _trap(
     registry: StoreRegistry, world_id: str, category: str, name: str, source: str
 ) -> tuple[str, TrapEffect, list[tuple[str, str]], int] | None:
-    """A trap of the world's books: its name, effect, the world's characters and their
-    average level; None when the books lack it."""
+    """A trap of the world's books, or a hazard improvised on the party view (its choice
+    in ``source``): its name, effect, the world's characters and their average level;
+    None when the books lack it, the hazard does not read or the world plays without
+    hazards."""
+    if category == IMPROVISED:
+        if not registry.feature(world_id, "hazards"):
+            return None
+        party = registry.gamestate.characters.of_world(world_id, drafts=False)
+        scaled, level = _scale(registry, world_id)
+        try:
+            made = hazard_effect(Hazard.from_spec(source), scaled)
+        except HazardError:
+            return None
+        return name, made, [(pc.id, pc.name or "?") for pc in party], level
     if category not in TRAP_CATEGORIES:
         return None
     try:
@@ -763,6 +797,61 @@ async def trap_form(
         return html(alert(page.t("trap.error.unknown")))
     shown, effect, members, level = found
     return html(spring_form(page, world, category, shown, source, effect, members, level))
+
+
+@router.get(f"{HAZARDS_URL}/form", response_class=HTMLResponse)
+async def hazard_choice(
+    _gm: GamemasterDep,
+    page: PageDep,
+    worlds: WorldsDep,
+    registry: RegistryDep,
+    world: str = "",
+    fresh: str = "",
+    kind: str = "collapse",
+    severity: str = "",
+    ability: str = "",
+    type: str = "",  # noqa: A002 — the form field's name
+    half: str = "",
+    dc: str = "",
+    dice: str = "",
+    feet: str = "",
+) -> HTMLResponse:
+    """The hazard chosen, as the form that springs it; with ``fresh``, the choice again
+    (for another hazard). A choice that does not work out comes back with the reason."""
+    if worlds.find(world) is None or not registry.feature(world, "hazards"):
+        return html(alert(page.t("trap.error.unknown")))
+    scaled, level = _scale(registry, world)
+    if fresh or kind not in KINDS:
+        return html(hazard_form(page, world, scaled, level))
+    suggested_type, suggested_save = KINDS[kind]
+    hazard = Hazard(
+        kind=kind,
+        severity=severity,
+        ability="" if ability == "none" else (ability or suggested_save),
+        damage_type=type or suggested_type,
+        half=half == "1",
+        dc=int(dc) if dc.isdigit() else None,
+        # German dice read "3W10"; the height is in the reader's units.
+        dice=dice.replace(" ", "").lower().replace("w", "d"),
+        feet=feet_from(feet, page.u.metric) or 0 if feet.strip() else 0,
+    )
+    try:
+        made = hazard_effect(hazard, scaled)
+    except HazardError as exc:
+        return html(hazard_form(page, world, scaled, level, error=page.t(f"hazard.error.{exc}")))
+    t = page.t
+    shown = (
+        t("hazard.fall_name", distance=page.u.distance(hazard.feet))
+        if kind == "falling"
+        else t(
+            "hazard.name",
+            kind=t(f"hazard.kind.{kind}"),
+            severity=t(f"hazard.severity.{severity}") if severity and not dice else dice,
+        )
+    )
+    party = registry.gamestate.characters.of_world(world, drafts=False)
+    members = [(pc.id, pc.name or "?") for pc in party]
+    return html(spring_form(page, world, IMPROVISED, shown, hazard.spec(), made, members, level))
 
 
 @router.post(f"{TRAPS_URL}/spring", response_class=HTMLResponse)

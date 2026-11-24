@@ -14,8 +14,8 @@ Nothing agreed is waiting; see the proposals below.
 
 Paused 2026-11-22 while the user playtests; their findings come first.
 
-- **Hazards by level** — falling, collapse, fire, wild magic: damage and DCs scaled to the
-  party, sprung with "Spring it" as traps are (saves on the sheets, defences counted). S
+- **Wild magic as a hazard** — left out when hazards by level were built (2026-11-24): a
+  zone that rolls the books' *Wild Magic Surge* table on a character. S
 - **Divine intervention** — a pantheon per world from the books' deities; the intervention
   roll on a cleric's sheet (2014 percentage, 2024 feature), logged. S
 - **Running costs** — a business, stronghold or garrison charged by the clock, like

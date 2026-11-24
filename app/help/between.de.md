@@ -6,7 +6,7 @@ Gruppenansicht (*Spieltisch*), in der Welt, in der der Tisch spielt.
 
 Nicht jeder Tisch will alles davon. **Welteinstellungen → Funktionen** schaltet jeden Teil
 für die Welt an oder aus: das Reisen und das Überleben unterwegs, die Begegnungswürfe im
-Dungeon, Läden, Lebensstil, Gefolge, Auszeit, Bastionen, Quests, Fraktionen,
+Dungeon, Gefahren, Läden, Lebensstil, Gefolge, Auszeit, Bastionen, Quests, Fraktionen,
 Verfolgungsjagden, Wahnsinn und die Sicherheitswerkzeuge. Was abgeschaltet ist, verschwindet
 von deinen Bildschirmen und denen der Spieler, und nichts davon läuft auf der Uhr; was damit
 gemacht wurde, bleibt erhalten, bis es wiederkommt. Eine neue Welt beginnt mit Reisen,
@@ -134,6 +134,12 @@ Entscheidung des Spielers.
 - **Eine Falle** in einem Kapitel oder auf ihrer Seite hat **Auslösen**: hake an, wen sie
   erwischt. Sie würfelt die Rettungswürfe auf deren Bögen oder lässt die Spieler würfeln
   (*Spieler würfeln die Rettungswürfe*) und verteilt ihren Schaden mit den Resistenzen.
+- **Eine Gefahr**, die du dir spontan ausdenkst — ein Einsturz, eine Stichflamme, ein
+  Sturz —, ist **Gefahr** in der Gruppenansicht. Wähle, was trifft und wie schlimm: Schaden
+  und SG kommen aus dem Spielleiterhandbuch der Welt für die Stufe der Gruppe (2014:
+  Rückschlag, gefährlich, tödlich; 2024: Ärgernis, tödlich), ein Sturz aus seiner Höhe
+  (1W6 je 3 m, höchstens 20W6). Rettungswurf, Schadensart, SG oder Würfel kannst du
+  ändern; dann wird sie wie eine Falle ausgelöst.
 - **Eine Krankheit oder ein Gift** in einem Kapitel oder auf seiner Seite hat
   **Anstecken**: hake an, wen es trifft, und würfle ihre Rettungswürfe oder lass sie sich
   ohne anstecken. Ein Gift verteilt seinen Schaden und seine Zustände, so lange der Text

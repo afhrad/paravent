@@ -5,7 +5,7 @@ the days off, the bastion, and the people the characters know. Most of it starts
 party view (*Table*), in the world the table plays in.
 
 Not every table wants all of it. **World settings → Features** switches each part on or
-off for the world: travel and its survival, dungeon checks, shops, lifestyle, followers,
+off for the world: travel and its survival, dungeon checks, hazards, shops, lifestyle, followers,
 downtime, bastions, quests, factions, chases, madness and the safety tools. One switched
 off is gone from your screens and the players', and nothing of it runs on the clock; what
 was made with it is kept for when it comes back. A new world starts with travel, shops,
@@ -121,6 +121,11 @@ player's decision.
 - **A trap** in a chapter or on its page has **Spring it**: tick who is caught. It
   rolls the saves on their sheets, or lets the players roll them (*Players roll the
   saves*), and deals its damage with their resistances counted.
+- **A hazard** you make up on the spot — a collapse, a burst of flame, a fall — is
+  **Hazard** on the party view. Choose what strikes and how badly: the damage and DC come
+  from the world's guide at the party's level (2014: setback, dangerous, deadly; 2024:
+  nuisance, deadly), a fall from its height (1d6 per 10 feet, at most 20d6). Change the
+  save, the damage type, the DC or the dice if you like, then it is sprung like a trap.
 - **A disease or a poison** in a chapter or on its page has **Afflict**: tick who meets
   it, and roll their saves or let them catch it outright. A poison deals its damage and
   puts its conditions on for as long as its text says. A disease keeps quiet until its

@@ -19,6 +19,10 @@ from app.ui.icons import icon
 
 TRAPS_URL = "/gm/traps"
 TRAP_CATEGORIES = frozenset({"trap", "hazard"})
+# A hazard the gamemaster improvises on the party view (app/services/hazards.py): sprung
+# through the same form, its choice carried as ``source``.
+IMPROVISED = "improvised"
+HAZARDS_URL = "/gm/hazards"
 
 
 def spring_button(page: Page, world_id: str | None, category: str, name: str, source: str) -> Node:
@@ -110,6 +114,7 @@ def spring_form(
         hidden("name", name),
         hidden("source", source),
         result,
+        b(class_="hazard-name")[name] if category == IMPROVISED else None,
         ul(class_="trap-effects")[
             [li[_save_words(page, s)] for s in scaled.saves],
             li[
@@ -145,7 +150,8 @@ def spring_form(
         else p(class_="muted")[t("trap.no_one")],
         div(class_="trap-buttons")[
             button(type="submit", name="op", value="spring", class_="btn btn-sm btn-primary")[
-                icon("zap", "sm"), span[t("trap.spring_now")]
+                icon("zap", "sm"),
+                span[t("hazard.spring_now" if category == IMPROVISED else "trap.spring_now")],
             ]
             if scaled.automatic and members
             else None,
@@ -169,6 +175,16 @@ def spring_form(
                 for c in effect.checks
             ]
             if members
+            else None,
+            # An improvised hazard: back to the choice for another.
+            button(
+                type="button",
+                class_="btn btn-sm btn-ghost",
+                hx_get=f"{HAZARDS_URL}/form?{urlencode({'world': world_id, 'fresh': '1'})}",
+                hx_target="closest .trap-spring",
+                hx_swap="innerHTML",
+            )[icon("arrow-left", "sm"), span[t("hazard.another")]]
+            if category == IMPROVISED
             else None,
         ],
     ]

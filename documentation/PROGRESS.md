@@ -721,6 +721,14 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         checks; saving closes an open shop, ends a chase and leaves the dungeon. Records are
         kept. Worlds from before have every feature; a new one the basics (travel, shops,
         quests, safety tools). The guides' variant rules keep their own switches
+  - [x] **Hazards by level** (2026-11-24, `app/services/hazards.py`,
+        `app/ui/hazard_pages.py`): **Hazard** on the party view — a collapse, fire, lightning,
+        acid, cold, poison gas, psychic, thunder or necrotic blight, its damage and DC from
+        the world's guide at the party's level (the 2014 *Damage Severity by Level* and *Trap
+        Save DCs*, or the 2024 *Damage Severity and Level* and *Building a Trap*, read from
+        the books), or a fall by its height (1d6 per 10 feet, at most 20d6); save, damage
+        type, DC and dice changeable. Sprung through the trap's form (`improvised`): saves on
+        the sheets or by the players, defences counted, logged. A feature of its own
   - [x] **Optional combat rules** (2026-11-22, `app/services/combat_rules.py`, COMBAT.md
         §3): the 2014 guide's variants as world switches in World settings, kept by a fight
         from its start. **Massive damage** rolls the DC 15 Constitution save and, on a

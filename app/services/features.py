@@ -1,8 +1,8 @@
 """The features a world plays with, switched on and off in World settings.
 
 What a table may leave out has a switch here: the road and its survival, a dungeon's
-encounter checks, shops, lifestyle costs, followers, downtime, bastions, quests, factions,
-chases, madness and the safety tools. One switched off is gone from the gamemaster's and
+encounter checks, hazards scaled to the party, shops, lifestyle costs, followers,
+downtime, bastions, quests, factions, chases, madness and the safety tools. One switched off is gone from the gamemaster's and
 the players' screens, and what the clock would do for it (lifestyle, wages, rations,
 bastion turns, a dungeon's checks) stops; its records are kept for when it comes back.
 
@@ -19,7 +19,7 @@ from app.models.gamestate import World
 
 # Each feature by its key, in the groups World settings shows them in.
 GROUPS: tuple[tuple[str, tuple[str, ...]], ...] = (
-    ("exploration", ("travel", "survival", "dungeon")),
+    ("exploration", ("travel", "survival", "dungeon", "hazards")),
     ("money", ("shops", "lifestyle", "followers")),
     ("between", ("downtime", "bastions", "quests", "factions")),
     ("table", ("chases", "madness", "safety")),

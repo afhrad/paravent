@@ -413,6 +413,7 @@ def party_page(
     news: Node = None,
     xp: Node = None,
     madness: Node = None,
+    hazard: Node = None,
 ) -> Element:
     """The gamemaster's landing screen: every character at the table, live; above it,
     ``news``, what changed in Paravent since the gamemaster last looked.
@@ -445,6 +446,7 @@ def party_page(
                     else None,
                     xp,
                     madness,
+                    hazard,
                     span(class_="cs-live", data_live_indicator="1", title=t("party.live_title"))[
                         span(class_="dot"), span[t("sheet.live")]
                     ],
