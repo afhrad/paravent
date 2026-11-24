@@ -774,7 +774,10 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         restores no HP); **healer's kit dependency** (hit dice wait for a use of a kit,
         ten to a kit); and the 2024 guide's **defeated, not dead** (a third failed death
         save leaves the character unconscious at 1 HP, woken by Greater Restoration or
-        a DC 20 Constitution save after a long rest). Proficiency dice are not built
+        a DC 20 Constitution save after a long rest). **Proficiency dice** (2026-11-24): a
+        die instead of the proficiency bonus on every check, attack and save the sheet or the
+        tracker rolls, twice for expertise, shown as "+2 + d6" and in the log as "Prof 1d6";
+        DCs and passive scores keep the bonus
   - [x] **Objects and doors in the tracker** (2026-11-22, `app/services/objects.py`,
         COMBAT.md §3): a door from the 2024 guide's *Doors* table (AC, HP, DC to open) or
         an object by the 2014 guide's substance and size tables joins a fight; it takes

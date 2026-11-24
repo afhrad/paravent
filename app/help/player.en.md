@@ -46,7 +46,7 @@ On **Track**: tick a condition on or off, raise or lower exhaustion, spend a hit
 take a **Short rest** or **Long rest**. A long rest brings back hit points, slots and
 resources (unless the gamemaster's road or a disease says otherwise).
 
-<!-- feature: hero_points honor sanity healers_kit defeated -->
+<!-- feature: hero_points honor sanity healers_kit defeated proficiency_dice -->
 Your gamemaster plays some of the guides' variant rules in this world:
 
 <!-- feature: hero_points -->
@@ -64,6 +64,11 @@ Your gamemaster plays some of the guides' variant rules in this world:
 <!-- feature: defeated -->
 - With **defeated, not dead**, a third failed death save leaves you unconscious at 1 hit
   point instead of dying.
+<!-- /feature -->
+<!-- feature: proficiency_dice -->
+- With **proficiency dice**, a roll you are proficient in adds a die instead of your
+  proficiency bonus (d4 at +2, up to d12 at +6), twice with expertise; the sheet shows it
+  as "+2 + d6".
 <!-- /feature -->
 <!-- /feature -->
 

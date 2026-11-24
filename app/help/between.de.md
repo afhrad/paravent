@@ -44,7 +44,7 @@ Eine Rastvariante in den **Welteinstellungen** ändert, wie lange eine Rast der 
 episches Heldentum (5 Minuten, 1 Stunde) oder harter Realismus (8 Stunden, 7 Tage, und eine
 Nacht unterwegs ist nur eine kurze Rast). Dort stehen auch die anderen Variantregeln für
 Charaktere: Heldenpunkte, Ehre und geistige Gesundheit, langsame natürliche Heilung,
-Heilerausrüstung nötig und besiegt, nicht tot.
+Heilerausrüstung nötig, besiegt, nicht tot, und Übungswürfel.
 
 <!-- feature: travel dungeon -->
 ## 3. Erkunden

@@ -850,6 +850,14 @@ class PlayService:
         made: list[RollRecord] = []
 
         def d20(bonus: int, sources: tuple[tuple[str, int], ...] = ()) -> Roll:
+            if "proficiency_dice" in sheet.rules:
+                # The guide's variant: the proficiency in the bonus rolled as dice.
+                bonus, sources = character_rules.with_proficiency_dice(
+                    bonus,
+                    sources,
+                    sheet.proficiency.value or 0,
+                    lambda dice: self._dice.roll(dice).total,
+                )
             rolled = self._dice.d20(bonus + bent.penalty, bent.advantage)
             made.append(
                 roll_record(

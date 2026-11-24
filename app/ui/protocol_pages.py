@@ -953,6 +953,8 @@ def bonus_word(page: Page, source: str) -> str:
         return _word(page, f"condition.{rest}", rest)
     if head == "override":
         return page.t("protocol.bonus.override")
+    if head == "proficiency_die" and rest:  # the proficiency dice variant: "Prof 1d6"
+        return page.t("protocol.bonus.proficiency_die", dice=rest)
     return _word(page, f"protocol.bonus.{head}", head)
 
 

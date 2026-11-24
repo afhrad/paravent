@@ -19,14 +19,26 @@ A world may tick these (World settings), and the sheet and the play rules apply 
 * **Defeated, not dead** (2024 guide): a character who would die is instead *defeated*: at
   1 hit point and unconscious until a Greater Restoration or a sudden awakening, a DC 20
   Constitution save after each long rest.
+* **Proficiency dice** (2014 guide): instead of adding the proficiency bonus to an ability
+  check, an attack roll or a saving throw, the player rolls a die — d4 at +2, d6 at +3, up
+  to d12 at +6 — and twice where expertise doubles it. DCs and passive scores keep the
+  bonus.
 """
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 
 REST_VARIANTS = ("rest_epic", "rest_gritty")
-SWITCHES = ("hero_points", "honor", "sanity", "slow_healing", "healers_kit", "defeated")
+SWITCHES = (
+    "hero_points",
+    "honor",
+    "sanity",
+    "slow_healing",
+    "healers_kit",
+    "defeated",
+    "proficiency_dice",
+)
 RULES = (*REST_VARIANTS, *SWITCHES)
 # The extra ability scores, by the key their rolls and words use.
 EXTRA_ABILITIES = {"honor": "hon", "sanity": "san"}
@@ -40,6 +52,34 @@ HERO_DIE = 6
 AWAKENING_DC = 20
 HEALERS_KIT = "healer's kit"
 KIT_USES = 10
+
+
+def proficiency_die(bonus: int) -> int:
+    """The faces of the proficiency die for a proficiency bonus: twice it (d4 at +2 … d12
+    at +6, the guide's table)."""
+    return 2 * bonus
+
+
+def with_proficiency_dice(
+    bonus: int,
+    sources: tuple[tuple[str, int], ...],
+    proficiency: int,
+    roll: Callable[[str], int],
+) -> tuple[int, tuple[tuple[str, int], ...]]:
+    """A roll's flat bonus and its sources with the proficiency in them (``proficiency``,
+    ``expertise``, a tool's) rolled as dice instead: one die, two for expertise.
+    ``roll(expression)`` rolls dice; a bonus without proficiency is returned as it is."""
+    held = [
+        (s, v) for s, v in sources if s in ("proficiency", "expertise") or s.startswith("tool:")
+    ]
+    if not held or proficiency <= 0:
+        return bonus, sources
+    count = 2 if any(s == "expertise" for s, _ in held) else 1
+    dice = f"{count}d{proficiency_die(proficiency)}"
+    rolled = roll(dice)
+    flat = sum(v for _, v in held)
+    kept_sources = tuple(x for x in sources if x not in held)
+    return bonus - flat + rolled, (*kept_sources, (f"proficiency_die:{dice}", rolled))
 
 
 def kept(chosen: Sequence[str]) -> list[str]:

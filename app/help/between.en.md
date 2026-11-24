@@ -38,7 +38,8 @@ holidays and seasons; a leap day the calendar marks comes every fourth year.
 A rest variant in **World settings** changes how long a party rest takes: epic heroism
 (5 minutes, 1 hour) or gritty realism (8 hours, 7 days, and a night on the road is only a
 short rest). The other variant rules for characters sit there too: hero points, Honor and
-Sanity, slow natural healing, healer's kit dependency and defeated, not dead.
+Sanity, slow natural healing, healer's kit dependency, defeated, not dead, and proficiency
+dice.
 
 <!-- feature: travel dungeon -->
 ## 3. Exploring

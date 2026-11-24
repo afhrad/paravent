@@ -62,7 +62,14 @@ from markupsafe import Markup
 
 from app.models.gamestate import SourceSet
 from app.models.pc import DraftStatus
-from app.services.character_rules import AWAKENING_DC, HEALERS_KIT, KIT_USES, rest_minutes
+from app.services.character_rules import (
+    AWAKENING_DC,
+    HEALERS_KIT,
+    KIT_USES,
+    proficiency_die,
+    rest_minutes,
+    with_proficiency_dice,
+)
 from app.services.condition_rolls import affected
 from app.services.experience import Progress, progress
 from app.services.lifestyle import LIFESTYLES
@@ -450,11 +457,36 @@ def _save_row(page: Page, sheet: Sheet, ability: AbilityView) -> Element:
         [
             span(class_=f"dot {'prof' if ability.save_proficient else ''}"),
             span(class_="nm")[page.t(f"ability.{ability.key}")],
-            span(class_="md mono")[ability.save.signed],
+            span(class_="md mono")[bonus_text(page, sheet, ability.save)],
         ],
         cls=f"cs-row {'is-override' if ability.save.overridden else ''}",
         title=_value_title(page, ability.save),
     )
+
+
+def bonus_text(page: Page, sheet: Sheet, value: Value) -> str:
+    """A roll's bonus as the sheet shows it: ``+5``, or under the proficiency dice variant
+    the bonus without its proficiency and the dice rolled for it, ``+2 + d6``."""
+    if "proficiency_dice" not in sheet.rules or value.value is None:
+        return value.signed
+    prof = sheet.proficiency.value or 0
+    shown, sources = with_proficiency_dice(value.value, value.sources, prof, lambda _dice: 0)
+    dice = next((s.partition(":")[2] for s, _ in sources if s.startswith("proficiency_die:")), "")
+    if not dice:
+        return value.signed
+    return f"{shown:+d} + {dice.removeprefix('1')}".replace("d", _dice_letter(page))
+
+
+def _dice_letter(page: Page) -> str:
+    return page.t("rules.dice_letter")
+
+
+def _proficiency_text(page: Page, sheet: Sheet) -> str:
+    """The proficiency bonus, with its die under the variant (``+3 · d6``)."""
+    prof = sheet.proficiency.value or 0
+    if "proficiency_dice" not in sheet.rules or prof <= 0:
+        return sheet.proficiency.signed
+    return f"{sheet.proficiency.signed} · {_dice_letter(page)}{proficiency_die(prof)}"
 
 
 def _left(page: Page, sheet: Sheet) -> Element:
@@ -599,7 +631,7 @@ def _attack_row(page: Page, sheet: Sheet, attack: AttackView) -> Element:
                 sheet,
                 "roll",
                 {"kind": "attack", "subject": attack.name},
-                [icon("target"), span(class_="mono")[attack.bonus.signed]],
+                [icon("target"), span(class_="mono")[bonus_text(page, sheet, attack.bonus)]],
                 cls="roll",
                 title=attack.bonus.explanation or t("sheet.attack_roll"),
             ),
@@ -1119,7 +1151,7 @@ def _spell_row(
                 sheet,
                 "roll",
                 {"kind": "attack", "subject": spell.reference},
-                [icon("target"), span(class_="mono")[attack.signed]],
+                [icon("target"), span(class_="mono")[bonus_text(page, sheet, attack)]],
                 cls="roll",
                 title=t("sheet.attack_roll"),
             )
@@ -1290,7 +1322,7 @@ def _skill_row(page: Page, sheet: Sheet, skill: SkillView) -> Element:
             span(class_=f"dot {_dot_state(skill)}"),
             span(class_="nm")[name],
             span(class_="ab")[page.t(f"abbr.{skill.ability}")],
-            span(class_="md mono")[skill.value.signed],
+            span(class_="md mono")[bonus_text(page, sheet, skill.value)],
         ],
         cls=f"cs-row {'is-override' if skill.value.overridden else ''}",
         title=_value_title(page, skill.value),
@@ -1347,8 +1379,10 @@ def _skills_pane(page: Page, sheet: Sheet) -> Element:
         div(class_="cs-rows cs-rows-2")[[_skill_row(page, sheet, s) for s in sheet.skills]],
         div(class_="cs-kvs")[
             _kv(t("sheet.passive_perception"), sheet.passive_perception.text),
-            _kv(t("sheet.proficiency"), sheet.proficiency.signed),
-            _kv(t("sheet.spell_attack"), sheet.spell_attack.signed) if sheet.spell_attack else None,
+            _kv(t("sheet.proficiency"), _proficiency_text(page, sheet)),
+            _kv(t("sheet.spell_attack"), bonus_text(page, sheet, sheet.spell_attack))
+            if sheet.spell_attack
+            else None,
         ],
         [
             div(class_="cs-prof")[h3(class_="eyebrow")[label], p[", ".join(items)]]

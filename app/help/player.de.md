@@ -51,7 +51,7 @@ einen Trefferwürfel ausgeben und eine **Kurze Rast** oder **Lange Rast** machen
 lange Rast bringt Trefferpunkte, Zauberplätze und Ressourcen zurück (außer die Straße
 der Spielleitung oder eine Krankheit sagt etwas anderes).
 
-<!-- feature: hero_points honor sanity healers_kit defeated -->
+<!-- feature: hero_points honor sanity healers_kit defeated proficiency_dice -->
 Deine Spielleitung spielt in dieser Welt Variantregeln der Spielleiterhandbücher:
 
 <!-- feature: hero_points -->
@@ -70,6 +70,11 @@ Deine Spielleitung spielt in dieser Welt Variantregeln der Spielleiterhandbüche
 <!-- feature: defeated -->
 - Mit **Besiegt, nicht tot** liegst du nach dem dritten misslungenen Todesrettungswurf mit
   1 Trefferpunkt bewusstlos, statt zu sterben.
+<!-- /feature -->
+<!-- feature: proficiency_dice -->
+- Mit **Übungswürfeln** würfelt ein Wurf, in dem du geübt bist, einen Würfel statt deines
+  Übungsbonus dazu (W4 bei +2, bis W12 bei +6), bei Expertise zweimal; der Bogen zeigt ihn
+  als „+2 + W6“.
 <!-- /feature -->
 <!-- /feature -->
 

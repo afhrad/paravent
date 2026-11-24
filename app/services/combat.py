@@ -50,7 +50,7 @@ from app.models.gamestate import (
     health_word,
 )
 from app.models.protocol import EntryKind, ProtocolEntry, RollRecord, Scope
-from app.services import combat_rules, objects
+from app.services import character_rules, combat_rules, objects
 from app.services.book_tables import Rows
 from app.services.combat_rules import (
     FOE,
@@ -765,8 +765,20 @@ class SheetCharacters:
         pc = self._find(character_id)
         if pc is None:
             return 0
-        found = next((a for a in self._characters.sheet(pc).abilities if a.key == ability), None)
-        return (found.save.value or 0) if found is not None else 0
+        sheet = self._characters.sheet(pc)
+        found = next((a for a in sheet.abilities if a.key == ability), None)
+        if found is None:
+            return 0
+        bonus = found.save.value or 0
+        if "proficiency_dice" in sheet.rules:
+            # The guide's variant: the proficiency in the save rolled as a die.
+            bonus, _ = character_rules.with_proficiency_dice(
+                bonus,
+                found.save.sources,
+                sheet.proficiency.value or 0,
+                lambda dice: Dice().roll(dice).total,
+            )
+        return bonus
 
     def defenses(self, character_id: str) -> dict[str, builtins.list[str]] | None:
         """The sheet's resistances, immunities and vulnerabilities."""
