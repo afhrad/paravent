@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-24T20:17:43+01:00",
+  "en": "Magic items can be sentient: give one a mind rolled on the guide's tables, roll its conflicts with its bearer, and roll an artifact's beneficial and detrimental properties.",
+  "de": "Magische Gegenstände können empfindungsfähig sein: Gib einem einen Geist aus den Tabellen des Leitfadens, würfle seine Konflikte mit dem Träger und die vorteilhaften und nachteiligen Eigenschaften eines Artefakts."
+ },
+ {
   "at": "2026-11-24T15:09:44+01:00",
   "en": "Proficiency dice can be switched on per world: checks, attacks and saves roll a die instead of the proficiency bonus, twice for expertise, and the sheet shows it as \"+2 + d6\".",
   "de": "Übungswürfel lassen sich pro Welt einschalten: Attributswürfe, Angriffe und Rettungswürfe würfeln einen Würfel statt des Übungsbonus, bei Expertise zweimal, und der Bogen zeigt ihn als „+2 + W6“."
@@ -293,10 +298,5 @@
   "at": "2026-11-19T23:11:01+01:00",
   "en": "Links and checkboxes now follow the theme's colours everywhere, and all checkboxes are the same size.",
   "de": "Links und Ankreuzfelder folgen jetzt überall den Farben des Themes, und alle Ankreuzfelder sind gleich groß."
- },
- {
-  "at": "2026-11-19T23:11:01+01:00",
-  "en": "A new NPC asks for its people or creature first, and the dice beside its name roll a name that fits.",
-  "de": "Ein neuer NSC fragt zuerst nach Volk oder Kreatur, und die Würfel neben dem Namen würfeln einen passenden Namen."
  }
 ]
