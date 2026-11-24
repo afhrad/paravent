@@ -669,6 +669,17 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             return line
         if head == "travel_encounter":
             return t("protocol.travel_encounter", row=rest) if rest else t("protocol.travel_check")
+        if head == "delve_encounter":
+            return t("protocol.delve_encounter", row=rest) if rest else t("protocol.delve_check")
+        if head == "delve":
+            step, _, more = rest.partition(":")
+            if step == "stop":
+                return t.plural("protocol.delve_stop", int(more) if more.isdigit() else 0, n=more)
+            every, _, table = more.partition(":")
+            span_text = remaining(page, int(every)) if every.isdigit() else every
+            if table:
+                return t("protocol.delve_start_table", span=span_text, table=table)
+            return t("protocol.delve_start", span=span_text)
         if head == "downtime":
             return t.plural("protocol.downtime", int(rest) if rest.isdigit() else 0, n=rest)
         if head in ("downtime_start", "downtime_done"):

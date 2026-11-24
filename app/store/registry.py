@@ -70,9 +70,11 @@ from app.services.creature_builder import (
 )
 from app.services.creature_pictures import CreaturePictures, design_ref, slug
 from app.services.creature_sight import Sight, fluff_image, image_file, sight
+from app.services.delve import DelveService
 from app.services.dice import Advantage, Dice
 from app.services.difficulty import DifficultyRules
 from app.services.downtime import DowntimeService
+from app.services.encounter_roll import Resolve
 from app.services.encounters import EncounterService
 from app.services.events import (
     COMBATS,
@@ -722,9 +724,14 @@ class StoreRegistry:
             moved=self._clock_moved,
         )
 
-    def _clock_moved(self, world: str, before: int, now: int, by: str, by_name: str) -> None:
-        """The world's clock moved: afflictions run their course, and magic items regain
-        their charges at the dawns, dusks and midnights passed."""
+    def _clock_moved(
+        self, world: str, before: int, now: int, by: str, by_name: str, why: str = ""
+    ) -> None:
+        """The world's clock moved: afflictions run their course, magic items regain
+        their charges at the dawns, dusks and midnights passed, and a party exploring a
+        dungeon meets its encounter checks (the road rolls its own)."""
+        if why != "travel":
+            self.delve.passed(world, before, now, by, by_name)
         self.afflictions.passed(world, before, now, by, by_name)
         self.item_charges.passed(world, before, now, by, by_name)
         self.gifts.passed(world, before, now, by, by_name)
@@ -1132,6 +1139,30 @@ class StoreRegistry:
         them), else ``classic``."""
         world = self.gamestate.worlds.find(world_id) if world_id else None
         return "one" if world is not None and "one" in world.source_set.editions else "classic"
+
+    @cached_property
+    def delve(self) -> DelveService:
+        """A party exploring a dungeon, its encounter checks (app/services/delve.py)."""
+        return DelveService(
+            self.clock,
+            self.protocol,
+            party=lambda world_id: self.gamestate.characters.of_world(world_id),
+            table=self.encounter_tables.get,
+            resolver=self.monster_resolve,
+        )
+
+    def monster_resolve(self, world_id: str) -> Resolve:
+        """Resolves a creature by name (and book) in a world's books."""
+        world = self.gamestate.worlds.find(world_id)
+        resolver = self.references.resolver()
+
+        def resolve(name: str, source: str | None) -> tuple[str, str] | None:
+            found = resolver.resolve_parts(
+                "monster", name, source, world.source_set if world else None
+            ).entry
+            return (str(found.name), str(found.source)) if found is not None else None
+
+        return resolve
 
     @cached_property
     def travel(self) -> TravelService:

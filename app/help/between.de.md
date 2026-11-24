@@ -62,6 +62,16 @@ geprüft wird, mit Rationen und Wasser, beritten oder an Bord eines Schiffs.
   dir; es steht auch in den Notizen der Begegnung.
 - Das Reiseformular wählt *beritten* von selbst, wenn jede Figur ein Reittier hat.
 
+**Im Dungeon** legt **Dungeon** auf der Uhr die Begegnungswürfe fest, während die Gruppe
+erkundet: eine Begegnungstabelle (oder keine, dann wählst du die Kreaturen), ein Wurf alle
+10 Minuten, jede Stunde oder seltener, und ab welcher Zahl der W20 trifft (18, wie die
+Spielleiterhandbücher vorschlagen). Jeder Schritt der Uhr würfelt dann die Würfe, die er
+überschreitet — ein Schritt, eine Rast, die Runden eines Kampfes, freie Tage —, und
+**Jetzt würfeln** würfelt sofort einen, wenn die Gruppe Lärm macht. Ein Wurf, der trifft,
+würfelt die Tabelle für die Stufe der Gruppe; ein Druck macht eine Begegnung daraus, und
+bis du **Erledigt** drückst, kommen keine weiteren Würfe. Nur du siehst die Würfe, auf der
+Uhr und im Protokoll. Das ✕ verlässt den Dungeon.
+
 ## 4. Freie Tage
 
 - **Auszeit gewähren** in der Uhr. Jede Figur verbringt die Tage auf ihrer Seite

@@ -57,6 +57,15 @@ often to check, with rations and water, mounted or aboard a ship.
   encounter's notes.
 - The travel form chooses *mounted* by itself when every character has a mount.
 
+**In a dungeon**, **Dungeon** on the clock panel sets the encounter checks while the party
+explores: an encounter table (or none, and the creatures are your call), a check every 10
+minutes, hour or more, and the d20 it comes up on (18 or more, as the guides suggest).
+Every move of the clock then rolls the checks it passes — a step, a rest, a fight's
+rounds, downtime — and **Check now** rolls one at once when the party makes a noise. A
+check that comes up rolls the table for the party's level; one press makes it an
+encounter, and no further checks come until you press **Dealt with**. Only you see the
+checks, in the panel and the log. The ✕ leaves the dungeon.
+
 ## 4. Days off
 
 - **Grant downtime** on the clock panel. Each character spends the days on its

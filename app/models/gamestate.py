@@ -1228,6 +1228,36 @@ class Journey(GameStateModel):
     unaware: list[str] = Field(default_factory=list)
 
 
+class DelveFinding(GameStateModel):
+    """An encounter check that came up while exploring (app/services/delve.py): the
+    clock's minute, the d20, and the table's roll, row and creatures, as a journey has."""
+
+    at: int = Field(ge=0)
+    check: int = Field(ge=1, le=20)
+    encounter: str = ""
+    encounter_roll: int | None = None
+    monsters: list[EncounterMonster] = Field(default_factory=list)
+    unresolved: list[str] = Field(default_factory=list)
+    encounter_id: str | None = None
+
+
+class Delve(GameStateModel):
+    """The party exploring a dungeon (app/services/delve.py): an encounter check every
+    ``every`` minutes the world's clock passes, coming up on a d20 of ``on`` or more,
+    on the encounter table ``environment`` (its key; "" leaves the creatures to the
+    gamemaster). ``checked`` is the minute of the last check, ``rolled`` how many were
+    rolled; a check that came up waits in ``found`` and holds further checks until the
+    gamemaster deals with it."""
+
+    environment: str = ""
+    every: int = Field(default=10, ge=1, le=7 * 24 * 60)
+    on: int = Field(default=18, ge=2, le=20)
+    started: int = Field(default=0, ge=0)
+    checked: int = Field(default=0, ge=0)
+    rolled: int = Field(default=0, ge=0)
+    found: DelveFinding | None = None
+
+
 class WorldClock(Record):
     """A world's time in the game: minutes since midnight of its first day, and the
     timers running against it. The id is the world's. ``hungry`` counts, per character,
@@ -1253,6 +1283,8 @@ class WorldClock(Record):
     # The last day whose lifestyle and wages were paid: a clock set back and moved on
     # again does not charge those days twice.
     charged_day: int | None = None
+    # The party exploring a dungeon, its encounter checks run by the clock.
+    delve: Delve | None = None
 
 
 class DowntimeProject(GameStateModel):

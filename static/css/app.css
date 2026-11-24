@@ -2799,6 +2799,10 @@ img.cover.fx{ max-height:none; height:auto; object-fit:contain; }
 .party-journey-clear{ position:absolute; top:6px; right:6px; }
 .party-travel-encounter{ display:grid; gap:6px; margin-top:6px; }
 .party-travel-encounter .btn{ justify-self:start; }
+/* A party exploring a dungeon (app/services/delve.py): the next check, a check now. */
+.party-journey + .party-delve{ margin-top:8px; }
+.party-delve-next{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.party-delve-next .inline-form{ margin:0; }
 .party-shop{ display:grid; gap:10px; margin:0 0 16px; }
 .party-shop .party-clock-head form{ margin-left:auto; }
 .shop-form{ display:flex; flex-wrap:wrap; align-items:center; gap:8px 12px; margin-top:10px; }

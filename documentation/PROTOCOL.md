@@ -198,7 +198,9 @@ What just happened, without stopping play.
   On the road and between adventures (app/services/travel.py, downtime.py, shop.py):
   `travel:<pace>:<hours>:<miles>:<table>:<hungry names>:<thirsty names>:<vessel>` for a
   stretch of travel (older entries end after the hungry), and
-  `travel_encounter:<row>` (for the gamemaster alone) when a check comes up; `downtime:<days>`
+  `travel_encounter:<row>` (for the gamemaster alone) when a check comes up; exploring a
+  dungeon (app/services/delve.py), for the gamemaster alone, `delve:start:<every>:<table>`,
+  `delve:stop:<checks rolled>` and `delve_encounter:<row>` when a check comes up; `downtime:<days>`
   when the party is granted downtime, `downtime_start:`, `downtime_spent:` and
   `downtime_done:<kind>:…` for a character's projects, and `downtime_spent:<kind>:5:…` for
   one of the book's activities (app/services/activities.py), its checks rolled into the

@@ -17,7 +17,7 @@ import uuid
 from collections.abc import Callable, Iterable, Sequence
 from typing import Any
 
-from app.models.gamestate import ClockTimer, Journey, WorldClock
+from app.models.gamestate import ClockTimer, Delve, Journey, WorldClock
 from app.models.protocol import EntryKind, ProtocolEntry, Scope, Visibility
 from app.services.i18n import Translatable
 from app.services.protocol import ProtocolService
@@ -103,13 +103,14 @@ class ClockService:
         end_concentration: Callable[[str, str, str], None] | None = None,
         changed: Callable[[WorldClock], None] | None = None,
         days_passed: Callable[[str, int, str, str, str], None] | None = None,
-        moved: Callable[[str, int, int, str, str], None] | None = None,
+        moved: Callable[[str, int, int, str, str, str], None] | None = None,
     ) -> None:
         """``concentrating(character)`` names the spell a character holds now (its
         reference, or None); ``end_concentration(character, spell, by)`` ends it when its
         timer runs out; ``changed(clock)`` tells open screens; ``days_passed(world,
         days, why, by, by_name)`` hears of each move past midnight (lifestyle costs);
-        ``moved(world, before, now, by, by_name)`` of every move on (afflictions)."""
+        ``moved(world, before, now, by, by_name, why)`` of every move on (afflictions,
+        a dungeon's encounter checks)."""
         self._store = store
         self._protocol = protocol
         self._concentrating = concentrating
@@ -170,7 +171,7 @@ class ClockService:
         if days > 0 and self._days_passed is not None:
             self._days_passed(world_id, days, why, by, by_name)
         if self._moved is not None:
-            self._moved(world_id, clock.minute, now, by, by_name)
+            self._moved(world_id, clock.minute, now, by, by_name, why)
         return saved
 
     def start(
@@ -237,6 +238,10 @@ class ClockService:
         if road is not None:
             update["road"], update["road_day"] = road
         return self._save(self.of(world_id).model_copy(update=update))
+
+    def explore(self, world_id: str, delve: Delve | None) -> WorldClock:
+        """Keep the party's exploring (None: it has left the dungeon)."""
+        return self._save(self.of(world_id).model_copy(update={"delve": delve}))
 
     def dated(self, world_id: str, calendar: str, epoch: int, era: str) -> WorldClock:
         """Date the days by a calendar (its key; "" for plain day numbers): ``epoch`` is

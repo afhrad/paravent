@@ -26,9 +26,10 @@ from htpy import (
 )
 from htpy import input as input_el
 
-from app.models.gamestate import ClockTimer, Journey
+from app.models.gamestate import ClockTimer, Delve, Journey
 from app.services.calendar import Calendar
 from app.services.clock import DAY, day_of, part_of_day, time_of
+from app.services.delve import CHANCES, INTERVALS
 from app.services.travel import ABUNDANCE, CLIMATES, PACES, WATER
 from app.ui.context import Page
 from app.ui.forms import hidden
@@ -173,6 +174,8 @@ def clock_panel(
     abundance: bool = False,
     rules: str = "classic",
     rests: tuple[int, int] = (60, 480),
+    delve: Delve | None = None,
+    delve_table: str = "",
 ) -> Element:
     """The time, the moves, a party rest, the timers and what is due; the party's last
     journey and the forms to travel on and to grant downtime. ``vessels`` are the ships
@@ -181,7 +184,8 @@ def clock_panel(
     ``era`` what follows its year; ``terrains`` those the world's guide has travel
     rules for, ``abundance`` whether foraging's DC is chosen by the land's abundance
     (2014), ``rules`` the world's (``one`` for 2024); ``rests`` how long a party's short
-    and long rest take (a rest variant, app/services/character_rules.py)."""
+    and long rest take (a rest variant, app/services/character_rules.py); ``delve`` the
+    party's exploring, ``delve_table`` its encounter table's name."""
     t = page.t
     base = f"{CLOCK_URL}/{quote(world_id)}"
 
@@ -253,10 +257,15 @@ def clock_panel(
         if due
         else None,
         _journey(page, base, journey, world_id, hazards) if journey is not None else None,
+        _delve(page, base, post, delve, delve_table, world_id) if delve is not None else None,
         div(class_="tool-row")[
             tool_button(page, "travel", t("travel.heading"), "footprints"),
+            tool_button(page, "delve", t("delve.heading"), "door-open"),
             tool_button(page, "time", t("clock.more_title"), "clock"),
         ],
+        tool_dialog(
+            page, "delve", t("delve.heading"), _delve_form(page, post, environments, delve)
+        ),
         tool_dialog(
             page,
             "travel",
@@ -884,7 +893,7 @@ def _journey(
                             when=clock_label(page, journey.ended, world_id),
                         )
                     ],
-                    span(class_="muted")[f" · d20 {journey.check}"],
+                    span(class_="muted")[f" · {t('rules.dice_letter')}20 {journey.check}"],
                     span(class_="muted")[f" · {t('travel.left', span=left)}"]
                     if journey.planned > journey.hours
                     else None,
@@ -940,6 +949,160 @@ def _journey(
                 aria_label=t("travel.clear"),
             )[icon("x", "sm")]
         ],
+    ]
+
+
+def _delve_form(
+    page: Page,
+    post: Callable[..., Element],
+    environments: Sequence[tuple[str, str]],
+    delve: Delve | None,
+) -> Element:
+    """Explore a dungeon: the encounter table, how often a check is rolled and what it
+    comes up on; changing them keeps the checks already rolled."""
+    t = page.t
+    table = delve.environment if delve is not None else ""
+    every = delve.every if delve is not None else INTERVALS[0]
+    on = delve.on if delve is not None else 18
+    return post(
+        "delve",
+        p(class_="field-hint")[t("delve.intro")],
+        div(class_="tool-grid")[
+            _field(
+                "dv-env",
+                t("travel.environment"),
+                select(id="dv-env", name="environment")[
+                    option(value="", selected=not table)[t("delve.no_table")],
+                    [option(value=k, selected=k == table)[n] for k, n in environments],
+                ],
+                wide=True,
+            ),
+            _field(
+                "dv-every",
+                t("delve.every_label"),
+                select(id="dv-every", name="every")[
+                    [
+                        option(value=str(n), selected=n == every)[remaining(page, n)]
+                        for n in sorted({*INTERVALS, every})
+                    ]
+                ],
+            ),
+            _field(
+                "dv-on",
+                t("delve.on_label"),
+                select(id="dv-on", name="on")[
+                    [
+                        option(value=str(n), selected=n == on)[
+                            t("delve.chance", on=n, percent=(21 - n) * 5)
+                        ]
+                        for n in CHANCES
+                    ]
+                ],
+            ),
+        ],
+        div(class_="form-actions")[
+            button(type="submit", class_="btn btn-primary")[
+                icon("door-open", "sm"),
+                span[t("delve.change" if delve is not None else "delve.start")],
+            ]
+        ],
+        cls="tool-section",
+    )
+
+
+def _delve(
+    page: Page,
+    base: str,
+    post: Callable[..., Element],
+    delve: Delve,
+    table: str,
+    world_id: str,
+) -> Element:
+    """The party exploring: the table, the interval, the checks rolled, the next one
+    due, and a check that came up, to make an encounter of or put aside."""
+    t = page.t
+    found = delve.found
+    head = [
+        p[icon("door-open", "sm"), b[t("delve.exploring")]],
+        p(class_="muted")[
+            " · ".join(
+                (
+                    table or t("delve.no_table"),
+                    t("delve.every", span=remaining(page, delve.every)),
+                    f"{t('rules.dice_letter')}20\u00a0≥\u00a0{delve.on}",
+                    t.plural("delve.rolled", delve.rolled, n=delve.rolled),
+                )
+            )
+        ],
+    ]
+    if found is None:
+        body: Node = div(class_="party-delve-next")[
+            span(class_="muted")[
+                t("delve.next", when=clock_label(page, delve.checked + delve.every, world_id))
+            ],
+            post(
+                "delve_check",
+                button(type="submit", class_="btn btn-sm")[
+                    icon("dices", "sm"), span[t("delve.check_now")]
+                ],
+            ),
+        ]
+    else:
+        body = div(class_="party-travel-encounter")[
+            p[
+                icon("swords", "sm"),
+                b[t("delve.encounter", when=clock_label(page, found.at, world_id))],
+            ],
+            p(class_="muted")[
+                f"{t('rules.dice_letter')}20 {found.check} · ",
+                found.encounter or t("travel.your_call"),
+            ],
+            p[
+                b[
+                    ", ".join(
+                        f"{m.count} × {name_text(page, 'monster', m.name)}" for m in found.monsters
+                    )
+                ]
+            ]
+            if found.monsters
+            else None,
+            p(class_="muted")[t("travel.unresolved", names=", ".join(found.unresolved))]
+            if found.unresolved
+            else None,
+            p(class_="muted")[t("delve.held")],
+            div(class_="party-delve-next")[
+                a(href=f"/gm/encounters/{found.encounter_id}", class_="btn btn-sm")[
+                    icon("swords", "sm"), span[t("travel.open_encounter")]
+                ]
+                if found.encounter_id
+                else form(method="post", action=f"{base}/delve_encounter", class_="inline-form")[
+                    button(type="submit", class_="btn btn-sm")[
+                        icon("plus", "sm"), span[t("travel.make_encounter")]
+                    ]
+                ]
+                if found.monsters
+                else None,
+                post(
+                    "delve_clear",
+                    button(type="submit", class_="btn btn-sm")[
+                        icon("check", "sm"), span[t("delve.clear")]
+                    ],
+                ),
+            ],
+        ]
+    return div(class_="party-journey party-delve")[
+        head,
+        body,
+        post(
+            "delve_leave",
+            button(
+                type="submit",
+                class_="btn btn-sm btn-ghost",
+                title=t("delve.leave"),
+                aria_label=t("delve.leave"),
+            )[icon("x", "sm")],
+            cls="inline-form party-journey-clear",
+        ),
     ]
 
 

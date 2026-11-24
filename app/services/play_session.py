@@ -141,7 +141,7 @@ class PlaySessionService:
             parts = rest.split(":")
             if head == "travel" and len(parts) > 2:
                 out.miles += _number(parts[2])
-            elif head == "travel_encounter":
+            elif head in ("travel_encounter", "delve_encounter"):
                 out.travel_encounters += 1
             elif head == "chase" and parts[0] == "end" and len(parts) > 1:
                 out.chases.append(parts[1])

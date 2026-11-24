@@ -14,9 +14,6 @@ Nothing agreed is waiting; see the proposals below.
 
 Paused 2026-11-22 while the user playtests; their findings come first.
 
-- **Random checks in a dungeon** — an encounter table and an interval (every 10 minutes,
-  every hour) while exploring; moving the clock rolls the checks, one that comes up becomes
-  an encounter in one press, like the road's. S
 - **Hazards by level** — falling, collapse, fire, wild magic: damage and DCs scaled to the
   party, sprung with "Spring it" as traps are (saves on the sheets, defences counted). S
 - **Divine intervention** — a pantheon per world from the books' deities; the intervention

@@ -702,6 +702,15 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         which creatures a stealthy party would catch unaware — shown on the journey and
         written into the encounter made from it. Also fixed: a character hungry or thirsty
         past six levels of exhaustion no longer fails to save
+  - [x] **Encounter checks in a dungeon** (2026-11-24, `app/services/delve.py`): **Dungeon**
+        on the clock panel sets an encounter table of the world's books (or none), a check
+        every 10 minutes to 8 hours and the d20 it comes up on (18+ by default); every move
+        of the clock but the road's (steps, rests, a fight's rounds, downtime) rolls the
+        checks it passes, the remainder carried, a clock set back counting from there;
+        **Check now** rolls one at once. One that comes up rolls the table for the party's
+        level, is made an encounter in one press, and holds further checks until **Dealt
+        with**. The gamemaster's alone, in the panel and the log; counted in the session
+        note's wandering encounters
   - [x] **Optional combat rules** (2026-11-22, `app/services/combat_rules.py`, COMBAT.md
         §3): the 2014 guide's variants as world switches in World settings, kept by a fight
         from its start. **Massive damage** rolls the DC 15 Constitution save and, on a

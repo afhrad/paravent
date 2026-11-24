@@ -35,6 +35,7 @@ from app.dependencies import (
     RegistryDep,
     WorldsDep,
 )
+from app.models.gamestate import EncounterMonster
 from app.routes.adventures import upload_messages
 from app.routes.auth import html, redirect, safe_next
 from app.routes.rolls import announce_roll, new_roll
@@ -46,6 +47,7 @@ from app.services.chase import ChaseError, Runner
 from app.services.checks import CheckError
 from app.services.clock import DAY, ClockError, bastions_due
 from app.services.current_world import world_of_page
+from app.services.delve import DelveError
 from app.services.dice import Advantage
 from app.services.downtime import DowntimeError
 from app.services.events import PARTY, revision_stream
@@ -130,6 +132,7 @@ def _clock(page: Page, registry: StoreRegistry, world_id: str | None) -> Element
     names = {pc.id: pc.name or "?" for pc in members}
     built = [(pc.name or "?", registry.bastions.of(pc.id)) for pc in members if pc.total_level >= 5]
     due = bastions_due(clock.minute, [(name, b.last_turn) for name, b in built if b.facilities])
+    table = registry.encounter_tables.get(clock.delve.environment) if clock.delve else None
     return clock_panel(
         page,
         shown,
@@ -150,6 +153,8 @@ def _clock(page: Page, registry: StoreRegistry, world_id: str | None) -> Element
         calendar=clock.calendar,
         era=clock.calendar_era,
         rests=_rest_minutes(registry, shown),
+        delve=clock.delve,
+        delve_table=table.name if table is not None else "",
     )
 
 
@@ -171,6 +176,34 @@ def _environments(registry: StoreRegistry, world_id: str) -> list[Environment]:
     return [e for e in tables if e.source.lower() in books]
 
 
+def _encounter_from(
+    page: Page,
+    registry: StoreRegistry,
+    world_id: str,
+    where: str,
+    minute: int,
+    monsters: list[EncounterMonster],
+    notes: list[str],
+    name_key: str = "travel.encounter_name",
+) -> str:
+    """An encounter in the world made from a check that came up on the road or while
+    exploring: named for where and when, its creatures planned, the row in its notes."""
+    made = registry.encounters.create(
+        page.t(name_key, where=where, when=clock_label(page, minute, world_id)),
+        world_id,
+    )
+    registry.encounters.set_monsters(made.id, monsters)
+    registry.encounters.update(
+        made.id,
+        name=made.name,
+        scope=made.scope,
+        notes="\n\n".join(x for x in notes if x),
+        rules=made.rules,
+        party=made.party,
+    )
+    return made.id
+
+
 def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_name: str) -> None:
     """Set out on the road with the travel form's plan."""
     amount = str(form.get("amount", "")).strip()
@@ -180,15 +213,6 @@ def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_
     pace = str(form.get("pace", "normal"))
     checks = str(form.get("checks", "1"))
     environment = registry.encounter_tables.get(str(form.get("environment", "")))
-    world = registry.gamestate.worlds.find(world_id)
-    resolver = registry.references.resolver()
-
-    def resolve(name: str, source: str | None) -> tuple[str, str] | None:
-        found = resolver.resolve_parts(
-            "monster", name, source, world.source_set if world else None
-        ).entry
-        return (str(found.name), str(found.source)) if found is not None else None
-
     by_ship = str(form.get("vessel", ""))
     vessel = next((v for v in registry.vessels(world_id) if v.name == by_ship), None)
     if vessel is not None and form.get("around") == "1":
@@ -228,7 +252,7 @@ def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_
             stealthy=form.get("stealthy") == "1",
         ),
         rules=registry.rules_of(world_id),
-        resolve=resolve,
+        resolve=registry.monster_resolve(world_id),
         by=by,
         by_name=by_name,
         weather=registry.weather(world_id),
@@ -488,29 +512,56 @@ async def change_clock(
             if journey is None or not journey.monsters:
                 raise TravelError("travel.error.bad")
             if journey.encounter_id is None:
-                where = journey.environment.partition("|")[0] or page.t("travel.road")
-                made = registry.encounters.create(
-                    page.t(
-                        "travel.encounter_name",
-                        where=where,
-                        when=clock_label(page, journey.ended, world_id),
-                    ),
+                made_id = _encounter_from(
+                    page,
+                    registry,
                     world_id,
+                    journey.environment.partition("|")[0] or page.t("travel.road"),
+                    journey.ended,
+                    journey.monsters,
+                    [journey.encounter, *spotting(page, journey)],
                 )
-                registry.encounters.set_monsters(made.id, journey.monsters)
-                notes = "\n\n".join(x for x in (journey.encounter, *spotting(page, journey)) if x)
-                registry.encounters.update(
-                    made.id,
-                    name=made.name,
-                    scope=made.scope,
-                    notes=notes,
-                    rules=made.rules,
-                    party=made.party,
-                )
-                clock.keep(world_id, journey.model_copy(update={"encounter_id": made.id}))
+                clock.keep(world_id, journey.model_copy(update={"encounter_id": made_id}))
                 journey = clock.of(world_id).journey
             if journey is not None and journey.encounter_id:
                 return redirect(f"/gm/encounters/{journey.encounter_id}")
+        elif op == "delve":
+            every = str(form.get("every", "")).strip()
+            on = str(form.get("on", "")).strip()
+            registry.delve.start(
+                world_id,
+                str(form.get("environment", "")),
+                int(every) if every.isdigit() else 0,
+                int(on) if on.isdigit() else 0,
+                user.username,
+                name,
+            )
+        elif op == "delve_check":
+            registry.delve.check(world_id, user.username, name)
+        elif op == "delve_leave":
+            registry.delve.leave(world_id, user.username, name)
+        elif op == "delve_clear":
+            registry.delve.dismiss(world_id)
+        elif op == "delve_encounter":
+            delve = registry.delve.of(world_id)
+            found = delve.found if delve is not None else None
+            if delve is None or found is None or not found.monsters:
+                raise DelveError("delve.error.bad")
+            if found.encounter_id is None:
+                table = registry.encounter_tables.get(delve.environment)
+                made_id = _encounter_from(
+                    page,
+                    registry,
+                    world_id,
+                    table.name if table is not None else page.t("delve.dungeon"),
+                    found.at,
+                    found.monsters,
+                    [found.encounter],
+                    "delve.encounter_name",
+                )
+                registry.delve.made(world_id, made_id)
+                return redirect(f"/gm/encounters/{made_id}")
+            return redirect(f"/gm/encounters/{found.encounter_id}")
         elif op == "downtime":
             raw = str(form.get("days", "")).strip()
             party = registry.gamestate.characters.of_world(world_id, drafts=False)
@@ -522,7 +573,7 @@ async def change_clock(
                 registry.events.publish(pc.id, f"downtime-{days}")
         else:
             raise ClockError("clock.error.bad_time")
-    except (ClockError, PlayError, TravelError, DowntimeError) as exc:
+    except (ClockError, PlayError, TravelError, DowntimeError, DelveError) as exc:
         flash = page.t.error(exc)
     if request.headers.get("HX-Request") != "true":
         return redirect(f"/gm?{urlencode({'world': world_id})}")
