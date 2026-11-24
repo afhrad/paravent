@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-24T13:37:19+01:00",
+  "en": "Characters choose their deity on the sheet, from the pantheons your world plays with, and a cleric from level 10 calls on it for Divine Intervention: the 2014 roll, or under the 2024 rules a cleric spell cast without a slot.",
+  "de": "Charaktere wählen ihre Gottheit auf dem Bogen, aus den Pantheons deiner Welt, und ein Kleriker ab Stufe 10 ruft sie zum Göttlichen Eingreifen an: der Wurf von 2014 oder nach den Regeln von 2024 ein Klerikerzauber ohne Zauberplatz."
+ },
+ {
   "at": "2026-11-24T13:11:40+01:00",
   "en": "Hazard on the party view springs a collapse, fire, fall or other danger you make up on the spot, its damage and DC scaled to the party's level by your world's guide, with saves rolled on the sheets or by the players.",
   "de": "Gefahr in der Gruppenansicht löst einen Einsturz, ein Feuer, einen Sturz oder eine andere spontan erdachte Gefahr aus, Schaden und SG nach dem Spielleiterhandbuch der Welt auf die Stufe der Gruppe abgestimmt, mit Rettungswürfen auf den Bögen oder von den Spielern."
@@ -293,10 +298,5 @@
   "at": "2026-11-19T21:33:39+01:00",
   "en": "Choose the world your table plays in from the new world menu; everything, characters included, then plays in it, and the top bar links that world's adventures, NPCs, places, treasure and more.",
   "de": "Wähle im neuen Weltmenü die Welt, in der dein Tisch spielt; alles, auch die Charaktere, spielt dann in ihr, und die obere Leiste führt zu ihren Abenteuern, NSC, Orten, Schätzen und mehr."
- },
- {
-  "at": "2026-11-19T19:00:22+01:00",
-  "en": "A new encounter goes straight into the world you are working in, and NPCs and treasure are created in a dialog like places.",
-  "de": "Eine neue Begegnung landet direkt in der Welt, in der du gerade arbeitest, und NSC und Schätze werden wie Orte in einem Dialog angelegt."
  }
 ]
