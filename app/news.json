@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-24T14:06:53+01:00",
+  "en": "Upkeep on the party view gives a character a business, stronghold or garrison, priced by your world's guide or by hand, and the clock charges its owner every day, logging what the purse can't pay.",
+  "de": "Unterhalt in der Gruppenansicht gibt einem Charakter ein Geschäft, eine Festung oder eine Garnison, nach dem Handbuch deiner Welt oder eigenem Preis, und die Uhr berechnet dem Besitzer jeden Tag die Kosten und vermerkt, was der Geldbeutel nicht zahlen kann."
+ },
+ {
   "at": "2026-11-24T13:37:19+01:00",
   "en": "Characters choose their deity on the sheet, from the pantheons your world plays with, and a cleric from level 10 calls on it for Divine Intervention: the 2014 roll, or under the 2024 rules a cleric spell cast without a slot.",
   "de": "Charaktere wählen ihre Gottheit auf dem Bogen, aus den Pantheons deiner Welt, und ein Kleriker ab Stufe 10 ruft sie zum Göttlichen Eingreifen an: der Wurf von 2014 oder nach den Regeln von 2024 ein Klerikerzauber ohne Zauberplatz."
@@ -293,10 +298,5 @@
   "at": "2026-11-19T21:46:46+01:00",
   "en": "World settings now include the cover and pictures, and players see which world the table plays in.",
   "de": "Die Welteinstellungen enthalten jetzt Titelbild und Bilder, und Spieler sehen, in welcher Welt der Tisch spielt."
- },
- {
-  "at": "2026-11-19T21:33:39+01:00",
-  "en": "Choose the world your table plays in from the new world menu; everything, characters included, then plays in it, and the top bar links that world's adventures, NPCs, places, treasure and more.",
-  "de": "Wähle im neuen Weltmenü die Welt, in der dein Tisch spielt; alles, auch die Charaktere, spielt dann in ihr, und die obere Leiste führt zu ihren Abenteuern, NSC, Orten, Schätzen und mehr."
  }
 ]
