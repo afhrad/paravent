@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-24T13:11:40+01:00",
+  "en": "Hazard on the party view springs a collapse, fire, fall or other danger you make up on the spot, its damage and DC scaled to the party's level by your world's guide, with saves rolled on the sheets or by the players.",
+  "de": "Gefahr in der Gruppenansicht löst einen Einsturz, ein Feuer, einen Sturz oder eine andere spontan erdachte Gefahr aus, Schaden und SG nach dem Spielleiterhandbuch der Welt auf die Stufe der Gruppe abgestimmt, mit Rettungswürfen auf den Bögen oder von den Spielern."
+ },
+ {
   "at": "2026-11-24T12:23:47+01:00",
   "en": "World settings has a Features section: switch off what your table doesn't use — travel and survival, dungeon checks, shops, lifestyle, followers, downtime, bastions, quests, factions, chases, madness, safety tools — and it disappears from your screens and the players'.",
   "de": "Die Welteinstellungen haben einen Bereich Funktionen: Schalte ab, was dein Tisch nicht nutzt — Reisen und Überleben, Begegnungswürfe im Dungeon, Läden, Lebensstil, Gefolge, Auszeit, Bastionen, Quests, Fraktionen, Verfolgungsjagden, Wahnsinn, Sicherheitswerkzeuge —, und es verschwindet von deinen Bildschirmen und denen der Spieler."
@@ -293,10 +298,5 @@
   "at": "2026-11-19T19:00:22+01:00",
   "en": "A new encounter goes straight into the world you are working in, and NPCs and treasure are created in a dialog like places.",
   "de": "Eine neue Begegnung landet direkt in der Welt, in der du gerade arbeitest, und NSC und Schätze werden wie Orte in einem Dialog angelegt."
- },
- {
-  "at": "2026-11-19T18:39:49+01:00",
-  "en": "Pictures in texts open large with a click, tags such as {@npc …} copy with a click to paste into a text, and images and tokens are now changed only in edit mode.",
-  "de": "Bilder in Texten öffnen sich groß per Klick, Tags wie {@npc …} lassen sich per Klick kopieren und in einen Text einfügen, und Bilder und Spielmarken werden nur noch im Bearbeitungsmodus geändert."
  }
 ]
