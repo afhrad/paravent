@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-24T12:23:47+01:00",
+  "en": "World settings has a Features section: switch off what your table doesn't use — travel and survival, dungeon checks, shops, lifestyle, followers, downtime, bastions, quests, factions, chases, madness, safety tools — and it disappears from your screens and the players'.",
+  "de": "Die Welteinstellungen haben einen Bereich Funktionen: Schalte ab, was dein Tisch nicht nutzt — Reisen und Überleben, Begegnungswürfe im Dungeon, Läden, Lebensstil, Gefolge, Auszeit, Bastionen, Quests, Fraktionen, Verfolgungsjagden, Wahnsinn, Sicherheitswerkzeuge —, und es verschwindet von deinen Bildschirmen und denen der Spieler."
+ },
+ {
   "at": "2026-11-24T10:53:04+01:00",
   "en": "In a dungeon, the clock rolls wandering encounter checks for you: set a table, an interval and the chance under Dungeon on the clock panel, and every step, rest or fight rolls them; one that comes up becomes an encounter in one press.",
   "de": "Im Dungeon würfelt die Uhr die Zufallsbegegnungen für dich: Unter Dungeon auf der Uhr legst du Tabelle, Abstand und Wahrscheinlichkeit fest, und jeder Schritt, jede Rast und jeder Kampf würfelt sie; ein Treffer wird mit einem Druck zur Begegnung."
@@ -293,10 +298,5 @@
   "at": "2026-11-19T18:39:49+01:00",
   "en": "Pictures in texts open large with a click, tags such as {@npc …} copy with a click to paste into a text, and images and tokens are now changed only in edit mode.",
   "de": "Bilder in Texten öffnen sich groß per Klick, Tags wie {@npc …} lassen sich per Klick kopieren und in einen Text einfügen, und Bilder und Spielmarken werden nur noch im Bearbeitungsmodus geändert."
- },
- {
-  "at": "2026-11-19T17:47:27+01:00",
-  "en": "Taking an NPC, place, encounter or treasure out of a chapter now moves it up to the adventure instead of deleting it, and the image browser loads quickly with small previews.",
-  "de": "Ein NSC, Ort, Begegnung oder Schatz, der aus einem Kapitel genommen wird, wandert jetzt ins Abenteuer, statt gelöscht zu werden, und der Bildbrowser lädt mit kleinen Vorschauen schnell."
  }
 ]
