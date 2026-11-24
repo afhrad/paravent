@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-24T14:39:58+01:00",
+  "en": "The help pages now leave out what your world doesn't play with, so players read only of the features and variant rules your table uses.",
+  "de": "Die Hilfeseiten lassen jetzt weg, womit deine Welt nicht spielt, sodass die Spieler nur von den Funktionen und Variantregeln lesen, die euer Tisch nutzt."
+ },
+ {
   "at": "2026-11-24T14:06:53+01:00",
   "en": "Upkeep on the party view gives a character a business, stronghold or garrison, priced by your world's guide or by hand, and the clock charges its owner every day, logging what the purse can't pay.",
   "de": "Unterhalt in der Gruppenansicht gibt einem Charakter ein Geschäft, eine Festung oder eine Garnison, nach dem Handbuch deiner Welt oder eigenem Preis, und die Uhr berechnet dem Besitzer jeden Tag die Kosten und vermerkt, was der Geldbeutel nicht zahlen kann."
@@ -293,10 +298,5 @@
   "at": "2026-11-19T22:22:04+01:00",
   "en": "A world made from the world menu starts in your language.",
   "de": "Eine Welt aus dem Weltmenü beginnt in deiner Sprache."
- },
- {
-  "at": "2026-11-19T21:46:46+01:00",
-  "en": "World settings now include the cover and pictures, and players see which world the table plays in.",
-  "de": "Die Welteinstellungen enthalten jetzt Titelbild und Bilder, und Spieler sehen, in welcher Welt der Tisch spielt."
  }
 ]
