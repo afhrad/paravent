@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-24T20:46:52+01:00",
+  "en": "Wild magic on the party view rolls a surge on the characters you tick, and in a wild magic zone every spell slot spent can set one off.",
+  "de": "Wilde Magie in der Gruppenansicht würfelt eine Woge für die angehakten Charaktere, und in einer Zone wilder Magie kann jeder verbrauchte Zauberplatz eine auslösen."
+ },
+ {
   "at": "2026-11-24T20:17:43+01:00",
   "en": "Magic items can be sentient: give one a mind rolled on the guide's tables, roll its conflicts with its bearer, and roll an artifact's beneficial and detrimental properties.",
   "de": "Magische Gegenstände können empfindungsfähig sein: Gib einem einen Geist aus den Tabellen des Leitfadens, würfle seine Konflikte mit dem Träger und die vorteilhaften und nachteiligen Eigenschaften eines Artefakts."
@@ -293,10 +298,5 @@
   "at": "2026-11-19T23:34:47+01:00",
   "en": "The image browser shows where each picture is used; rename one and every use follows, or delete one nothing uses.",
   "de": "Der Bildbrowser zeigt, wo jedes Bild verwendet wird; benenne eins um, und jede Verwendung folgt, oder lösche eins, das nichts verwendet."
- },
- {
-  "at": "2026-11-19T23:11:01+01:00",
-  "en": "Links and checkboxes now follow the theme's colours everywhere, and all checkboxes are the same size.",
-  "de": "Links und Ankreuzfelder folgen jetzt überall den Farben des Themes, und alle Ankreuzfelder sind gleich groß."
  }
 ]
