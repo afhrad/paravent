@@ -669,6 +669,26 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             return line
         if head == "travel_encounter":
             return t("protocol.travel_encounter", row=rest) if rest else t("protocol.travel_check")
+        if head == "intervention":
+            roll, level, yes, deity = (rest.split(":") + ["", "", "", ""])[:4]
+            return t(
+                "protocol.intervention_yes" if yes == "1" else "protocol.intervention_no",
+                subject=entry.subject_name,
+                deity=name_text(page, "deity", deity) if deity else t("intervention.god"),
+                roll=roll,
+                level=level,
+            )
+        if head == "intervention_cast":
+            spell, deity, waits = (rest.split(":") + ["", "", ""])[:3]
+            line = t(
+                "protocol.intervention_cast",
+                subject=entry.subject_name,
+                deity=name_text(page, "deity", deity) if deity else t("intervention.god"),
+                spell=name_text(page, "spell", spell.partition("|")[0]),
+            )
+            if waits.isdigit():
+                line += " · " + t.plural("intervention.rests", int(waits), n=waits)
+            return line
         if head == "delve_encounter":
             return t("protocol.delve_encounter", row=rest) if rest else t("protocol.delve_check")
         if head == "delve":

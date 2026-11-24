@@ -61,6 +61,14 @@ Pick a higher slot level where you have one to cast it higher; the slot is spent
 cast. A healing spell asks whom to heal. **Prepare spells** after a long rest, if your
 class prepares them. A concentration spell shows as held until you drop it or lose it.
 
+Your **deity** is chosen under the sheet's features, from the gods your world's books and
+pantheons offer. A cleric from level 10 finds **Divine Intervention** in the Track view:
+under the 2014 rules **Call on** your deity rolls percentile dice against your cleric
+level (answered: tell the gamemaster what you ask for, and wait seven days; no answer:
+try again after a long rest; from level 20 it always answers); under the 2024 rules
+**Choose a spell** casts a cleric spell of level 5 or lower without a slot, once per long
+rest, and from level 20 Wish.
+
 ## 5. Gear and magic items
 
 - **Press and hold** an item or a spell (right-click with a mouse) for what can be done

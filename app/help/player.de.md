@@ -69,6 +69,14 @@ wirken; der Platz wird beim Wirken verbraucht. Ein Heilzauber fragt, wen er heil
 **Zauber vorbereiten** nach einer langen Rast, wenn deine Klasse vorbereitet. Ein
 Konzentrationszauber steht als gehalten da, bis du ihn fallen lässt oder verlierst.
 
+Deine **Gottheit** wählst du unter den Merkmalen des Bogens, aus den Göttern, die die
+Bücher und Pantheons deiner Welt bieten. Ein Kleriker ab Stufe 10 findet **Göttliches
+Eingreifen** in der Verbrauch-Ansicht: nach den Regeln von 2014 würfelt **… anrufen**
+Prozentwürfel gegen deine Klerikerstufe (erhört: sag der Spielleitung, worum du bittest,
+und warte sieben Tage; keine Antwort: nach einer langen Rast wieder; ab Stufe 20 immer
+erhört); nach den Regeln von 2024 wirkt **Zauber wählen** einen Klerikerzauber bis Grad 5
+ohne Zauberplatz, einmal pro langer Rast, ab Stufe 20 auch Wunsch.
+
 ## 5. Ausrüstung und magische Gegenstände
 
 - **Lange drücken** auf einen Gegenstand oder Zauber (Rechtsklick mit der Maus) zeigt, was

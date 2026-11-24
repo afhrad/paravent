@@ -211,6 +211,8 @@ class WorldFront(_Front):
     character_rules: list[str] = Field(default_factory=list)
     # The features played with (app/services/features.py); absent: every one.
     features: list[str] | None = None
+    # The pantheons the characters worship; absent: every one of the books.
+    pantheons: list[str] = Field(default_factory=list)
 
 
 class AdventureFront(_Front):
@@ -260,6 +262,7 @@ def to_file(record: Record) -> tuple[dict[str, Any], str]:
             "names": list(record.naming_styles),
             "combat_rules": list(record.combat_rules),
             "character_rules": list(record.character_rules),
+            "pantheons": list(record.pantheons),
         }
         front = _clean(fields)
         if record.player_sources is not None:  # an empty list is a choice: nothing
@@ -493,6 +496,7 @@ class ProseStore:
                 combat_rules=w.combat_rules,
                 character_rules=w.character_rules,
                 features=w.features,
+                pantheons=w.pantheons,
             )
         if place.kind == "adventure":
             a = AdventureFront.model_validate(fields)

@@ -23,7 +23,7 @@ from urllib.parse import quote
 
 from app import __version__
 from app.config import Settings
-from app.models.compendium import score_of
+from app.models.compendium import Deity, score_of
 from app.models.gamestate import (
     CheckCall,
     Combat,
@@ -1131,15 +1131,38 @@ class StoreRegistry:
 
     def catalogue(self, world_id: str | None) -> Catalogue:
         """What a world's books offer, as the wizard reads them (its shop, languages,
-        tools): the shop and downtime use it."""
+        tools, the classes' spell lists): the shop, downtime and Divine Intervention use
+        it."""
         world = self.gamestate.worlds.find(world_id) if world_id else None
-        return Catalogue(self.compendium, world.source_set if world else None)
+        return Catalogue(self.compendium, world.source_set if world else None, self.lookups)
 
     def rules_of(self, world_id: str | None) -> Edition:
         """``one`` when a world's books include the 2024 rules (as supersession reads
         them), else ``classic``."""
         world = self.gamestate.worlds.find(world_id) if world_id else None
         return "one" if world is not None and "one" in world.source_set.editions else "classic"
+
+    def pantheons(self, world_id: str | None) -> list[str]:
+        """The pantheons whose deities the world's books print, by name."""
+        return sorted({str(d.pantheon) for d in self._book_deities(world_id) if d.pantheon})
+
+    def deities(self, world_id: str | None) -> list[Deity]:
+        """The deities the characters may worship: those of the world's books, of the
+        pantheons it plays with (every one where it names none), by pantheon and name."""
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        found = self._book_deities(world_id)
+        chosen = {p.lower() for p in world.pantheons} if world is not None else set()
+        if chosen:
+            found = [d for d in found if str(d.pantheon or "").lower() in chosen]
+        return sorted(found, key=lambda d: (str(d.pantheon or ""), str(d.name).casefold()))
+
+    def _book_deities(self, world_id: str | None) -> list[Deity]:
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        found = [d for d in self.compendium.all("deity") if isinstance(d, Deity)]
+        if world is not None and not world.source_set.is_unrestricted:
+            books = set(world.source_set.normalized)
+            found = [d for d in found if str(d.source).lower() in books]
+        return found
 
     def feature(self, world_id: str | None, key: str) -> bool:
         """Whether the world plays with a feature (app/services/features.py); no world,

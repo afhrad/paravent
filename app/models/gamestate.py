@@ -228,6 +228,9 @@ class World(Record):
     # survival, dungeon checks, shops, lifestyle, followers, downtime, bastions, quests,
     # factions, chases, madness, safety tools. None: every one (a world from before).
     features: list[str] | None = None
+    # The pantheons whose deities the characters worship here, by the books' names
+    # ("Forgotten Realms", "Dwarven"); empty means every pantheon of the world's books.
+    pantheons: list[str] = Field(default_factory=list)
 
     @model_validator(mode="before")
     @classmethod

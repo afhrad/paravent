@@ -37,7 +37,7 @@ from app.dependencies import (
     RegistryDep,
 )
 from app.models.gamestate import BastionFacility, Combat, Shop
-from app.models.pc import PlayerCharacter
+from app.models.pc import ChosenOption, PlayerCharacter
 from app.routes.auth import html, redirect
 from app.routes.paravent_markdown import players_markdown
 from app.routes.play_combat import strip
@@ -59,6 +59,7 @@ from app.services.events import revision_stream
 from app.services.experience import progress
 from app.services.factions import granted, title_of
 from app.services.followers import PLAYER_FOLLOWER_CR, FollowerError, sidekick_level
+from app.services.intervention import castable, intervention_of
 from app.services.magic_crafting import Crafter, Plan, plan
 from app.services.play import Actor, PlayError, cast_level
 from app.services.sheet import Sheet
@@ -70,6 +71,7 @@ from app.ui.character_list_pages import character_delete_page, characters_page
 from app.ui.context import Page
 from app.ui.downtime_pages import FactionView, FormulaView, StartOptions, downtime_page
 from app.ui.follower_pages import followers_page
+from app.ui.intervention_pages import intervention_page
 from app.ui.names import name_text
 from app.ui.sheet_pages import sheet_fragment, sheet_page
 from app.ui.shop_pages import ALL_SHELVES, shop_page
@@ -116,6 +118,12 @@ def _sheet(characters: CharactersDep, registry: RegistryDep, character: PlayerCh
         chase = registry.chases.of(character.world_id)
         runs = chase is not None and any(r.character_id == character.id for r in chase.runners)
         sheet.chase = chase if runs and "chases" in on else None
+    sheet.deities = [
+        (f"{d.name}|{d.source}", str(d.pantheon or ""))
+        for d in registry.deities(world.id if world else None)
+    ]
+    sheet.deity_name = character.deity.name if character.deity is not None else ""
+    sheet.intervention = intervention_of(character)
     sheet.followers = len(registry.followers.of(character.id))
     spare = registry.downtime.of(character.id)
     if "downtime" in on and (spare.days or any(not x.finished for x in spare.projects)):
@@ -189,7 +197,9 @@ async def character_page(
             tab=shown.tab if tab is None else tab,
             view=(shown.view or "play") if view is None else view,
             spell_filter=shown.filter,
-            flash=page.t(flash) if flash.startswith(("play.error.", "spellbook.")) else None,
+            flash=page.t(flash)
+            if flash.startswith(("play.error.", "spellbook.", "intervention."))
+            else None,
             file_label=label,
             resolver=characters.resolver(),
             source_set=characters.source_set(character),
@@ -1141,6 +1151,111 @@ def _followers(
         ),
         status_code=200 if error is None else 422,
     )
+
+
+@router.post("/characters/{character_id}/deity")
+async def choose_deity(
+    identity: IdentityDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+    deity: Annotated[str, Form()] = "",
+) -> Response:
+    """The deity the character worships, of those its world allows; empty for none."""
+    character = characters.get_for(identity, character_id)
+    allowed = {ref.lower() for ref, _ in _sheet(characters, registry, character).deities}
+    if deity and deity.lower() not in allowed:
+        raise HTTPException(status_code=400)
+    chosen = ChosenOption.model_validate(deity) if deity else None
+    registry.gamestate.characters.update(character.id, deity=chosen)
+    return redirect(f"/characters/{character.id}?tab=features&view=gear")
+
+
+@router.get("/characters/{character_id}/intervention", response_class=HTMLResponse)
+async def intervention_choice(
+    identity: IdentityDep,
+    page: PageDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+    error: str = "",
+) -> HTMLResponse:
+    """A 2024 cleric's Divine Intervention: the spells it may cast, to choose one."""
+    character = characters.get_for(identity, character_id)
+    held = intervention_of(character)
+    if held is None or held.rules != "one":
+        raise HTTPException(status_code=404)
+    spells = castable(character, registry.catalogue(character.world_id), held)
+    now = registry.clock.of(character.world_id).minute if character.world_id else None
+    return html(
+        intervention_page(
+            page,
+            character,
+            held,
+            spells,
+            ready=held.ready(now),
+            error=page.t(error) if error.startswith("play.error.") else None,
+        )
+    )
+
+
+@router.post("/characters/{character_id}/intervention")
+async def call_on_deity(
+    identity: IdentityDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+    spell: Annotated[str, Form()] = "",
+) -> Response:
+    """The cleric calls on the deity: the 2014 roll, or the 2024 spell chosen (one of
+    those the world's books allow), worked out here and applied through the play rules."""
+    character = characters.get_for(identity, character_id)
+    held = intervention_of(character)
+    if held is None:
+        raise HTTPException(status_code=404)
+    now = registry.clock.of(character.world_id).minute if character.world_id else None
+    params = {"now": str(now) if now is not None else "", "deity": _deity_name(character)}
+    back = f"/characters/{character.id}?view=track"
+    if held.rules == "one":
+        chosen = next(
+            (c for c in castable(character, registry.catalogue(character.world_id), held)
+             if c.reference.lower() == spell.lower()),
+            None,
+        )  # fmt: skip
+        if chosen is None:
+            raise HTTPException(status_code=400)
+        params.update(
+            spell=chosen.reference,
+            concentration="1" if chosen.concentration else "",
+            wish="1" if chosen.wish else "",
+        )
+    user = identity.user
+    try:
+        characters.act_for(
+            character.id,
+            "intervention",
+            params,
+            Actor(user.display_name or user.username, username=user.username),
+        )
+    except PlayError as exc:
+        if held.rules == "one":
+            return redirect(
+                f"/characters/{character.id}/intervention?{urlencode({'error': exc.key})}"
+            )
+        return redirect(f"{back}&{urlencode({'flash': exc.key})}")
+    # What came of it, said on the sheet; the log has the roll.
+    after = registry.gamestate.characters.get(character.id).state
+    if held.rules == "one":
+        said = "intervention.cast_done"
+    elif after.intervention_until is not None:
+        said = "intervention.answered"
+    else:
+        said = "intervention.unanswered"
+    return redirect(f"{back}&{urlencode({'flash': said})}")
+
+
+def _deity_name(character: PlayerCharacter) -> str:
+    return character.deity.name if character.deity is not None else ""
 
 
 @router.get("/characters/{character_id}/story", response_class=HTMLResponse)

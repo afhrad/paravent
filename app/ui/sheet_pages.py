@@ -99,6 +99,7 @@ from app.ui.follower_pages import sheet_followers_link
 from app.ui.forms import hidden
 from app.ui.gift_pages import sheet_gifts
 from app.ui.icons import icon
+from app.ui.intervention_pages import deity_field, intervention_block
 from app.ui.layout import app_shell
 from app.ui.names import ITEM, name_span, name_text, named, origin_text, training_text
 from app.ui.names import summary as summary_line
@@ -1856,6 +1857,7 @@ def _features_pane(page: Page, sheet: Sheet, ctx: RenderContext | None = None) -
             for label, text in identity
             if text
         ],
+        deity_field(page, sheet),
         notes,
         # Changed in its own fold, as a quest's or faction's picture: the sheet reads.
         details(class_="cs-token-edit")[
@@ -2080,7 +2082,15 @@ def _right(page: Page, sheet: Sheet) -> Element:
     afflictions = sheet_afflictions(page, sheet.character, sheet.clock)
     gifts = sheet_gifts(page, sheet.character)
     return aside(class_="cs-right")[
-        concentration, slots, resources, conditions, afflictions, gifts, rest, log
+        concentration,
+        slots,
+        resources,
+        intervention_block(page, sheet),
+        conditions,
+        afflictions,
+        gifts,
+        rest,
+        log,
     ]
 
 

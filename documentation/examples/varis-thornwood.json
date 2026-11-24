@@ -90,7 +90,9 @@
     "hero_level": 0,
     "hero_roll": "",
     "bandaged": false,
-    "defeated": false
+    "defeated": false,
+    "intervention_rests": 0,
+    "intervention_until": null
   },
   "overrides": {}
 }

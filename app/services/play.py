@@ -42,10 +42,11 @@ from app.models.pc import (
 )
 from app.models.protocol import EntryKind, ProtocolEntry, RollRecord, Scope, Visibility
 from app.services import character_rules, coins, polymorph, wild_shape
-from app.services.clock import OIL, OIL_LIGHTS, light_minutes
+from app.services.clock import DAY, OIL, OIL_LIGHTS, light_minutes
 from app.services.condition_rolls import bend
 from app.services.dice import Advantage, Dice, DiceError, Roll, is_expression
 from app.services.i18n import Translatable
+from app.services.intervention import WEEK_DAYS, answered, intervention_of
 from app.services.item_charges import attunement_allows
 from app.services.lifestyle import LIFESTYLES
 from app.services.protocol import ProtocolService, outcome_of, roll_record
@@ -61,6 +62,7 @@ INTERNAL_ACTIONS = frozenset(
     {
         "receive", "buy", "sell", "spend", "learn", "eat", "inscribe", "scroll",
         "identify", "lift_curse", "item_secret", "part", "take", "stabilize",
+        "intervention",
     }
 )  # fmt: skip
 # A day's food on the road, by item name.
@@ -183,6 +185,7 @@ class PlayService:
             "hp": self._hp_action,
             "slot": self._slot,
             "cast": self._cast,
+            "intervention": self._intervention,
             "concentration": self._concentration,
             "condition": self._condition_action,
             "exhaustion": self._exhaustion,
@@ -572,6 +575,45 @@ class PlayService:
             what=f"cast:{spell.name}:{level}" if spell.level else f"cast:{spell.name}",
         )
 
+    def _intervention(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """A cleric calls on the deity (app/services/intervention.py), as the route has
+        worked it out: ``now`` the world's minute, ``deity`` its name; under the 2024
+        rules ``spell`` the spell cast, ``concentration`` and ``wish`` what it is."""
+        held = intervention_of(pc)
+        if held is None:
+            raise PlayError("play.error.bad_input")
+        now = int(params["now"]) if params.get("now", "").isdigit() else None
+        if not held.ready(now):
+            raise PlayError("play.error.intervention_waits")
+        deity = params.get("deity", "").replace(":", " ")
+        state = pc.state
+        if held.rules == "classic":
+            roll = self._dice.roll("1d100").total
+            yes = answered(roll, held.level)
+            if yes and now is not None:
+                state.intervention_until = now + WEEK_DAYS * DAY
+            else:
+                # Unanswered: again after a long rest; answered with no clock, at least so.
+                state.intervention_rests = 1
+            self._stage(
+                pc,
+                actor,
+                EntryKind.CUSTOM,
+                what=f"intervention:{roll}:{held.level}:{int(yes)}:{deity}",
+            )
+            return
+        spell = params.get("spell", "")
+        if not spell:
+            raise PlayError("play.error.bad_input")
+        wish = params.get("wish") == "1"
+        state.intervention_rests = self._dice.roll("2d4").total if wish else 1
+        if params.get("concentration") == "1":
+            state.concentration = ChosenOption.model_validate(spell)
+        waits = state.intervention_rests if wish else ""
+        self._stage(pc, actor, EntryKind.CUSTOM, what=f"intervention_cast:{spell}:{deity}:{waits}")
+
     def _concentration(
         self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
     ) -> None:
@@ -696,6 +738,8 @@ class PlayService:
             held = state.hunger_levels + state.thirst_levels + state.held_by_afflictions
             state.exhaustion = max(min(held, state.exhaustion), state.exhaustion - 1)
             state.mastery_set = False  # Weapon Master may choose its kind again
+            # Divine Intervention waits a long rest (2024: once per long rest).
+            state.intervention_rests = max(0, state.intervention_rests - 1)
             if state.wild_shape is not None:  # no form lasts through a long rest
                 self._leave_form(pc, actor)
             total = sum(pool.total for pool in sheet.hit_dice)

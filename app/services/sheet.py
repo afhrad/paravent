@@ -701,6 +701,12 @@ class Sheet:
     # Set by the page: the features the character's world plays with
     # (app/services/features.py); every one in no world.
     world_features: frozenset[str] = frozenset(FEATURES)
+    # Set by the page: the deities the character may worship (``"Name|SOURCE"``, shown
+    # name), the name of the one it does, and a cleric's Divine Intervention
+    # (app/services/intervention.py) with the world's minute now.
+    deities: list[tuple[str, str]] = field(default_factory=list)
+    deity_name: str = ""
+    intervention: Any = None
     wild_shape: WildShapeView | None = None
     spell_form: SpellFormView | None = None
     # The world's variant rules for characters (app/services/character_rules.py), the

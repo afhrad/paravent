@@ -834,6 +834,25 @@
           "default": false,
           "title": "Defeated",
           "type": "boolean"
+        },
+        "intervention_rests": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Intervention Rests",
+          "type": "integer"
+        },
+        "intervention_until": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Intervention Until"
         }
       },
       "title": "PlayState",

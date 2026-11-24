@@ -54,7 +54,8 @@ an outside click like the others):
   (no lifestyle, wages, rations, bastion turns or dungeon checks), its records kept. A world
   from before has every one (`features` absent); a new one starts with travel, shops, quests
   and safety tools. Saving with one switched off closes an open shop, ends a chase and
-  leaves the dungeon;
+  leaves the dungeon; and the world's **Pantheons** (2026-11-24): those of its books whose
+  deities the characters may choose on their sheets, none ticked being every one;
 - **Delete world** — today's confirmation page (with its contents), then the next world is selected.
 
 With no world yet, the menu reads **Create a world**, and pages that need one show an empty state

@@ -532,6 +532,11 @@ class PlayState(GameStateModel):
     # Defeated, not dead (2024): would have died, and lies unconscious at 1 hit point
     # until a Greater Restoration or a sudden awakening after a long rest.
     defeated: bool = False
+    # Divine Intervention (app/services/intervention.py): the long rests still to take
+    # before it may be called on again, and the world's clock minute before which it
+    # may not (2014: seven days after the deity answered).
+    intervention_rests: int = Field(default=0, ge=0)
+    intervention_until: int | None = Field(default=None, ge=0)
 
     @property
     def held_by_afflictions(self) -> int:

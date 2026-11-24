@@ -729,6 +729,15 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         the books), or a fall by its height (1d6 per 10 feet, at most 20d6); save, damage
         type, DC and dice changeable. Sprung through the trap's form (`improvised`): saves on
         the sheets or by the players, defences counted, logged. A feature of its own
+  - [x] **Deities and Divine Intervention** (2026-11-24, `app/services/intervention.py`,
+        `app/ui/intervention_pages.py`): a character's deity (the file's `deity`) chosen on
+        the sheet from the world's books, narrowed by the world's **Pantheons** (World
+        settings); a cleric from level 10 calls on it in the Track view — 2014: d100 against
+        the cleric level (always from 20), answered locks it seven days of the world's clock,
+        no answer a long rest; 2024: a cleric spell up to level 5, not a reaction, cast
+        without a slot once per long rest (Wish from 20, then 2d4 long rests), from its own
+        page. Logged for the table, the outcome said on the sheet. Also fixed: the
+        registry's catalogue lacked the spell lookups, so it knew no class's spells
   - [x] **Optional combat rules** (2026-11-22, `app/services/combat_rules.py`, COMBAT.md
         §3): the 2014 guide's variants as world switches in World settings, kept by a fight
         from its start. **Massive damage** rolls the DC 15 Constitution save and, on a

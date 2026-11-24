@@ -1333,6 +1333,8 @@ def _world_input(
     character_rules: list[str] | None = None,
     features: list[str] | None = None,
     features_set: str = "",
+    pantheons: list[str] | None = None,
+    pantheons_set: str = "",
 ) -> WorldInput:
     """What the world form posted; the players' ticks stored only where they differ from
     the defaults."""
@@ -1351,6 +1353,7 @@ def _world_input(
         player_sources=tuple(chosen) if chosen is not None else None,
         # A form without the features (the world menu's short New world) leaves them.
         features=tuple(features or ()) if features_set else None,
+        pantheons=tuple(pantheons or ()) if pantheons_set else None,
     )
 
 
@@ -1471,6 +1474,8 @@ async def edit_world(
             milestone=world.milestone,
             combat_rules=world.combat_rules,
             character_rules=world.character_rules,
+            pantheon_options=registry.pantheons(world.id),
+            pantheons=world.pantheons,
             language=world.language,
             languages=_languages(registry),
             extra=[notice(notice_text), alert(message), images],
@@ -1497,6 +1502,8 @@ async def update_world(
     character_rules: Annotated[list[str] | None, Form()] = None,
     features: Annotated[list[str] | None, Form()] = None,
     features_set: Annotated[str, Form()] = "",
+    pantheons: Annotated[list[str] | None, Form()] = None,
+    pantheons_set: Annotated[str, Form()] = "",
     next: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
 ) -> Response:
     """Save a world's name, description and books, then back to ``next`` (the page the
@@ -1516,6 +1523,8 @@ async def update_world(
         character_rules,
         features,
         features_set,
+        pantheons,
+        pantheons_set,
     )
     try:
         worlds.update(world_id, data)
@@ -1607,6 +1616,8 @@ async def world_settings(
                 milestone=world.milestone,
                 combat_rules=world.combat_rules,
                 character_rules=world.character_rules,
+                pantheon_options=registry.pantheons(world.id),
+                pantheons=world.pantheons,
                 language=world.language,
                 languages=_languages(registry),
                 next_url=back,

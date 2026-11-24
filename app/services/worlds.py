@@ -22,9 +22,9 @@ from typing import Any
 
 from app.models.gamestate import ONE_EDITION_SOURCES, SourceSet, World
 from app.services import character_rules, features
-from app.services.features import BASICS
 from app.services.auth import AuthError
 from app.services.combat_rules import kept
+from app.services.features import BASICS
 from app.services.table import TableService
 from app.services.trash import Trash
 from app.store.gamestate import GameStateStore
@@ -144,6 +144,8 @@ class WorldInput:
     # The features played with (app/services/features.py); None: a new world's basics,
     # an existing world's unchanged.
     features: tuple[str, ...] | None = None
+    # The pantheons the characters worship; None: unchanged (a new world: every one).
+    pantheons: tuple[str, ...] | None = None
 
 
 class WorldService:
@@ -212,6 +214,8 @@ class WorldService:
         chosen: dict[str, object] = {}
         if data.features is not None:
             chosen["features"] = features.kept(data.features)
+        if data.pantheons is not None:
+            chosen["pantheons"] = list(dict.fromkeys(p for p in data.pantheons if p.strip()))
         return self._store.worlds.update(
             world_id,
             **chosen,

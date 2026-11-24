@@ -531,6 +531,8 @@ def world_form(
     combat_rules: Sequence[str] = (),
     character_rules: Sequence[str] = (),
     features: Sequence[str] | None = None,
+    pantheon_options: Sequence[str] = (),
+    pantheons: Sequence[str] = (),
     language: str = "en",
     languages: Sequence[tuple[str, str]] = (),
     error: str | None = None,
@@ -646,6 +648,7 @@ def world_form(
                 ],
             ],
             _features(page, world, features),
+            _pantheons(page, pantheon_options, pantheons) if pantheon_options else None,
             _character_rules(page, character_rules),
             div(class_="form-actions")[
                 button(type="submit", class_="btn btn-primary")[
@@ -694,6 +697,32 @@ def _features(page: Page, world: World | None, chosen: Sequence[str] | None) -> 
     ]
 
 
+def _pantheons(page: Page, options: Sequence[str], chosen: Sequence[str]) -> Element:
+    """The pantheons of the world's books whose deities the characters may worship;
+    none ticked is every one."""
+    t = page.t
+    held = {p.lower() for p in chosen}
+    return section(class_="field world-rules world-pantheons")[
+        h2(class_="eyebrow")[t("worlds.pantheons")],
+        p(class_="field-hint")[t("worlds.pantheons_hint")],
+        hidden("pantheons_set", "1"),
+        div(class_="tool-checks")[
+            [
+                label(class_="check-inline")[
+                    input_el(
+                        type="checkbox",
+                        name="pantheons",
+                        value=name,
+                        checked=name.lower() in held,
+                    ),
+                    span[name],
+                ]
+                for name in options
+            ]
+        ],
+    ]
+
+
 def _character_rules(page: Page, chosen: Sequence[str]) -> Element:
     """The variant rules for characters: the rest variant as a choice, the rest ticked."""
     t = page.t
@@ -736,6 +765,8 @@ def world_form_page(
     combat_rules: Sequence[str] = (),
     character_rules: Sequence[str] = (),
     features: Sequence[str] | None = None,
+    pantheon_options: Sequence[str] = (),
+    pantheons: Sequence[str] = (),
     language: str = "en",
     languages: Sequence[tuple[str, str]] = (),
     error: str | None = None,
@@ -768,6 +799,8 @@ def world_form_page(
                 combat_rules=combat_rules,
                 character_rules=character_rules,
                 features=features,
+                pantheon_options=pantheon_options,
+                pantheons=pantheons,
                 language=language,
                 languages=languages,
                 error=error,
