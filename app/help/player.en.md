@@ -108,6 +108,9 @@ rest, and from level 20 Wish.
   item of its kind until the game master identifies it. You cannot attune to it before.
 - A **cursed** item holds on once you attune to it: you cannot end the attunement, take it
   off or sell it until the game master lifts the curse.
+- A **sentient** item has a mind of its own, and the sheet says how it speaks to you. Act
+  against its nature and it may make demands, or try to take control of you. An
+  artifact lists its further properties beneath it.
 - Potions have **Drink**, torches and lanterns **Light**, and scrolls their spell.
 <!-- feature: shops -->
 - When the gamemaster opens a shop, it appears on your sheet: buy, and sell what you no

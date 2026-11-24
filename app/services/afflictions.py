@@ -43,7 +43,7 @@ from app.store.gamestate import GameStateStore
 
 DAY = 24 * 60
 DAWN = 6 * 60  # the hour a "daily at dawn" save is rolled
-KINDS = ("disease", "poison", "curse", "madness", "injury")
+KINDS = ("disease", "poison", "curse", "madness", "injury", "charm")
 _UNIT = {"minute": 1, "hour": 60, "day": DAY}
 _WORDS = {"one": 1, "a": 1, "an": 1, "two": 2, "three": 3}
 _COURSE = re.compile(
@@ -435,11 +435,14 @@ class AfflictionService:
         half: bool,
         by: str,
         by_name: str,
+        kind: str = "madness",
     ) -> list[Outcome]:
         """Madness or mental stress on ``victims`` (app/services/madness.py): each rolls
         ``save`` (ability, DC) on its sheet where given; on a failure, or at once without
         one, takes the psychic ``damage`` (rolled once for all; half on a success with
-        ``half``) and, with ``roll``, a madness of its own, named ``name``."""
+        ``half``) and, with ``roll``, a madness of its own, named ``name``. A sentient
+        item's hold on its bearer (app/services/sentient.py) is carried the same way, as
+        ``kind`` ``charm``."""
         out: list[Outcome] = []
         now = self._now(world_id)
         dealt = self._roll(damage) if damage else 0
@@ -456,7 +459,7 @@ class AfflictionService:
                 effect = roll()
                 outcome.lasting = True
                 outcome.conditions = self._carry_madness(
-                    world_id, victim.character_id, name, effect, now
+                    world_id, victim.character_id, name, effect, now, kind
                 )
             out.append(outcome)
             if outcome.damage:
@@ -467,20 +470,26 @@ class AfflictionService:
                 by_name,
                 victim.character_id,
                 victim.name,
-                f"affliction:caught:madness:{_safe(name)}:{_n(outcome.roll)}:{_n(outcome.dc)}:"
+                f"affliction:caught:{kind}:{_safe(name)}:{_n(outcome.roll)}:{_n(outcome.dc)}:"
                 f"{int(outcome.caught)}:{outcome.damage}",
                 Visibility.PUBLIC,
             )
         return out
 
     def _carry_madness(
-        self, world_id: str, character_id: str, name: str, effect: MadEffect, now: int
+        self,
+        world_id: str,
+        character_id: str,
+        name: str,
+        effect: MadEffect,
+        now: int,
+        kind: str = "madness",
     ) -> tuple[str, ...]:
-        """Keep a madness on the character, its conditions put on now."""
+        """Keep a madness (or a charm) on the character, its conditions put on now."""
         lasts = max(1, self._roll(effect.lasts)) * effect.unit if effect.lasts else 0
         madness = Affliction(
             id=uuid.uuid4().hex[:12],
-            kind="madness",
+            kind="charm" if kind == "charm" else "madness",
             name=name[:200],
             note=effect.text[:2000],
             since=now,

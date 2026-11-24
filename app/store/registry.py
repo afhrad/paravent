@@ -123,6 +123,7 @@ from app.services.references import ReferenceEntry, ReferenceService
 from app.services.revisions import Revisions
 from app.services.safety import SafetyService
 from app.services.search import SearchService
+from app.services.sentient import Guide, SentientService, guide_for
 from app.services.session_notes import SessionNoteService
 from app.services.sheet import CONDITIONS
 from app.services.shop import ShopService
@@ -1988,6 +1989,25 @@ class StoreRegistry:
             hurt=hurt,
             conditions=frozenset(CONDITIONS),
         )
+
+    @cached_property
+    def sentient(self) -> SentientService:
+        """Conflicts between sentient items and their bearers (app/services/sentient.py)."""
+        characters = self.characters
+        by = Actor("Paravent", username="")
+
+        def roll(character_id: str, kind: str, ability: str) -> int:
+            return characters.roll_for(character_id, kind, ability, by, private=False) or 0
+
+        return SentientService(self.protocol, self.afflictions, roll=roll)
+
+    def sentient_guide(self, world_id: str | None) -> Guide:
+        """The guide a world makes sentient items and artifacts by: its rules' guide first."""
+
+        def find(caption: str, sources: Sequence[str]) -> Rows | None:
+            return self.book_table(world_id, caption, sources)
+
+        return guide_for(find, self.rules_of(world_id) == "one")
 
     @cached_property
     def formulas(self) -> Formulas:

@@ -684,6 +684,18 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
                     "protocol.upkeep_owed", owed=_purse_words(page, coins.text(int(owed)))
                 )
             return line
+        if head == "sentient":
+            # sentient:conflict:<item>:<item's check>:<bearer's roll>:<DC>:<item won>
+            _op, item, mine, theirs, dc, won = (rest.split(":") + [""] * 6)[:6]
+            key = "contest" if mine else "save"
+            return t(
+                f"protocol.sentient_{key}_{'won' if won == '1' else 'lost'}",
+                subject=entry.subject_name,
+                item=item,
+                mine=mine,
+                theirs=theirs,
+                dc=dc,
+            )
         if head == "upkeep_new":
             name, _, cost = rest.rpartition(":")
             return t(

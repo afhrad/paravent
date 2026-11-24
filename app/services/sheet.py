@@ -25,9 +25,11 @@ from typing import Any
 from app.models.base import ABILITIES
 from app.models.gamestate import SourceSet
 from app.models.pc import (
+    ArtifactProperty,
     ChosenOption,
     ClassLevel,
     HitPointMethod,
+    ItemMind,
     PlayerCharacter,
     Recharge,
 )
@@ -471,6 +473,12 @@ class ItemView:
     bound: bool = False
     # The gamemaster's own word on its curse; None follows its book.
     cursed_set: bool | None = None
+    # A sentient item's mind and an artifact's further properties (app/services/sentient.py);
+    # whether its book calls it sentient, or an artifact.
+    mind: ItemMind | None = None
+    artifact: tuple[ArtifactProperty, ...] = ()
+    sentient_book: bool = False
+    artifact_book: bool = False
 
     @property
     def charges_left(self) -> int:
@@ -959,11 +967,18 @@ class _Corpus:
 
 def _mark_identity(sheet: Sheet, character: PlayerCharacter, corpus: _Corpus) -> None:
     """What the inventory's rows are under their looks: unidentified (with the kind they
-    are shown as and their real name), cursed, binding."""
+    are shown as and their real name), cursed, binding; a mind and artifact properties."""
     marked = []
     for view in sheet.inventory:
         entry = character.inventory[view.index]
         data = corpus.item(entry.item)
+        view = replace(
+            view,
+            mind=entry.mind,
+            artifact=tuple(entry.artifact),
+            sentient_book=bool((data or {}).get("sentient")),
+            artifact_book=str((data or {}).get("rarity") or "").lower() == "artifact",
+        )
         if not entry.unidentified and entry.cursed is None and not identify.is_cursed(entry, data):
             marked.append(view)
             continue

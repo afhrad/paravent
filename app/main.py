@@ -69,6 +69,7 @@ from app.routes import quests as quest_routes
 from app.routes import ref as ref_routes
 from app.routes import safety as safety_routes
 from app.routes import search as search_routes
+from app.routes import sentient as sentient_routes
 from app.routes import session_notes as session_routes
 from app.routes import sound as sound_routes
 from app.routes import story_seeds as story_seed_routes
@@ -354,6 +355,7 @@ def create_app() -> FastAPI:
     app.include_router(story_seed_routes.router)
     app.include_router(gift_routes.router)
     app.include_router(hand_routes.router)
+    app.include_router(sentient_routes.router)
     app.include_router(formula_routes.router)
     app.include_router(menu_routes.router)
     app.include_router(world_links_routes.router)

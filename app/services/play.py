@@ -31,10 +31,14 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from typing import Any, Literal, cast
 
+from pydantic import TypeAdapter, ValidationError
+
 from app.models.gamestate import SpellForm
 from app.models.pc import (
+    ArtifactProperty,
     ChosenOption,
     InventoryItem,
+    ItemMind,
     LogKind,
     PlayerCharacter,
     PlayState,
@@ -62,7 +66,7 @@ INTERNAL_ACTIONS = frozenset(
     {
         "receive", "buy", "sell", "spend", "learn", "eat", "inscribe", "scroll",
         "identify", "lift_curse", "item_secret", "part", "take", "stabilize",
-        "intervention",
+        "intervention", "item_mind",
     }
 )  # fmt: skip
 # A day's food on the road, by item name.
@@ -226,6 +230,7 @@ class PlayService:
             "identify": self._identify,
             "lift_curse": self._lift_curse,
             "item_secret": self._item_secret,
+            "item_mind": self._item_mind,
             "hero_point": self._hero_point,
             "bandage": self._bandage,
             "wake": self._wake,
@@ -1640,6 +1645,22 @@ class PlayService:
         carried.unidentified = hide
         carried.shown_as = " ".join(params.get("shown_as", "").split())[:80] if hide else ""
         carried.cursed = {"yes": True, "no": False}.get(params.get("cursed", "book"))
+
+    def _item_mind(
+        self, pc: PlayerCharacter, sheet: Sheet, params: Mapping[str, str], actor: Actor
+    ) -> None:
+        """A carried item's mind and artifact properties (app/services/sentient.py), as
+        the gamemaster's page worked them out: ``mind`` and ``artifact`` as JSON, an empty
+        ``mind`` taking it away. Not logged: the gamemaster's secret."""
+        _index, carried = self._carried(pc, params)
+        try:
+            mind = params.get("mind", "")
+            carried.mind = ItemMind.model_validate_json(mind) if mind else None
+            carried.artifact = TypeAdapter(list[ArtifactProperty]).validate_json(
+                params.get("artifact") or "[]"
+            )
+        except ValidationError as exc:
+            raise PlayError("play.error.bad_input") from exc
 
     @staticmethod
     def _add_items(

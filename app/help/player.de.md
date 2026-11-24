@@ -119,6 +119,9 @@ ohne Zauberplatz, einmal pro langer Rast, ab Stufe 20 auch Wunsch.
 - Ein **verfluchter** Gegenstand hält dich fest, sobald du dich auf ihn einstimmst: Du kannst
   die Einstimmung nicht beenden, ihn nicht ablegen und nicht verkaufen, bis die Spielleitung
   den Fluch bricht.
+- Ein **empfindungsfähiger** Gegenstand hat einen eigenen Willen; der Bogen sagt, wie er sich
+  dir mitteilt. Handelst du gegen sein Wesen, stellt er vielleicht Forderungen oder versucht,
+  dich zu beherrschen. Ein Artefakt nennt darunter seine weiteren Eigenschaften.
 - Tränke haben **Trinken**, Fackeln und Laternen **Anzünden**, Schriftrollen ihren
   Zauber.
 <!-- feature: shops -->

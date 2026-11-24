@@ -113,6 +113,7 @@ from app.ui.names import summary as summary_line
 from app.ui.protocol_pages import log_embed_slot
 from app.ui.ref_pages import statblock
 from app.ui.safety_pages import xcard_button
+from app.ui.sentient_pages import mind_url, sheet_mind
 from app.ui.shop_pages import coin_text, sheet_shop_link
 from app.ui.tags import RenderContext, localized_context, plain, ref_url, render_entries
 from app.ui.tokens import token, token_panel
@@ -1448,6 +1449,9 @@ def _item_gm(page: Page, sheet: Sheet, item: ItemView) -> Element:
             icon("eye-off" if item.unidentified else "wand-sparkles", "sm")
         ],
         div(class_="cs-item-gm-body")[
+            a(href=mind_url(sheet.character.id, item.index, ref), class_="btn btn-sm")[
+                icon("brain", "sm"), span[t("sentient.open")]
+            ],
             form(method="post", action=url, class_="inline-form")[
                 keep("identify"),
                 button(type="submit", class_="btn btn-sm btn-primary")[
@@ -1521,6 +1525,9 @@ def _item_row(page: Page, sheet: Sheet, item: ItemView) -> Element:
         if item.cursed and gm
         else None,
         span(class_="tag")[t("items.unidentified_tag")] if item.unidentified and gm else None,
+        span(class_="tag magic")[t("sentient.tag")]
+        if item.mind is not None and (gm or not item.unidentified)
+        else None,
     ]
     return div(
         class_=f"cs-item {'on' if item.equipped else ''}",
@@ -1531,6 +1538,7 @@ def _item_row(page: Page, sheet: Sheet, item: ItemView) -> Element:
             span(class_="meta")[badges, span[item.notes] if item.notes else None],
             _scroll_acts(page, sheet, item) if item.scroll else None,
             _charges(page, sheet, item),
+            sheet_mind(page, item, gm),
         ],
         div(class_="cs-item-act")[
             act(

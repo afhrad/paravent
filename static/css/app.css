@@ -3463,3 +3463,21 @@ dialog.ctx-dialog .panel{ margin:0; }
 .upkeep-list li > span:first-child{ flex:1 1 auto; }
 .upkeep-list .inline-form{ margin:0; }
 .cs-upkeep ul{ margin:4px 0 0; padding-left:18px; }
+
+/* A sentient item's mind and an artifact's properties (app/ui/sentient_pages.py): the
+   dice to roll a part again beside its field, the three scores side by side, a property
+   a row each with its ✕ at the end. */
+.sentient-page .panel{ margin-top:16px; }
+.sentient-scores{ display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:10px; }
+.sentient-row{ display:flex; align-items:flex-start; gap:6px; }
+.sentient-row > input, .sentient-row > textarea{ flex:1 1 auto; min-width:0; }
+.sentient-scores .sentient-row > input{ width:100%; }
+.sentient-properties{ list-style:none; margin:0 0 10px; padding:0; display:grid; gap:6px; }
+.sentient-property{ display:flex; flex-wrap:wrap; align-items:flex-start; gap:6px 10px; padding:6px 10px; border:1px solid var(--border); border-radius:var(--r); background:var(--surface-2); }
+.sentient-property > span:nth-child(2){ flex:1 1 220px; min-width:0; }
+.sentient-property .pill{ flex:none; }
+.sentient-property .inline-form, .sentient-rolls .inline-form{ margin:0; }
+.sentient-rolls{ display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+.cs-item-mind{ font-size:13px; margin-top:4px; }
+.cs-item-mind p{ margin:0; }
+.cs-item-props{ margin:2px 0 0; padding-left:18px; }

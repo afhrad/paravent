@@ -303,6 +303,36 @@ class ClassLevel(GameStateModel):
         return f"{self.name}|{self.source}" if self.source else self.name
 
 
+class ItemMind(GameStateModel):
+    """A sentient magic item's mind (app/services/sentient.py): its Intelligence, Wisdom
+    and Charisma, alignment, how it communicates, what it senses and the purpose it
+    pursues, as rolled on the world's guide or written by the gamemaster; the languages
+    it speaks and its personality are the gamemaster's words."""
+
+    intelligence: int = Field(default=10, ge=1, le=30)
+    wisdom: int = Field(default=10, ge=1, le=30)
+    charisma: int = Field(default=10, ge=1, le=30)
+    alignment: str = Field(default="", max_length=200)
+    communication: str = Field(default="", max_length=1000)
+    senses: str = Field(default="", max_length=1000)
+    purpose: str = Field(default="", max_length=1000)
+    languages: str = Field(default="", max_length=200)
+    notes: str = Field(default="", max_length=2000)
+
+
+ArtifactKind = Literal[
+    "minor_beneficial", "major_beneficial", "minor_detrimental", "major_detrimental"
+]
+
+
+class ArtifactProperty(GameStateModel):
+    """One of an artifact's further properties, beneficial or detrimental, minor or major,
+    as rolled on the world's guide or written by the gamemaster."""
+
+    kind: ArtifactKind
+    text: str = Field(max_length=2000)
+
+
 class InventoryItem(GameStateModel):
     """Something the character carries. ``item`` may be a corpus reference or free text.
 
@@ -328,16 +358,21 @@ class InventoryItem(GameStateModel):
     # Whether it is cursed, stated by the gamemaster; None follows its book (``curse``).
     # Attuned to a cursed item, the character cannot let it go until the curse is lifted.
     cursed: bool | None = None
+    # A sentient item's mind and an artifact's further properties (app/services/sentient.py);
+    # left out of the file while it has none.
+    mind: ItemMind | None = None
+    artifact: list[ArtifactProperty] = Field(default_factory=list)
 
     @model_serializer(mode="wrap")
     def _without_empty_spell(self, handler: SerializerFunctionWrapHandler) -> Any:
         data = handler(self)
         if isinstance(data, dict):
-            for key in ("spell", "charges_used", "unidentified", "shown_as"):
+            for key in ("spell", "charges_used", "unidentified", "shown_as", "artifact"):
                 if not data.get(key):
                     data.pop(key, None)
-            if data.get("cursed") is None:
-                data.pop("cursed", None)
+            for key in ("cursed", "mind"):
+                if data.get(key) is None:
+                    data.pop(key, None)
         return data
 
 
@@ -428,7 +463,7 @@ class Affliction(GameStateModel):
     a lingering injury (app/services/combat_rules.py) likewise, until the gamemaster ends it."""
 
     id: str
-    kind: Literal["disease", "poison", "curse", "madness", "injury"]
+    kind: Literal["disease", "poison", "curse", "madness", "injury", "charm"]
     name: str = Field(max_length=200)
     ref: str = Field(default="", max_length=300)
     note: str = Field(default="", max_length=2000)

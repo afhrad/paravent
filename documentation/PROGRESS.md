@@ -750,6 +750,18 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         several keys mean any) are left out where the table's world plays without them,
         the numbered sections numbered again; the same markers in every language, held by a
         test
+  - [x] **Sentient items and artifacts** (2026-11-24, `app/services/sentient.py`,
+        `app/ui/sentient_pages.py`, CHARACTER-FORMAT.md): **Mind and properties** on a carried
+        item (its panel or ⋯ menu) gives it a mind — Intelligence, Wisdom and Charisma 4d6
+        with the lowest dropped, alignment, communication, senses and special purpose rolled
+        on the world's guide (the 2014 *Sentient Magic Item* tables or the 2024 *Sentient
+        Item's*), each part rolled again or written over, languages and personality by hand
+        — and an artifact up to four minor and two major beneficial and detrimental
+        properties from either guide's tables, or written; kept on the item, handed on with
+        it. **Conflict** rolls the 2014 contest of Charisma checks or the 2024 Charisma save
+        (DC 12 + the item's modifier), logged; **Take control** charms the bearer on a failed
+        save for 1d12 hours, an affliction (`charm`) the world's clock wears off. The player
+        sees that it is sentient, how it speaks to them, and the artifact's properties
   - [x] **Optional combat rules** (2026-11-22, `app/services/combat_rules.py`, COMBAT.md
         §3): the 2014 guide's variants as world switches in World settings, kept by a fight
         from its start. **Massive damage** rolls the DC 15 Constitution save and, on a

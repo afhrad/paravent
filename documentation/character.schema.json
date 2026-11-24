@@ -105,7 +105,8 @@
             "poison",
             "curse",
             "madness",
-            "injury"
+            "injury",
+            "charm"
           ],
           "title": "Kind",
           "type": "string"
@@ -259,6 +260,33 @@
         "name"
       ],
       "title": "Affliction",
+      "type": "object"
+    },
+    "ArtifactProperty": {
+      "additionalProperties": false,
+      "description": "One of an artifact's further properties, beneficial or detrimental, minor or major,\nas rolled on the world's guide or written by the gamemaster.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "minor_beneficial",
+            "major_beneficial",
+            "minor_detrimental",
+            "major_detrimental"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "text": {
+          "maxLength": 2000,
+          "title": "Text",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "text"
+      ],
+      "title": "ArtifactProperty",
       "type": "object"
     },
     "ChosenOption": {
@@ -598,12 +626,95 @@
           ],
           "default": null,
           "title": "Cursed"
+        },
+        "mind": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ItemMind"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "artifact": {
+          "items": {
+            "$ref": "#/$defs/ArtifactProperty"
+          },
+          "title": "Artifact",
+          "type": "array"
         }
       },
       "required": [
         "item"
       ],
       "title": "InventoryItem",
+      "type": "object"
+    },
+    "ItemMind": {
+      "additionalProperties": false,
+      "description": "A sentient magic item's mind (app/services/sentient.py): its Intelligence, Wisdom\nand Charisma, alignment, how it communicates, what it senses and the purpose it\npursues, as rolled on the world's guide or written by the gamemaster; the languages\nit speaks and its personality are the gamemaster's words.",
+      "properties": {
+        "intelligence": {
+          "default": 10,
+          "maximum": 30,
+          "minimum": 1,
+          "title": "Intelligence",
+          "type": "integer"
+        },
+        "wisdom": {
+          "default": 10,
+          "maximum": 30,
+          "minimum": 1,
+          "title": "Wisdom",
+          "type": "integer"
+        },
+        "charisma": {
+          "default": 10,
+          "maximum": 30,
+          "minimum": 1,
+          "title": "Charisma",
+          "type": "integer"
+        },
+        "alignment": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Alignment",
+          "type": "string"
+        },
+        "communication": {
+          "default": "",
+          "maxLength": 1000,
+          "title": "Communication",
+          "type": "string"
+        },
+        "senses": {
+          "default": "",
+          "maxLength": 1000,
+          "title": "Senses",
+          "type": "string"
+        },
+        "purpose": {
+          "default": "",
+          "maxLength": 1000,
+          "title": "Purpose",
+          "type": "string"
+        },
+        "languages": {
+          "default": "",
+          "maxLength": 200,
+          "title": "Languages",
+          "type": "string"
+        },
+        "notes": {
+          "default": "",
+          "maxLength": 2000,
+          "title": "Notes",
+          "type": "string"
+        }
+      },
+      "title": "ItemMind",
       "type": "object"
     },
     "Override": {

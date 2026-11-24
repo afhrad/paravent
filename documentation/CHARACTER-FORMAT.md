@@ -168,6 +168,23 @@ sold, drunk or used up (`play.error.bound`), until the gamemaster **Lifts the cu
 ends the attunement as Remove Curse does. The player sees "Cursed: bound" once it binds; the
 gamemaster sees "Cursed" from the start. An item already attuned cannot be made unidentified.
 
+### Sentient items and artifacts (2026-11-24)
+
+`app/services/sentient.py`. A carried item may hold `"mind"`: `intelligence`, `wisdom`,
+`charisma`, `alignment`, `communication`, `senses`, `purpose`, `languages` and `notes`, and
+`"artifact"`: a list of `{"kind": "minor_beneficial" | "major_beneficial" |
+"minor_detrimental" | "major_detrimental", "text": …}` (each left out while empty). The
+gamemaster sets them on the item's page (**Mind and properties**, from the item's panel or
+its ⋯ menu, `/characters/{id}/mind`): the scores 4d6 with the lowest dropped, the four parts
+rolled on the world's guide (the guide of its rules first, by caption), each rolled again
+or written over; an artifact's properties rolled on the guide's four tables, up to four
+minor and two major of each, or written. The player sees "Sentient", how it communicates,
+and the artifact's properties (nothing of an unidentified one). **Conflict**: under the
+2014 guide the item's Charisma check against the bearer's, under the 2024 guide the
+bearer's Charisma save against 12 + the item's Charisma modifier, logged; **Take control**
+is that save, a failure charming the bearer for 1d12 hours, carried as an affliction of
+kind `charm` that the world's clock wears off.
+
 ### `state` — what play changes
 
 | Field | Example | Meaning |

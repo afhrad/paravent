@@ -64,6 +64,7 @@ from app.ui.library_links import (
 from app.ui.names import name_text
 from app.ui.naming_pages import NAMING_URL, style_url
 from app.ui.protocol_pages import LOG_URL
+from app.ui.sentient_pages import mind_url
 from app.ui.session_pages import SESSIONS_URL, day_text, note_url
 from app.ui.sound_panel import SOUND_URL, SOUNDS_URL
 from app.ui.tags import ref_url
@@ -554,6 +555,14 @@ async def item_menu(
         )
     if identity.is_gamemaster and item.unidentified:
         reading.append(do(t("menu.identify"), "eye", "identify"))
+    if identity.is_gamemaster:
+        reading.append(
+            MenuItem(
+                t("sentient.open"),
+                "brain",
+                href=mind_url(pc.id, index, item.true_name or item.name),
+            )
+        )
     if registry.shops.serves(pc.world_id, pc.id) is not None:
         reading.append(MenuItem(t("menu.sell"), "coins", href=f"/characters/{pc.id}/shop"))
     shown = (
