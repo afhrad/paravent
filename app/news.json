@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-24T15:09:44+01:00",
+  "en": "Proficiency dice can be switched on per world: checks, attacks and saves roll a die instead of the proficiency bonus, twice for expertise, and the sheet shows it as \"+2 + d6\".",
+  "de": "Übungswürfel lassen sich pro Welt einschalten: Attributswürfe, Angriffe und Rettungswürfe würfeln einen Würfel statt des Übungsbonus, bei Expertise zweimal, und der Bogen zeigt ihn als „+2 + W6“."
+ },
+ {
   "at": "2026-11-24T14:39:58+01:00",
   "en": "The help pages now leave out what your world doesn't play with, so players read only of the features and variant rules your table uses.",
   "de": "Die Hilfeseiten lassen jetzt weg, womit deine Welt nicht spielt, sodass die Spieler nur von den Funktionen und Variantregeln lesen, die euer Tisch nutzt."
@@ -293,10 +298,5 @@
   "at": "2026-11-19T23:11:01+01:00",
   "en": "A new NPC asks for its people or creature first, and the dice beside its name roll a name that fits.",
   "de": "Ein neuer NSC fragt zuerst nach Volk oder Kreatur, und die Würfel neben dem Namen würfeln einen passenden Namen."
- },
- {
-  "at": "2026-11-19T22:22:04+01:00",
-  "en": "A world made from the world menu starts in your language.",
-  "de": "Eine Welt aus dem Weltmenü beginnt in deiner Sprache."
  }
 ]
