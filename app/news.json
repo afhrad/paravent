@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-24T10:53:04+01:00",
+  "en": "In a dungeon, the clock rolls wandering encounter checks for you: set a table, an interval and the chance under Dungeon on the clock panel, and every step, rest or fight rolls them; one that comes up becomes an encounter in one press.",
+  "de": "Im Dungeon würfelt die Uhr die Zufallsbegegnungen für dich: Unter Dungeon auf der Uhr legst du Tabelle, Abstand und Wahrscheinlichkeit fest, und jeder Schritt, jede Rast und jeder Kampf würfelt sie; ein Treffer wird mit einem Druck zur Begegnung."
+ },
+ {
   "at": "2026-11-23T16:54:17+01:00",
   "en": "On the phone, the character sheet has a letter button to the journal with the number of unopened handouts, and tapping a new handout's pop-up opens it.",
   "de": "Auf dem Handy hat der Charakterbogen einen Brief-Knopf zum Journal mit der Zahl ungeöffneter Handouts, und ein Tipp auf die Einblendung eines neuen Handouts öffnet es."
@@ -293,10 +298,5 @@
   "at": "2026-11-19T17:47:27+01:00",
   "en": "Taking an NPC, place, encounter or treasure out of a chapter now moves it up to the adventure instead of deleting it, and the image browser loads quickly with small previews.",
   "de": "Ein NSC, Ort, Begegnung oder Schatz, der aus einem Kapitel genommen wird, wandert jetzt ins Abenteuer, statt gelöscht zu werden, und der Bildbrowser lädt mit kleinen Vorschauen schnell."
- },
- {
-  "at": "2026-11-19T16:06:48+01:00",
-  "en": "A new image dialog frames covers and pictures without cutting them, finds the world's pictures by name, tag or shape, places are created in their own dialog, and adventures take the world's ready-made NPCs, places, encounters and treasure from a list",
-  "de": "Ein neuer Bilddialog rahmt Titelbilder und Bilder, ohne sie zu beschneiden, findet die Bilder der Welt nach Name, Schlagwort oder Format, Orte entstehen in einem eigenen Dialog, und Abenteuer übernehmen die fertigen NSC, Orte, Begegnungen und Schätze der Welt aus einer Liste"
  }
 ]
