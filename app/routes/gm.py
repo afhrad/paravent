@@ -39,7 +39,7 @@ from app.models.gamestate import EncounterMonster
 from app.routes.adventures import upload_messages
 from app.routes.auth import html, redirect, safe_next
 from app.routes.rolls import announce_roll, new_roll
-from app.services import character_rules
+from app.services import character_rules, features
 from app.services.activities import RARITIES
 from app.services.auth import AuthError
 from app.services.characters import CharacterService
@@ -143,7 +143,8 @@ def _clock(page: Page, registry: StoreRegistry, world_id: str | None) -> Element
         journey=clock.journey,
         environments=[(e.key, f"{e.name} ({e.source})") for e in _environments(registry, shown)],
         vessels=[v.name for v in registry.vessels(shown)],
-        mounted=registry.followers.mounted([pc.id for pc in members]),
+        mounted=registry.feature(shown, "followers")
+        and registry.followers.mounted([pc.id for pc in members]),
         hazards=registry.hazard_links(shown),
         terrains=registry.terrains(shown),
         abundance=registry.foraging_by_abundance(shown),
@@ -155,6 +156,7 @@ def _clock(page: Page, registry: StoreRegistry, world_id: str | None) -> Element
         rests=_rest_minutes(registry, shown),
         delve=clock.delve,
         delve_table=table.name if table is not None else "",
+        features=features.switched_on(registry.gamestate.worlds.find(shown)),
     )
 
 
@@ -228,6 +230,8 @@ def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_
     )
     party = {pc.id for pc in registry.gamestate.characters.of_world(world_id, drafts=False)}
     navigator = str(form.get("navigator", ""))
+    # Without survival the party needs no rations or water and nobody forages.
+    survival = registry.feature(world_id, "survival")
     registry.travel.travel(
         world_id,
         Plan(
@@ -236,9 +240,9 @@ def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_
             difficult=form.get("difficult") == "1",
             environment=environment,
             checks=int(checks) if checks.isdigit() and int(checks) <= 3 else 1,
-            rations=form.get("rations") == "1",
+            rations=survival and form.get("rations") == "1",
             rest=form.get("rest") == "1",
-            water=water if water in WATER else "enough",  # type: ignore[arg-type]
+            water=water if survival and water in WATER else "enough",  # type: ignore[arg-type]
             mounted=by_ship == "mounted",
             vessel=vessel,
             night_check=form.get("night") == "1",
@@ -248,7 +252,9 @@ def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_
             terrain=terrain,
             navigator=navigator if navigator in party else "",
             helped=form.get("helped") == "1",
-            foragers=tuple(str(f) for f in form.getlist("forager") if str(f) in party),
+            foragers=tuple(str(f) for f in form.getlist("forager") if str(f) in party)
+            if survival
+            else (),
             stealthy=form.get("stealthy") == "1",
         ),
         rules=registry.rules_of(world_id),
@@ -291,7 +297,7 @@ def _minutes(form: FormData) -> int:
 
 def _shop(page: Page, registry: StoreRegistry, world_id: str | None) -> Element | None:
     shown = _clock_world(registry, world_id)
-    if shown is None:
+    if shown is None or not registry.feature(shown, "shops"):
         return None
     members = [
         (pc.id, pc.name or "?")
@@ -303,7 +309,7 @@ def _shop(page: Page, registry: StoreRegistry, world_id: str | None) -> Element 
 
 def _chase(page: Page, registry: StoreRegistry, world_id: str | None) -> Element | None:
     shown = _clock_world(registry, world_id)
-    if shown is None:
+    if shown is None or not registry.feature(shown, "chases"):
         return None
     members = [
         (pc.id, pc.name or "?")
@@ -392,7 +398,9 @@ async def party(
                 chosen,
                 _party_names(characters, world_id),
                 tables=rolls_2014(lambda c, b: registry.book_table(world_id, c, b)),
-            ),
+            )
+            if registry.feature(world_id, "madness")
+            else None,
         )
     )
 
@@ -471,7 +479,12 @@ async def change_clock(
     name = user.display_name or user.username
     clock = registry.clock
     flash: str | None = None
+    needs = {"travel": "travel", "travel_encounter": "travel", "downtime": "downtime"}
+    if op.startswith("delve"):
+        needs[op] = "dungeon"
     try:
+        if op in needs and not registry.feature(world_id, needs[op]):
+            raise ClockError("clock.error.switched_off")
         if op == "advance":
             raw = str(form.get("minutes", "")).strip()
             minutes = int(raw) if raw.isdigit() else _minutes(form)
@@ -1229,6 +1242,8 @@ def _world_input(
     milestone: str = "",
     combat_rules: list[str] | None = None,
     character_rules: list[str] | None = None,
+    features: list[str] | None = None,
+    features_set: str = "",
 ) -> WorldInput:
     """What the world form posted; the players' ticks stored only where they differ from
     the defaults."""
@@ -1245,6 +1260,8 @@ def _world_input(
         character_rules=tuple(character_rules or ()),
         language=_language(registry, language),
         player_sources=tuple(chosen) if chosen is not None else None,
+        # A form without the features (the world menu's short New world) leaves them.
+        features=tuple(features or ()) if features_set else None,
     )
 
 
@@ -1282,6 +1299,8 @@ async def create_world(
     milestone: Annotated[str, Form()] = "",
     combat_rules: Annotated[list[str] | None, Form()] = None,
     character_rules: Annotated[list[str] | None, Form()] = None,
+    features: Annotated[list[str] | None, Form()] = None,
+    features_set: Annotated[str, Form()] = "",
 ) -> Response:
     """Create a world, or show the form again with the reason it was refused. The world
     menu's dialog names no language: the world is written in the maker's."""
@@ -1297,6 +1316,8 @@ async def create_world(
         milestone,
         combat_rules,
         character_rules,
+        features,
+        features_set,
     )
     try:
         world = worlds.create(data)
@@ -1314,6 +1335,7 @@ async def create_world(
             milestone=data.milestone,
             combat_rules=data.combat_rules,
             character_rules=data.character_rules,
+            features=data.features,
             language=data.language,
             languages=_languages(registry),
             error=page.t.error(exc),
@@ -1384,6 +1406,8 @@ async def update_world(
     milestone: Annotated[str, Form()] = "",
     combat_rules: Annotated[list[str] | None, Form()] = None,
     character_rules: Annotated[list[str] | None, Form()] = None,
+    features: Annotated[list[str] | None, Form()] = None,
+    features_set: Annotated[str, Form()] = "",
     next: Annotated[str, Form()] = "",  # noqa: A002 — the form field's name
 ) -> Response:
     """Save a world's name, description and books, then back to ``next`` (the page the
@@ -1401,6 +1425,8 @@ async def update_world(
         milestone,
         combat_rules,
         character_rules,
+        features,
+        features_set,
     )
     try:
         worlds.update(world_id, data)
@@ -1418,12 +1444,16 @@ async def update_world(
             milestone=data.milestone,
             combat_rules=data.combat_rules,
             character_rules=data.character_rules,
+            features=data.features,
             language=data.language,
             languages=_languages(registry),
             error=page.t.error(exc),
             next_url=safe_next(next) or "",
         )
         return html(view, status_code=422)
+    registry.features_changed(
+        world_id, _gm.user.username, _gm.user.display_name or _gm.user.username
+    )
     return redirect(safe_next(next) or f"{WORLDS_URL}/{world_id}?updated=1")
 
 

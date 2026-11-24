@@ -224,6 +224,10 @@ class World(Record):
     # (app/services/character_rules.py): a rest variant, hero points, Honor, Sanity,
     # slow natural healing, healer's kit dependency, defeated not dead.
     character_rules: list[str] = Field(default_factory=list)
+    # The features played with here, by key (app/services/features.py): the road,
+    # survival, dungeon checks, shops, lifestyle, followers, downtime, bastions, quests,
+    # factions, chases, madness, safety tools. None: every one (a world from before).
+    features: list[str] | None = None
 
     @model_validator(mode="before")
     @classmethod

@@ -66,6 +66,7 @@ def table(
     """The demo world: its users, characters, the ferry chapter and its ambush."""
     from app.models.gamestate import Role, Scope
     from app.models.pc import PlayerCharacter
+    from app.services.features import FEATURES
     from app.services.worlds import WorldInput
 
     text = shots.TEXTS[lang]
@@ -81,6 +82,8 @@ def table(
             description=text["world_text"],
             sources=("PHB", "MM", "DMG"),
             language=lang,
+            # Every feature, so the pictures show them all (a new world has the basics).
+            features=FEATURES,
         )
     )
     found = Table(lang=lang, world=world.id)

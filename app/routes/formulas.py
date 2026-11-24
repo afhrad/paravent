@@ -24,7 +24,9 @@ def _found(
 ) -> tuple[str, str, list[tuple[str, str, bool]]] | None:
     """A magic item of the world's books: its name, reference and the world's characters
     (with whether each holds its formula); None when the books lack it."""
-    if registry.gamestate.worlds.find(world_id) is None:
+    if registry.gamestate.worlds.find(world_id) is None or not registry.feature(
+        world_id, "downtime"
+    ):
         return None
     try:
         entry = registry.references.get("item", source or "-", name, world_id)

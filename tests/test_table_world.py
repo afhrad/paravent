@@ -13,6 +13,7 @@ from app.config import Settings
 from app.main import create_app
 from app.models.gamestate import Role
 from app.services.events import TABLE
+from app.services.features import FEATURES
 from app.services.table import TableError
 from app.services.worlds import WorldInput
 from app.store.registry import StoreRegistry
@@ -112,7 +113,8 @@ async def test_the_bar_links_the_current_world(gm: AsyncClient, registry: StoreR
     # Before any world: its pages ask for one.
     empty = (await gm.get("/gm/npcs")).text
     assert "No world yet" in empty and 'data-dialog="new-world"' in empty
-    grey = registry.worlds.create(WorldInput(name="Grey Reed"))
+    # Playing with every feature, so the bar has every link (a new world has the basics).
+    grey = registry.worlds.create(WorldInput(name="Grey Reed", features=FEATURES))
     salt = registry.worlds.create(WorldInput(name="Salt Coast"))
     registry.table.select(grey.id)
     registry.npcs.create("Maren", f"w:{grey.id}", grey.id)

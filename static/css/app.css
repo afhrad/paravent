@@ -3443,3 +3443,10 @@ dialog.ctx-dialog .panel{ margin:0; }
 .copy-plan{ display:grid; gap:12px; }
 .copy-group{ display:grid; gap:4px; }
 .copy-list{ margin:0; padding-left:18px; display:grid; gap:3px; }
+
+/* The features a world plays with (app/services/features.py), in World settings: a group
+   heading over its switches, the groups side by side where there is room. */
+.world-features{ display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:4px 24px; }
+.world-features > h2, .world-features > .field-hint{ grid-column:1 / -1; }
+.world-feature-group{ display:grid; gap:2px; align-content:start; }
+.world-feature-head{ margin:10px 0 2px; font-size:14px; font-weight:600; color:var(--text-2); }

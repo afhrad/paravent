@@ -4,6 +4,13 @@ Everything that happens when nobody is rolling initiative: the session itself, t
 the days off, the bastion, and the people the characters know. Most of it starts on the
 party view (*Table*), in the world the table plays in.
 
+Not every table wants all of it. **World settings → Features** switches each part on or
+off for the world: travel and its survival, dungeon checks, shops, lifestyle, followers,
+downtime, bastions, quests, factions, chases, madness and the safety tools. One switched
+off is gone from your screens and the players', and nothing of it runs on the clock; what
+was made with it is kept for when it comes back. A new world starts with travel, shops,
+quests and the safety tools.
+
 ---
 
 ## 1. The session

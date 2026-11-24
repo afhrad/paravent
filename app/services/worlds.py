@@ -21,7 +21,8 @@ from pathlib import Path
 from typing import Any
 
 from app.models.gamestate import ONE_EDITION_SOURCES, SourceSet, World
-from app.services import character_rules
+from app.services import character_rules, features
+from app.services.features import BASICS
 from app.services.auth import AuthError
 from app.services.combat_rules import kept
 from app.services.table import TableService
@@ -140,6 +141,9 @@ class WorldInput:
     language: str = "en"
     # The declared books players may read; None: the defaults (PLAYER-VIEW.md).
     player_sources: tuple[str, ...] | None = None
+    # The features played with (app/services/features.py); None: a new world's basics,
+    # an existing world's unchanged.
+    features: tuple[str, ...] | None = None
 
 
 class WorldService:
@@ -197,6 +201,7 @@ class WorldService:
             character_rules=character_rules.kept(data.character_rules),
             language=data.language,
             player_sources=_players(data),
+            features=features.kept(data.features if data.features is not None else BASICS),
         )
         return self._store.worlds.create(world)
 
@@ -204,8 +209,12 @@ class WorldService:
         """Change a world's name, description or books."""
         self.get(world_id)
         name, sources = self._clean(data)
+        chosen: dict[str, object] = {}
+        if data.features is not None:
+            chosen["features"] = features.kept(data.features)
         return self._store.worlds.update(
             world_id,
+            **chosen,
             name=name,
             description=data.description.strip(),
             source_set=sources,

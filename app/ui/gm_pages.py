@@ -15,6 +15,7 @@ from htpy import (
     div,
     form,
     h2,
+    h3,
     label,
     li,
     p,
@@ -31,6 +32,8 @@ from app.models.gamestate import Adventure, Chapter, World
 from app.services import character_rules as variants
 from app.services.combat_rules import RULES
 from app.services.experience import progress
+from app.services.features import BASICS, switched_on
+from app.services.features import GROUPS as FEATURE_GROUPS
 from app.services.news import NewsLine
 from app.services.sheet import Sheet
 from app.services.worlds import Book, BookCatalog
@@ -525,6 +528,7 @@ def world_form(
     milestone: bool = False,
     combat_rules: Sequence[str] = (),
     character_rules: Sequence[str] = (),
+    features: Sequence[str] | None = None,
     language: str = "en",
     languages: Sequence[tuple[str, str]] = (),
     error: str | None = None,
@@ -639,6 +643,7 @@ def world_form(
                     for rule in RULES
                 ],
             ],
+            _features(page, world, features),
             _character_rules(page, character_rules),
             div(class_="form-actions")[
                 button(type="submit", class_="btn btn-primary")[
@@ -649,6 +654,40 @@ def world_form(
                 if in_dialog
                 else a(href=back, class_="btn btn-ghost")[t("common.cancel")],
             ],
+        ],
+    ]
+
+
+def _features(page: Page, world: World | None, chosen: Sequence[str] | None) -> Element:
+    """The features the world plays with, by group; ``chosen`` None shows the world's own
+    (a new world's basics). One switched off is gone from every screen."""
+    t = page.t
+    ticked = (
+        set(chosen)
+        if chosen is not None
+        else set(switched_on(world))
+        if world is not None
+        else set(BASICS)
+    )
+    return section(class_="field world-rules world-features")[
+        h2(class_="eyebrow")[t("worlds.features")],
+        p(class_="field-hint")[t("worlds.features_hint")],
+        hidden("features_set", "1"),
+        [
+            div(class_="world-feature-group")[
+                h3(class_="world-feature-head")[t(f"worlds.features.{group}")],
+                [
+                    checkbox_field(
+                        "features",
+                        t(f"worlds.feature.{key}"),
+                        checked=key in ticked,
+                        hint=t(f"worlds.feature.{key}_hint"),
+                        value=key,
+                    )
+                    for key in keys
+                ],
+            ]
+            for group, keys in FEATURE_GROUPS
         ],
     ]
 
@@ -694,6 +733,7 @@ def world_form_page(
     milestone: bool = False,
     combat_rules: Sequence[str] = (),
     character_rules: Sequence[str] = (),
+    features: Sequence[str] | None = None,
     language: str = "en",
     languages: Sequence[tuple[str, str]] = (),
     error: str | None = None,
@@ -725,6 +765,7 @@ def world_form_page(
                 milestone=milestone,
                 combat_rules=combat_rules,
                 character_rules=character_rules,
+                features=features,
                 language=language,
                 languages=languages,
                 error=error,

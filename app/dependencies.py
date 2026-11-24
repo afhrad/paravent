@@ -16,6 +16,7 @@ from app.models.gamestate import Role
 from app.services.auth import COOKIE_NAME, AuthService, Identity
 from app.services.characters import CharacterService
 from app.services.current_world import world_of_page
+from app.services.features import switched_on
 from app.services.i18n import LANG_COOKIE
 from app.services.players import PlayerService
 from app.services.worlds import WorldService
@@ -124,6 +125,7 @@ def build_page(request: Request, identity: Identity | None = None) -> Page:
         deleted_worlds=len(registry.trash.worlds())
         if identity is not None and identity.is_gamemaster
         else 0,
+        features=switched_on(current),
         unread_handouts=registry.handouts.unread(identity)
         if identity is not None and not identity.is_gamemaster
         else 0,

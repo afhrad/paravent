@@ -156,3 +156,12 @@ __all__ = [
     "resolve_monsters",
     "tool_errors",
 ]
+
+
+def needs(registry: StoreRegistry, world_id: str, feature: str) -> None:
+    """Refuse a tool for a feature the world plays without (app/services/features.py)."""
+    if not registry.feature(world_id, feature):
+        raise ToolError(
+            f"The gamemaster has switched {feature} off for this world (World settings, "
+            "Features). Leave it out of the adventure."
+        )

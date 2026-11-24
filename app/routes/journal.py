@@ -26,7 +26,7 @@ from app.models.gamestate import Handout, World
 from app.routes.adventures import _chapter_context as chapter_context
 from app.routes.auth import html, redirect, safe_next
 from app.routes.paravent_markdown import players_markdown
-from app.services import image_effects, media
+from app.services import features, image_effects, media
 from app.services.adventures import EditConflict, text_version
 from app.services.auth import Identity
 from app.services.creature_sight import image_file
@@ -261,7 +261,7 @@ def _journal(
             render=partial(players_markdown, page, registry, w.id),
         )
         for w in _notes_worlds(identity, registry, world)
-        if (shown := registry.quests.shown_to(w.id, mine_ids))
+        if features.on(w, "quests") and (shown := registry.quests.shown_to(w.id, mine_ids))
     ]
     return html(journal_page(page, found, names=names, message=message, notes=notes, quests=quests))
 

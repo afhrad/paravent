@@ -368,7 +368,9 @@ def user_menu(page: Page, name: str, username: str) -> Element:
                 ],
                 a(href="/safety", class_="usermenu-link")[
                     icon("shield", "sm"), span[t("safety.title")]
-                ],
+                ]
+                if "safety" in page.features
+                else None,
                 a(href=f"/help/player?back={quote(page.path or '/')}", class_="usermenu-link")[
                     icon("circle-help", "sm"), span[t("help.player")]
                 ],
@@ -467,7 +469,7 @@ def _nav(page: Page, role: Role) -> Element:
     (documentation/CURRENT-WORLD.md §4)."""
     t = page.t
     path = page.path.split("?", 1)[0]
-    items = NAV[role]
+    items = [i for i in NAV[role] if not i.feature or i.feature in page.features]
 
     def link(item: NavItem, cls: str) -> Element:
         return a(

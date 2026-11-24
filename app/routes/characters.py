@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import contextlib
 from collections.abc import Mapping, Sequence
+from dataclasses import replace
 from datetime import UTC, datetime
 from fractions import Fraction
 from typing import Annotated, Any
@@ -41,7 +42,7 @@ from app.routes.auth import html, redirect
 from app.routes.paravent_markdown import players_markdown
 from app.routes.play_combat import strip
 from app.routes.rolls import announce_roll, new_roll
-from app.services import polymorph
+from app.services import features, polymorph
 from app.services.activities import rarity_of
 from app.services.auth import Identity
 from app.services.bastion_orders import OrderOption
@@ -81,6 +82,14 @@ router = APIRouter(tags=["characters"])
 _VIEW_KEYS = ("tab", "view")
 
 
+def _with(registry: RegistryDep, character: PlayerCharacter, feature: str) -> PlayerCharacter:
+    """The character, where its world plays with ``feature`` (app/services/features.py);
+    a page of one switched off is not there."""
+    if not registry.feature(character.world_id, feature):
+        raise HTTPException(status_code=404)
+    return character
+
+
 def _sheet(characters: CharactersDep, registry: RegistryDep, character: PlayerCharacter) -> Sheet:
     """The derived sheet, told whether the character is in a running fight."""
     sheet = characters.sheet(character)
@@ -91,21 +100,25 @@ def _sheet(characters: CharactersDep, registry: RegistryDep, character: PlayerCh
     if held is not None and polymorph.is_polymorph(held.name):
         _shape_choices(sheet, characters, registry, character, held.reference, fights)
     sheet.calls = registry.checks.open_for(character.id)
+    world = registry.gamestate.worlds.find(character.world_id) if character.world_id else None
+    # Always set: the sheet object is cached per character state.
+    sheet.world_features = on = features.switched_on(world)
+    sheet.shop, sheet.downtime, sheet.chase = None, None, None
     if character.world_id:
         sheet.clock = registry.clock.of(character.world_id).minute
         sheet.timers = registry.clock.of_character(character.world_id, character.id)
         shop = registry.shops.serves(character.world_id, character.id)
-        sheet.shop = shop.name if shop is not None else None
-        sheet.lifestyle_costs = registry.lifestyle_costs(character.world_id)
-        world = registry.gamestate.worlds.find(character.world_id)
+        sheet.shop = shop.name if shop is not None and "shops" in on else None
+        sheet.lifestyle_costs = (
+            registry.lifestyle_costs(character.world_id) if "lifestyle" in on else {}
+        )
         sheet.milestone = world is not None and world.milestone
-        # Always set: the sheet object is cached per character state.
         chase = registry.chases.of(character.world_id)
         runs = chase is not None and any(r.character_id == character.id for r in chase.runners)
-        sheet.chase = chase if runs else None
+        sheet.chase = chase if runs and "chases" in on else None
     sheet.followers = len(registry.followers.of(character.id))
     spare = registry.downtime.of(character.id)
-    if spare.days or any(not x.finished for x in spare.projects):
+    if "downtime" in on and (spare.days or any(not x.finished for x in spare.projects)):
         sheet.downtime = spare.days
     for spell in sheet.spells:
         summoned = registry.summoning_for(spell.reference)
@@ -582,7 +595,11 @@ async def bastion(
 ) -> HTMLResponse:
     """The character's bastion (2024 rules)."""
     return _bastion(
-        identity, page, characters, registry, characters.get_for(identity, character_id)
+        identity,
+        page,
+        characters,
+        registry,
+        _with(registry, characters.get_for(identity, character_id), "bastions"),
     )
 
 
@@ -599,7 +616,7 @@ async def change_bastion(
     gamemaster) run a bastion turn."""
     form = await request.form()
     # Read after the form: a second press waiting on its form sees the first's result.
-    character = characters.get_for(identity, character_id)
+    character = _with(registry, characters.get_for(identity, character_id), "bastions")
     op = str(form.get("op", ""))
     service = registry.bastions
     level = character.total_level
@@ -799,7 +816,7 @@ async def shop(
     q: str = "",
 ) -> HTMLResponse:
     """The open shop of the character's world, if it serves this character."""
-    character = characters.get_for(identity, character_id)
+    character = _with(registry, characters.get_for(identity, character_id), "shops")
     return _shop(page, registry, character, shelf=shelf, query=q)
 
 
@@ -815,7 +832,7 @@ async def trade(
     """Buy from the shelves or sell something carried, at the shop's prices."""
     form = await request.form()
     # Read after the form: a second press waiting on its form sees the first's result.
-    character = characters.get_for(identity, character_id)
+    character = _with(registry, characters.get_for(identity, character_id), "shops")
     shop = registry.shops.serves(character.world_id, character.id)
     if shop is None:
         raise HTTPException(status_code=404)
@@ -959,6 +976,7 @@ def _downtime(
                     else None,
                 )
                 for faction, renown in registry.factions.standing(character.id, character.world_id)
+                if registry.feature(character.world_id, "factions")
             ],
             faction_choices=[
                 (f.id, f.name) for f in registry.factions.of(character.world_id or "")
@@ -1136,11 +1154,22 @@ async def story(
     """What the character has done and whom it knows."""
     character = characters.get_for(identity, character_id)
     world = registry.gamestate.worlds.find(character.world_id) if character.world_id else None
+    told = registry.story.of(character, gamemaster=identity.is_gamemaster)
+    # What the world plays without is left out (app/services/features.py).
+    on = features.switched_on(world)
+    told = replace(
+        told,
+        quests=told.quests if "quests" in on else [],
+        factions=told.factions if "factions" in on else [],
+        contacts=told.contacts if "downtime" in on else [],
+        followers=told.followers if "followers" in on else [],
+        bastion=told.bastion if "bastions" in on else None,
+    )
     return html(
         story_page(
             page,
             character,
-            registry.story.of(character, gamemaster=identity.is_gamemaster),
+            told,
             progress=progress(character),
             milestone=world is not None and world.milestone,
         )
@@ -1156,7 +1185,9 @@ async def followers(
     character_id: str,
 ) -> HTMLResponse:
     """The character's hirelings, companions, mounts and sidekicks."""
-    return _followers(page, registry, characters.get_for(identity, character_id))
+    return _followers(
+        page, registry, _with(registry, characters.get_for(identity, character_id), "followers")
+    )
 
 
 @router.post("/characters/{character_id}/followers", response_class=HTMLResponse)
@@ -1171,7 +1202,7 @@ async def change_followers(
     """Hire, add, hurt or heal, level, dismiss a follower, or bring one into the fight."""
     form = await request.form()
     # Read after the form: a second press waiting on its form sees the first's result.
-    character = characters.get_for(identity, character_id)
+    character = _with(registry, characters.get_for(identity, character_id), "followers")
     op = str(form.get("op", ""))
     service = registry.followers
     follower_id = str(form.get("follower", ""))
@@ -1232,7 +1263,9 @@ async def downtime(
     character_id: str,
 ) -> HTMLResponse:
     """The character's free downtime days and its projects."""
-    return _downtime(page, registry, characters.get_for(identity, character_id))
+    return _downtime(
+        page, registry, _with(registry, characters.get_for(identity, character_id), "downtime")
+    )
 
 
 @router.post("/characters/{character_id}/downtime", response_class=HTMLResponse)
@@ -1247,7 +1280,7 @@ async def change_downtime(
     """Start a project, spend days on one, or give one up."""
     form = await request.form()
     # Read after the form: a second press waiting on its form sees the first's result.
-    character = characters.get_for(identity, character_id)
+    character = _with(registry, characters.get_for(identity, character_id), "downtime")
     op = str(form.get("op", ""))
     service = registry.downtime
     user = identity.user

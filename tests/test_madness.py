@@ -66,7 +66,7 @@ async def table(tmp_path: Path) -> AsyncIterator[tuple[AsyncClient, StoreRegistr
     registry = StoreRegistry(Settings(library_dir=tmp_path / "library", watch_files=False))
     registry.load()
     registry.auth.create_user("dm", PASSWORD, Role.GAMEMASTER)
-    world = registry.worlds.create(WorldInput(name="Grey Reed"))
+    world = registry.worlds.create(WorldInput(name="Grey Reed", features=("madness",)))
     registry.table.select(world.id)
     for name in ("Wren", "Tamsin"):
         registry.gamestate.characters.create(PlayerCharacter(name=name, world_id=world.id))

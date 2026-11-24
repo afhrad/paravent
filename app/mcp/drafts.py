@@ -18,7 +18,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
 from app.mcp.auth import bearer
-from app.mcp.common import current_or, rating_answer, resolve_monsters, tool_errors
+from app.mcp.common import current_or, needs, rating_answer, resolve_monsters, tool_errors
 from app.mcp.models import (
     AdventureDetail,
     AdventureProblem,
@@ -918,6 +918,7 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
         it; marking it done on the quest page hands the reward out."""
         registry = stores()
         adventure = writable(adventure_id)
+        needs(registry, adventure.world_id, "quests")
         lines, unresolved = items_of(adventure, items)
         found = next(
             (

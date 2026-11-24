@@ -209,6 +209,8 @@ class WorldFront(_Front):
     combat_rules: list[str] = Field(default_factory=list)
     # The variant rules for characters (app/services/character_rules.py).
     character_rules: list[str] = Field(default_factory=list)
+    # The features played with (app/services/features.py); absent: every one.
+    features: list[str] | None = None
 
 
 class AdventureFront(_Front):
@@ -262,6 +264,8 @@ def to_file(record: Record) -> tuple[dict[str, Any], str]:
         front = _clean(fields)
         if record.player_sources is not None:  # an empty list is a choice: nothing
             front["player_books"] = list(record.player_sources)
+        if record.features is not None:  # an empty list is a choice: none
+            front["features"] = list(record.features)
         return front, record.description
     if isinstance(record, Adventure):
         fields = {
@@ -488,6 +492,7 @@ class ProseStore:
                 naming_styles=w.names,
                 combat_rules=w.combat_rules,
                 character_rules=w.character_rules,
+                features=w.features,
             )
         if place.kind == "adventure":
             a = AdventureFront.model_validate(fields)

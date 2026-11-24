@@ -18,7 +18,14 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
-from app.mcp.common import current_or, party_levels, rating_answer, resolve_monsters, tool_errors
+from app.mcp.common import (
+    current_or,
+    needs,
+    party_levels,
+    rating_answer,
+    resolve_monsters,
+    tool_errors,
+)
 from app.mcp.creatures import register_creatures
 from app.mcp.drafts import register_drafts
 from app.mcp.history import register_history
@@ -60,6 +67,7 @@ from app.mcp.models import (
 )
 from app.models.gamestate import Follower, Location, Npc, SourceSet, Treasure, World
 from app.models.naming import SUBJECTS, Subject
+from app.services import features
 from app.services.activities import RARITIES
 from app.services.afflictions import read_affliction
 from app.services.calendar import date_words
@@ -369,6 +377,7 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
                     rewards=f.table,
                 )
                 for f in registry.factions.of(world.id)
+                if registry.feature(world.id, "factions")
             ],
             quests=[
                 QuestSummary(
@@ -385,7 +394,9 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
                     adventure=names.get(q.adventure_id or "", ""),
                 )
                 for q in registry.quests.of(world.id)
+                if registry.feature(world.id, "quests")
             ],
+            features=sorted(features.switched_on(world)),
         )
 
     @server.tool()
@@ -732,6 +743,7 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
         view's clock, which rolls the checks, rations, water and weather as it goes."""
         registry = stores()
         world = world_of(world_id)
+        needs(registry, world.id, "travel")
         party = len(party_levels(registry, world, character_ids)) or 1
         ships = registry.vessels(world.id)
         ship = next((v for v in ships if v.name.lower() == vessel.strip().lower()), None)
@@ -988,6 +1000,7 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
         Dashes, complications and the escape checks."""
         registry = stores()
         world = world_of(world_id)
+        needs(registry, world.id, "chases")
         if environment not in ("urban", "wilderness"):
             raise ToolError("environment is urban or wilderness.")
         rows, die = registry.chase_complications(world.id, environment)
@@ -1046,6 +1059,7 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
         during play the gamemaster stocks the world's shop from that treasure."""
         registry = stores()
         world = world_of(world_id)
+        needs(registry, world.id, "shops")
         resolver = registry.references.resolver()
         offers: list[ShopOffer] = []
         unresolved: list[str] = []

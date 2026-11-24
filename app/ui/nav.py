@@ -40,7 +40,9 @@ class NavItem:
     ``rank`` decides where the gamemaster's thirteen links go when the bar is short of
     room (documentation/CURRENT-WORLD.md §4): 0 stays in the bar even on a phone, 1 on
     anything wider, 2 and 3 move into **More** in turn. ``world`` marks a section of the
-    table's world, whose remembered page is forgotten when the world changes.
+    table's world, whose remembered page is forgotten when the world changes. ``feature``
+    names the world feature the section belongs to (app/services/features.py): it is not
+    shown while the table's world plays without it.
     """
 
     key: str
@@ -49,6 +51,7 @@ class NavItem:
     covers: tuple[str, ...] = ()
     rank: int = 0
     world: bool = False
+    feature: str = ""
 
     def contains(self, path: str) -> bool:
         """Whether ``path`` (without its query) lies in this item's section."""
@@ -83,8 +86,8 @@ NAV: dict[Role, tuple[NavItem, ...]] = {
         NavItem("nav.treasure", "/gm/treasure", "gem", (f"^{_WORLD}/treasure(/.*)?",), 2, True),
         NavItem("nav.encounters", "/gm/encounters", "skull", world=True),
         NavItem("nav.combat", "/gm/combat", "zap", world=True),
-        NavItem("nav.quests", "/gm/quests", "compass", rank=3, world=True),
-        NavItem("nav.factions", "/gm/factions", "flag", rank=3, world=True),
+        NavItem("nav.quests", "/gm/quests", "compass", rank=3, world=True, feature="quests"),
+        NavItem("nav.factions", "/gm/factions", "flag", rank=3, world=True, feature="factions"),
         NavItem("nav.journal", "/journal", "scroll", ("/gm/share",), 3, True),
         NavItem(
             "nav.sessions",

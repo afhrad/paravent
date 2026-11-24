@@ -18,6 +18,7 @@ from datetime import UTC, datetime
 
 from app.models.gamestate import ClockTimer, PlaySession, SessionNote
 from app.models.protocol import EntryKind, ProtocolEntry, Scope, Visibility
+from app.services import features
 from app.services.clock import bastions_due
 from app.services.protocol import ProtocolService
 from app.store.gamestate import GameStateStore
@@ -210,19 +211,23 @@ class PlaySessionService:
             and bastion.facilities
         ]
         shop = store.shops.find(world_id)
+        # What the world plays without stays off the list (app/services/features.py).
+        on = features.switched_on(store.worlds.find(world_id))
         return Brief(
             session=self.of(world_id),
             minute=minute,
             last_note=notes[0] if notes else None,
             timers=self._timers_of(world_id),
-            bastions=bastions_due(minute, built),
-            owed=sorted(owed.items()),
-            unnamed=unnamed,
-            downtime=downtime,
-            chase=store.chases.find(world_id) is not None,
-            shop=shop.name if shop is not None and shop.open else None,
+            bastions=bastions_due(minute, built) if "bastions" in on else [],
+            owed=sorted(owed.items()) if "lifestyle" in on else [],
+            unnamed=unnamed if "downtime" in on else [],
+            downtime=downtime if "downtime" in on else [],
+            chase=store.chases.find(world_id) is not None and "chases" in on,
+            shop=shop.name if shop is not None and shop.open and "shops" in on else None,
             calls=len(store.checks.list(lambda c: c.open and c.world_id == world_id)),
-            quests=len(store.quests.list(lambda q: q.world_id == world_id and q.status == "open")),
+            quests=len(store.quests.list(lambda q: q.world_id == world_id and q.status == "open"))
+            if "quests" in on
+            else 0,
         )
 
     def _entries(self, world_id: str, since: datetime | None) -> list[ProtocolEntry]:

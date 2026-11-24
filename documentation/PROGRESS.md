@@ -711,6 +711,16 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         level, is made an encounter in one press, and holds further checks until **Dealt
         with**. The gamemaster's alone, in the panel and the log; counted in the session
         note's wandering encounters
+  - [x] **Features per world** (2026-11-24, `app/services/features.py`, CURRENT-WORLD.md):
+        World settings switches what the world plays with — travel and its survival, dungeon
+        checks, shops, lifestyle, followers, downtime, bastions, quests, factions, chases,
+        madness, safety tools. One switched off is gone from the party view, the clock panel,
+        the navigation, the session page, the sheet, the Story and downtime pages, the
+        journal and the user menu, its pages answer 404 and Claude's tools refuse it; the
+        clock charges no lifestyle or wages and eats no rations for it, and runs no dungeon
+        checks; saving closes an open shop, ends a chase and leaves the dungeon. Records are
+        kept. Worlds from before have every feature; a new one the basics (travel, shops,
+        quests, safety tools). The guides' variant rules keep their own switches
   - [x] **Optional combat rules** (2026-11-22, `app/services/combat_rules.py`, COMBAT.md
         §3): the 2014 guide's variants as world switches in World settings, kept by a fight
         from its start. **Massive damage** rolls the DC 15 Constitution save and, on a

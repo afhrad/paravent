@@ -4,6 +4,14 @@ Alles, was passiert, wenn niemand Initiative würfelt: die Sitzung selbst, die R
 freien Tage, die Bastion und die Leute, die die Figuren kennen. Das meiste beginnt in der
 Gruppenansicht (*Spieltisch*), in der Welt, in der der Tisch spielt.
 
+Nicht jeder Tisch will alles davon. **Welteinstellungen → Funktionen** schaltet jeden Teil
+für die Welt an oder aus: das Reisen und das Überleben unterwegs, die Begegnungswürfe im
+Dungeon, Läden, Lebensstil, Gefolge, Auszeit, Bastionen, Quests, Fraktionen,
+Verfolgungsjagden, Wahnsinn und die Sicherheitswerkzeuge. Was abgeschaltet ist, verschwindet
+von deinen Bildschirmen und denen der Spieler, und nichts davon läuft auf der Uhr; was damit
+gemacht wurde, bleibt erhalten, bis es wiederkommt. Eine neue Welt beginnt mit Reisen,
+Läden, Quests und den Sicherheitswerkzeugen.
+
 ---
 
 ## 1. Die Sitzung

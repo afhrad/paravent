@@ -8,6 +8,7 @@ from typing import Any
 
 from app.services.auth import Identity
 from app.services.calendar import Calendar
+from app.services.features import FEATURES
 from app.services.i18n import Translator
 from app.services.player_view import Reader
 from app.services.themes import Theme
@@ -55,6 +56,9 @@ class Page:
     deleted_worlds: int = 0
     # A player's handouts not opened yet, counted on the journal's links.
     unread_handouts: int = 0
+    # The features the table's world plays with (app/services/features.py): the
+    # navigation and the user menu leave out the rest.
+    features: frozenset[str] = frozenset(FEATURES)
 
     def token_of(self, kind: str, world_id: str | None, ident: str) -> Token:
         """An NPC's, character's, place's, encounter's or treasure's token."""

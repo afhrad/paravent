@@ -64,6 +64,7 @@ from app.services.class_refs import (
     subclass_owner,
 )
 from app.services.clock import light_minutes
+from app.services.features import FEATURES
 from app.services.item_charges import (
     ATTUNEMENT_SLOTS,
     Charges,
@@ -697,6 +698,9 @@ class Sheet:
     # Set by the page: copper a day by lifestyle in the character's world (empty in
     # none, or when its books price none: app/services/lifestyle.py).
     lifestyle_costs: dict[str, int] = field(default_factory=dict)
+    # Set by the page: the features the character's world plays with
+    # (app/services/features.py); every one in no world.
+    world_features: frozenset[str] = frozenset(FEATURES)
     wild_shape: WildShapeView | None = None
     spell_form: SpellFormView | None = None
     # The world's variant rules for characters (app/services/character_rules.py), the

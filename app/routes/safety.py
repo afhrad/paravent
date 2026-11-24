@@ -17,6 +17,7 @@ from fastapi.responses import HTMLResponse, Response
 from app.dependencies import GamemasterDep, IdentityDep, PageDep, RegistryDep
 from app.models.gamestate import World
 from app.routes.auth import html, redirect
+from app.services import features
 from app.services.auth import Identity
 from app.store.registry import StoreRegistry
 from app.ui.safety_pages import SAFETY_URL, safety_page, xcard_sent
@@ -27,6 +28,8 @@ router = APIRouter(tags=["safety"])
 def _worlds(identity: Identity, registry: StoreRegistry) -> list[World]:
     """The gamemaster's every world; a player's characters' worlds."""
     worlds = registry.gamestate.worlds.list()
+    # Only the worlds that play with the safety tools (app/services/features.py).
+    worlds = [w for w in worlds if features.on(w, "safety")]
     if identity.is_gamemaster:
         return worlds
     mine = {pc.world_id for pc in registry.characters.for_player(identity) if pc.world_id}

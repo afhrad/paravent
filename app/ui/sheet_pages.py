@@ -2126,16 +2126,20 @@ def _head(page: Page, sheet: Sheet, *, file_label: str | None) -> Element:
             a(href=f"/characters/{pc.id}/bastion", class_="btn btn-sm")[
                 icon("vault", "sm"), span[t("bastion.short")]
             ]
-            if pc.total_level >= 5
+            if pc.total_level >= 5 and "bastions" in sheet.world_features
             else None,
-            sheet_followers_link(page, pc.id, sheet.followers),
+            sheet_followers_link(
+                page, pc.id, sheet.followers, followers="followers" in sheet.world_features
+            ),
             sheet_shop_link(page, pc.id, sheet.shop) if sheet.shop is not None else None,
             sheet_downtime_link(page, pc.id, sheet.downtime)
             if sheet.downtime is not None
             else None,
             # The X-card, for the player at the table (the gamemaster has no need of it).
             xcard_button(page, pc.world_id)
-            if page.identity is not None and not page.identity.is_gamemaster
+            if page.identity is not None
+            and not page.identity.is_gamemaster
+            and "safety" in sheet.world_features
             else None,
             span(class_="cs-live", data_live_indicator="1", title=t("sheet.live_title"))[
                 span(class_="dot"), span[t("sheet.live")]

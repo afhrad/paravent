@@ -1272,9 +1272,12 @@ def reference_page(
                 page, entry.world_id, entry.category, entry.name, entry.source, entry.data
             ),
             grant_button(page, entry.world_id, entry.category, entry.name, entry.source),
+            # Crafting magic items is downtime's (app/services/features.py).
             formula_button(
                 page, entry.world_id, entry.category, entry.name, entry.source, entry.data
-            ),
+            )
+            if "downtime" in page.features
+            else None,
             _description(page, entry, ctx, description),
             _backlinks(page, backlinks, entry.world_id) if backlinks else None,
             _names_form(page, entry),

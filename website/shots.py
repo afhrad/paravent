@@ -297,6 +297,7 @@ def seed(library: Path, scratch: Path, lang: str, users: Path) -> dict[str, str]
     from app.models.gamestate import Role, Scope
     from app.models.pc import PlayerCharacter
     from app.services.combat import pending_attacks
+    from app.services.features import FEATURES
     from app.services.monster_attacks import Damage
     from app.services.worlds import WorldInput
     from app.store.registry import StoreRegistry
@@ -315,6 +316,8 @@ def seed(library: Path, scratch: Path, lang: str, users: Path) -> dict[str, str]
             description=text["world_text"],
             sources=("PHB", "MM", "DMG"),
             language=lang,
+            # Every feature, so the pictures show them all (a new world has the basics).
+            features=FEATURES,
         )
     )
 

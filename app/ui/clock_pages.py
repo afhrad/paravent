@@ -30,6 +30,7 @@ from app.models.gamestate import ClockTimer, Delve, Journey
 from app.services.calendar import Calendar
 from app.services.clock import DAY, day_of, part_of_day, time_of
 from app.services.delve import CHANCES, INTERVALS
+from app.services.features import FEATURES as ALL_FEATURES
 from app.services.travel import ABUNDANCE, CLIMATES, PACES, WATER
 from app.ui.context import Page
 from app.ui.forms import hidden
@@ -176,6 +177,7 @@ def clock_panel(
     rests: tuple[int, int] = (60, 480),
     delve: Delve | None = None,
     delve_table: str = "",
+    features: frozenset[str] = frozenset(ALL_FEATURES),
 ) -> Element:
     """The time, the moves, a party rest, the timers and what is due; the party's last
     journey and the forms to travel on and to grant downtime. ``vessels`` are the ships
@@ -185,7 +187,9 @@ def clock_panel(
     rules for, ``abundance`` whether foraging's DC is chosen by the land's abundance
     (2014), ``rules`` the world's (``one`` for 2024); ``rests`` how long a party's short
     and long rest take (a rest variant, app/services/character_rules.py); ``delve`` the
-    party's exploring, ``delve_table`` its encounter table's name."""
+    party's exploring, ``delve_table`` its encounter table's name; ``features`` those the
+    world plays with (app/services/features.py): the road, survival, the dungeon,
+    bastions and downtime show only when on."""
     t = page.t
     base = f"{CLOCK_URL}/{quote(world_id)}"
 
@@ -254,18 +258,26 @@ def clock_panel(
         div(class_="notice party-clock-due")[
             icon("vault", "sm"), span[t("clock.bastion_due", names=", ".join(due))]
         ]
-        if due
+        if due and "bastions" in features
         else None,
-        _journey(page, base, journey, world_id, hazards) if journey is not None else None,
-        _delve(page, base, post, delve, delve_table, world_id) if delve is not None else None,
+        _journey(page, base, journey, world_id, hazards)
+        if journey is not None and "travel" in features
+        else None,
+        _delve(page, base, post, delve, delve_table, world_id)
+        if delve is not None and "dungeon" in features
+        else None,
         div(class_="tool-row")[
-            tool_button(page, "travel", t("travel.heading"), "footprints"),
-            tool_button(page, "delve", t("delve.heading"), "door-open"),
+            tool_button(page, "travel", t("travel.heading"), "footprints")
+            if "travel" in features
+            else None,
+            tool_button(page, "delve", t("delve.heading"), "door-open")
+            if "dungeon" in features
+            else None,
             tool_button(page, "time", t("clock.more_title"), "clock"),
         ],
-        tool_dialog(
-            page, "delve", t("delve.heading"), _delve_form(page, post, environments, delve)
-        ),
+        tool_dialog(page, "delve", t("delve.heading"), _delve_form(page, post, environments, delve))
+        if "dungeon" in features
+        else None,
         tool_dialog(
             page,
             "travel",
@@ -281,13 +293,25 @@ def clock_panel(
                 party=names,
                 abundance=abundance,
                 rules=rules,
+                survival="survival" in features,
             ),
-        ),
+        )
+        if "travel" in features
+        else None,
         tool_dialog(
             page,
             "time",
             t("clock.more_title"),
-            _time_forms(page, post, minute, world_id, calendars, calendar, era),
+            _time_forms(
+                page,
+                post,
+                minute,
+                world_id,
+                calendars,
+                calendar,
+                era,
+                downtime="downtime" in features,
+            ),
         ),
     ]
 
@@ -333,9 +357,11 @@ def _time_forms(
     calendars: Sequence[Calendar],
     calendar: str,
     era: str,
+    *,
+    downtime: bool = True,
 ) -> Node:
-    """Let time pass, set the clock, a reminder, downtime days and the calendar, each a
-    form of its own with labelled fields."""
+    """Let time pass, set the clock, a reminder, downtime days (where the world plays
+    with downtime) and the calendar, each a form of its own with labelled fields."""
     t = page.t
     return [
         post(
@@ -420,7 +446,9 @@ def _time_forms(
                 ]
             ],
             cls="tool-section",
-        ),
+        )
+        if downtime
+        else None,
         _calendar_form(page, post, minute, world_id, calendars, calendar, era)
         if calendars
         else None,
@@ -518,9 +546,11 @@ def _travel_form(
     party: Mapping[str, str] | None = None,
     abundance: bool = False,
     rules: str = "classic",
+    survival: bool = True,
 ) -> Element:
     """How long, how fast, through what, how watchful, with what; with ``terrains``, who
-    navigates and forages there (of ``party``, characters' names by id)."""
+    navigates and forages there (of ``party``, characters' names by id). Without
+    ``survival`` the party needs no rations or water and nobody forages."""
     t = page.t
 
     def check(name: str, caption: str, *, on: bool = False, title: str | None = None) -> Element:
@@ -587,7 +617,9 @@ def _travel_form(
                 select(id="tv-water", name="water")[
                     [option(value=w)[t(f"travel.water.{w}")] for w in WATER]
                 ],
-            ),
+            )
+            if survival
+            else None,
             _field(
                 "tv-climate",
                 t("travel.climate"),
@@ -599,13 +631,15 @@ def _travel_form(
         div(class_="tool-checks")[
             check("difficult", t("travel.difficult")),
             check("altitude", t("travel.altitude"), title=t("travel.altitude_hint")),
-            check("rations", t("travel.rations"), on=True),
+            check("rations", t("travel.rations"), on=True) if survival else None,
             check("rest", t("travel.rest"), on=True),
             check("night", t("travel.night_check")),
             check("around", t("travel.around"), title=t("travel.around_hint")) if vessels else None,
             check("weather", t("travel.weather"), on=True) if weather else None,
         ],
-        _terrain_fields(page, terrains, party or {}, abundance, rules) if terrains else None,
+        _terrain_fields(page, terrains, party or {}, abundance and survival, rules, survival)
+        if terrains
+        else None,
         p(class_="field-hint")[t("travel.hint")],
         div(class_="form-actions")[
             button(type="submit", class_="btn btn-primary")[
@@ -622,8 +656,10 @@ def _terrain_fields(
     party: Mapping[str, str],
     abundance: bool,
     rules: str,
+    survival: bool = True,
 ) -> Element:
-    """The terrain, its navigator and foragers, and moving stealthily."""
+    """The terrain, its navigator and foragers (with ``survival``), and moving
+    stealthily."""
     t = page.t
 
     def check(name: str, caption: str, value: str = "1", title: str | None = None) -> Element:
@@ -678,7 +714,7 @@ def _terrain_fields(
             span(class_="muted")[t("travel.foragers")],
             [check("forager", name, value=cid) for cid, name in party.items()],
         ]
-        if party
+        if party and survival
         else None,
     ]
 

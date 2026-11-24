@@ -36,7 +36,7 @@ from app.models.gamestate import (
 )
 from app.models.pc import PlayerCharacter
 from app.models.protocol import EntryKind, ProtocolEntry
-from app.services import media, polymorph
+from app.services import features, media, polymorph
 from app.services.activities import Activities, Offered, rarity_of
 from app.services.adventures import AdventureService
 from app.services.afflictions import AfflictionService
@@ -730,7 +730,7 @@ class StoreRegistry:
         """The world's clock moved: afflictions run their course, magic items regain
         their charges at the dawns, dusks and midnights passed, and a party exploring a
         dungeon meets its encounter checks (the road rolls its own)."""
-        if why != "travel":
+        if why != "travel" and self.feature(world, "dungeon"):
             self.delve.passed(world, before, now, by, by_name)
         self.afflictions.passed(world, before, now, by, by_name)
         self.item_charges.passed(world, before, now, by, by_name)
@@ -765,10 +765,11 @@ class StoreRegistry:
         """Days passed off the road cost each character its lifestyle; on the road the
         party eats its rations instead (app/services/lifestyle.py). Hirelings are paid
         either way (app/services/followers.py)."""
-        if why != "travel":
+        if why != "travel" and self.feature(world_id, "lifestyle"):
             self.lifestyle.charge(world_id, days, self.lifestyle_costs(world_id), by, by_name)
         # Hirelings are paid for every day, on the road too.
-        self.followers.pay_wages(world_id, days, by, by_name)
+        if self.feature(world_id, "followers"):
+            self.followers.pay_wages(world_id, days, by, by_name)
 
     def calendars(self, world_id: str | None) -> list[Calendar]:
         """The setting calendars the world's books print, each once."""
@@ -1139,6 +1140,22 @@ class StoreRegistry:
         them), else ``classic``."""
         world = self.gamestate.worlds.find(world_id) if world_id else None
         return "one" if world is not None and "one" in world.source_set.editions else "classic"
+
+    def feature(self, world_id: str | None, key: str) -> bool:
+        """Whether the world plays with a feature (app/services/features.py); no world,
+        or one from before the switches, plays with every one."""
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        return features.on(world, key)
+
+    def features_changed(self, world_id: str, by: str, by_name: str) -> None:
+        """A world's features were saved: what runs of one switched off ends (an open
+        shop closes, a chase ends, the party leaves the dungeon); its records stay."""
+        if not self.feature(world_id, "shops") and self.shops.of(world_id).open:
+            self.shops.close(world_id, by, by_name)
+        if not self.feature(world_id, "chases") and self.chases.of(world_id) is not None:
+            self.chases.end(world_id, "stopped", by, by_name)
+        if not self.feature(world_id, "dungeon") and self.delve.of(world_id) is not None:
+            self.delve.leave(world_id, by, by_name)
 
     @cached_property
     def delve(self) -> DelveService:

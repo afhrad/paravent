@@ -130,6 +130,12 @@ class WorldOverview(BaseModel):
     season: str = Field(default="", description="The season now, where the calendar has one")
     factions: list[FactionInfo] = Field(default_factory=list)
     quests: list[QuestSummary] = Field(default_factory=list)
+    features: list[str] = Field(
+        default_factory=list,
+        description="What the world plays with (travel, survival, dungeon, shops, lifestyle, "
+        "followers, downtime, bastions, quests, factions, chases, madness, safety); write "
+        "nothing for the rest — the gamemaster has switched it off",
+    )
     instructions: dict[str, str] = Field(
         default_factory=dict,
         description="The gamemaster's instructions for this world — follow them: `setting` "

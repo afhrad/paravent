@@ -47,6 +47,14 @@ an outside click like the others):
 - **New world** — a dialog with its name and books (the rest in settings), selected once made;
 - **World settings** — a dialog with today's world form (name, description, books and player
   books, naming styles, calendar, milestone levelling, instructions for Claude, cover);
+  since 2026-11-24 also the world's **Features** (`app/services/features.py`): travel,
+  survival, dungeon checks, shops, lifestyle, followers, downtime, bastions, quests, factions,
+  chases, madness and safety tools, each switched off gone from the gamemaster's and the
+  players' screens (its routes answer 404, Claude's tools refuse it) and stopped on the clock
+  (no lifestyle, wages, rations, bastion turns or dungeon checks), its records kept. A world
+  from before has every one (`features` absent); a new one starts with travel, shops, quests
+  and safety tools. Saving with one switched off closes an open shop, ends a chase and
+  leaves the dungeon;
 - **Delete world** — today's confirmation page (with its contents), then the next world is selected.
 
 With no world yet, the menu reads **Create a world**, and pages that need one show an empty state

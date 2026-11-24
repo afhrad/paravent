@@ -454,7 +454,7 @@ def player_board(
             # The round and whose turn on one line; your own turn is the banner below.
             div(class_="pv-now")[_state(page, view), None if yours else banner],
             quick_switch(page, view, mine, "fight"),
-            xcard_button(page, view.world_id),
+            xcard_button(page, view.world_id) if "safety" in page.features else None,
         ],
         div(class_="notice cs-flash", role="status")[flash] if flash else None,
         banner if yours else None,
