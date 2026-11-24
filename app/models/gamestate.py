@@ -1292,6 +1292,9 @@ class WorldClock(Record):
     charged_day: int | None = None
     # The party exploring a dungeon, its encounter checks run by the clock.
     delve: Delve | None = None
+    # The party in a wild magic zone: a spell slot spent there may surge
+    # (app/services/wild_magic.py).
+    wild_magic: bool = False
 
 
 class DowntimeProject(GameStateModel):

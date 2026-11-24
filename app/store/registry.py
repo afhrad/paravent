@@ -147,6 +147,8 @@ from app.services.treasure_roll import roller_for
 from app.services.upkeep import BOOKS, UpkeepService
 from app.services.upkeep import TABLE as UPKEEP_TABLE
 from app.services.upkeep import costs as upkeep_costs
+from app.services.wild_magic import TABLE as WILD_TABLE
+from app.services.wild_magic import WildMagicService
 from app.services.world_copy import WorldCopy
 from app.services.world_instructions import WorldInstructionService
 from app.services.world_transfer import WorldTransfer
@@ -692,6 +694,8 @@ class StoreRegistry:
             ),
             on_timed=self._timed,
             on_rested=lambda character, by: self._rested(character, by.username, by.name),
+            # A slot spent in a wild magic zone may surge.
+            on_slot=lambda pc: self.wild_magic.slot_spent(pc.world_id, pc.id, pc.name or "?"),
         )
 
     def _rested(self, character_id: str, by: str, by_name: str) -> None:
@@ -1214,6 +1218,18 @@ class StoreRegistry:
             self.chases.end(world_id, "stopped", by, by_name)
         if not self.feature(world_id, "dungeon") and self.delve.of(world_id) is not None:
             self.delve.leave(world_id, by, by_name)
+        if not self.feature(world_id, "hazards") and self.wild_magic.zone(world_id):
+            self.wild_magic.enter(world_id, False, by, by_name)
+
+    @cached_property
+    def wild_magic(self) -> WildMagicService:
+        """A world's wild magic zone and its surges (app/services/wild_magic.py)."""
+
+        def table(world_id: str) -> Rows | None:
+            books = ["XPHB", "PHB"] if self.rules_of(world_id) == "one" else ["PHB", "XPHB"]
+            return self.book_table(world_id, WILD_TABLE, books)
+
+        return WildMagicService(self.clock, self.protocol, table=table)
 
     @cached_property
     def delve(self) -> DelveService:

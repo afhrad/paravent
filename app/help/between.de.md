@@ -181,6 +181,11 @@ Entscheidung des Spielers.
   Rückschlag, gefährlich, tödlich; 2024: Ärgernis, tödlich), ein Sturz aus seiner Höhe
   (1W6 je 3 m, höchstens 20W6). Rettungswurf, Schadensart, SG oder Würfel kannst du
   ändern; dann wird sie wie eine Falle ausgelöst.
+- **Wilde Magie** in der Gruppenansicht würfelt die Tabelle *Woge wilder Magie* des
+  Spielerhandbuchs für die angehakten Charaktere und sagt allen, was geschieht. Hake *Die
+  Gruppe ist in einer Zone wilder Magie* an, und jeder Zauberplatz, den ein Charakter auf
+  dem Bogen verbraucht, würfelt einen W20: Bei einer 20 erzeugt der Zauber eine Woge. Der
+  Knopf sagt *Zone*, solange sie anhält.
 <!-- /feature -->
 - **Eine Krankheit oder ein Gift** in einem Kapitel oder auf seiner Seite hat
   **Anstecken**: hake an, wen es trifft, und würfle ihre Rettungswürfe oder lass sie sich

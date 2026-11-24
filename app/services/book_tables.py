@@ -101,6 +101,15 @@ def row_for(rows: Rows, total: int) -> list[str] | None:
     return None
 
 
+def roll_row(rows: Rows, dice: Dice) -> tuple[int, list[str] | None]:
+    """A roll on a table by its own die (the highest end of its ranges: d100 for "96–00"),
+    and the row it lands on."""
+    ends = [end for r in rows if r and (found := span(r[0])) for end in found]
+    die = max((e for e in ends if 0 < e < 10_000), default=len(rows))
+    total = dice.die(die)
+    return total, row_for(rows, total) or (rows[(total - 1) % len(rows)] if rows else None)
+
+
 def copper(text: str) -> int:
     """The first amount of coins in ``text`` in copper ("1,000 gp" → 100000); 0 if none."""
     found = _COINS.search(strip_tags(text))
@@ -163,6 +172,7 @@ __all__ = [
     "days",
     "find_in",
     "roll_amount",
+    "roll_row",
     "rolled",
     "row_for",
     "rows_of",

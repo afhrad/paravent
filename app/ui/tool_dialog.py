@@ -50,6 +50,9 @@ def tool_dialog(
         class_="place-dialog tool-dialog",
         aria_labelledby=f"{ident}-h",
         open=is_open or tool_open(page, key),
+        # Opened from the start: the script opens it again as a modal, centred above
+        # the page however far down the page is scrolled.
+        data_open_now="1" if is_open or tool_open(page, key) else None,
         data_keep_open="1" if keep_open else None,
     )[
         div(class_="place-dialog-head")[

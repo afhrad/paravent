@@ -729,6 +729,14 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         the books), or a fall by its height (1d6 per 10 feet, at most 20d6); save, damage
         type, DC and dice changeable. Sprung through the trap's form (`improvised`): saves on
         the sheets or by the players, defences counted, logged. A feature of its own
+        **Wild magic** (2026-11-24, `app/services/wild_magic.py`, `app/ui/wild_pages.py`):
+        beside it, a surge rolled on the characters ticked on the handbooks' *Wild Magic
+        Surge* table (the world's rules' first), its dice rolled into the effect, told to
+        everyone; and the 2024 guide's wild magic zone (`WorldClock.wild_magic`), in which
+        every spell slot a character spends from the sheet (healing spells too) rolls a d20,
+        a 20 surging. Switching hazards off leaves the zone. Also: a tool dialog opened from
+        the start (`?tool=`, after its form) opens as a modal, centred however far the page
+        is scrolled
   - [x] **Deities and Divine Intervention** (2026-11-24, `app/services/intervention.py`,
         `app/ui/intervention_pages.py`): a character's deity (the file's `deity`) chosen on
         the sheet from the world's books, narrowed by the world's **Pantheons** (World

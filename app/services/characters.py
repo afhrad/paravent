@@ -53,6 +53,11 @@ class PartyMember:
     world: str | None
 
 
+def _slots(pc: PlayerCharacter) -> int:
+    """How many spell slots a character has spent, pact slots included."""
+    return sum(pc.state.slots_used.values()) + pc.state.pact_slots_used
+
+
 def _actor(identity: Identity) -> Actor:
     """Who pressed the button, as the log names them."""
     user = identity.user
@@ -78,6 +83,7 @@ class CharacterService:
         on_roll: Callable[[str, str, str, int], None] | None = None,
         on_timed: Callable[[PlayerCharacter, str, str, int, bool], None] | None = None,
         on_rested: Callable[[str, Actor], None] | None = None,
+        on_slot: Callable[[PlayerCharacter], object] | None = None,
     ) -> None:
         """Bind to the library, the loaded compendium, the library root and the log;
         ``fight_of(character_id)`` names the running fight a character is in;
@@ -88,7 +94,9 @@ class CharacterService:
         rolled on a sheet (the gamemaster's called checks take their answers from it);
         ``on_timed(character, kind, reference, minutes, concentration)`` hears a light lit
         or a spell cast with a duration (the world's clock times them);
-        ``on_rested(character, by)`` hears a long rest finished (a disease's save)."""
+        ``on_rested(character, by)`` hears a long rest finished (a disease's save);
+        ``on_slot(character)`` hears a spell slot spent on the sheet (a wild magic zone's
+        surge)."""
         self._store = store
         self._compendium = compendium
         self._library_dir = library_dir
@@ -101,6 +109,7 @@ class CharacterService:
         self._on_roll = on_roll
         self._on_timed = on_timed
         self._on_rested = on_rested
+        self._on_slot = on_slot
         # Sheets made lately, by everything a sheet is made from (see :meth:`sheet`).
         self._sheets: OrderedDict[tuple[Any, ...], Sheet] = OrderedDict()
         self._sheets_lock = threading.Lock()
@@ -248,6 +257,8 @@ class CharacterService:
             if index.isdigit() and int(index) < len(character.inventory):
                 lit = character.inventory[int(index)].item
         changed = self.play.act(character_id, action, params, sheet, actor)
+        if action == "cast" and self._on_slot is not None and _slots(changed) > _slots(character):
+            self._on_slot(changed)
         kind = params.get("kind", "")
         if action == "roll" and kind in ("skill", "check", "save") and self._on_roll is not None:
             rolled = self.newest_roll(changed)
@@ -506,13 +517,15 @@ class CharacterService:
         ):
             raise PlayError("play.error.bad_input")
         name = identity.user.display_name or identity.user.username
-        self.play.act(
+        cast = self.play.act(
             caster_id,
             "cast",
             {"spell": reference, "level": item or ("free" if free else str(level))},
             sheet,
             _actor(identity),
         )
+        if self._on_slot is not None and _slots(cast) > _slots(caster):
+            self._on_slot(cast)
         expression = heal_at(spell, level or spell.level, sheet.modifier_for(spell)) or spell.heal
         rolled = self.play.roll(expression)
         for target in (t for t in targets if t is not None):

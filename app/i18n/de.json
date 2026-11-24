@@ -4827,5 +4827,18 @@
   "protocol.sentient_contest_won": "{item} gewinnt den Konflikt mit {subject} ({mine} gegen {theirs}) und stellt seine Forderungen",
   "protocol.sentient_contest_lost": "{subject} widersteht {item} ({theirs} gegen {mine})",
   "protocol.sentient_save_won": "{subject} gibt {item} nach (Rettungswurf {theirs}, SG {dc}): Er stellt seine Forderungen",
-  "protocol.sentient_save_lost": "{subject} widersteht {item} (Rettungswurf {theirs}, SG {dc})"
+  "protocol.sentient_save_lost": "{subject} widersteht {item} (Rettungswurf {theirs}, SG {dc})",
+  "wild.title": "Wilde Magie",
+  "wild.title_zone": "Wilde Magie: Zone",
+  "wild.lede": "Wogen werden auf der Tabelle „Woge wilder Magie“ der Welt gewürfelt, aus dem Spielerhandbuch ihrer Regeln zuerst; die Würfel des Effekts werden eingesetzt, das Protokoll sagt es allen.",
+  "wild.no_table": "Die Bücher der Welt haben keine Tabelle „Woge wilder Magie“ (die Spielerhandbücher drucken sie), daher kann keine Woge gewürfelt werden.",
+  "wild.zone": "Die Gruppe ist in einer Zone wilder Magie",
+  "wild.zone_hint": "Solange sie es ist, würfelt jeder Zauberplatz, den ein Charakter auf dem Bogen verbraucht, einen W20: Bei einer 20 erzeugt der Zauber eine Woge (die Zone wilder Magie des Leitfadens 2024).",
+  "wild.save": "Speichern",
+  "wild.who": "Eine Woge bei",
+  "wild.surge": "Eine Woge würfeln",
+  "protocol.wild_zone_on": "Die Gruppe betritt eine Zone wilder Magie",
+  "protocol.wild_zone_off": "Die Gruppe verlässt die Zone wilder Magie",
+  "protocol.wild_surge": "Wilde Magie wogt um {subject} (W100 {roll}): {effect}",
+  "protocol.wild_surge_zone": "{subject}s Zauber erzeugt in der Zone wilder Magie eine Woge (W100 {roll}): {effect}"
 }

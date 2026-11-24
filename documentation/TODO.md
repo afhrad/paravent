@@ -14,8 +14,6 @@ Nothing agreed is waiting; see the proposals below.
 
 Paused 2026-11-22 while the user playtests; their findings come first.
 
-- **Wild magic as a hazard** — left out when hazards by level were built (2026-11-24): a
-  zone that rolls the books' *Wild Magic Surge* table on a character. S
 - **Encounter notes at a glance** — the builder's notes now read folded under their
   editor ("How the notes read"), as on the treasure page; before, they stood under the
   title. Put back above the plan if the gamemaster wants tactics in view while planning.

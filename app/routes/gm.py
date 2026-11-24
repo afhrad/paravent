@@ -73,8 +73,10 @@ from app.services.travel import (
 )
 from app.services.units import feet_from
 from app.services.upkeep import UpkeepError, priced
+from app.services.wild_magic import Surge, surge_of
 from app.services.worlds import WorldInput
 from app.store.encounter_tables import Environment
+from app.store.protocol import log_key
 from app.store.registry import StoreRegistry
 from app.ui.adventure_pages import images_panel
 from app.ui.chase_pages import CHASE_URL, chase_panel
@@ -108,6 +110,7 @@ from app.ui.trap_pages import (
     spring_result,
 )
 from app.ui.upkeep_pages import UPKEEP_URL, upkeep_dialog_url, upkeep_tool
+from app.ui.wild_pages import WILD_URL, wild_dialog_url, wild_tool
 from app.ui.xp_pages import XP_DONE, XP_URL, xp_tool
 
 router = APIRouter(tags=["gamemaster"])
@@ -388,9 +391,11 @@ async def party(
     registry: RegistryDep,
     world: str = "",
     upkeep: str = "",
+    surged: int = 0,
 ) -> HTMLResponse:
     """Every character at the table, updating live, in the table's world
-    (documentation/CURRENT-WORLD.md); ``world`` names another, as its own forms do."""
+    (documentation/CURRENT-WORLD.md); ``world`` names another, as its own forms do.
+    ``surged`` shows the wild magic surges just rolled."""
     chosen = worlds.find(world) or registry.table.world()
     world_id = chosen.id if chosen else None
     members = _party_names(characters, world_id)
@@ -418,6 +423,16 @@ async def party(
             hazard=hazard_tool(page, world_id, *_scale(registry, world_id))
             if world_id is not None and registry.feature(world_id, "hazards") and members
             else None,
+            wild=wild_tool(
+                page,
+                world_id,
+                members,
+                zone=registry.wild_magic.zone(world_id),
+                has_table=registry.wild_magic.has_table(world_id),
+                surges=_surges(registry, world_id, surged),
+            )
+            if world_id is not None and registry.feature(world_id, "hazards")
+            else None,
             upkeep=upkeep_tool(
                 page,
                 world_id,
@@ -430,6 +445,20 @@ async def party(
             else None,
         )
     )
+
+
+def _surges(registry: StoreRegistry, world_id: str | None, count: int) -> list[Surge]:
+    """The newest ``count`` surges of the world's log, oldest first."""
+    if world_id is None or count <= 0:
+        return []
+    found: list[Surge] = []
+    for entry in reversed(registry.protocol.store.entries(log_key(world_id))):
+        read = surge_of(entry.what)
+        if read is not None:
+            found.append(Surge(entry.subject, entry.subject_name, read[0], read[2]))
+            if len(found) >= min(count, 20):
+                break
+    return found[::-1]
 
 
 def _party_names(characters: CharacterService, world_id: str | None) -> list[tuple[str, str]]:
@@ -853,6 +882,37 @@ async def change_upkeep(
     else:
         raise HTTPException(status_code=404)
     return redirect(upkeep_dialog_url(world_id))
+
+
+@router.post(f"{WILD_URL}/{{world_id}}/{{op}}")
+async def change_wild(
+    request: Request,
+    gm: GamemasterDep,
+    worlds: WorldsDep,
+    registry: RegistryDep,
+    world_id: str,
+    op: str,
+) -> Response:
+    """The party enters or leaves a wild magic zone (``zone``), or a surge is rolled on
+    each character ticked (``surge``); back to the dialog, the surges shown."""
+    if worlds.find(world_id) is None or not registry.feature(world_id, "hazards"):
+        raise HTTPException(status_code=404)
+    form = await request.form()
+    user = gm.user
+    by, by_name = user.username, user.display_name or user.username
+    if op == "zone":
+        registry.wild_magic.enter(world_id, form.get("on") == "1", by, by_name)
+        return redirect(wild_dialog_url(world_id))
+    if op != "surge":
+        raise HTTPException(status_code=404)
+    party = {pc.id: pc for pc in registry.gamestate.characters.of_world(world_id)}
+    rolled = [
+        registry.wild_magic.surge(world_id, pc.id, pc.name or "?", by, by_name)
+        for cid in form.getlist("to")
+        if (pc := party.get(str(cid))) is not None
+    ]
+    count = sum(1 for x in rolled if x is not None)
+    return redirect(f"{wild_dialog_url(world_id)}&surged={count}")
 
 
 @router.get(f"{HAZARDS_URL}/form", response_class=HTMLResponse)

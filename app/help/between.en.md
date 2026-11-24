@@ -166,6 +166,10 @@ player's decision.
   from the world's guide at the party's level (2014: setback, dangerous, deadly; 2024:
   nuisance, deadly), a fall from its height (1d6 per 10 feet, at most 20d6). Change the
   save, the damage type, the DC or the dice if you like, then it is sprung like a trap.
+- **Wild magic** on the party view rolls the handbook's *Wild Magic Surge* table on the
+  characters you tick, and tells everyone what happens. Tick *The party is in a wild magic
+  zone* and every spell slot a character spends from the sheet rolls a d20: on a 20 the
+  spell surges. The button says *zone* while it lasts.
 <!-- /feature -->
 - **A disease or a poison** in a chapter or on its page has **Afflict**: tick who meets
   it, and roll their saves or let them catch it outright. A poison deals its damage and

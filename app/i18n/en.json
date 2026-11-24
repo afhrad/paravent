@@ -4827,5 +4827,18 @@
   "protocol.sentient_contest_won": "{item} wins its conflict with {subject} ({mine} against {theirs}) and makes its demands",
   "protocol.sentient_contest_lost": "{subject} holds out against {item} ({theirs} against {mine})",
   "protocol.sentient_save_won": "{subject} gives in to {item} (save {theirs}, DC {dc}): it makes its demands",
-  "protocol.sentient_save_lost": "{subject} holds out against {item} (save {theirs}, DC {dc})"
+  "protocol.sentient_save_lost": "{subject} holds out against {item} (save {theirs}, DC {dc})",
+  "wild.title": "Wild magic",
+  "wild.title_zone": "Wild magic: zone",
+  "wild.lede": "Surges are rolled on the world's Wild Magic Surge table, from the handbook of its rules first; the effect's dice are rolled in and the log tells everyone.",
+  "wild.no_table": "The world's books have no Wild Magic Surge table (the handbooks print it), so no surge can be rolled.",
+  "wild.zone": "The party is in a wild magic zone",
+  "wild.zone_hint": "While it is, every spell slot a character spends from the sheet rolls a d20: on a 20 the spell surges (the 2024 guide's Wild Magic Zone).",
+  "wild.save": "Save",
+  "wild.who": "A surge on",
+  "wild.surge": "Roll a surge",
+  "protocol.wild_zone_on": "The party enters a wild magic zone",
+  "protocol.wild_zone_off": "The party leaves the wild magic zone",
+  "protocol.wild_surge": "Wild magic surges around {subject} (d100 {roll}): {effect}",
+  "protocol.wild_surge_zone": "{subject}'s spell surges in the wild magic zone (d100 {roll}): {effect}"
 }

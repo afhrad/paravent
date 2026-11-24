@@ -243,6 +243,10 @@ class ClockService:
         """Keep the party's exploring (None: it has left the dungeon)."""
         return self._save(self.of(world_id).model_copy(update={"delve": delve}))
 
+    def wild(self, world_id: str, on: bool) -> WorldClock:
+        """The party enters (``on``) or leaves a wild magic zone."""
+        return self._save(self.of(world_id).model_copy(update={"wild_magic": on}))
+
     def dated(self, world_id: str, calendar: str, epoch: int, era: str) -> WorldClock:
         """Date the days by a calendar (its key; "" for plain day numbers): ``epoch`` is
         the calendar's day of the clock's first day (app/services/calendar.py)."""

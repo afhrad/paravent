@@ -684,6 +684,17 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
                     "protocol.upkeep_owed", owed=_purse_words(page, coins.text(int(owed)))
                 )
             return line
+        if head == "wild_zone":
+            return t("protocol.wild_zone_on" if rest == "1" else "protocol.wild_zone_off")
+        if head == "wild_surge":
+            roll, _, rest = rest.partition(":")
+            cause, _, text = rest.partition(":")
+            return t(
+                "protocol.wild_surge_zone" if cause == "zone" else "protocol.wild_surge",
+                subject=entry.subject_name,
+                roll=roll,
+                effect=text,
+            )
         if head == "sentient":
             # sentient:conflict:<item>:<item's check>:<bearer's roll>:<DC>:<item won>
             _op, item, mine, theirs, dc, won = (rest.split(":") + [""] * 6)[:6]
