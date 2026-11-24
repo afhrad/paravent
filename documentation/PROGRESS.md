@@ -745,6 +745,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         the world's clock passes, the road included, the owner pays it from the purse, what
         it lacks logged as owed (and on the session page); the owner sees it on the Gear
         view. A feature of its own under Money
+  - [x] **Help pages per world** (2026-11-24, `app/services/help.py`): passages of the help
+        files marked `<!-- feature: … -->` (a world's features, character and combat rules;
+        several keys mean any) are left out where the table's world plays without them,
+        the numbered sections numbered again; the same markers in every language, held by a
+        test
   - [x] **Optional combat rules** (2026-11-22, `app/services/combat_rules.py`, COMBAT.md
         §3): the 2014 guide's variants as world switches in World settings, kept by a fight
         from its start. **Massive damage** rolls the DC 15 Constitution save and, on a

@@ -126,6 +126,9 @@ def build_page(request: Request, identity: Identity | None = None) -> Page:
         if identity is not None and identity.is_gamemaster
         else 0,
         features=switched_on(current),
+        rules=frozenset((*current.character_rules, *current.combat_rules))
+        if current is not None
+        else frozenset(),
         unread_handouts=registry.handouts.unread(identity)
         if identity is not None and not identity.is_gamemaster
         else 0,

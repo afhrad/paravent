@@ -51,14 +51,28 @@ einen Trefferwürfel ausgeben und eine **Kurze Rast** oder **Lange Rast** machen
 lange Rast bringt Trefferpunkte, Zauberplätze und Ressourcen zurück (außer die Straße
 der Spielleitung oder eine Krankheit sagt etwas anderes).
 
-Deine Spielleitung kann in dieser Welt Variantregeln der Spielleiterhandbücher spielen.
-**Heldenpunkte** stehen oben auf dem Bogen: Drück direkt nach einem Angriff, einem Wurf oder
-einem Rettungswurf darauf, um einen W6 zu addieren, oder nach einem misslungenen
-Todesrettungswurf, um ihn zum Erfolg zu machen. **Ehre** und **Geistige Gesundheit** sind
-eigene Werte unter den Rettungswürfen: Leg deinen einmal fest und würfle sie wie die anderen.
-Mit **Heilerausrüstung nötig** verbraucht **Wunden versorgen** eine Anwendung deiner
-Ausrüstung, bevor Trefferwürfel ausgegeben werden; mit **Besiegt, nicht tot** liegst du nach
-dem dritten misslungenen Todesrettungswurf mit 1 Trefferpunkt bewusstlos, statt zu sterben.
+<!-- feature: hero_points honor sanity healers_kit defeated -->
+Deine Spielleitung spielt in dieser Welt Variantregeln der Spielleiterhandbücher:
+
+<!-- feature: hero_points -->
+- **Heldenpunkte** stehen oben auf dem Bogen: Drück direkt nach einem Angriff, einem Wurf
+  oder einem Rettungswurf darauf, um einen W6 zu addieren, oder nach einem misslungenen
+  Todesrettungswurf, um ihn zum Erfolg zu machen.
+<!-- /feature -->
+<!-- feature: honor sanity -->
+- **Ehre** und **Geistige Gesundheit** sind eigene Werte unter den Rettungswürfen: Leg
+  deinen einmal fest und würfle sie wie die anderen.
+<!-- /feature -->
+<!-- feature: healers_kit -->
+- Mit **Heilerausrüstung nötig** verbraucht **Wunden versorgen** eine Anwendung deiner
+  Ausrüstung, bevor Trefferwürfel ausgegeben werden.
+<!-- /feature -->
+<!-- feature: defeated -->
+- Mit **Besiegt, nicht tot** liegst du nach dem dritten misslungenen Todesrettungswurf mit
+  1 Trefferpunkt bewusstlos, statt zu sterben.
+<!-- /feature -->
+<!-- /feature -->
+
 Die Rast-Knöpfe sagen, wie lange eine Rast in dieser Welt dauert.
 
 ## 4. Zauber
@@ -102,8 +116,10 @@ ohne Zauberplatz, einmal pro langer Rast, ab Stufe 20 auch Wunsch.
   den Fluch bricht.
 - Tränke haben **Trinken**, Fackeln und Laternen **Anzünden**, Schriftrollen ihren
   Zauber.
+<!-- feature: shops -->
 - Öffnet die Spielleitung einen Laden, erscheint er auf deinem Bogen: kaufen, und
   verkaufen, was du nicht mehr brauchst.
+<!-- /feature -->
 
 ## 6. Im Kampf
 
@@ -138,18 +154,28 @@ es bedeutet, entscheidet die Spielleitung.
 
 - **Stufenaufstieg** erscheint, wenn die Spielleitung eine Stufe gewährt: Du
   beantwortest nur, was die neue Stufe bringt.
+<!-- feature: downtime -->
 - **Auszeit** verbringt Tage, die die Spielleitung der Gruppe gibt: Handwerk,
   Ausbildung, Nachforschung, Feiern und mehr.
-- **Gefolge**, **Bastion** (ab Stufe 5) und **Geschichte** sitzen im Kopf des Bogens.
+<!-- /feature -->
+<!-- feature: followers -->
+- **Gefolge** im Kopf des Bogens: deine Mietlinge, Gefährten, Reittiere und Sidekicks.
+<!-- /feature -->
+<!-- feature: bastions -->
+- **Bastion** im Kopf des Bogens, ab Stufe 5: deine Einrichtungen und ihre Befehle.
+<!-- /feature -->
+- **Geschichte** im Kopf des Bogens erzählt, was deine Figur getan hat und wen sie kennt.
 - Das **Journal** hält Briefe, Notizen und Bilder, die dir die Spielleitung gegeben hat,
   die Sitzungsnotizen und die **Gruppennotizen**, die die ganze Gruppe gemeinsam
   schreibt. Auf dem Handy hat der Bogen dafür oben einen Brief-Knopf, mit einer Zahl,
   solange etwas Geschicktes ungeöffnet ist; ein Tipp auf die Einblendung eines neuen
   Handouts öffnet es sofort.
 
+<!-- feature: safety -->
 ## 9. Sicherheit
 
 Die **X-Karte** auf deinem Bogen und im Kampf sagt der Spielleitung — und nur ihr —,
 dass sie die Richtung ändern soll, ohne ein Wort und ohne deinen Namen im Protokoll.
 Unter **Sicherheitswerkzeuge** kannst du eine Grenze oder einen Schleier vorschlagen;
 der Vorschlag erreicht die Spielleitung ohne deinen Namen.
+<!-- /feature -->

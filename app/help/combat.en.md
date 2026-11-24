@@ -129,19 +129,29 @@ end by themselves.
 In **World settings**, under *Optional combat rules*, you can tick the 2014 guide's variants.
 A fight keeps the rules it started with.
 
+<!-- feature: massive_damage -->
 - **Massive damage**: a hit of half a creature's maximum hit points or more calls a DC 15
   Constitution save, rolled at once. On a failure the *System Shock* table is rolled and
   carried out: a drop to 0, or stunned until the end of the creature's next turn.
+<!-- /feature -->
+<!-- feature: injuries -->
 - **Lingering injuries**: when a character takes a critical hit or drops to 0, a line above
   the order asks whether to roll one. The injury stays on the character's sheet until you
   end it there.
+<!-- /feature -->
+<!-- feature: morale -->
 - **Morale**: a group that has lost half its number, or a lone creature at half its hit
   points, shows a reminder at its turn: **Roll** its DC 10 Wisdom save, or **Not needed**.
+<!-- /feature -->
+<!-- feature: mobs -->
 - **Mob attacks**: under each attack of a group with two or more standing members, **Mob**
   takes a target and how many attack. The guide's table says how many hit, and their damage
   is applied.
+<!-- /feature -->
+<!-- feature: side_initiative -->
 - **Side initiative**: each side rolls one d20 at the start, and everyone on the higher side
   acts first. Changing a member's initiative changes its whole side's.
+<!-- /feature -->
 
 ## 5c. Objects and doors
 

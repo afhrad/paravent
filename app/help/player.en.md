@@ -46,12 +46,27 @@ On **Track**: tick a condition on or off, raise or lower exhaustion, spend a hit
 take a **Short rest** or **Long rest**. A long rest brings back hit points, slots and
 resources (unless the gamemaster's road or a disease says otherwise).
 
-Your gamemaster may play the guides' variant rules in this world. **Hero points** sit at the
-top of the sheet: press it right after an attack, a check or a save to add a d6, or after a
-failed death save to make it a success. **Honor** and **Sanity** are scores of their own under
-the saves: set yours once, then roll them like the others. With **healer's kit dependency**,
-**Treat wounds** spends a use of your kit before hit dice can be spent; with **defeated, not
-dead**, a third failed death save leaves you unconscious at 1 hit point instead of dying.
+<!-- feature: hero_points honor sanity healers_kit defeated -->
+Your gamemaster plays some of the guides' variant rules in this world:
+
+<!-- feature: hero_points -->
+- **Hero points** sit at the top of the sheet: press it right after an attack, a check or a
+  save to add a d6, or after a failed death save to make it a success.
+<!-- /feature -->
+<!-- feature: honor sanity -->
+- **Honor** and **Sanity** are scores of their own under the saves: set yours once, then
+  roll them like the others.
+<!-- /feature -->
+<!-- feature: healers_kit -->
+- With **healer's kit dependency**, **Treat wounds** spends a use of your kit before hit
+  dice can be spent.
+<!-- /feature -->
+<!-- feature: defeated -->
+- With **defeated, not dead**, a third failed death save leaves you unconscious at 1 hit
+  point instead of dying.
+<!-- /feature -->
+<!-- /feature -->
+
 The rest buttons say how long a rest takes in this world.
 
 ## 4. Spells
@@ -89,8 +104,10 @@ rest, and from level 20 Wish.
 - A **cursed** item holds on once you attune to it: you cannot end the attunement, take it
   off or sell it until the game master lifts the curse.
 - Potions have **Drink**, torches and lanterns **Light**, and scrolls their spell.
+<!-- feature: shops -->
 - When the gamemaster opens a shop, it appears on your sheet: buy, and sell what you no
   longer need.
+<!-- /feature -->
 
 ## 6. In a fight
 
@@ -121,16 +138,26 @@ see your own total; the gamemaster decides what it means.
 
 - **Level up** appears when the gamemaster grants a level: you answer only what the new
   level brings.
+<!-- feature: downtime -->
 - **Downtime** spends days the gamemaster gives the party: crafting, training, research,
   carousing and more.
-- **Followers**, **Bastion** (from level 5) and **Story** sit in the sheet's head.
+<!-- /feature -->
+<!-- feature: followers -->
+- **Followers** in the sheet's head: your hirelings, companions, mounts and sidekicks.
+<!-- /feature -->
+<!-- feature: bastions -->
+- **Bastion** in the sheet's head, from level 5: your facilities and their orders.
+<!-- /feature -->
+- **Story** in the sheet's head tells what your character has done and whom it knows.
 - The **Journal** holds the letters, notes and pictures the gamemaster gave you, the
   session notes, and **Party notes** the whole group writes together. On a phone the
   sheet has a letter button at the top for it, with a number while something sent to
   you is unopened; tapping the pop-up of a new handout opens it straight away.
 
+<!-- feature: safety -->
 ## 9. Safety
 
 The **X-card** on your sheet and in the fight tells the gamemaster — and only them — to
 change course, without a word and without your name in the log. Under **Safety tools**
 you can suggest a line or a veil; it reaches the gamemaster without your name.
+<!-- /feature -->

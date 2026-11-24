@@ -59,6 +59,9 @@ class Page:
     # The features the table's world plays with (app/services/features.py): the
     # navigation and the user menu leave out the rest.
     features: frozenset[str] = frozenset(FEATURES)
+    # The character and combat rules the table's world plays with (the help leaves out
+    # the rest).
+    rules: frozenset[str] = frozenset()
 
     def token_of(self, kind: str, world_id: str | None, ident: str) -> Token:
         """An NPC's, character's, place's, encounter's or treasure's token."""

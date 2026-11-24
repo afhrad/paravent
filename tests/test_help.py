@@ -12,7 +12,8 @@ from httpx import ASGITransport, AsyncClient
 from app.config import Settings
 from app.main import create_app
 from app.models.gamestate import Role
-from app.services.help import HELP_DIR, TOPICS, help_text
+from app.services.help import HELP_DIR, TOPICS, help_text, shown
+from app.services.worlds import WorldInput
 from app.store.registry import StoreRegistry
 
 PASSWORD = "correct horse battery"
@@ -29,6 +30,40 @@ def test_every_language_has_the_same_sections(topic: str) -> None:
     assert english
     for path in HELP_DIR.glob(f"{topic}.*.md"):
         assert _sections(path.read_text("utf-8")) == english, path.name
+
+
+@pytest.mark.parametrize("topic", sorted(TOPICS))
+def test_every_language_marks_the_same_passages(topic: str) -> None:
+    """The passages a world's features keep or leave out are the same in each language."""
+    marks = re.compile(r"<!-- feature: ([^>]+?) -->")
+    english = marks.findall((HELP_DIR / f"{topic}.en.md").read_text("utf-8"))
+    for path in HELP_DIR.glob(f"{topic}.*.md"):
+        assert marks.findall(path.read_text("utf-8")) == english, path.name
+
+
+def test_passages_of_what_a_world_plays_without_are_left_out() -> None:
+    text = "\n".join(
+        [
+            "# Help",
+            "## 1. Always",
+            "<!-- feature: shops chases -->",
+            "## 2. Money or running",
+            "<!-- feature: shops -->",
+            "- Shops.",
+            "<!-- /feature -->",
+            "<!-- feature: chases -->",
+            "- Chases.",
+            "<!-- /feature -->",
+            "<!-- /feature -->",
+            "## 3. Last",
+        ]
+    )
+    everything = shown(text, None)
+    assert "<!--" not in everything and "- Shops." in everything and "## 3. Last" in everything
+    chases = shown(text, {"chases"})
+    assert "- Chases." in chases and "Shops" not in chases and "## 2. Money" in chases
+    none = shown(text, set())
+    assert "Money" not in none and "## 2. Last" in none  # numbered again, without a gap
 
 
 def test_falls_back_to_english() -> None:
@@ -92,3 +127,21 @@ async def test_a_player_finds_how_playing_works(client: AsyncClient) -> None:
     await client.post("/language", data={"lang": "de", "next": "/"})
     german = (await client.get("/help/player")).text
     assert "Spielen mit Paravent" in german and "Aus Gegenständen" in german
+
+
+async def test_a_world_reads_of_what_it_plays_with(client: AsyncClient, tmp_path: Path) -> None:
+    app_registry: StoreRegistry = client._transport.app.state.stores  # type: ignore[attr-defined]
+    world = app_registry.worlds.create(WorldInput(name="Plain", features=("travel",)))
+    app_registry.table.select(world.id)
+    between = (await client.get("/help/between")).text.split('class="md-body"', 1)[1]
+    assert "On the clock panel" in between or "Set out" in between
+    assert "The bastion" not in between and "Hazard" not in between
+    assert "Upkeep" not in between and "<!--" not in between
+    player = (await client.get("/help/player")).text.split('class="md-body"', 1)[1]
+    assert "X-card" not in player and "Hero points" not in player and "Story" in player
+    # Hero points and the safety tools switched on.
+    app_registry.gamestate.worlds.update(
+        world.id, features=["travel", "safety"], character_rules=["hero_points"]
+    )
+    player = (await client.get("/help/player")).text.split('class="md-body"', 1)[1]
+    assert "X-card" in player and "Hero points" in player and "Honor" not in player

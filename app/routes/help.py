@@ -18,7 +18,8 @@ async def help_topic(
     _identity: IdentityDep, page: PageDep, topic: str, back: str = "/"
 ) -> HTMLResponse:
     """The page; ``back`` returns to where it was opened (a local path only)."""
-    text = help_text(topic, page.lang)
+    # What the table's world plays without is left out (app/services/features.py).
+    text = help_text(topic, page.lang, page.features | page.rules)
     if text is None:
         raise HTTPException(status_code=404)
     title = text.lstrip("# ").splitlines()[0] if text.startswith("#") else topic
