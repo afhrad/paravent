@@ -669,6 +669,29 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             return line
         if head == "travel_encounter":
             return t("protocol.travel_encounter", row=rest) if rest else t("protocol.travel_check")
+        if head == "upkeep":
+            name, days, paid, owed = (rest.split(":") + ["", "", "", ""])[:4]
+            line = t.plural(
+                "protocol.upkeep",
+                int(days) if days.isdigit() else 0,
+                subject=entry.subject_name,
+                name=name,
+                days=days,
+                paid=_purse_words(page, coins.text(int(paid) if paid.isdigit() else 0)),
+            )
+            if owed.isdigit() and int(owed):
+                line += " · " + t(
+                    "protocol.upkeep_owed", owed=_purse_words(page, coins.text(int(owed)))
+                )
+            return line
+        if head == "upkeep_new":
+            name, _, cost = rest.rpartition(":")
+            return t(
+                "protocol.upkeep_new",
+                subject=entry.subject_name,
+                name=name,
+                cost=_purse_words(page, coins.text(int(cost) if cost.isdigit() else 0)),
+            )
         if head == "intervention":
             roll, level, yes, deity = (rest.split(":") + ["", "", "", ""])[:4]
             return t(

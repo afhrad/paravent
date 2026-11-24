@@ -111,6 +111,7 @@ from app.ui.tags import RenderContext, localized_context, plain, ref_url, render
 from app.ui.tokens import token, token_panel
 from app.ui.translate_pages import translate_url
 from app.ui.translated import localized_data
+from app.ui.upkeep_pages import sheet_upkeep
 
 DESKTOP_TABS = ("actions", "spells", "skills", "gear", "features")
 MOBILE_TABS = (
@@ -1737,6 +1738,7 @@ def _gear_pane(page: Page, sheet: Sheet) -> Element:
         ],
         _load_line(page, sheet),
         _lifestyle(page, sheet) if sheet.lifestyle_costs else None,
+        sheet_upkeep(page, sheet.upkeep),
         div(class_="cs-list")[[_item_row(page, sheet, i) for i in sheet.inventory]]
         if sheet.inventory
         else p(class_="cs-empty")[t("sheet.no_items")],

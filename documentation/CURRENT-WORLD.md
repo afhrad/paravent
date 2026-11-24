@@ -48,8 +48,8 @@ an outside click like the others):
 - **World settings** — a dialog with today's world form (name, description, books and player
   books, naming styles, calendar, milestone levelling, instructions for Claude, cover);
   since 2026-11-24 also the world's **Features** (`app/services/features.py`): travel,
-  survival, dungeon checks, hazards, shops, lifestyle, followers, downtime, bastions, quests, factions,
-  chases, madness and safety tools, each switched off gone from the gamemaster's and the
+  survival, dungeon checks, hazards, shops, lifestyle, followers, upkeep, downtime,
+  bastions, quests, factions, chases, madness and safety tools, each switched off gone from the gamemaster's and the
   players' screens (its routes answer 404, Claude's tools refuse it) and stopped on the clock
   (no lifestyle, wages, rations, bastion turns or dungeon checks), its records kept. A world
   from before has every one (`features` absent); a new one starts with travel, shops, quests

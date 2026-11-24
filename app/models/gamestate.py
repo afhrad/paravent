@@ -1382,6 +1382,20 @@ class Contact(Record):
     last_seen: int | None = None
 
 
+class Property(Record):
+    """A business, stronghold or garrison a character owns, and what it costs each day
+    to run (app/services/upkeep.py): ``kind`` the property of the guide's *Maintenance
+    Costs* table it is priced by ("" for a price of the table's own), ``per_day`` in
+    copper, paid from the owner's purse each day the world's clock passes."""
+
+    world_id: str
+    character_id: str
+    name: str = Field(max_length=120)
+    kind: str = Field(default="", max_length=120)
+    per_day: int = Field(default=0, ge=0, le=100_000_000)
+    note: str = Field(default="", max_length=2000)
+
+
 class ChaseRunner(GameStateModel):
     """One participant of a chase (app/services/chase.py): a character of the world or
     a creature, on one side, in initiative order, with what the chase needs to know of

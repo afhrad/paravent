@@ -124,6 +124,7 @@ def _sheet(characters: CharactersDep, registry: RegistryDep, character: PlayerCh
     ]
     sheet.deity_name = character.deity.name if character.deity is not None else ""
     sheet.intervention = intervention_of(character)
+    sheet.upkeep = registry.upkeep.of_character(character.id) if "upkeep" in on else []
     sheet.followers = len(registry.followers.of(character.id))
     spare = registry.downtime.of(character.id)
     if "downtime" in on and (spare.days or any(not x.finished for x in spare.projects)):

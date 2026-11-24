@@ -3455,3 +3455,11 @@ dialog.ctx-dialog .panel{ margin:0; }
    does, in the trap's spring form. */
 .hazard-name{ display:block; margin-bottom:4px; font-size:16px; }
 .hazard-form .check-inline{ margin-top:8px; }
+
+/* Property and its running costs (app/ui/upkeep_pages.py): a row each, the price and the
+   ✕ at its end. */
+.upkeep-list{ list-style:none; margin:0; padding:0; display:grid; gap:6px; }
+.upkeep-list li{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:6px 10px; border:1px solid var(--border); border-radius:var(--r); background:var(--surface-2); }
+.upkeep-list li > span:first-child{ flex:1 1 auto; }
+.upkeep-list .inline-form{ margin:0; }
+.cs-upkeep ul{ margin:4px 0 0; padding-left:18px; }

@@ -143,6 +143,9 @@ from app.services.traps import TrapService
 from app.services.trash import Trash
 from app.services.travel import PACES, TERRAINS, Terrain, TravelService, Vessel
 from app.services.treasure_roll import roller_for
+from app.services.upkeep import BOOKS, UpkeepService
+from app.services.upkeep import TABLE as UPKEEP_TABLE
+from app.services.upkeep import costs as upkeep_costs
 from app.services.world_copy import WorldCopy
 from app.services.world_instructions import WorldInstructionService
 from app.services.world_transfer import WorldTransfer
@@ -767,9 +770,11 @@ class StoreRegistry:
         either way (app/services/followers.py)."""
         if why != "travel" and self.feature(world_id, "lifestyle"):
             self.lifestyle.charge(world_id, days, self.lifestyle_costs(world_id), by, by_name)
-        # Hirelings are paid for every day, on the road too.
+        # Hirelings are paid for every day, on the road too; so is property's upkeep.
         if self.feature(world_id, "followers"):
             self.followers.pay_wages(world_id, days, by, by_name)
+        if self.feature(world_id, "upkeep"):
+            self.upkeep.charge(world_id, days, by, by_name)
 
     def calendars(self, world_id: str | None) -> list[Calendar]:
         """The setting calendars the world's books print, each once."""
@@ -981,6 +986,35 @@ class StoreRegistry:
             )
 
         return LifestyleService(self.protocol, party=party, purse=purse, pay=pay)
+
+    @cached_property
+    def upkeep(self) -> UpkeepService:
+        """What the characters' property costs to run each day (app/services/upkeep.py)."""
+        characters = self.characters
+        by = Actor("Paravent", username="")
+
+        def purse(character_id: str) -> int:
+            pc = self.gamestate.characters.find(character_id)
+            return worth(pc.currency) if pc is not None else 0
+
+        def pay(character_id: str, amount: int) -> None:
+            characters.act_for(
+                character_id,
+                "spend",
+                {"amount": str(amount), "for": "upkeep", "quiet": "1"},
+                by,
+            )
+
+        return UpkeepService(self.gamestate, self.protocol, purse=purse, pay=pay)
+
+    def upkeep_costs(self, world_id: str | None) -> list[tuple[str, int]]:
+        """The *Maintenance Costs* of the world's guides: the one of its rules first (the
+        2024 guide prints only fortifications), then what the other prices besides."""
+        books = list(BOOKS) if self.rules_of(world_id) != "one" else list(reversed(BOOKS))
+        first = upkeep_costs(self.book_table(world_id, UPKEEP_TABLE, books[:1]))
+        named = {name.lower() for name, _ in first}
+        more = upkeep_costs(self.book_table(world_id, UPKEEP_TABLE, books[1:]))
+        return first + [(name, price) for name, price in more if name.lower() not in named]
 
     def _concentrating(self, character_id: str) -> str | None:
         pc = self.gamestate.characters.find(character_id)

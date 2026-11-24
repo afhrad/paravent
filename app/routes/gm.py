@@ -72,6 +72,7 @@ from app.services.travel import (
     terrain_of,
 )
 from app.services.units import feet_from
+from app.services.upkeep import UpkeepError, priced
 from app.services.worlds import WorldInput
 from app.store.encounter_tables import Environment
 from app.store.registry import StoreRegistry
@@ -106,6 +107,7 @@ from app.ui.trap_pages import (
     spring_form,
     spring_result,
 )
+from app.ui.upkeep_pages import UPKEEP_URL, upkeep_dialog_url, upkeep_tool
 from app.ui.xp_pages import XP_DONE, XP_URL, xp_tool
 
 router = APIRouter(tags=["gamemaster"])
@@ -385,6 +387,7 @@ async def party(
     worlds: WorldsDep,
     registry: RegistryDep,
     world: str = "",
+    upkeep: str = "",
 ) -> HTMLResponse:
     """Every character at the table, updating live, in the table's world
     (documentation/CURRENT-WORLD.md); ``world`` names another, as its own forms do."""
@@ -414,6 +417,16 @@ async def party(
             else None,
             hazard=hazard_tool(page, world_id, *_scale(registry, world_id))
             if world_id is not None and registry.feature(world_id, "hazards") and members
+            else None,
+            upkeep=upkeep_tool(
+                page,
+                world_id,
+                registry.upkeep.of_world(world_id),
+                dict(members),
+                registry.upkeep_costs(world_id),
+                refused=upkeep == "bad",
+            )
+            if world_id is not None and registry.feature(world_id, "upkeep")
             else None,
         )
     )
@@ -797,6 +810,49 @@ async def trap_form(
         return html(alert(page.t("trap.error.unknown")))
     shown, effect, members, level = found
     return html(spring_form(page, world, category, shown, source, effect, members, level))
+
+
+@router.post(f"{UPKEEP_URL}/{{world_id}}/{{op}}")
+async def change_upkeep(
+    request: Request,
+    gm: GamemasterDep,
+    worlds: WorldsDep,
+    registry: RegistryDep,
+    world_id: str,
+    op: str,
+) -> Response:
+    """Give a character of the world a property (``give``: priced by the guide's table,
+    or by hand in gold) or take one back (``remove``); back to the dialog."""
+    if worlds.find(world_id) is None or not registry.feature(world_id, "upkeep"):
+        raise HTTPException(status_code=404)
+    form = await request.form()
+    user = gm.user
+    if op == "give":
+        kind = str(form.get("kind", ""))
+        typed = str(form.get("gp", "")).strip().replace(",", ".")
+        try:
+            per_day = round(float(typed) * 100) if typed else None
+        except ValueError:
+            per_day = None
+        if per_day is None:
+            per_day = priced(registry.upkeep_costs(world_id), kind) if kind else None
+        try:
+            registry.upkeep.give(
+                world_id,
+                str(form.get("character", "")),
+                str(form.get("name", "")),
+                per_day if per_day is not None else -1,
+                kind,
+                user.username,
+                user.display_name or user.username,
+            )
+        except UpkeepError:
+            return redirect(f"{upkeep_dialog_url(world_id)}&upkeep=bad")
+    elif op == "remove":
+        registry.upkeep.remove(world_id, str(form.get("property", "")))
+    else:
+        raise HTTPException(status_code=404)
+    return redirect(upkeep_dialog_url(world_id))
 
 
 @router.get(f"{HAZARDS_URL}/form", response_class=HTMLResponse)

@@ -738,6 +738,13 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         without a slot once per long rest (Wish from 20, then 2d4 long rests), from its own
         page. Logged for the table, the outcome said on the sheet. Also fixed: the
         registry's catalogue lacked the spell lookups, so it knew no class's spells
+  - [x] **Running costs** (2026-11-24, `app/services/upkeep.py`, `app/ui/upkeep_pages.py`,
+        `library/properties.json`): **Upkeep** on the party view gives a character a
+        property — priced by the guides' *Maintenance Costs* (the world's rules' guide
+        first, the other's rows besides), or by hand in gold — and takes it back; each day
+        the world's clock passes, the road included, the owner pays it from the purse, what
+        it lacks logged as owed (and on the session page); the owner sees it on the Gear
+        view. A feature of its own under Money
   - [x] **Optional combat rules** (2026-11-22, `app/services/combat_rules.py`, COMBAT.md
         §3): the 2014 guide's variants as world switches in World settings, kept by a fight
         from its start. **Massive damage** rolls the DC 15 Constitution save and, on a

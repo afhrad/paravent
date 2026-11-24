@@ -189,7 +189,7 @@ class PlaySessionService:
         for entry in self._entries(world_id, since):
             head, _, rest = entry.what.partition(":")
             parts = rest.split(":")
-            if head == "lifestyle" and len(parts) > 3 and _number(parts[3]):
+            if head in ("lifestyle", "upkeep") and len(parts) > 3 and _number(parts[3]):
                 name = entry.subject_name or "?"
                 owed[name] = owed.get(name, 0) + int(_number(parts[3]))
         contacts = store.contacts.list(lambda c: c.world_id == world_id and not c.name)

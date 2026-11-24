@@ -16,8 +16,6 @@ Paused 2026-11-22 while the user playtests; their findings come first.
 
 - **Wild magic as a hazard** — left out when hazards by level were built (2026-11-24): a
   zone that rolls the books' *Wild Magic Surge* table on a character. S
-- **Running costs** — a business, stronghold or garrison charged by the clock, like
-  lifestyle and wages, with what the purse lacks logged as owed. S
 - **Proficiency dice** — the 2014 variant: a die instead of the flat proficiency bonus on
   every roll the sheet makes, as a world switch. S
 - **Sentient items and artifacts** — a sentient item's mind, purpose and conflicts, an

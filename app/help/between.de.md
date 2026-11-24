@@ -6,7 +6,7 @@ Gruppenansicht (*Spieltisch*), in der Welt, in der der Tisch spielt.
 
 Nicht jeder Tisch will alles davon. **Welteinstellungen → Funktionen** schaltet jeden Teil
 für die Welt an oder aus: das Reisen und das Überleben unterwegs, die Begegnungswürfe im
-Dungeon, Gefahren, Läden, Lebensstil, Gefolge, Auszeit, Bastionen, Quests, Fraktionen,
+Dungeon, Gefahren, Läden, Lebensstil, Gefolge, Unterhalt, Auszeit, Bastionen, Quests, Fraktionen,
 Verfolgungsjagden, Wahnsinn und die Sicherheitswerkzeuge. Was abgeschaltet ist, verschwindet
 von deinen Bildschirmen und denen der Spieler, und nichts davon läuft auf der Uhr; was damit
 gemacht wurde, bleibt erhalten, bis es wiederkommt. Eine neue Welt beginnt mit Reisen,
@@ -93,6 +93,11 @@ Uhr und im Protokoll. Das ✕ verlässt den Dungeon.
 - **Lebensstil** wählt man im Reiter *Ausrüstung* des Bogens; er wird an jedem Tag
   bezahlt, den die Uhr abseits der Reise vorrückt. Was der Geldbeutel nicht hergibt, wird
   als Schuld protokolliert.
+- **Besitz** — ein Geschäft, eine Festung, eine Garnison — gibst du in der Gruppenansicht
+  unter **Unterhalt**: einen Besitzer, einen Besitz aus den *Unterhaltskosten* des
+  Handbuchs (eine Abtei 20 GM am Tag, eine Burg 100 GM) oder einen eigenen Preis. An jedem
+  Tag, den die Uhr vorrückt, auch unterwegs, zahlt der Besitzer; er sieht ihn im Reiter
+  *Ausrüstung*.
 - **Ein Laden** öffnet aus der Gruppenansicht, zu einem Anteil des Listenpreises, mit
   einfacher Ausrüstung aus den Büchern der Welt und magischen Gegenständen, die du ins
   Regal stellst.

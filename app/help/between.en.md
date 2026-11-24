@@ -5,7 +5,7 @@ the days off, the bastion, and the people the characters know. Most of it starts
 party view (*Table*), in the world the table plays in.
 
 Not every table wants all of it. **World settings → Features** switches each part on or
-off for the world: travel and its survival, dungeon checks, hazards, shops, lifestyle, followers,
+off for the world: travel and its survival, dungeon checks, hazards, shops, lifestyle, followers, upkeep,
 downtime, bastions, quests, factions, chases, madness and the safety tools. One switched
 off is gone from your screens and the players', and nothing of it runs on the clock; what
 was made with it is kept for when it comes back. A new world starts with travel, shops,
@@ -84,6 +84,10 @@ checks, in the panel and the log. The ✕ leaves the dungeon.
   tool, the item's spells, a level).
 - **Lifestyle** is chosen on the sheet's *Gear* tab and paid each day the clock passes
   off the road; what the purse lacks is logged as owed.
+- **Property** — a business, a stronghold, a garrison — is given from the party view's
+  **Upkeep**: an owner, a property of the guide's *Maintenance Costs* (an abbey 20 gp a
+  day, a keep 100 gp) or a price of your own. Each day the clock passes, the road
+  included, the owner pays it; the owner sees it on the *Gear* tab.
 - **A shop** opens from the party view, at a share of the list price, with mundane gear
   of the world's books and magic items you put on the shelf.
 

@@ -705,6 +705,9 @@ class Sheet:
     # name), the name of the one it does, and a cleric's Divine Intervention
     # (app/services/intervention.py) with the world's minute now.
     deities: list[tuple[str, str]] = field(default_factory=list)
+    # Set by the page: the property the character owns, where the world plays with
+    # running costs (app/services/upkeep.py).
+    upkeep: list[Any] = field(default_factory=list)
     deity_name: str = ""
     intervention: Any = None
     wild_shape: WildShapeView | None = None
