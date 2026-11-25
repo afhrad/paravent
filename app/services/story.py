@@ -1,9 +1,10 @@
 """A character's story: what it has done and whom it knows, gathered in one place.
 
 Its quests (finished, failed and open), its standing with the world's factions, its
-contacts, its followers, its bastion, and a timeline from the log of the moments that
-changed it: experience awarded, levels gained, renown won or lost, contacts made or
-called on, spells written into its book. Read by its player and the gamemaster.
+marks of prestige, its contacts, its followers, its bastion, and a timeline from the
+log of the moments that changed it: experience awarded, levels gained, renown won or
+lost, marks of prestige granted, called in or taken back, contacts made or called on,
+spells written into its book. Read by its player and the gamemaster.
 """
 
 from __future__ import annotations
@@ -12,13 +13,13 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
-from app.models.gamestate import Bastion, Contact, Faction, Follower, Quest
+from app.models.gamestate import Bastion, Contact, Faction, Follower, Mark, Quest
 from app.models.pc import PlayerCharacter
 from app.models.protocol import EntryKind, ProtocolEntry
 from app.store.gamestate import GameStateStore
 
 # What of the character's log tells its story: experience and levels, and these.
-STORY_LINES = ("renown:", "contact:", "learn:spell:")
+STORY_LINES = ("renown:", "contact:", "learn:spell:", "mark:", "mark_spent:", "mark_gone:")
 EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 
 
@@ -30,6 +31,7 @@ class Story:
     factions: list[tuple[Faction, int]] = field(default_factory=list)
     contacts: list[Contact] = field(default_factory=list)
     followers: list[Follower] = field(default_factory=list)
+    marks: list[Mark] = field(default_factory=list)
     bastion: Bastion | None = None
     timeline: list[ProtocolEntry] = field(default_factory=list)  # newest first
 
@@ -92,6 +94,10 @@ class StoryService:
             factions=self._standing(pc.id, world),
             contacts=contacts,
             followers=followers,
+            marks=sorted(
+                self._store.marks.list(lambda m: m.character_id == pc.id),
+                key=lambda m: m.created_at,
+            ),
             bastion=self._store.bastions.find(pc.id),
             timeline=timeline,
         )

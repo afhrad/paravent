@@ -156,7 +156,9 @@ see your own total; the gamemaster decides what it means.
 <!-- feature: bastions -->
 - **Bastion** in the sheet's head, from level 5: your facilities and their orders.
 <!-- /feature -->
-- **Story** in the sheet's head tells what your character has done and whom it knows.
+- **Story** in the sheet's head tells what your character has done and whom it knows,
+  and lists its marks of prestige: titles, land, medals, favors. A special favor is
+  called in there with **Call in**.
 - The **Journal** holds the letters, notes and pictures the gamemaster gave you, the
   session notes, and **Party notes** the whole group writes together. On a phone the
   sheet has a letter button at the top for it, with a number while something sent to

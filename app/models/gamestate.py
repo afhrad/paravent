@@ -1392,6 +1392,24 @@ class Contact(Record):
     last_seen: int | None = None
 
 
+MarkKind = Literal["title", "land", "stronghold", "medal", "letter", "favor", "right", "training"]
+
+
+class Mark(Record):
+    """A mark of prestige the guides describe (app/services/prestige.py): a title, a
+    parcel of land, a stronghold, a medal, a letter of recommendation, a special favor
+    or right, or training, granted to a character by someone of standing. ``spent``
+    once a favor is called in."""
+
+    character_id: str
+    world_id: str | None = None
+    kind: MarkKind
+    name: str = Field(max_length=160)
+    granted_by: str = Field(default="", max_length=160)
+    note: str = Field(default="", max_length=2000)
+    spent: bool = False
+
+
 class Property(Record):
     """A business, stronghold or garrison a character owns, and what it costs each day
     to run (app/services/upkeep.py): ``kind`` the property of the guide's *Maintenance
@@ -1496,6 +1514,9 @@ class Quest(Record):
     coins: int = Field(default=0, ge=0, le=100_000_000)  # copper, shared out evenly
     items: list[QuestItem] = Field(default_factory=list)  # each to the first on it
     renown: int = Field(default=0, ge=0, le=50)  # with the faction, for each character
+    # A mark of prestige for each character on it ("medal", "Golden Bear"); "" for none.
+    mark_kind: MarkKind | Literal[""] = ""
+    mark_name: str = Field(default="", max_length=160)
     # The draft adventure Claude wrote it for (app/mcp/drafts.py); hidden from the
     # players until the gamemaster shows it.
     adventure_id: str | None = None

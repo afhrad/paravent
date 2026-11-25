@@ -19,7 +19,6 @@ objects, doors and siege equipment in the tracker.
 
 ### Smaller
 
-- **Marks of prestige** — titles, land, medals and favours on a character's story. S
 - **Treasure by a monster's preferences**, and trade goods. S
 - **Session zero** — the expectations sheet kept per world, beside lines and veils. S
 

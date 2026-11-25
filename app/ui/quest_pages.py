@@ -32,6 +32,7 @@ from htpy import (
 from htpy import input as input_el
 
 from app.models.gamestate import Quest, World
+from app.services.prestige import KINDS as PRESTIGE_KINDS
 from app.ui.context import Page
 from app.ui.copy_links import copy_link
 from app.ui.forms import alert, hidden
@@ -66,6 +67,8 @@ def reward_text(page: Page, quest: Quest, milestone: bool = False) -> str:
         parts.append(f"{name} ×{item.count}" if item.count > 1 else name)
     if quest.renown and quest.faction_id:
         parts.append(t("quests.reward_renown", renown=quest.renown))
+    if quest.mark_kind and quest.mark_name:
+        parts.append(f"{t(f'prestige.kind.{quest.mark_kind}')}: {quest.mark_name}")
     return " · ".join(parts)
 
 
@@ -375,6 +378,28 @@ def _fields(
         ]
         if factions
         else None,
+        label(class_="field")[
+            span(class_="field-label")[t("quests.mark_kind")],
+            select(name="mark_kind")[
+                option(value="")[t("quests.no_mark")],
+                [
+                    option(value=k, selected=quest is not None and quest.mark_kind == k)[
+                        t(f"prestige.kind.{k}")
+                    ]
+                    for k in PRESTIGE_KINDS
+                ],
+            ],
+        ],
+        label(class_="field")[
+            span(class_="field-label")[t("quests.mark_name")],
+            input_el(
+                type="text",
+                name="mark_name",
+                maxlength="160",
+                value=quest.mark_name if quest else "",
+                placeholder=t("prestige.name_hint"),
+            ),
+        ],
         label(class_="field quest-wide")[
             span(class_="field-label")[t("quests.items")],
             textarea(name="items", rows="2", placeholder=t("quests.items_hint"))[items],

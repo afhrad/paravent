@@ -1,15 +1,43 @@
-"""A character's story page (app/services/story.py): its quests, factions, contacts,
-followers and bastion, and the moments of the log that changed it."""
+"""A character's story page (app/services/story.py): its quests, marks of prestige,
+factions, contacts, followers and bastion, and the moments of the log that changed it.
+The gamemaster grants and takes back marks here; a favor is called in by either."""
 
 from __future__ import annotations
 
-from htpy import Element, Node, a, b, div, h2, li, p, section, small, span, ul
+from collections.abc import Mapping
 
+from htpy import (
+    Element,
+    Node,
+    a,
+    b,
+    button,
+    details,
+    div,
+    form,
+    h2,
+    label,
+    li,
+    option,
+    p,
+    section,
+    select,
+    small,
+    span,
+    summary,
+    textarea,
+    ul,
+)
+from htpy import input as input_el
+
+from app.models.gamestate import Mark
 from app.models.pc import PlayerCharacter
 from app.services.experience import Progress
 from app.services.factions import title_of
+from app.services.prestige import KINDS
 from app.services.story import Story
 from app.ui.context import Page
+from app.ui.forms import alert, hidden
 from app.ui.home_pages import page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
@@ -24,10 +52,13 @@ def story_page(
     *,
     progress: Progress | None,
     milestone: bool,
+    mark_links: Mapping[str, str] | None = None,
+    error: str | None = None,
 ) -> Element:
     """The character's story, newest moments first."""
     t = page.t
     name = pc.name or "?"
+    gm = page.identity is not None and page.identity.is_gamemaster
     return app_shell(
         page,
         t("story.title", name=name),
@@ -44,8 +75,10 @@ def story_page(
                     else "",
                 ).strip(" ·"),
             ),
+            alert(error),
             div(class_="story-grid")[
                 _quests(page, story, milestone),
+                _marks(page, pc.id, story.marks, mark_links or {}, gm),
                 _people(page, story),
                 _timeline(page, story),
             ],
@@ -79,6 +112,100 @@ def _quests(page: Page, story: Story, milestone: bool) -> Element:
         if story.quests
         else p(class_="muted")[t("story.no_quests")],
     )
+
+
+def _marks(
+    page: Page, character_id: str, marks: list[Mark], links: Mapping[str, str], gm: bool
+) -> Node:
+    """Its marks of prestige, each with what the guides say of its kind; the
+    gamemaster's form to grant one."""
+    if not marks and not gm:
+        return None
+    t = page.t
+    url = f"/characters/{character_id}/story"
+
+    def post(op: str, mark: Mark, text: str, cls: str = "btn btn-sm btn-ghost") -> Element:
+        return form(method="post", action=url, class_="inline-form")[
+            hidden("op", op), hidden("mark", mark.id), button(type="submit", class_=cls)[text]
+        ]
+
+    def kind(mark: Mark) -> Node:
+        word = t(f"prestige.kind.{mark.kind}")
+        link = links.get(mark.kind)
+        return small(class_="muted")[
+            a(href=link, target="_blank", rel="noopener")[word] if link else word
+        ]
+
+    rows = [
+        li(class_="story-mark")[
+            icon(_ICON[m.kind], "sm"),
+            b[m.name],
+            kind(m),
+            small(class_="muted")[t("prestige.from", giver=m.granted_by)] if m.granted_by else None,
+            span(class_="pill")[t("prestige.spent")] if m.spent else None,
+            post("call_in", m, t("prestige.call_in"))
+            if m.kind == "favor" and not m.spent
+            else None,
+            post("take_back", m, t("prestige.take_back")) if gm else None,
+            p(class_="muted story-mark-note")[m.note] if m.note else None,
+        ]
+        for m in marks
+    ]
+    grant = (
+        details(class_="story-grant")[
+            summary[icon("plus", "sm"), span[t("prestige.grant")]],
+            form(method="post", action=url, class_="follower-form")[
+                hidden("op", "grant"),
+                label(class_="field")[
+                    span(class_="field-label")[t("prestige.kind_label")],
+                    select(name="kind")[[option(value=k)[t(f"prestige.kind.{k}")] for k in KINDS]],
+                ],
+                label(class_="field")[
+                    span(class_="field-label")[t("prestige.name")],
+                    input_el(
+                        type="text",
+                        name="name",
+                        maxlength="160",
+                        required=True,
+                        placeholder=t("prestige.name_hint"),
+                    ),
+                ],
+                label(class_="field")[
+                    span(class_="field-label")[t("prestige.granted_by")],
+                    input_el(type="text", name="granted_by", maxlength="160"),
+                ],
+                label(class_="field story-grant-note")[
+                    span(class_="field-label")[t("prestige.note")],
+                    textarea(name="note", rows="2", placeholder=t("prestige.note_hint")),
+                ],
+                button(type="submit", class_="btn btn-sm btn-primary")[
+                    icon("award", "sm"), span[t("prestige.grant_now")]
+                ],
+            ],
+        ]
+        if gm
+        else None
+    )
+    return _panel(
+        t("prestige.title"),
+        "award",
+        ul(class_="session-list story-list")[rows]
+        if rows
+        else p(class_="muted")[t("prestige.none")],
+        grant,
+    )
+
+
+_ICON = {
+    "title": "crown",
+    "land": "map",
+    "stronghold": "castle",
+    "medal": "medal",
+    "letter": "scroll",
+    "favor": "handshake",
+    "right": "badge-check",
+    "training": "graduation-cap",
+}
 
 
 def _people(page: Page, story: Story) -> Element:

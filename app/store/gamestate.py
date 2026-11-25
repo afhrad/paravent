@@ -250,6 +250,7 @@ class GameStateStore:
             Handout,
             Knowledge,
             Location,
+            Mark,
             McpToken,
             Npc,
             PartyNotes,
@@ -322,6 +323,8 @@ class GameStateStore:
         # Whom each character knows: allies, enemies, rivals, favours owed.
         self.contacts: Collection[Contact] = Collection(root / "contacts.json", Contact)
         self.properties: Collection[Property] = Collection(root / "properties.json", Property)
+        # Characters' marks of prestige: titles, land, medals, favors (app/services/prestige.py).
+        self.marks: Collection[Mark] = Collection(root / "marks.json", Mark)
         # The chase each world's gamemaster runs (app/services/chase.py).
         self.chases: Collection[Chase] = Collection(root / "chases.json", Chase)
         # Characters' hirelings, companions, mounts and sidekicks.

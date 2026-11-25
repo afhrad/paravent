@@ -3,18 +3,20 @@
 The gamemaster writes a quest: its name, who gave it (anyone, or a faction the quest
 serves), its text, the steps to tick off, the characters on it (none: the world's
 party), and its reward — experience for each, coins shared out evenly, items to the
-characters the gamemaster picks, and renown with its faction for each. Players read
-the quests shown to them in their journal. Marking a quest done hands the reward out
-through the play rules (XP into the file, coins and items into the pack, renown into
-the faction), each logged; a failed quest hands out nothing.
+characters the gamemaster picks, renown with its faction for each, and a mark of
+prestige for each (a medal, a title; app/services/prestige.py). Players read the quests
+shown to them in their journal. Marking a quest done hands the reward out through the
+play rules (XP into the file, coins and items into the pack, renown into the faction,
+the mark onto the character's story), each logged; a failed quest hands out nothing.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
+from typing import get_args
 
-from app.models.gamestate import Quest, QuestItem, QuestStep
+from app.models.gamestate import MarkKind, Quest, QuestItem, QuestStep
 from app.models.protocol import EntryKind, ProtocolEntry, Scope, Visibility
 from app.services.i18n import Translatable
 from app.services.protocol import ProtocolService
@@ -33,6 +35,8 @@ class Handout:
     xp: Callable[[str, int, str], None]  # (character, xp, reason)
     receive: Callable[[str, list[tuple[str, int]], dict[str, int]], None]  # items, coins
     renown: Callable[[str, str, int], None]  # (faction, character, delta)
+    # (character, kind, name, granted by): a mark of prestige for each on the quest
+    mark: Callable[[str, str, str, str], None] = lambda _c, _k, _n, _g: None
 
 
 def split_coins(copper: int, people: int) -> list[int]:
@@ -115,6 +119,7 @@ class QuestService:
             "coins": _bounded(values.get("coins"), 100_000_000),
             "items": [i for i in items_in if isinstance(i, QuestItem)][:20],
             "renown": _bounded(values.get("renown"), 50),
+            **_mark(values),
         }
         if quest_id:
             quest = self.get(quest_id, world_id)
@@ -178,6 +183,9 @@ class QuestService:
                 handout.xp(character_id, quest.xp, reason)
             if renown and faction is not None:
                 handout.renown(faction.id, character_id, renown)
+            if quest.mark_kind and quest.mark_name:
+                giver = quest.giver or (faction.name if faction is not None else "")
+                handout.mark(character_id, quest.mark_kind, quest.mark_name, giver)
             got = items.get(character_id, [])
             copper = shares.get(character_id, 0)
             if got or copper:
@@ -231,6 +239,15 @@ class QuestService:
                 )
             ]
         )
+
+
+def _mark(values: Mapping[str, object]) -> dict[str, str]:
+    """A quest's mark of prestige from the form: a known kind and a name, or none."""
+    kind = str(values.get("mark_kind") or "")
+    name = " ".join(str(values.get("mark_name") or "").split())[:160]
+    if kind not in get_args(MarkKind) or not name:
+        return {"mark_kind": "", "mark_name": ""}
+    return {"mark_kind": kind, "mark_name": name}
 
 
 def _bounded(value: object, most: int) -> int:

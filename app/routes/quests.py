@@ -105,6 +105,8 @@ def _values(registry: StoreRegistry, world: World, form: FormData) -> dict[str, 
         "coins": str(int(gold) * 100) if gold.isdigit() else "",
         "items": _items(registry, world, str(form.get("items", ""))),
         "renown": str(form.get("renown", "")),
+        "mark_kind": str(form.get("mark_kind", "")),
+        "mark_name": str(form.get("mark_name", "")),
     }
 
 
@@ -163,7 +165,14 @@ async def change_quests(
             ) -> None:
                 characters.receive(character_id, items, coins, by)
 
-            handout = Handout(xp=experience, receive=receive, renown=renown)
+            def mark(character_id: str, kind: str, mark_name: str, giver: str) -> None:
+                pc = registry.gamestate.characters.find(character_id)
+                if pc is not None:
+                    registry.prestige.grant(
+                        pc, kind, mark_name, giver, by=user.username, by_name=name
+                    )
+
+            handout = Handout(xp=experience, receive=receive, renown=renown, mark=mark)
             given = {
                 int(key[5:]): str(value)
                 for key, value in form.items()

@@ -172,7 +172,9 @@ es bedeutet, entscheidet die Spielleitung.
 <!-- feature: bastions -->
 - **Bastion** im Kopf des Bogens, ab Stufe 5: deine Einrichtungen und ihre Befehle.
 <!-- /feature -->
-- **Geschichte** im Kopf des Bogens erzählt, was deine Figur getan hat und wen sie kennt.
+- **Geschichte** im Kopf des Bogens erzählt, was deine Figur getan hat und wen sie kennt,
+  und listet ihre Ehrenzeichen: Titel, Land, Orden, Gefallen. Einen besonderen Gefallen
+  löst du dort mit **Einlösen** ein.
 - Das **Journal** hält Briefe, Notizen und Bilder, die dir die Spielleitung gegeben hat,
   die Sitzungsnotizen und die **Gruppennotizen**, die die ganze Gruppe gemeinsam
   schreibt. Auf dem Handy hat der Bogen dafür oben einen Brief-Knopf, mit einer Zahl,

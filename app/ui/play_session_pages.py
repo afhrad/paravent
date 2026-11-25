@@ -31,12 +31,12 @@ def session_url(world_id: str) -> str:
     return f"{SESSION_URL}?{urlencode({'world': world_id})}"
 
 
-
 def _received_name(page: Page, ref: str) -> str:
     """An item received, by name; one handed out unidentified as such."""
     if ref == "?":
         return page.t("protocol.unidentified_item")
     return str(name_text(page, ITEM, ref.partition("|")[0]))
+
 
 def happened_lines(page: Page, world_id: str, happened: Happened) -> list[str]:
     """What happened beyond the fights, one Markdown list line each, in the reader's
@@ -87,6 +87,10 @@ def happened_lines(page: Page, world_id: str, happened: Happened) -> list[str]:
         lines.append(t("session.happened.bastion", name=name))
     if happened.downtime:
         lines.append(t.plural("session.happened.downtime", happened.downtime))
+    for whose, kind, mark_name in happened.marks:
+        lines.append(
+            t("session.happened.mark", name=whose, kind=t(f"prestige.kind.{kind}"), mark=mark_name)
+        )
     return [f"- {line}" for line in lines]
 
 

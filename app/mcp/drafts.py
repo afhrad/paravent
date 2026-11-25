@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import json
 from collections.abc import Callable, Sequence
-from typing import TYPE_CHECKING, Annotated, Any
+from typing import TYPE_CHECKING, Annotated, Any, Literal
 
 from mcp.server.mcpserver import Context, MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
@@ -912,6 +912,17 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
             str, Field(description="A faction of the world (world_overview) it serves")
         ] = "",
         renown: Annotated[int, Field(ge=0, le=50, description="Renown with it, each")] = 0,
+        mark_kind: Annotated[
+            Literal[
+                "", "title", "land", "stronghold", "medal", "letter", "favor", "right", "training"
+            ],
+            Field(
+                description="A mark of prestige for each character (the guides' kinds); '' for none"
+            ),
+        ] = "",
+        mark_name: Annotated[
+            str, Field(max_length=160, description="The mark's name: 'Golden Bear of Breland'")
+        ] = "",
     ) -> QuestInfo:
         """A quest for a draft adventure: who gives it, its steps and its reward, from
         the world's books. It stays hidden from the players until the gamemaster shows
@@ -945,6 +956,8 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
                     "coins": str(gold * 100),
                     "items": [QuestItem(ref=f"{i.name}|{i.source}", count=i.count) for i in lines],
                     "renown": str(renown),
+                    "mark_kind": mark_kind,
+                    "mark_name": mark_name,
                 },
             )
             quest = registry.gamestate.quests.upsert(
@@ -969,9 +982,17 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
         items: list[ItemInput] | None = None,
         faction: str | None = None,
         renown: Annotated[int | None, Field(ge=0, le=50)] = None,
+        mark_kind: (
+            Literal[
+                "", "title", "land", "stronghold", "medal", "letter", "favor", "right", "training"
+            ]
+            | None
+        ) = None,
+        mark_name: Annotated[str | None, Field(max_length=160)] = None,
     ) -> QuestInfo:
         """Change a quest of a draft; what you leave out stays as it is. ``items``
-        replaces the reward's items; ``faction`` "" clears it."""
+        replaces the reward's items; ``faction`` "" clears it, ``mark_kind`` "" its mark
+        of prestige."""
         registry = stores()
         with tool_errors():
             quest = registry.quests.get(quest_id)
@@ -1006,6 +1027,8 @@ def register_drafts(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
                     "coins": str(quest.coins if gold is None else gold * 100),
                     "items": reward_items,
                     "renown": str(quest.renown if renown is None else renown),
+                    "mark_kind": quest.mark_kind if mark_kind is None else mark_kind,
+                    "mark_name": quest.mark_name if mark_name is None else mark_name,
                 },
                 quest.id,
             )
@@ -1169,6 +1192,7 @@ def quest_reward(quest: Quest, factions: Sequence[Faction]) -> str:
             f"{quest.coins // 100} gp" if quest.coins else "",
             *(f"{i.ref.partition('|')[0]} ×{i.count}" for i in quest.items),
             f"renown +{quest.renown} with {faction.name}" if faction and quest.renown else "",
+            f"{quest.mark_kind}: {quest.mark_name}" if quest.mark_kind else "",
         )
         if x
     )

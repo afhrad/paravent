@@ -601,6 +601,11 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
                     "protocol.wages_owed", wage_days, days=days, coins=paid_text, owed=owed_text
                 )
             return t.plural("protocol.wages", wage_days, days=days, coins=paid_text)
+        if head in ("mark", "mark_gone"):
+            mark_kind, _, mark_name = rest.partition(":")
+            return t(f"protocol.{head}", kind=t(f"prestige.kind.{mark_kind}"), name=mark_name)
+        if head == "mark_spent":
+            return t("protocol.mark_spent", name=rest)
         if head == "loyalty":
             reason, roll, before, after, follower = [*rest.split(":", 4), "", "", "", ""][:5]
             if reason == "track":

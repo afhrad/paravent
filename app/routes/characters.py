@@ -67,6 +67,8 @@ from app.services.followers import (
 from app.services.intervention import castable, intervention_of
 from app.services.magic_crafting import Crafter, Plan, plan
 from app.services.play import Actor, PlayError, cast_level
+from app.services.prestige import PRINTED as PRESTIGE_PRINTED
+from app.services.prestige import PrestigeError
 from app.services.sheet import Sheet
 from app.services.shop import ShopError, Ware, priced
 from app.services.spellbook import SpellbookError
@@ -1269,18 +1271,15 @@ def _deity_name(character: PlayerCharacter) -> str:
     return character.deity.name if character.deity is not None else ""
 
 
-@router.get("/characters/{character_id}/story", response_class=HTMLResponse)
-async def story(
-    identity: IdentityDep,
-    page: PageDep,
-    characters: CharactersDep,
+def _story(
+    page: Page,
     registry: RegistryDep,
-    character_id: str,
+    character: PlayerCharacter,
+    gamemaster: bool,
+    error: str | None = None,
 ) -> HTMLResponse:
-    """What the character has done and whom it knows."""
-    character = characters.get_for(identity, character_id)
     world = registry.gamestate.worlds.find(character.world_id) if character.world_id else None
-    told = registry.story.of(character, gamemaster=identity.is_gamemaster)
+    told = registry.story.of(character, gamemaster=gamemaster)
     # What the world plays without is left out (app/services/features.py).
     on = features.switched_on(world)
     told = replace(
@@ -1291,6 +1290,11 @@ async def story(
         followers=told.followers if "followers" in on else [],
         bastion=told.bastion if "bastions" in on else None,
     )
+    links = {
+        kind: url
+        for kind, printed in PRESTIGE_PRINTED.items()
+        if (url := registry.heading_url(character.world_id, printed)) is not None
+    }
     return html(
         story_page(
             page,
@@ -1298,8 +1302,65 @@ async def story(
             told,
             progress=progress(character),
             milestone=world is not None and world.milestone,
-        )
+            mark_links=links,
+            error=error,
+        ),
+        status_code=200 if error is None else 422,
     )
+
+
+@router.get("/characters/{character_id}/story", response_class=HTMLResponse)
+async def story(
+    identity: IdentityDep,
+    page: PageDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+) -> HTMLResponse:
+    """What the character has done and whom it knows."""
+    character = characters.get_for(identity, character_id)
+    return _story(page, registry, character, identity.is_gamemaster)
+
+
+@router.post("/characters/{character_id}/story", response_class=HTMLResponse)
+async def change_story(
+    request: Request,
+    identity: IdentityDep,
+    page: PageDep,
+    characters: CharactersDep,
+    registry: RegistryDep,
+    character_id: str,
+) -> Response:
+    """Grant a mark of prestige or take one back (the gamemaster), or call in a favor
+    (its player too)."""
+    form = await request.form()
+    character = characters.get_for(identity, character_id)
+    op = str(form.get("op", ""))
+    who = identity.user.username, identity.user.display_name or identity.user.username
+    service = registry.prestige
+    mark_id = str(form.get("mark", ""))
+    if op in ("grant", "take_back") and not identity.is_gamemaster:
+        raise HTTPException(status_code=403)
+    try:
+        if op == "grant":
+            service.grant(
+                character,
+                str(form.get("kind", "")),
+                str(form.get("name", "")),
+                str(form.get("granted_by", "")),
+                str(form.get("note", "")),
+                by=who[0],
+                by_name=who[1],
+            )
+        elif op == "call_in":
+            service.call_in(character, mark_id, by=who[0], by_name=who[1])
+        elif op == "take_back":
+            service.take_back(character, mark_id, by=who[0], by_name=who[1])
+        else:
+            raise PrestigeError("prestige.error.unknown")
+    except PrestigeError as exc:
+        return _story(page, registry, character, identity.is_gamemaster, error=page.t.error(exc))
+    return redirect(f"/characters/{character_id}/story")
 
 
 @router.get("/characters/{character_id}/followers", response_class=HTMLResponse)

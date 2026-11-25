@@ -151,9 +151,16 @@ Entscheidung des Spielers.
 <!-- feature: quests -->
 - **Aufträge** (von der Sitzungsseite): wer ihn gab, seine Schritte, wer daran arbeitet
   und seine Belohnung. Die Spieler lesen die Aufträge, die du ihnen zeigst, in ihrem
-  Journal. **Erledigt** gibt EP, Gold, Gegenstände und Ansehen aus, einmal. Claude kann
-  Aufträge in seine Entwürfe schreiben; sie bleiben verborgen, bis du sie zeigst.
+  Journal. **Erledigt** gibt EP, Gold, Gegenstände, Ansehen und ein Ehrenzeichen aus,
+  einmal. Claude kann Aufträge in seine Entwürfe schreiben; sie bleiben verborgen, bis du
+  sie zeigst.
 <!-- /feature -->
+- **Ehrenzeichen** (in der **Geschichte** einer Figur): Titel, Landbesitz, Festungen,
+  Orden, Empfehlungsschreiben, besondere Gefallen und Rechte sowie Ausbildung aus den
+  Spielleiterhandbüchern, jeweils mit wer es verlieh und was es erlaubt; die Art verweist
+  auf das, was das Handbuch dazu sagt. Eine Verleihung erfährt die Runde im Protokoll. Ein
+  Gefallen wird einmal eingelöst, von dir oder vom Spieler; Land, eine Festung oder ein
+  Titel lassen sich zurücknehmen.
 <!-- feature: followers -->
 - **Gefolge** (ein Knopf auf dem Bogen): Angestellte mit Tageslohn sowie Gefährten,
   Reittiere und Sidekicks aus deinen Büchern mit eigenen Trefferpunkten. Ein Sidekick

@@ -47,6 +47,7 @@ class Happened:
     received: dict[str, tuple[list[tuple[str, int]], int]] = field(default_factory=dict)
     bastion_turns: list[str] = field(default_factory=list)  # whose bastion took a turn
     downtime: int = 0  # downtime days granted
+    marks: list[tuple[str, str, str]] = field(default_factory=list)  # (whose, kind, name)
 
     @property
     def empty(self) -> bool:
@@ -64,6 +65,7 @@ class Happened:
             or self.received
             or self.bastion_turns
             or self.downtime
+            or self.marks
             or (self.minute_from is not None and self.minute_to != self.minute_from)
         )
 
@@ -165,6 +167,8 @@ class PlaySessionService:
                 out.bastion_turns.append(entry.subject_name or "?")
             elif head == "downtime" and parts[0].isdigit():
                 out.downtime += int(parts[0])
+            elif head == "mark" and len(parts) > 1:
+                out.marks.append((entry.subject_name or "?", parts[0], rest.partition(":")[2]))
             elif entry.kind == EntryKind.EXPERIENCE and entry.amount:
                 name = entry.subject_name or "?"
                 out.xp[name] = out.xp.get(name, 0) + entry.amount

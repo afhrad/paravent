@@ -614,6 +614,14 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         with the faction; players read the quests shown to them in their journal;
         marking one done hands the reward out through the play rules, once; failed or
         taken up again; on the session page and in its note
+  - [x] **Marks of prestige** (2026-11-25, `app/services/prestige.py`, `library/marks.json`):
+        the guides' titles, parcels of land, strongholds (2024: fortifications), medals,
+        letters of recommendation, special favors and rights, and training, granted by the
+        gamemaster on a character's Story page with who granted it and what it allows, the
+        kind linked to its heading in the world's guide; told in the log, the Story's
+        moments and the session note. A favor is called in once (by its player too), a mark
+        taken back by the gamemaster. A quest may carry one as its reward, granted to each
+        character on it when done (from its giver), also through Claude's quest tools
   - [x] **Milestone levelling** (2026-11-16): a world's switch; no XP is awarded after
         fights or quests, nor shown on the sheet
   - [x] **Roll as a settlement** (2026-11-21, `app/services/settlement_gen.py`,

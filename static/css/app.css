@@ -3497,3 +3497,9 @@ dialog.ctx-dialog .panel{ margin:0; }
 .follower-loyalty a{ color:var(--accent-text); }
 .follower-loyalty .inline-form{ flex-basis:auto; }
 .follower-loyalty-to{ width:4.5em; font:inherit; padding:2px 6px; }
+.story-mark{ flex-wrap:wrap; }
+.story-mark .inline-form{ flex-basis:auto; }
+.story-mark-note{ flex-basis:100%; margin:0; }
+.story-grant summary{ cursor:pointer; display:inline-flex; gap:6px; align-items:center; margin-top:8px; }
+.story-grant .follower-form{ margin-top:8px; display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); }
+.story-grant-note{ grid-column:1 / -1; }

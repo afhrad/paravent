@@ -115,6 +115,7 @@ from app.services.play import Actor, PlayError
 from app.services.play_session import PlaySessionService
 from app.services.player_view import Reader, needs_reader, reader_for
 from app.services.players import PlayerService
+from app.services.prestige import PrestigeService
 from app.services.protocol import ProtocolService
 from app.services.protocol_migration import copy_old_logs
 from app.services.protocol_view import ProtocolReader, Viewer
@@ -1980,6 +1981,11 @@ class StoreRegistry:
             standing=self.factions.standing,
             log=self.protocol.since,
         )
+
+    @cached_property
+    def prestige(self) -> PrestigeService:
+        """Characters' marks of prestige (app/services/prestige.py)."""
+        return PrestigeService(self.gamestate, self.protocol)
 
     @cached_property
     def quests(self) -> QuestService:

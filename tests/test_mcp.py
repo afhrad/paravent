@@ -296,7 +296,10 @@ class TestReading:
                 items=[{"name": "Potion of Healing", "count": 2}, {"name": "Nothing Here"}],
                 faction="Lantern Guild",
                 renown=1,
+                mark_kind="medal",
+                mark_name="Bell-Raiser's Badge",
             )
+            assert "medal: Bell-Raiser's Badge" in quest["reward"]
             assert "300 XP each" in quest["reward"] and "Potion of Healing ×2" in quest["reward"]
             assert quest["unresolved"] and "Nothing Here" in quest["unresolved"][0]
             assert "No faction" in await refused(
@@ -311,6 +314,7 @@ class TestReading:
                 mcp, "update_quest", quest_id=quest["id"], gold=80, steps=["Find the bell"]
             )
             assert "80 gp" in changed["reward"] and "300 XP each" in changed["reward"]
+            assert "medal: Bell-Raiser's Badge" in changed["reward"]  # kept when left out
             assert registry.quests.get(quest["id"]).steps[0].text == "Find the bell"
             overview = await call(mcp, "world_overview", world_id=world.id)
             party = await call(mcp, "party", world_id=world.id, character_ids=[lyra])

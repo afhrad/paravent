@@ -139,9 +139,14 @@ player's decision.
 <!-- feature: quests -->
 - **Quests** (from the session page): who gave it, its steps, who is on it and its
   reward. Players read the quests you show them in their journal. **Done** hands out
-  the XP, gold, items and renown, once. Claude can write quests into its drafts; they
-  stay hidden until you show them.
+  the XP, gold, items, renown and a mark of prestige, once. Claude can write quests into
+  its drafts; they stay hidden until you show them.
 <!-- /feature -->
+- **Marks of prestige** (on a character's **Story**): the guides' titles, parcels of land,
+  strongholds, medals, letters of recommendation, special favors and rights, and training,
+  each with who granted it and what it allows; the kind links to what the guide says of
+  it. Granting one tells the table in the log. A favor is called in once, by you or the
+  player; land, a stronghold or a title can be taken back.
 <!-- feature: followers -->
 - **Followers** (a button on the sheet): hirelings paid by the day, and companions,
   mounts and sidekicks from your books with their own hit points. A sidekick may take
