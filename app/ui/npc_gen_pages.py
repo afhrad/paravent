@@ -32,7 +32,7 @@ from htpy import (
 )
 from htpy import input as input_el
 
-from app.models.gamestate import Npc, World
+from app.models.gamestate import Npc, World, shown_source
 from app.services.naming import StyleEntry
 from app.services.npc_gen import GENDERS, GeneratedNpc
 from app.ui.context import Page
@@ -130,7 +130,7 @@ def _row(page: Page, key: str, caption: str, value: Node, source: str, take: boo
             span(class_="npcgen-label")[caption],
             span(class_="npcgen-value")[value],
         ],
-        span(class_="chip-src npcgen-src")[source] if source else None,
+        span(class_="chip-src npcgen-src")[shown_source(source)] if source else None,
         button(
             type="submit",
             name="action",

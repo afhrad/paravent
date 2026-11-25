@@ -58,7 +58,7 @@ from htpy import (
 from htpy import input as input_el
 
 from app.models.base import ABILITIES
-from app.models.gamestate import World
+from app.models.gamestate import World, shown_source
 from app.models.pc import AbilityMethod, PlayerCharacter
 from app.services.chargen import Grant, Offer, Pick, Plan, Planner, Step, Verdict
 from app.services.chargen.backstory import ALL, LifeTable
@@ -449,7 +449,7 @@ def _list_question(
                     disabled=blocked and value.lower() not in chosen,
                 ),
                 span(class_="cg-option-name", title=english if shown != english else None)[shown],
-                span(class_="chip-src")[source] if source else None,
+                span(class_="chip-src")[shown_source(source)] if source else None,
                 reason,
                 span(class_="cg-option-text")[text]
                 if (text := describe(value) if describe else None)
@@ -512,7 +512,7 @@ def _card_question(
                 _choice_input(pick, o.reference, o.reference.lower() in chosen),
                 span(class_="cg-card-head")[
                     b(title=o.name if local else None)[local or o.name],
-                    span(class_="chip-src")[o.source],
+                    span(class_="chip-src")[shown_source(o.source)],
                 ],
                 span(class_="cg-card-en")[o.name] if local and local != o.name else None,
                 body(o),
@@ -1773,7 +1773,9 @@ def _shop_row(v: View, offer: Offer, owned: int, left: int) -> Element:
             if v.page.can_read(category, offer.data)
             else None,
         )[name],
-        span(class_="cg-shop-price mono muted")[f"{_coins_text(page, cost)} · {offer.source}"],
+        span(class_="cg-shop-price mono muted")[
+            f"{_coins_text(page, cost)} · {shown_source(offer.source)}"
+        ],
         span(class_="cg-shop-trade")[
             [
                 trade("-", "−", t("chargen.shop.back", name=name)),
@@ -1939,7 +1941,7 @@ def _spell_question(v: View, pick: Pick, hint: str | None = None) -> Element:
                     if v.page.can_read("spell", offer.data)
                     else None,
                 )[offer.name],
-                span(class_="chip-src")[offer.source],
+                span(class_="chip-src")[shown_source(offer.source)],
                 span(class_="cg-option-text")[
                     " · ".join(facts),
                     span(class_="pill magic cg-tag")["C"] if concentration else None,

@@ -14,7 +14,7 @@ from typing import Any
 
 from htpy import Node, p, span
 
-from app.services.creature_builder import HOMEBREW_SOURCE
+from app.models.gamestate import is_homebrew
 from app.services.references import ReferenceEntry
 from app.services.translations import Coverage, record_key, translation_key
 from app.ui.context import Page
@@ -28,7 +28,7 @@ def table_written(category: str, source: str) -> bool:
     """A design of one of Paravent's builders: written by the table in its own language
     (Claude writes a world's designs in the world's language), so nothing offers to
     translate it and no note calls it English."""
-    return category in BUILT and source == HOMEBREW_SOURCE
+    return category in BUILT and is_homebrew(source)
 
 
 def localized(page: Page, entry: ReferenceEntry) -> tuple[ReferenceEntry, Coverage]:

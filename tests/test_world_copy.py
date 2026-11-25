@@ -323,7 +323,8 @@ def test_designs_copy_and_move_to_another_world(registry: StoreRegistry) -> None
     copied = store.item_designs.get(done.ids[ring.id])
     assert copied.world_id == t["ash"] and copied.name == "Ember Ring (2)"  # one name space
     registry.world_copy.move("spell_design", [spell.id], t["ash"])
-    assert store.spell_designs.get(spell.id).world_id == t["ash"]  # moved in place
+    moved = store.spell_designs.get(spell.id)
+    assert moved.world_id == t["ash"] and moved.name == "Frost Lance"  # in place, its name kept
     done = registry.world_copy.copy("background_design", [background.id], t["ash"])
     fresh = store.background_designs.get(done.ids[background.id])
     assert fresh.published_hash is None and fresh.name == "Ferryman (2)"

@@ -7,7 +7,7 @@ from typing import Any
 import httpx
 import pytest
 
-from app.models.gamestate import EncounterMonster
+from app.models.gamestate import EncounterMonster, world_homebrew
 from app.services.creature_pictures import design_ref
 from app.services.media import MediaError
 from app.store.registry import StoreRegistry
@@ -268,7 +268,7 @@ class TestInAnAdventure:
         await raw.post(f"/gm/adventures/{draft['id']}/accept")
         assert registry.creatures.get(hulk["id"]).drafted_by is None
         assert registry.compendium.find("monster", "Moorhulk", "Homebrew") is not None
-        assert registry.worlds.find(world_id).source_set.allows("Homebrew")
+        assert registry.worlds.find(world_id).source_set.allows(world_homebrew(world_id))
 
 
 class TestForAGermanTable:

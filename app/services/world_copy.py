@@ -386,8 +386,11 @@ class WorldCopy:
 
     # -- planning ---------------------------------------------------------------------
 
-    def plan(self, bundle: Bundle, target_id: str | None, *, bring: bool = True) -> Plan:
-        """What writing the bundle into ``target_id`` would do (None: into a file)."""
+    def plan(
+        self, bundle: Bundle, target_id: str | None, *, bring: bool = True, moving: bool = False
+    ) -> Plan:
+        """What writing the bundle into ``target_id`` would do (None: into a file);
+        ``moving`` a design keeps its name, which the table's one name space holds."""
         target = self._store.worlds.find(target_id) if target_id else None
         if target_id and target is None:
             raise WorldCopyError("copy.error.no_world")
@@ -407,19 +410,22 @@ class WorldCopy:
             else:
                 plan.brought.append(entry.piece)
         if target is not None:
-            plan.renamed = self._renames(bundle, target.id)
+            plan.renamed = self._renames(bundle, target.id, moving)
             reused = {p.id for p in plan.reused}
             plan.outside = _outside(_carried(bundle, bring, reused), target)
         return plan
 
-    def _renames(self, bundle: Bundle, target_id: str) -> dict[str, str]:
+    def _renames(self, bundle: Bundle, target_id: str, moving: bool = False) -> dict[str, str]:
         """The names the chosen pieces take where the target (or another chosen piece)
         has theirs."""
         renamed: dict[str, str] = {}
         taken_by_kind: dict[str, set[str]] = {}
         for entry in bundle.mains:
             if entry.kind not in taken_by_kind:
-                taken_by_kind[entry.kind] = self._taken(entry.kind, target_id)
+                taken = self._taken(entry.kind, target_id)
+                if moving and entry.kind in DESIGNS:  # a moved design leaves its name free
+                    taken -= {e.name.casefold() for e in bundle.mains if e.kind == entry.kind}
+                taken_by_kind[entry.kind] = taken
             taken = taken_by_kind[entry.kind]
             name = entry.name
             if name.casefold() in taken:
@@ -515,7 +521,7 @@ class WorldCopy:
         self, kind: str, ids: Sequence[str], target_id: str, *, bring: bool
     ) -> Copied:
         bundle = self.bundle(kind, ids)
-        plan = self.plan(bundle, target_id, bring=bring)
+        plan = self.plan(bundle, target_id, bring=bring, moving=True)
         if plan.target is None:
             raise WorldCopyError("copy.error.no_world")
         done = Copied(plan, {}, moved=True)

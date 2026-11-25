@@ -25,8 +25,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from app.models.gamestate import BackgroundDesign, BackgroundItem, SourceSet
-from app.services import design_revisions
+from app.models.gamestate import BackgroundDesign, BackgroundItem, world_homebrew
+from app.services import design_revisions, homebrew
 from app.services.creature_builder import entries_text, text_entries
 from app.services.i18n import Translatable
 from app.store.gamestate import GameStateStore
@@ -135,7 +135,7 @@ def _summary(design: BackgroundDesign, words: Words) -> dict[str, Any]:
 
 def background_of(design: BackgroundDesign, words: Words) -> dict[str, Any]:
     """The design as a 5eTools background, its summary in ``words``' language."""
-    out: dict[str, Any] = {"name": design.name, "source": HOMEBREW_SOURCE}
+    out: dict[str, Any] = {"name": design.name, "source": world_homebrew(design.world_id)}
     if design.edition == "one":
         out["edition"] = "one"
         if len(design.abilities) == 3:
@@ -429,13 +429,10 @@ class BackgroundBuilder:
             self.homebrew_file,
             {
                 "_meta": {
-                    "sources": [
-                        {
-                            "json": HOMEBREW_SOURCE,
-                            "abbreviation": HOMEBREW_SOURCE,
-                            "full": "Homebrew (Paravent)",
-                        }
-                    ],
+                    "sources": homebrew.meta_sources(
+                    {world_homebrew(d.world_id) for d in designs}, "Homebrew (Paravent)"
+                ),
+                homebrew.PER_WORLD: True,
                     "note": "Written by Paravent from library/background_designs.json; "
                     "edits here are replaced on the next publish.",
                 },
@@ -446,16 +443,9 @@ class BackgroundBuilder:
             self._store.background_designs.update(
                 design.id, published_at=now, published_hash=self._hash(design)
             )
-        worlds: builtins.list[str] = []
-        for world_id in {d.world_id for d in designs if d.world_id}:
-            world = self._store.worlds.find(world_id)
-            if world is None or world.source_set.allows(HOMEBREW_SOURCE):
-                continue
-            sources = [*world.source_set.sources, HOMEBREW_SOURCE]
-            self._store.worlds.update(world.id, source_set=SourceSet(sources=sources))
-            worlds.append(world.name)
+        worlds = homebrew.declare(self._store, {d.world_id for d in designs if d.world_id})
         self._reload()
-        return Published(len(designs), sorted(worlds))
+        return Published(len(designs), worlds)
 
 
 __all__ = [

@@ -103,24 +103,60 @@ EDITION_CLASSIC = "classic"
 EDITION_ONE = "one"
 
 
+HOMEBREW = "Homebrew"
+_WORLD_HOMEBREW = "homebrew-"
+
+
+def world_homebrew(world_id: str | None) -> str:
+    """The source a world's builder designs publish under, ``Homebrew-<world id>``;
+    plain ``Homebrew`` for a design of no world."""
+    return f"{HOMEBREW}-{world_id}" if world_id else HOMEBREW
+
+
+def is_world_homebrew(source: str | None) -> bool:
+    """True for one world's own homebrew source (``Homebrew-<world id>``)."""
+    return bool(source) and str(source).lower().startswith(_WORLD_HOMEBREW)
+
+
+def is_homebrew(source: str | None) -> bool:
+    """True for the table's own designs, of a world or of none."""
+    return bool(source) and (str(source).lower() == HOMEBREW.lower() or is_world_homebrew(source))
+
+
+def shown_source(source: str) -> str:
+    """A source as the page prints it: a world's own designs read "Homebrew"."""
+    return HOMEBREW if is_world_homebrew(source) else source
+
+
 class SourceSet(GameStateModel):
     """Which books a world draws on.
 
     An **empty set means "everything imported"**. The tool has to work before anyone has
     configured it: a new user with a fresh corpus gets every entry resolvable, and
     narrows later if they want the correctness boundary that a declared set provides.
+
+    A world's own homebrew source (``Homebrew-<world id>``, :func:`world_homebrew`) is
+    legal only where declared, and narrows nothing: a world that declares no books but
+    its own homebrew still reads every book, and never another world's designs.
     """
 
     sources: list[str] = Field(default_factory=list)
 
     def __len__(self) -> int:
-        """How many sources are declared; 0 means unrestricted."""
+        """How many sources are declared, a world's own homebrew among them (callers
+        write ``source_set or SourceSet()``); ``is_unrestricted`` says whether any book
+        is."""
         return len(self.sources)
 
     @property
+    def books(self) -> list[str]:
+        """The declared sources but a world's own homebrew."""
+        return [s for s in self.sources if not is_world_homebrew(s)]
+
+    @property
     def is_unrestricted(self) -> bool:
-        """True when nothing is declared, so every imported source is legal."""
-        return not self.sources
+        """True when no book is declared, so every imported book is legal."""
+        return not self.books
 
     @property
     def normalized(self) -> frozenset[str]:
@@ -136,17 +172,23 @@ class SourceSet(GameStateModel):
         (documentation/DESIGN.md §7). Sorted so that declaration order cannot produce
         two keys for one set.
         """
-        return "*" if self.is_unrestricted else "|".join(sorted(self.normalized))
+        if not self.sources:
+            return "*"
+        own = sorted(s for s in self.normalized if is_world_homebrew(s))
+        return "|".join(["*", *own] if self.is_unrestricted else sorted(self.normalized))
 
     def allows(self, source: str | None) -> bool:
         """True when ``source`` is legal at this table.
 
         A missing source is allowed: some corpus records carry none, and excluding them
-        would hide content for no stated reason.
+        would hide content for no stated reason. A world's own homebrew only where it
+        is declared.
         """
-        if self.is_unrestricted or source is None:
+        if source is None:
             return True
-        return source.lower() in self.normalized
+        if is_world_homebrew(source):
+            return source.lower() in self.normalized
+        return self.is_unrestricted or source.lower() in self.normalized
 
     @property
     def editions(self) -> set[str]:
@@ -162,8 +204,10 @@ class SourceSet(GameStateModel):
         found: set[str] = set()
         one = {s.lower() for s in ONE_EDITION_SOURCES}
         for source in self.normalized:
+            if is_homebrew(source):  # the table's designs belong to no edition
+                continue
             found.add(EDITION_ONE if source in one else EDITION_CLASSIC)
-        return found
+        return found or {EDITION_CLASSIC, EDITION_ONE}
 
     @property
     def is_single_edition(self) -> bool:
@@ -1838,6 +1882,11 @@ class Knowledge(Record):
 
 
 __all__ = [
+    "HOMEBREW",
+    "is_homebrew",
+    "is_world_homebrew",
+    "shown_source",
+    "world_homebrew",
     "TrashedObject",
     "Adventure",
     "Combat",

@@ -264,5 +264,5 @@ class _EmptyCatalog:
     def get(self, code: str) -> None:
         return None
 
-    def grouped(self) -> list[Any]:
+    def grouped(self, world_id: str | None = None) -> list[Any]:
         return []

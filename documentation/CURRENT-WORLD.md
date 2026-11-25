@@ -250,8 +250,8 @@ leaves out of a creature comes from the book creature it is based on.
   label becomes its "Shown as" without its number ("Skelett 1", "Skelett 2" → 2 × Skeleton
   shown as "Skelett"); one that is not an enemy fights on the characters' side; one pointing
   at an NPC brings that NPC's statblock under its name; player characters are left out.
-- **Home-made creatures** become designs (`Homebrew`, published at the end, the world's
-  books gaining Homebrew). Where a book creature's name stands within the name ("Moorleiche
+- **Home-made creatures** become designs (the world's homebrew, published at the end, the world's
+  books gaining it). Where a book creature's name stands within the name ("Moorleiche
   (Zombie)", "Catelyn, Drow Elite Warrior", "Murloc Knight") the design begins from it, so
   saves, skills, senses, defences or traits the backup does not state are the book's; what
   it states wins. Without one, what it leaves out stays empty. The app's numbers are

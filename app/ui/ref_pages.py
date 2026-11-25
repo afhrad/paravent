@@ -41,6 +41,7 @@ from htpy import (
 from htpy import input as input_el
 
 from app.models.compendium import score_of, score_text, subrace_name
+from app.models.gamestate import shown_source
 from app.services.backlinks import Backlinks, Owner
 from app.services.references import Printing, ReferenceEntry
 from app.services.sheet import spell_view
@@ -1137,7 +1138,7 @@ def _printings(page: Page, entry: ReferenceEntry, printings: Sequence[Printing])
     for index, printing in enumerate(printings):
         if index:
             links.append(", ")
-        links.append(a(href=_printing_url(entry, printing))[printing.source])
+        links.append(a(href=_printing_url(entry, printing))[shown_source(printing.source)])
     return p(class_="ref-printings")[icon("book-open", "xs"), span[t(key)], " ", links]
 
 
@@ -1161,7 +1162,7 @@ def preview_card(
             token(entry.token, "sm") if entry.token else icon(glyph, "sm"),
             b(class_="tip-name")[t.term(entry.category, entry.name) or entry.name],
             span(class_="tip-en muted")[entry.name] if t.term(entry.category, entry.name) else None,
-            span(class_="tip-source mono")[entry.source],
+            span(class_="tip-source mono")[shown_source(entry.source)],
         ],
         div(class_="tip-body")[_preview_body(page, entry, ctx), coverage_note(page, coverage)],
         div(class_="tip-foot")[
@@ -1209,7 +1210,7 @@ def statblock(page: Page, entry: ReferenceEntry, ctx: RenderContext) -> Element:
     kind = t(CATEGORY_KEY.get(entry.category, "ref.kind.rule"))
     if entry.category == "monster" and data.get("type") == "object":
         kind = t("ref.kind.object")
-    where = f"{entry.source}{' p. ' + str(data['page']) if data.get('page') else ''}"
+    where = f"{shown_source(entry.source)}{' p. ' + str(data['page']) if data.get('page') else ''}"
     cr = coerce_cr(data.get("cr")) if entry.category == "monster" else None
     return div(class_=f"panel statblock ref-{entry.category}")[
         header(
@@ -1395,7 +1396,9 @@ def _backlinks(page: Page, links: Backlinks, world_id: str | None) -> Node:
             href = f"{owner.url}?{urlencode({'world': world_id})}"
         return li[
             a(href=href, class_="ref", title=owner.name if shown != owner.name else None)[shown],
-            small(class_="bl-src")[" · ".join(x for x in (owner.context, owner.source) if x)],
+            small(class_="bl-src")[
+                " · ".join(x for x in (owner.context, shown_source(owner.source)) if x)
+            ],
         ]
 
     def library_item(link: Any) -> Element:

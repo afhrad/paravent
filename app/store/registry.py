@@ -33,10 +33,11 @@ from app.models.gamestate import (
     FactionRank,
     World,
     WorldClock,
+    is_homebrew,
 )
 from app.models.pc import PlayerCharacter
 from app.models.protocol import EntryKind, ProtocolEntry
-from app.services import features, media, polymorph
+from app.services import features, homebrew, media, polymorph
 from app.services.activities import Activities, Offered, rarity_of
 from app.services.adventures import AdventureService
 from app.services.afflictions import AfflictionService
@@ -64,7 +65,6 @@ from app.services.contacts import ContactService
 from app.services.corpus_check import CorpusHealth, corpus_version
 from app.services.corpus_import import CorpusImport, CorpusImports
 from app.services.creature_builder import (
-    HOMEBREW_SOURCE,
     CreatureMath,
     CreatureService,
     Wording,
@@ -465,7 +465,7 @@ class StoreRegistry:
     ) -> Token:
         """A creature's token: a builder creature's own upload, else 5eTools's, else the
         creature disc."""
-        if source == HOMEBREW_SOURCE:
+        if is_homebrew(source):
             design = self.creatures.named(name, world_id) or self.creatures.named(name)
             if design is not None:
                 return self.design_token(design)
@@ -2309,7 +2309,7 @@ class StoreRegistry:
                 world_id, "encounter", old, new, within
             ),
             unpublished=lambda name, source: (
-                self.creatures.statblock_named(name) if source == HOMEBREW_SOURCE else None
+                self.creatures.statblock_named(name) if is_homebrew(source) else None
             ),
         )
 
@@ -2727,7 +2727,38 @@ class StoreRegistry:
         adopted = self.characters.adopt_legacy_owners()
         if adopted:
             logger.info("Rewrote the owner of %d character file(s) to a username", adopted)
+        if self.restamp_homebrew():
+            report = self._load_corpus()
+            self.lookups.load(*self.compendium_roots)
         return report
+
+    def restamp_homebrew(self) -> bool:
+        """Give every builder design's homebrew entry its world's source: once for files
+        written before each world had its own (2026-11-25, app/services/homebrew.py),
+        and after a design moved to another world. True when a file changed."""
+        files = (
+            (self.creatures.homebrew_file, "monster", self.gamestate.creatures),
+            (self.item_builder.homebrew_file, "item", self.gamestate.item_designs),
+            (self.spell_builder.spell_file, "spell", self.gamestate.spell_designs),
+            (
+                self.background_builder.homebrew_file,
+                "background",
+                self.gamestate.background_designs,
+            ),
+        )
+        changed = False
+        for path, key, collection in files:
+            if not path.is_file():
+                continue
+            world_of = homebrew.finder(
+                {d.name.casefold(): d.world_id for d in collection.list() if not d.revision_of}
+            )
+            before = path.stat().st_mtime_ns
+            homebrew.declare(self.gamestate, homebrew.restamp(path, key, world_of))
+            if key == "spell" and homebrew.restamp_lookup(self.spell_builder.lookup_file, world_of):
+                changed = True
+            changed = changed or path.stat().st_mtime_ns != before
+        return changed
 
     def reload_compendium(self, changed: set[Path] | None = None) -> LoadReport:
         """Re-read the compendium after a file change.

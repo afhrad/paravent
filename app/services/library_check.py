@@ -24,7 +24,7 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from typing import Any
 
-from app.models.gamestate import Scope
+from app.models.gamestate import Scope, is_world_homebrew
 from app.services.corpus_check import EntityTags, Kind, _Findings
 from app.services.translation_targets import Target
 
@@ -137,7 +137,8 @@ class LibraryCheck:
 
         def declared(subject: str, sources: Iterable[str], href: str) -> None:
             for source in sources:
-                if source.lower() not in known:
+                # A world's own homebrew is there once a design of it is published.
+                if source.lower() not in known and not is_world_homebrew(source):
                     self._found.add(Kind.LIBRARY_BOOK, subject=subject, detail=source, href=href)
 
         for world in stores.gamestate.worlds.list():

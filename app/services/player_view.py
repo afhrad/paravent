@@ -14,7 +14,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from app.models.gamestate import World
+from app.models.gamestate import World, is_world_homebrew
 from app.models.pc import ChosenOption, PlayerCharacter
 from app.services.auth import Identity
 
@@ -70,7 +70,11 @@ def default_player_book(code: str, group: str) -> bool:
 def player_books(world: World, groups: Mapping[str, str]) -> frozenset[str]:
     """A world's player books (upper case). ``groups`` is every loaded book's picker group
     by code; a world declaring nothing draws on all of them."""
-    declared = [s.upper() for s in world.source_set.sources] or [c.upper() for c in groups]
+    declared = [s.upper() for s in world.source_set.books] or [
+        c.upper() for c in groups if not is_world_homebrew(c)
+    ]
+    # The world's own designs, never another world's (app/services/homebrew.py).
+    declared += [s.upper() for s in world.source_set.sources if is_world_homebrew(s)]
     if world.player_sources is not None:
         ticked = {s.upper() for s in world.player_sources}
         return frozenset(c for c in declared if c in ticked)

@@ -207,7 +207,8 @@ Magische Gegenstände gehen genauso im **Gegenstandsbaukasten** (Benutzermenü):
 Erbin des ertrunkenen Priesters, selten, mit dem sie unter Wasser atmen kann" wird ein
 Entwurf, in dem steht, was der Bogen zählt (Boni, Resistenzen, Attributswerte, Ladungen, die
 Zauber, die er wirkt), und der Rest in seinem Text. Öffne ihn unter *Gegenstandsbaukasten* und
-drücke **Annehmen und veröffentlichen**, um ihn in deine Bücher aufzunehmen. Soll Claude einen
+drücke **Annehmen und veröffentlichen**, um ihn in die Bücher deiner Welt aufzunehmen; andere
+Welten sehen ihn nie. Soll Claude einen
 schon angenommenen Gegenstand, Zauber oder Hintergrund ändern, schreibt es eine
 Überarbeitung daneben, die nichts ändert, bis du auch sie annimmst.
 

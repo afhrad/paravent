@@ -35,8 +35,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from app.models.gamestate import SourceSet, SpellDesign
-from app.services import design_revisions
+from app.models.gamestate import SpellDesign, world_homebrew
+from app.services import design_revisions, homebrew
 from app.services.creature_builder import entries_text, text_entries
 from app.services.i18n import Translatable
 from app.services.text import first_dice
@@ -184,7 +184,7 @@ def spell_of(design: SpellDesign, words: Words) -> dict[str, Any]:
     """The design as a 5eTools spell, its sentences in ``words``' language."""
     out: dict[str, Any] = {
         "name": design.name,
-        "source": HOMEBREW_SOURCE,
+        "source": world_homebrew(design.world_id),
         "level": design.level,
         "school": design.school,
         "time": [{"number": design.time_number, "unit": design.time_unit}],
@@ -492,42 +492,33 @@ class SpellBuilder:
             self._ensure(self.spell_file),
             {
                 "_meta": {
-                    "sources": [
-                        {
-                            "json": HOMEBREW_SOURCE,
-                            "abbreviation": HOMEBREW_SOURCE,
-                            "full": "Homebrew (Paravent)",
-                        }
-                    ],
+                    "sources": homebrew.meta_sources(
+                    {world_homebrew(d.world_id) for d in designs}, "Homebrew (Paravent)"
+                ),
+                homebrew.PER_WORLD: True,
                     "note": "Written by Paravent from library/spell_designs.json; edits here "
                     "are replaced on the next publish.",
                 },
                 "spell": [self.spell(d) for d in designs],
             },
         )
-        lists: dict[str, Any] = {}
+        lists: dict[str, Any] = {}  # by the spell's own source, as 5eTools keys it
         for design in designs:
             by_source: dict[str, dict[str, bool]] = {}
             for ref in design.classes:
                 cls, _, source = ref.partition("|")
                 by_source.setdefault(source.strip(), {})[cls.strip()] = True
             if by_source:
-                lists[design.name.lower()] = {"class": by_source}
-        write_json(self._ensure(self.lookup_file), {HOMEBREW_SOURCE: lists})
+                own = lists.setdefault(world_homebrew(design.world_id), {})
+                own[design.name.lower()] = {"class": by_source}
+        write_json(self._ensure(self.lookup_file), lists)
         for design in designs:
             self._store.spell_designs.update(
                 design.id, published_at=now, published_hash=self._hash(design)
             )
-        worlds: builtins.list[str] = []
-        for world_id in {d.world_id for d in designs if d.world_id}:
-            world = self._store.worlds.find(world_id)
-            if world is None or world.source_set.allows(HOMEBREW_SOURCE):
-                continue
-            sources = [*world.source_set.sources, HOMEBREW_SOURCE]
-            self._store.worlds.update(world.id, source_set=SourceSet(sources=sources))
-            worlds.append(world.name)
+        worlds = homebrew.declare(self._store, {d.world_id for d in designs if d.world_id})
         self._reload()
-        return Published(len(designs), sorted(worlds))
+        return Published(len(designs), worlds)
 
     @staticmethod
     def _ensure(path: Path) -> Path:

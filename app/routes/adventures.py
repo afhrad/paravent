@@ -29,7 +29,7 @@ from fastapi.responses import HTMLResponse, Response, StreamingResponse
 from htpy import Node
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
-from app.models.gamestate import Adventure, Scope, SourceSet
+from app.models.gamestate import Adventure, Scope, SourceSet, is_homebrew
 from app.routes.auth import back_with_undo, html, redirect, safe_next
 from app.services import image_effects, scope
 from app.services.adventures import (
@@ -39,7 +39,6 @@ from app.services.adventures import (
     EditConflict,
     text_version,
 )
-from app.services.creature_builder import HOMEBREW_SOURCE
 from app.services.difficulty import rules_for
 from app.services.encounters import EncounterError
 from app.services.events import revision_stream
@@ -339,7 +338,7 @@ def _own_creatures(registry: StoreRegistry, adventure: Adventure) -> list[str]:
         m.name
         for e in registry.encounters.within(here)
         for m in e.monsters
-        if m.source == HOMEBREW_SOURCE
+        if is_homebrew(m.source)
     ]
 
 

@@ -18,7 +18,7 @@ from starlette.datastructures import UploadFile
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.routes.auth import html
-from app.services.world_copy import KINDS, SUFFIX, WorldCopyError
+from app.services.world_copy import DESIGNS, KINDS, SUFFIX, WorldCopyError
 from app.store.prose import slugify
 from app.ui.copy_links import COPY_URL, FILE_URL, IMPORT_URL
 from app.ui.world_copy_pages import copied_page, copy_page, import_page, piece_url
@@ -76,7 +76,7 @@ async def choose(
         bundle = copier.bundle(kind, ids)
         chosen = None if mode == "file" else (target or (worlds[0].id if worlds else None))
         if mode == "file" or chosen:
-            plan = copier.plan(bundle, chosen, bring=keep)
+            plan = copier.plan(bundle, chosen, bring=keep, moving=mode == "move")
     except WorldCopyError as exc:
         if exc.key == "copy.error.no_piece":
             raise HTTPException(status_code=404) from exc
@@ -116,6 +116,8 @@ async def make(
     try:
         if mode == "move":
             done = copier.move(kind, ids, target, bring=bool(bring))
+            if kind in DESIGNS and registry.restamp_homebrew():
+                registry.reload_compendium()  # its homebrew entry follows it to its world
         else:
             done = copier.copy(kind, ids, target, bring=bool(bring))
     except WorldCopyError as exc:

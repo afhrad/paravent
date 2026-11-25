@@ -61,6 +61,7 @@ from app.models.gamestate import (
     SourceSet,
     Treasure,
     World,
+    shown_source,
 )
 from app.services import image_effects
 from app.services import scope as scopes
@@ -199,7 +200,7 @@ def _fold(
             span(class_=f"res-ico {tone}".strip())[icon(glyph)],
             b(class_="md-fold-name")[shown],
             span(class_="md-embed-kind")[page.t(CATEGORY_KEY.get(entry.category, "ref.kind.rule"))],
-            span(class_="res-src mono")[entry.source],
+            span(class_="res-src mono")[shown_source(entry.source)],
             a(
                 href=ref_url(entry.category, entry.name, entry.source, world_id),
                 class_="md-fold-open",
@@ -518,8 +519,8 @@ def world_page(
     page the top bar's Adventures leads to (documentation/CURRENT-WORLD.md §5)."""
     t = page.t
     book_count = (
-        t("worlds.books_n", n=len(world.source_set))
-        if len(world.source_set)
+        t("worlds.books_n", n=len(world.source_set.books))
+        if world.source_set.books
         else t("worlds.all_books")
     )
     rows = [

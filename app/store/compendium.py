@@ -68,7 +68,7 @@ from app.models.compendium import (
     Vehicle,
     VehicleUpgrade,
 )
-from app.store.copyresolver import CopyResolver, composite_key, entry_key
+from app.store.copyresolver import CopyResolver, composite_key, entry_key, homebrew_alias
 from app.store.errors import CopyResolutionError, EntryNotFound
 from app.store.item_entries import ItemEntries, read_templates
 from app.store.jsonfile import iter_json_files, read_json
@@ -517,6 +517,9 @@ class CompendiumStore:
         entries = self._require(category)
         model = entries.get(key.lower())
         if model is None:
+            name, _, source = key.rpartition("|")
+            model = homebrew_alias(entries, name, source) if name else None
+        if model is None:
             raise EntryNotFound(category, key)
         return model
 
@@ -529,7 +532,8 @@ class CompendiumStore:
         """
         entries = self._require(category)
         if source:
-            return entries.get(entry_key(name, source))
+            found = entries.get(entry_key(name, source))
+            return found if found is not None else homebrew_alias(entries, name, source)
         needle = name.lower()
         for key, model in entries.items():
             if key.split("|", 1)[0] == needle:

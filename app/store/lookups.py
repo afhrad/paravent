@@ -56,9 +56,18 @@ class SpellSourceLookup:
     def entry(self, spell_name: str, spell_source: str) -> dict[str, Any] | None:
         """The raw membership record for one spell, or None when absent."""
         spells = self._by_source.get(spell_source.lower())
-        if not spells:
-            return None
-        found = spells.get(spell_name.lower())
+        found = spells.get(spell_name.lower()) if spells else None
+        if found is None and spell_source.lower().startswith("homebrew"):
+            # A builder spell, named "Homebrew" or by a world it moved from, is listed
+            # under its world's own source (app/services/homebrew.py).
+            found = next(
+                (
+                    spells[spell_name.lower()]
+                    for source, spells in self._by_source.items()
+                    if source.startswith("homebrew") and spell_name.lower() in spells
+                ),
+                None,
+            )
         return found if isinstance(found, dict) else None
 
     def classes_for(

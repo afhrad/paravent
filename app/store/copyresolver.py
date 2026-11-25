@@ -42,6 +42,7 @@ import copy as copy_module
 import json
 import math
 import re
+from collections.abc import Mapping
 from functools import lru_cache
 from typing import Any
 
@@ -71,6 +72,18 @@ _UNPRESERVED_KEYS = frozenset(
 def entry_key(name: str, source: str) -> str:
     """Build the case-insensitive index key for an entry."""
     return f"{name.lower()}|{source.lower()}"
+
+
+def homebrew_alias(entries: Mapping[str, Any], name: str, source: str) -> Any | None:
+    """``Name|Homebrew`` names a builder design wherever it lives: a world's designs
+    publish under the world's own source (``Homebrew-<world id>``), and design names
+    are unique across the table, so the plain source finds the one entry; so does a
+    world's source the design has since moved from. Whether the world reading it may
+    is the source set's call."""
+    if not source.lower().startswith("homebrew"):
+        return None
+    prefix = f"{name.lower()}|homebrew"
+    return next((m for k, m in entries.items() if k.startswith(prefix)), None)
 
 
 # Fields that discriminate entries sharing a ``(name, source)``. Subclasses and their

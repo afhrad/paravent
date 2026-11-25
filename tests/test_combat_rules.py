@@ -275,7 +275,7 @@ class _Books:
     def get(self, code: str) -> None:
         return None
 
-    def grouped(self) -> list[tuple[str, list[object]]]:
+    def grouped(self, world_id: str | None = None) -> list[tuple[str, list[object]]]:
         return []
 
 

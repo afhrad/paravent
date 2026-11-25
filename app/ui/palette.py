@@ -26,6 +26,7 @@ from urllib.parse import urlencode
 from htpy import Element, Node, a, b, button, dialog, div, form, label, li, p, span, ul
 from htpy import input as input_el
 
+from app.models.gamestate import shown_source
 from app.services.search import GROUP_KEYS, Row, SearchHit, SearchResult
 from app.store.projections import (
     ITEM_KIND_NAMES,
@@ -224,7 +225,7 @@ def _hit(
         ],
         div(class_="rmeta")[
             pill,
-            span(class_="res-src mono")[row.source],
+            span(class_="res-src mono")[shown_source(row.source)],
             span(class_="res-add", aria_hidden="true")[icon("plus")]
             if target.pick_action
             else None,
@@ -498,7 +499,7 @@ def suggestions(
                     span(class_="rsub")[line],
                 ],
                 pill,
-                span(class_="res-src mono")[row.source] if row.source else None,
+                span(class_="res-src mono")[shown_source(row.source)] if row.source else None,
             ]
         )
     kind, name = create

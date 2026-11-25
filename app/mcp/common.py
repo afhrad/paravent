@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING
 from mcp.server.mcpserver.exceptions import ToolError
 
 from app.mcp.models import MonsterInput, RatedMonster, RatingAnswer
-from app.models.gamestate import EncounterMonster, World
+from app.models.gamestate import EncounterMonster, World, is_homebrew
 from app.services.adventures import AdventureNotFound, EditConflict
 from app.services.creature_builder import HOMEBREW_SOURCE
 from app.services.difficulty import Rating
@@ -69,7 +69,7 @@ def resolve_monsters(
         found = resolver.resolve_parts("monster", wanted.name, wanted.source, world.source_set)
         design = (
             registry.creatures.named(wanted.name, world.id)
-            if found.entry is None and (wanted.source or HOMEBREW_SOURCE) == HOMEBREW_SOURCE
+            if found.entry is None and is_homebrew(wanted.source or HOMEBREW_SOURCE)
             else None
         )
         if design is not None:  # the world's own creature, not yet published (MCP.md §10)

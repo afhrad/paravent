@@ -16,7 +16,7 @@ from PIL import Image
 
 from app.config import Settings
 from app.main import create_app
-from app.models.gamestate import Role
+from app.models.gamestate import Role, world_homebrew
 from app.services.gm5_backup import BackupError, read_backup
 from app.services.gm5_import import Gm5Import, Gm5Uploads, tag_text
 from app.store.registry import StoreRegistry
@@ -188,7 +188,7 @@ async def test_a_campaign_becomes_a_new_world(gm: AsyncClient, registry: StoreRe
 
     world = registry.table.world()
     assert world is not None and world.name == "Grey Reed"
-    assert world.source_set.sources == ["XPHB", "XMM", "XDMG", "Homebrew"]
+    assert world.source_set.sources == ["XPHB", "XMM", "XDMG", world_homebrew(world.id)]
     # The campaign is one adventure; its Game Master 5e adventure's notes and scenes are
     # chapters of it, named after that adventure.
     (adventure,) = registry.adventures.adventures(world.id)

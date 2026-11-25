@@ -44,8 +44,9 @@ from app.models.gamestate import (
     CreatureBlock,
     CreatureDesign,
     CreatureFeature,
-    SourceSet,
+    world_homebrew,
 )
+from app.services import homebrew
 from app.services.i18n import Translatable, Translator
 from app.services.translation_targets import BUILDER_FIELDS, builder_key
 from app.services.units import UnitFormat, units_for_language
@@ -555,7 +556,7 @@ class CreatureMath:
         )
         out: dict[str, Any] = {
             "name": design.name,
-            "source": HOMEBREW_SOURCE,
+            "source": world_homebrew(design.world_id),
             "size": [design.size],
             "type": {"type": design.type, "tags": design.type_tags}
             if design.type_tags
@@ -1114,13 +1115,11 @@ class CreatureService:
         now = datetime.now(UTC)
         data = {
             "_meta": {
-                "sources": [
-                    {
-                        "json": HOMEBREW_SOURCE,
-                        "abbreviation": HOMEBREW_SOURCE,
-                        "full": "Homebrew (Paravent creature builder)",
-                    }
-                ],
+                "sources": homebrew.meta_sources(
+                    {world_homebrew(d.world_id) for d in designs},
+                    "Homebrew (Paravent creature builder)",
+                ),
+                homebrew.PER_WORLD: True,
                 "note": "Written by Paravent from library/creatures.json; edits here are "
                 "replaced on the next publish.",
             },
@@ -1132,16 +1131,9 @@ class CreatureService:
             self._store.creatures.update(
                 design.id, published_at=now, published_hash=self._hash(design)
             )
-        worlds: list[str] = []
-        for world_id in {d.world_id for d in designs if d.world_id}:
-            world = self._store.worlds.find(world_id)
-            if world is None or world.source_set.allows(HOMEBREW_SOURCE):
-                continue
-            sources = [*world.source_set.sources, HOMEBREW_SOURCE]
-            self._store.worlds.update(world.id, source_set=SourceSet(sources=sources))
-            worlds.append(world.name)
+        worlds = homebrew.declare(self._store, {d.world_id for d in designs if d.world_id})
         self._reload()
-        return Published(len(designs), sorted(worlds))
+        return Published(len(designs), worlds)
 
     def add_feature(
         self, design: CreatureDesign, name: str, value: int | None, wording: Wording | None = None

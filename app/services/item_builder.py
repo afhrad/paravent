@@ -32,8 +32,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, get_args
 
-from app.models.gamestate import ItemDesign, ItemKind, ItemSpell, Rarity, SourceSet
-from app.services import design_revisions
+from app.models.gamestate import ItemDesign, ItemKind, ItemSpell, Rarity, world_homebrew
+from app.services import design_revisions, homebrew
 from app.services.creature_builder import entries_text, text_entries
 from app.services.i18n import Translatable
 from app.store.gamestate import GameStateStore
@@ -130,7 +130,7 @@ def item_of(
 ) -> dict[str, Any]:
     """The design as a 5eTools item; ``base`` its base item's record, ``newer`` the
     2024 guide's type codes, ``value`` its price in copper (None for none)."""
-    out: dict[str, Any] = {"name": design.name, "source": HOMEBREW_SOURCE}
+    out: dict[str, Any] = {"name": design.name, "source": world_homebrew(design.world_id)}
     if base is not None and design.kind in BASED:
         out.update({k: base[k] for k in BASE_FIELDS if k in base})
         out["baseItem"] = _ref(str(base.get("name")), str(base.get("source"))).lower()
@@ -476,13 +476,10 @@ class ItemBuilder:
         now = datetime.now(UTC)
         data = {
             "_meta": {
-                "sources": [
-                    {
-                        "json": HOMEBREW_SOURCE,
-                        "abbreviation": HOMEBREW_SOURCE,
-                        "full": "Homebrew (Paravent)",
-                    }
-                ],
+                "sources": homebrew.meta_sources(
+                    {world_homebrew(d.world_id) for d in designs}, "Homebrew (Paravent)"
+                ),
+                homebrew.PER_WORLD: True,
                 "note": "Written by Paravent from library/item_designs.json; edits here "
                 "are replaced on the next publish.",
             },
@@ -494,16 +491,9 @@ class ItemBuilder:
             self._store.item_designs.update(
                 design.id, published_at=now, published_hash=self._hash(design)
             )
-        worlds: builtins.list[str] = []
-        for world_id in {d.world_id for d in designs if d.world_id}:
-            world = self._store.worlds.find(world_id)
-            if world is None or world.source_set.allows(HOMEBREW_SOURCE):
-                continue
-            sources = [*world.source_set.sources, HOMEBREW_SOURCE]
-            self._store.worlds.update(world.id, source_set=SourceSet(sources=sources))
-            worlds.append(world.name)
+        worlds = homebrew.declare(self._store, {d.world_id for d in designs if d.world_id})
         self._reload()
-        return Published(len(designs), sorted(worlds))
+        return Published(len(designs), worlds)
 
 
 __all__ = [

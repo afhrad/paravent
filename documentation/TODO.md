@@ -14,13 +14,7 @@ Nothing agreed is waiting; see the proposals below.
 
 Paused 2026-11-22 while the user playtests; their findings come first.
 
-- **Per-world homebrew** — every world with Homebrew among its books sees every world's
-  designs (creatures, items, spells, backgrounds), as one source `Homebrew` holds them all.
-  Wanted by the user (2026-11-25), not yet built: it needs either a source per world with
-  every `Name|Homebrew` reference in the library rewritten (encounters, NPC statblocks,
-  treasure, characters' gear and spells, fights, shops, followers, chapter tags), or a
-  world filter in resolution, search and the wizard, which today know only a world's
-  books. A migration either way; plan it before building. M–L
+Nothing proposed is waiting.
 
 ## Known compromises
 

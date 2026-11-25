@@ -28,7 +28,7 @@ from htpy import (
 )
 from htpy import input as input_el
 
-from app.models.gamestate import Adventure, Chapter, World
+from app.models.gamestate import Adventure, Chapter, World, is_world_homebrew
 from app.services import character_rules as variants
 from app.services.combat_rules import RULES
 from app.services.experience import progress
@@ -510,7 +510,8 @@ def _book_choice(page: Page, book: Book, checked: bool, players: bool) -> Elemen
                 type="checkbox", id=field_id, name="sources", value=book.code, checked=checked
             ),
             span(class_="book-name")[book.name],
-            span(class_="book-code mono")[book.code],
+            # A world's own designs: the code (``Homebrew-<world id>``) says nothing.
+            None if is_world_homebrew(book.code) else span(class_="book-code mono")[book.code],
             span(class_="pill accent book-ed")["2024"] if book.is_2024 else None,
         ],
         label(class_="book-players", title=page.t("worlds.players_read"))[
@@ -573,7 +574,7 @@ def world_form(
                 ]
             ],
         ]
-        for group, books in catalog.grouped()
+        for group, books in catalog.grouped(world.id if world is not None else None)
     ]
     back = WORLDS_URL if world is None else f"{WORLDS_URL}/{world.id}"
     return div(class_="panel")[

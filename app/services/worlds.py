@@ -20,7 +20,14 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from app.models.gamestate import ONE_EDITION_SOURCES, SourceSet, World
+from app.models.gamestate import (
+    HOMEBREW,
+    ONE_EDITION_SOURCES,
+    SourceSet,
+    World,
+    is_world_homebrew,
+    world_homebrew,
+)
 from app.services import character_rules, features
 from app.services.auth import AuthError
 from app.services.combat_rules import kept
@@ -83,6 +90,8 @@ class BookCatalog:
         books = []
         for code in loaded_sources:
             name, group, published = index.get(code.upper(), (code, "other", ""))
+            if is_world_homebrew(code):  # a world's own designs read as "Homebrew"
+                name = HOMEBREW
             books.append(Book(code, name, group, published))
         order = {name: i for i, (name, _) in enumerate(GROUPS)}
         self.books = sorted(books, key=lambda b: (order.get(b.group, 99), b.published, b.name))
@@ -92,11 +101,17 @@ class BookCatalog:
         """The book with ``code`` (any case), if it has loaded content."""
         return self._by_code.get(code.upper())
 
-    def grouped(self) -> list[tuple[str, list[Book]]]:
-        """Books by picker group, empty groups left out."""
+    def grouped(self, world_id: str | None = None) -> list[tuple[str, list[Book]]]:
+        """Books by picker group, empty groups left out; of the worlds' own homebrew
+        sources only ``world_id``'s."""
+        own = world_homebrew(world_id).upper() if world_id else None
         out = []
         for name, _ in GROUPS:
-            members = [b for b in self.books if b.group == name]
+            members = [
+                b
+                for b in self.books
+                if b.group == name and (not is_world_homebrew(b.code) or b.code.upper() == own)
+            ]
             if members:
                 out.append((name, members))
         return out

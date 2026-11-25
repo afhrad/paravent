@@ -117,6 +117,15 @@ file per collection under `library/`:
   it can be a `_copy` target and share the compendium keyspace, but it is the user's work and
   belongs on the backed-up side of the line. It loads after the corpus, so a homebrew entry with
   the same `(name, source)` overrides an imported one.
+  **One source per world** (2026-11-25, `app/services/homebrew.py`): the builders publish a
+  world's designs under `Homebrew-<world id>`, declared in that world's books on publishing;
+  a design of no world under plain `Homebrew`. A world's own source is legal only where
+  declared and narrows none of its books (`SourceSet.books`, `allows`), so no world, not
+  even one declaring nothing, reads another's designs. Design names stay unique across the
+  table, so `Name|Homebrew`, or the source of a world a design moved from, still finds it
+  (`homebrew_alias`) and the source set judges it there. Pages print the source as
+  "Homebrew" (`shown_source`). Files written before were restamped once at start, sources
+  only; a design moved to another world is restamped the same way.
 
 > An earlier draft named SQLite here. That contradicted the "JSON only, no database daemon"
 > decision at the head of this section; JSON with atomic writes covers the durability need at

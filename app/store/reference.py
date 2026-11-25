@@ -27,7 +27,7 @@ from enum import StrEnum
 from typing import Any
 
 from app.models.gamestate import SourceSet
-from app.store.copyresolver import entry_key
+from app.store.copyresolver import entry_key, homebrew_alias
 
 logger = logging.getLogger(__name__)
 
@@ -256,7 +256,11 @@ class ReferenceResolver:
                     None,
                 )
             if found is None:
+                found = homebrew_alias(self._exact.get(category, {}), name, source)
+            if found is None:
                 return Resolution(Outcome.NOT_IMPORTED)
+            # A plain "Homebrew" reference is checked against the world it lives in.
+            source = str(getattr(found, "source", "") or source)
             if not declared.allows(source):
                 return Resolution(Outcome.NOT_IN_SOURCE_SET, candidates=(found,))
             return Resolution(Outcome.EXACT, entry=found, candidates=(found,))

@@ -34,9 +34,15 @@ from htpy import (
 )
 from htpy import input as input_el
 
-from app.models.gamestate import EDITION_CLASSIC, Combat, Encounter, World
+from app.models.gamestate import (
+    EDITION_CLASSIC,
+    Combat,
+    Encounter,
+    World,
+    is_homebrew,
+    shown_source,
+)
 from app.services.combat import Summary
-from app.services.creature_builder import HOMEBREW_SOURCE
 from app.services.difficulty import Rating
 from app.services.encounter_gen import bands_of
 from app.services.encounters import EncounterView, PlannedMonster
@@ -268,9 +274,7 @@ def _line(
         else span(class_="ref missing")[planned.name]
     )
     # A creature of the builder opens there, to change it (its draft included).
-    design_id = (
-        view.designs.get(planned.name.casefold()) if planned.source == HOMEBREW_SOURCE else None
-    )
+    design_id = view.designs.get(planned.name.casefold()) if is_homebrew(planned.source) else None
     if design_id is not None:
         name_node = a(href=creature_url(design_id), class_="ref creature")[shown]
     side = "friend" if planned.ally else "foe"
@@ -283,7 +287,7 @@ def _line(
             b[
                 name_node,
                 " ",
-                span(class_="res-src mono")[planned.source],
+                span(class_="res-src mono")[shown_source(planned.source)],
                 " ",
                 a(
                     href=creature_url(design_id),

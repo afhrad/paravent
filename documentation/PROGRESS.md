@@ -164,7 +164,9 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         background designs copy and move to another world like creature designs; in a
         world without training rules the gamemaster sets a training's days; a player ends
         only a shape their own character cast; the sheet's buttons share one form (102
-        buttons, 35 forms left), their values in their address. **Over MCP**
+        buttons, 35 forms left), their values in their address. Each world reads only its own
+        designs: they publish under its own source (TECHSTACK.md §3), and a moved design keeps
+        its name. **Over MCP**
         (2026-11-11, MCP.md §10): Claude drafts
         creatures from a description, a world's setting and a CR (`create_creature`,
         `update_creature`), spells and equipment from the world's books; a draft is

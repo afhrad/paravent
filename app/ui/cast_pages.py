@@ -41,7 +41,16 @@ from htpy import (
 )
 from htpy import input as input_el
 
-from app.models.gamestate import Coins, Encounter, Location, Npc, Treasure, TreasureItem, World
+from app.models.gamestate import (
+    Coins,
+    Encounter,
+    Location,
+    Npc,
+    Treasure,
+    TreasureItem,
+    World,
+    shown_source,
+)
 from app.services.adventures import ChapterView
 from app.services.holdings import Held
 from app.services.naming import StyleEntry
@@ -398,7 +407,7 @@ def creatures_panel(
                         href=ref_url("monster", m.name, m.source, view.world.id),
                         class_="ref creature",
                     )[m.name],
-                    span(class_="res-src mono")[m.source],
+                    span(class_="res-src mono")[shown_source(m.source)],
                     span(class_="list-meta")[t("book.mentions", n=m.count)],
                     form(method="post", action=url, class_="creature-add")[
                         hidden("ref", f"{m.name}|{m.source}"),
@@ -983,7 +992,7 @@ def _treasure_line(page: Page, treasure: Treasure, line: TreasureLine, world_id:
                 if entry is not None
                 else span(class_="ref missing")[item.name],
                 " ",
-                span(class_="res-src mono")[item.source],
+                span(class_="res-src mono")[shown_source(item.source)],
             ],
             span(class_="list-meta")[" · ".join(meta)],
         ],

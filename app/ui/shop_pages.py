@@ -30,7 +30,7 @@ from htpy import (
 )
 from htpy import input as input_el
 
-from app.models.gamestate import Shop, ShopItem
+from app.models.gamestate import Shop, ShopItem, shown_source
 from app.models.pc import Currency, InventoryItem
 from app.services.activities import RARITIES
 from app.services.chargen.catalogue import SHELVES, shelf
@@ -487,7 +487,7 @@ def _ware(page: Page, url: str, ware: Ware, money: int, world_id: str | None) ->
     return li(class_="shop-row")[
         a(href=ref_url(ware.category, offer.name, offer.source, world_id), class_="ref")[name],
         span(class_="shop-meta")[
-            small(class_="muted")[offer.source],
+            small(class_="muted")[shown_source(offer.source)],
             span(class_="mono shop-price")[coin_text(page, ware.price)],
         ],
         form(method="post", action=url, class_="inline-form shop-trade")[

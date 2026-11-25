@@ -12,9 +12,15 @@ from httpx import ASGITransport, AsyncClient
 from app.config import Settings
 from app.main import create_app
 from app.models.compendium import Monster
-from app.models.gamestate import CreatureBlock, CreatureDesign, Role, SourceSet, World
+from app.models.gamestate import (
+    CreatureBlock,
+    CreatureDesign,
+    Role,
+    SourceSet,
+    World,
+    world_homebrew,
+)
 from app.services.creature_builder import (
-    HOMEBREW_SOURCE,
     CreatureError,
     Numbers,
     attack_text,
@@ -24,6 +30,7 @@ from app.services.creature_builder import (
     read_offence,
     text_entries,
 )
+from app.services.worlds import WorldInput
 from app.store.creature_tables import CreatureTables
 from app.store.registry import StoreRegistry
 
@@ -292,17 +299,22 @@ class TestDesigns:
         done = service.publish()
         assert done.count == 1 and done.worlds == ["Mirefall"]
         data = json.loads(service.homebrew_file.read_text())
-        assert data["_meta"]["sources"][0]["json"] == HOMEBREW_SOURCE
+        assert data["_meta"]["sources"][0]["json"] == world_homebrew(world.id)
         assert [m["name"] for m in data["monster"]] == ["Ash Wight"]
         assert not service.unpublished(service.get(design.id))
         world_now = registry.gamestate.worlds.get(world.id)
-        assert world_now.source_set.allows(HOMEBREW_SOURCE)
-        entry = registry.compendium.get("monster", "Ash Wight|Homebrew")
+        # Its world's own source, which no other world reads (app/services/homebrew.py).
+        assert world_now.source_set.allows(world_homebrew(world.id))
+        entry = registry.compendium.get("monster", "Ash Wight|Homebrew")  # the old name
+        assert entry.source == world_homebrew(world.id)  # type: ignore[attr-defined]
         assert [t.name for t in entry.trait] == ["Pack Tactics"]  # type: ignore[attr-defined]
-        found = registry.compendium.resolver().resolve_parts(
-            "monster", "ash wight", None, world_now.source_set
-        )
+        resolver = registry.compendium.resolver()
+        found = resolver.resolve_parts("monster", "ash wight", None, world_now.source_set)
         assert found.entry is not None
+        other = registry.worlds.create(WorldInput(name="Elsewhere"))  # every book, no designs
+        for source in (None, "Homebrew"):
+            hit = resolver.resolve_parts("monster", "Ash Wight", source, other.source_set)
+            assert hit.entry is None
         service.delete(design.id)
         service.publish()
         assert json.loads(service.homebrew_file.read_text())["monster"] == []
