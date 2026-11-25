@@ -29,6 +29,7 @@ from app.mcp.common import (
 from app.mcp.creatures import register_creatures
 from app.mcp.drafts import register_drafts
 from app.mcp.history import register_history
+from app.mcp.items import register_items
 from app.mcp.models import (
     AdventureSummary,
     AfflictionInfo,
@@ -1392,6 +1393,7 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
     register_history(server, stores)
     register_drafts(server, stores)
     register_creatures(server, stores)
+    register_items(server, stores)
     return server
 
 

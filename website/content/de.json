@@ -134,7 +134,7 @@
       {
         "title": "Magische Gegenstände, die mitzählen",
         "icon": "sparkles",
-        "text": "Stimmt euch auf drei Gegenstände ein, nicht mehr, und nur auf die, die für euch gedacht sind. Die Ladungen eines Zauberstabs stehen als Punkte da, werden per Tippen verbraucht und kehren bei Sonnenaufgang nach der Uhr der Welt zurück. Seine Zauber wirkt ihr direkt vom Bogen: den Feuerball aus dem Stecken, mit dessen eigenem SG, einen Grad höher für eine weitere Ladung."
+        "text": "Stimmt euch auf drei Gegenstände ein, nicht mehr, und nur auf die, die für euch gedacht sind. Die Ladungen eines Zauberstabs stehen als Punkte da, werden per Tippen verbraucht und kehren bei Sonnenaufgang nach der Uhr der Welt zurück. Seine Zauber wirkt ihr direkt vom Bogen: den Feuerball aus dem Stecken, mit dessen eigenem SG, einen Grad höher für eine weitere Ladung. Eigene baut ihr im Gegenstandsbaukasten, leer oder ausgehend von einem aus den Büchern, und der Bogen zählt sie wie die gedruckten."
       },
       {
         "title": "Krankheiten, Gifte und Flüche",
@@ -512,7 +512,7 @@
       },
       {
         "q": "Kann ich eigene Abenteuer und Homebrew mitbringen?",
-        "a": "Ja. Abenteuer sind einfaches Markdown, geschrieben in Paravent oder in jedem Editor, Obsidian eingeschlossen. Eigene Kreaturen entstehen im Kreaturenbaukasten, und Homebrew im 5eTools-Format steht neben den Büchern und funktioniert wie sie."
+        "a": "Ja. Abenteuer sind einfaches Markdown, geschrieben in Paravent oder in jedem Editor, Obsidian eingeschlossen. Eigene Kreaturen entstehen im Kreaturenbaukasten und eigene magische Gegenstände im Gegenstandsbaukasten, und Homebrew im 5eTools-Format steht neben den Büchern und funktioniert wie sie."
       }
     ]
   },

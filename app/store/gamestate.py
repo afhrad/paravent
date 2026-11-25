@@ -248,6 +248,7 @@ class GameStateStore:
             Faction,
             Follower,
             Handout,
+            ItemDesign,
             Knowledge,
             Location,
             Mark,
@@ -344,6 +345,10 @@ class GameStateStore:
         # Creature-builder designs; their statblocks are published to homebrew/.
         self.creatures: Collection[CreatureDesign] = Collection(
             root / "creatures.json", CreatureDesign
+        )
+        # Item-builder designs; their items are published to homebrew/.
+        self.item_designs: Collection[ItemDesign] = Collection(
+            root / "item_designs.json", ItemDesign
         )
         # Naming styles, shared by every world (documentation/NAMES.md).
         self.naming_styles: Collection[NamingStyle] = Collection(

@@ -1039,7 +1039,15 @@ def build_sheet(
     sheet.proficiency = prof
     prof_bonus = prof.value or 0
 
-    _abilities(sheet, character, species, subspecies, primary, prof_bonus)
+    _abilities(
+        sheet,
+        character,
+        species,
+        subspecies,
+        primary,
+        prof_bonus,
+        _item_abilities(character, corpus),
+    )
     mods = {a.key: a.modifier for a in sheet.abilities}
     _variant_rules(sheet, character, character_rules)
 
@@ -1212,6 +1220,36 @@ def _fixed_bonuses(record: dict[str, Any] | None) -> dict[str, int]:
     return {k: v for k, v in first.items() if k in ABILITIES and isinstance(v, int)}
 
 
+def _item_abilities(
+    character: PlayerCharacter, corpus: _Corpus
+) -> dict[str, list[tuple[str, int, bool]]]:
+    """What worn items do to ability scores, by ability: ``(item, value, sets)`` — an
+    item that sets a score ("Strength 19", the corpus's ``ability.static``) or raises it
+    (``ability`` as ``{"con": 2}``, attuned items only, to at most 20 as an Ioun stone
+    says). Worn, and attuned where the item asks."""
+    out: dict[str, list[tuple[str, int, bool]]] = {}
+    for entry in character.inventory:
+        if not entry.equipped:
+            continue
+        data = corpus.item(entry.item)
+        if data is None or (data.get("reqAttune") and not entry.attuned):
+            continue
+        raw = data.get("ability")
+        if not isinstance(raw, dict):
+            continue
+        name = str(data.get("name", ""))
+        static = raw.get("static")
+        for key, value in static.items() if isinstance(static, dict) else ():
+            if key in ABILITIES and isinstance(value, int):
+                out.setdefault(key, []).append((name, value, True))
+        if not data.get("reqAttune"):
+            continue  # a manual or tome raises a score once, read, not while carried
+        for key, value in raw.items():
+            if key in ABILITIES and isinstance(value, int):
+                out.setdefault(key, []).append((name, value, False))
+    return out
+
+
 def _abilities(
     sheet: Sheet,
     character: PlayerCharacter,
@@ -1219,6 +1257,7 @@ def _abilities(
     subspecies: dict[str, Any] | None,
     primary: dict[str, Any] | None,
     prof: int,
+    items: dict[str, list[tuple[str, int, bool]]] | None = None,
 ) -> None:
     species_bonus = _fixed_bonuses(species)
     for k, v in _fixed_bonuses(subspecies).items():
@@ -1237,7 +1276,16 @@ def _abilities(
                 parts.append(f"species {bonus:+d}")
             if improvement:
                 parts.append(f"improvements {improvement:+d}")
-            derived = Derivation(min(30, base + bonus + improvement), tuple(parts))
+            total = base + bonus + improvement
+            for item, value, sets in (items or {}).get(key, ()):
+                if not sets and total < 20:
+                    total = min(20, total + value)
+                    parts.append(f"{item} {value:+d}")
+            for item, value, sets in (items or {}).get(key, ()):
+                if sets and value > total:  # an item that sets a score only ever raises it
+                    total = value
+                    parts.append(f"{item} {value}")
+            derived = Derivation(min(30, total), tuple(parts))
         score = _value(character, f"ability.{key}", derived)
         modifier = ability_modifier(score.value)
         proficient = key in save_profs

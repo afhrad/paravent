@@ -203,6 +203,12 @@ unter *Kreaturen* als **Entwurf von Claude**: **Veröffentlichen** lässt sie au
 öffnest und **Annehmen** drückst. Claude prüft selbst, dass sie auf dem gewünschten Grad
 spielt und dass jeder genannte Zauber und Gegenstand in den Büchern der Welt steht.
 
+Magische Gegenstände gehen genauso im **Gegenstandsbaukasten** (Benutzermenü): „ein Ring für die
+Erbin des ertrunkenen Priesters, selten, mit dem sie unter Wasser atmen kann" wird ein
+Entwurf, in dem steht, was der Bogen zählt (Boni, Resistenzen, Attributswerte, Ladungen, die
+Zauber, die er wirkt), und der Rest in seinem Text. Öffne ihn unter *Gegenstandsbaukasten* und
+drücke **Annehmen und veröffentlichen**, um ihn in deine Bücher aufzunehmen.
+
 ## 7. Wenn es nicht klappt
 
 | Was du siehst | Was es heißt | Was zu tun ist |

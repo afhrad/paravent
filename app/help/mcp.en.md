@@ -194,6 +194,12 @@ and equipment from your books. It waits under *Creatures* marked **Claude's draf
 it plays at the rating you asked for, and that every spell and item it names is in the
 world's books.
 
+Magic items work the same way in the **item builder** (the user menu): "a ring for the
+drowned priest's heir, rare, that lets her breathe underwater" becomes a draft with what
+the sheet counts typed (bonuses, resistances, ability scores, charges, the spells it
+casts) and the rest in its text. Open it under *Item builder* and press **Accept and
+publish** to put it into your books.
+
 ## 7. When it does not work
 
 | What you see | What it means | What to do |

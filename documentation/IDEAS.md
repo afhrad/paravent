@@ -23,8 +23,8 @@ objects, doors and siege equipment in the tracker.
 
 ### Bigger
 
-- **Spell, magic item and background builders**, published as homebrew like the creature
-  builder's creatures. L
+- **Spell and background builders**, published as homebrew like the creature builder's
+  creatures and the item builder's magic items. L
 
 ## From reviews and passes of the app
 

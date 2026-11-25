@@ -539,6 +539,72 @@ class CreatureDesign(Record):
     revision_of: str | None = None
 
 
+ItemKind = Literal[
+    "weapon",
+    "armor",
+    "shield",
+    "ammunition",
+    "staff",
+    "wondrous",
+    "ring",
+    "rod",
+    "wand",
+    "potion",
+    "scroll",
+]
+Rarity = Literal["common", "uncommon", "rare", "very rare", "legendary", "artifact"]
+
+
+class ItemSpell(GameStateModel):
+    """A spell an item casts: ``Name|SOURCE``, at will (``charges`` 0) or for so many."""
+
+    spell: str = Field(max_length=200)
+    charges: int = Field(default=0, ge=0, le=20)
+
+
+class ItemDesign(Record):
+    """A magic item made in the item builder (app/services/item_builder.py).
+
+    Only what the character sheet applies is typed — the weapon, armour and other
+    bonuses, damage defences, ability scores, charges and the spells it casts; anything
+    else it does is its text, for the table. Published, it becomes an item in
+    ``library/homebrew/items/items-paravent.json`` under the source ``Homebrew``. A
+    weapon, armour, shield, ammunition or staff takes its base item's numbers.
+    """
+
+    name: str
+    world_id: str | None = None
+    based_on: str | None = None  # ``Name|SOURCE`` of the printed item it began from
+    kind: ItemKind = "wondrous"
+    base_item: str = ""  # ``Name|SOURCE`` of the base weapon, armour or shield
+    rarity: Rarity = "uncommon"
+    attunement: bool = False
+    attune_by: str = Field(default="", max_length=120)  # "by a wizard"
+    bonus_weapon: int = Field(default=0, ge=0, le=3)
+    bonus_ac: int = Field(default=0, ge=0, le=3)
+    bonus_saving_throw: int = Field(default=0, ge=0, le=3)
+    bonus_spell_attack: int = Field(default=0, ge=0, le=3)
+    bonus_spell_save_dc: int = Field(default=0, ge=0, le=3)
+    bonus_ability_check: int = Field(default=0, ge=0, le=3)
+    resist: list[str] = Field(default_factory=list)
+    immune: list[str] = Field(default_factory=list)
+    vulnerable: list[str] = Field(default_factory=list)
+    ability_set: dict[str, int] = Field(default_factory=dict)  # "str": 19
+    ability_raise: dict[str, int] = Field(default_factory=dict)  # "con": 2, attuned
+    charges: int = Field(default=0, ge=0, le=100)
+    recharge: Literal["", "dawn", "dusk", "midnight", "restLong"] = ""
+    recharge_amount: str = Field(default="", max_length=40)  # "1d6+1", "" for all
+    spells: list[ItemSpell] = Field(default_factory=list)
+    text: str = Field(default="", max_length=8000)
+    weight: float | None = Field(default=None, ge=0, le=10000)
+    value: int | None = Field(default=None, ge=0)  # copper; None for the rarity's
+    published_at: datetime | None = None
+    published_hash: str | None = None
+    # The MCP key that drafted it: Claude's draft, left out of a publish until the
+    # gamemaster accepts it; None for the gamemaster's own designs.
+    drafted_by: str | None = None
+
+
 class EncounterMonster(GameStateModel):
     """Some number of one creature, planned into an encounter.
 

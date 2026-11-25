@@ -93,6 +93,7 @@ from app.services.handouts import HandoutService
 from app.services.holdings import Holdings
 from app.services.i18n import FALLBACK, UiCatalogue
 from app.services.image_effects import ImageEffects
+from app.services.item_builder import ItemBuilder
 from app.services.item_charges import Charges, ItemCharges
 from app.services.item_names import ItemNames
 from app.services.knowledge import KnowledgeService
@@ -2471,6 +2472,33 @@ class StoreRegistry:
             self.settings.homebrew_dir,
             monster,
             self.reload_compendium,
+        )
+
+    @cached_property
+    def item_builder(self) -> ItemBuilder:
+        """Item-builder designs, published to homebrew (app/services/item_builder.py)."""
+
+        def lookup(category: str, name: str, source: str) -> dict[str, Any] | None:
+            try:
+                entry = self.compendium.get(category, f"{name}|{source}")
+            except EntryNotFound:
+                return None
+            dumped: dict[str, Any] = entry.model_dump(by_alias=True, exclude_none=True)
+            return dumped
+
+        def newer(world_id: str | None) -> bool:
+            world = self.worlds.find(world_id) if world_id else None
+            if world is None or world.source_set.is_unrestricted:
+                return True
+            return any(world.source_set.allows(b) for b in ("XDMG", "XPHB"))
+
+        return ItemBuilder(
+            self.gamestate,
+            self.settings.homebrew_dir,
+            lookup,
+            self.reload_compendium,
+            newer=newer,
+            rarity_values=self.rarity_values,
         )
 
     def creature_wording(self, world_id: str | None, fallback: str) -> Wording:

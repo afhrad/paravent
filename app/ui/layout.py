@@ -379,6 +379,11 @@ def user_menu(page: Page, name: str, username: str) -> Element:
                 ]
                 if page.identity is not None and page.identity.is_gamemaster
                 else None,
+                a(href="/gm/items", class_="usermenu-link")[
+                    icon("gem", "sm"), span[t("itembuilder.heading")]
+                ]
+                if page.identity is not None and page.identity.is_gamemaster
+                else None,
             ],
             form(method="post", action="/logout", class_="usermenu-section usermenu-logout")[
                 button(type="submit", class_="btn btn-ghost")[

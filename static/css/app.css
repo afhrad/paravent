@@ -3520,3 +3520,22 @@ dialog.ctx-dialog .panel{ margin:0; }
 .safety-limits-table{ width:100%; border-collapse:collapse; }
 .safety-limits-table th, .safety-limits-table td{ text-align:left; padding:4px 6px; border-bottom:1px solid var(--border); }
 .safety-limits-table .inline-form{ flex-wrap:wrap; }
+.ib-layout{ display:grid; gap:20px; grid-template-columns:minmax(0, 3fr) minmax(0, 2fr); align-items:start; }
+@media (max-width: 900px){ .ib-layout{ grid-template-columns:1fr; } }
+.ib-form{ display:grid; gap:14px; }
+.ib-section{ border:1px solid var(--border); border-radius:var(--radius-sm, 6px); padding:10px 12px; margin:0; display:grid; gap:8px; }
+.ib-section > legend{ font-weight:600; padding:0 4px; }
+.ib-grid{ display:grid; gap:10px; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); }
+.ib-small{ grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); }
+.ib-checks{ display:flex; flex-wrap:wrap; gap:4px 14px; padding:6px 0; }
+.ib-defence summary{ cursor:pointer; }
+.ib-abilities{ display:grid; gap:6px; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); }
+.ib-ability{ display:grid; grid-template-columns:1fr 1fr; gap:4px; align-items:center; }
+.ib-ability b{ grid-column:1 / -1; }
+.ib-ability input, .ib-spell input{ min-width:0; font:inherit; padding:4px 6px; }
+.ib-spells{ display:grid; gap:6px; }
+.ib-spell{ display:grid; grid-template-columns:minmax(0, 1fr) 7em; gap:6px; }
+.ib-sub{ margin-top:6px; }
+.ib-text{ width:100%; font:inherit; }
+.ib-preview{ position:sticky; top:12px; }
+.ref-make-from{ margin:8px 0; }

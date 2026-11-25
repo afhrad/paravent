@@ -134,7 +134,9 @@ CATEGORIES: tuple[Category, ...] = (
         aux_globs=("bestiary/template.json",),
     ),
     Category("spell", Spell, "spell", ("spells/spells-*.json",)),
-    Category("item", Item, "item", ("items.json",), supports_copy=True),
+    # ``items/items-*.json``: homebrew items (the item builder's), a folder the corpus
+    # does not use, so a table's own ``items.json`` beside it stays its own.
+    Category("item", Item, "item", ("items.json", "items/items-*.json"), supports_copy=True),
     Category("baseitem", Item, "baseitem", ("items-base.json",), supports_copy=True),
     # Generic magic variants ("+1 Weapon"); the specific items they make are added to
     # ``item`` after the load (app/store/magicvariants.py).

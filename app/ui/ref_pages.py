@@ -57,6 +57,7 @@ from app.ui.encounter_pages import encounter_url
 from app.ui.formula_pages import formula_button
 from app.ui.gift_pages import grant_button
 from app.ui.icons import icon
+from app.ui.item_links import make_from_button
 from app.ui.layout import app_shell
 from app.ui.library_links import chapter_url, location_url, npc_url, treasure_url
 from app.ui.names import name_text
@@ -1277,6 +1278,12 @@ def reference_page(
                 page, entry.world_id, entry.category, entry.name, entry.source, entry.data
             )
             if "downtime" in page.features
+            else None,
+            make_from_button(page, f"{entry.name}|{entry.source}")
+            if entry.category == "item"
+            and page.identity is not None
+            and page.identity.is_gamemaster
+            and str(entry.data.get("rarity") or "none") not in ("none", "unknown")
             else None,
             _description(page, entry, ctx, description),
             _backlinks(page, backlinks, entry.world_id) if backlinks else None,

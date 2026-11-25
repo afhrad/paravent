@@ -51,6 +51,7 @@ from app.routes import gm5_import as gm5_import_routes
 from app.routes import handing as hand_routes
 from app.routes import help as help_routes
 from app.routes import home as home_routes
+from app.routes import items as item_routes
 from app.routes import journal as journal_routes
 from app.routes import levelup as levelup_routes
 from app.routes import library_preview as library_preview_routes
@@ -391,6 +392,7 @@ def create_app() -> FastAPI:
     app.include_router(title_image_routes.router)
     app.include_router(npc_gen_routes.router)
     app.include_router(creature_routes.router)
+    app.include_router(item_routes.router)
     app.include_router(sound_routes.router)
     app.include_router(theme_routes.router)
     app.include_router(journal_routes.router)

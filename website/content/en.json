@@ -134,7 +134,7 @@
       {
         "title": "Magic items that keep count",
         "icon": "sparkles",
-        "text": "Attune to three items, no more, and only to those meant for you. A wand's charges show as dots, are spent with a tap and come back at dawn by the world's clock. Its spells are cast straight from the sheet: Fireball from the staff, at the staff's own DC, a level higher for another charge."
+        "text": "Attune to three items, no more, and only to those meant for you. A wand's charges show as dots, are spent with a tap and come back at dawn by the world's clock. Its spells are cast straight from the sheet: Fireball from the staff, at the staff's own DC, a level higher for another charge. Make your own in the item builder, blank or from one of the books, and the sheet counts it like theirs."
       },
       {
         "title": "Diseases, poisons and curses",
@@ -512,7 +512,7 @@
       },
       {
         "q": "Can I bring my own adventures and homebrew?",
-        "a": "Yes. Adventures are plain Markdown, written in Paravent or in any editor, Obsidian included. Your own creatures come from the creature builder, and homebrew in the 5eTools format sits next to the books and works like them."
+        "a": "Yes. Adventures are plain Markdown, written in Paravent or in any editor, Obsidian included. Your own creatures come from the creature builder and your own magic items from the item builder, and homebrew in the 5eTools format sits next to the books and works like them."
       }
     ]
   },

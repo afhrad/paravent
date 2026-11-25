@@ -117,7 +117,20 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         5eTools's expressions in a small evaluator, never `eval`); "Fit to CR" sets AC
         and hit dice. Publishing writes every design to
         `library/homebrew/bestiary/bestiary-paravent.json` as source `Homebrew` and
-        reloads, adding Homebrew to the books of each design's world. **Over MCP** (2026-11-11, MCP.md §10): Claude drafts
+        reloads, adding Homebrew to the books of each design's world. **The item builder**
+        (2026-11-25, `app/services/item_builder.py`, `/gm/items`, `library/item_designs.json`):
+        magic items of the table's own, blank or from a printed magic item ("Make my own
+        from this" on its page); only what the sheet applies typed — attack/damage, AC,
+        save, spell attack and DC, check bonuses, resistances, immunities and
+        vulnerabilities, ability scores set or raised (attuned), charges with what restores
+        them, spells cast at will or for charges — the rest its text; a weapon, armour,
+        shield, ammunition or staff on a base item of the world's books; priced by its
+        rarity in the world's guide unless set; published to `homebrew/items/
+        items-paravent.json` (items are now also read from `items/items-*.json`), Homebrew
+        added to its world's books. Claude drafts them over MCP (`create_item`,
+        `update_item`), accepted in the builder. The sheet now also counts worn items'
+        ability scores (Gauntlets of Ogre Power, an Ioun stone's +2 up to 20), printed
+        ones too. **Over MCP** (2026-11-11, MCP.md §10): Claude drafts
         creatures from a description, a world's setting and a CR (`create_creature`,
         `update_creature`), spells and equipment from the world's books; a draft is
         published only once the gamemaster accepts it. A picture by web address
