@@ -187,5 +187,9 @@ es bedeutet, entscheidet die Spielleitung.
 Die **X-Karte** auf deinem Bogen und im Kampf sagt der Spielleitung — und nur ihr —,
 dass sie die Richtung ändern soll, ohne ein Wort und ohne deinen Namen im Protokoll.
 Unter **Sicherheitswerkzeuge** kannst du eine Grenze oder einen Schleier vorschlagen;
-der Vorschlag erreicht die Spielleitung ohne deinen Namen.
+der Vorschlag erreicht die Spielleitung ohne deinen Namen. Dort steht auch die
+**Sitzung null** der Spielleitung (welche Art Spiel, heikle Elemente, wo ihr beginnt,
+wie die Gruppe sich traf) und dein Erwartungsbogen: Markiere jedes Element als in
+Ordnung, weiche oder harte Grenze und ergänze Hoffnungen und Bedenken. Kein Name wird
+dazu gespeichert, und du kannst ihn jederzeit ändern; alle lesen die gesammelten Bögen.
 <!-- /feature -->

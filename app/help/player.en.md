@@ -169,5 +169,9 @@ see your own total; the gamemaster decides what it means.
 
 The **X-card** on your sheet and in the fight tells the gamemaster — and only them — to
 change course, without a word and without your name in the log. Under **Safety tools**
-you can suggest a line or a veil; it reaches the gamemaster without your name.
+you can suggest a line or a veil; it reaches the gamemaster without your name. There,
+too, is the gamemaster's **session zero** (the kind of game, its sensitive elements,
+where you start, how the party met) and your expectations sheet: mark each element as
+fine, a soft or a hard limit, and add your hopes and concerns. No name is kept with it,
+and you can change it any time; everyone reads the sheets gathered.
 <!-- /feature -->

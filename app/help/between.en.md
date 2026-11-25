@@ -147,6 +147,17 @@ player's decision.
   each with who granted it and what it allows; the kind links to what the guide says of
   it. Granting one tells the table in the log. A favor is called in once, by you or the
   player; land, a stronghold or a title can be taken back.
+<!-- feature: safety -->
+- **Session zero** (in the user menu, **Safety tools**): before the first session, write
+  the game's theme and flavor, the potentially sensitive elements, the starting location
+  and key events, house rules (the optional rules the world plays with are named beneath),
+  how the party came together and the starting level. Each player marks every element as
+  fine, a soft (?) or a hard (X) limit and adds anything else to avoid, their hopes and
+  their concerns, without a name, and can change it later. Everyone reads the sheets
+  gathered: how many limits each element has, the rest in no one's order. **As a line**
+  or **As a veil** takes a limited element into the world's lines and veils, kept beside
+  it with the X-card and the players' anonymous suggestions.
+<!-- /feature -->
 <!-- feature: followers -->
 - **Followers** (a button on the sheet): hirelings paid by the day, and companions,
   mounts and sidekicks from your books with their own hit points. A sidekick may take

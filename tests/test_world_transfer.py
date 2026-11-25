@@ -66,6 +66,8 @@ def _campaign(registry: StoreRegistry) -> dict[str, str]:
     registry.protocol.free_roll(
         "1d20", username="dm", name="GM", label="Luck", world_id=world.id, gamemaster=True
     )
+    registry.safety.set_zero(world.id, {"theme": "Fog and bells", "sensitive": ["Drowning"]})
+    registry.safety.fill(world.id, "token", {"Drowning": "hard"}, "", "", "")
     return {"world": world.id, "chapter": fog.id, "npc": hob.id, "faction": guild.id}
 
 
@@ -98,6 +100,10 @@ def test_a_duplicate_is_the_campaign_with_new_ids(registry: StoreRegistry) -> No
     assert quest.faction_id == guild.id and quest.status == "open" and quest.characters == []
     assert not quest.steps[0].done
     assert registry.protocol.store.entries(world.id) == []
+    # Session zero comes along; the old group's expectations sheets do not.
+    zero = registry.safety.of(world.id)
+    assert zero.theme == "Fog and bells" and zero.sheets == {}
+    assert len(registry.safety.of(t["world"]).sheets) == 1
     # The original is untouched.
     assert store.factions.get(t["faction"]).renown == {"pc000000001": 4}
     assert len(store.npcs.list(lambda n: n.id == t["npc"])) == 1
@@ -119,7 +125,7 @@ def test_an_export_comes_back_with_its_play(registry: StoreRegistry, tmp_path: P
     other.load()
     made = other.world_transfer.import_world(data, play=True)
     world = made.world
-    assert world.name == "Grey Reed" and made.records == 4  # NPC, place, faction, quest
+    assert world.name == "Grey Reed" and made.records == 5  # NPC, place, faction, quest, safety
     (guild,) = other.gamestate.factions.list()
     assert guild.renown == {"pc000000001": 4}  # the play so far came along
     (quest,) = other.gamestate.quests.list()
@@ -167,9 +173,9 @@ async def test_the_world_menu_exports_imports_and_duplicates(registry: StoreRegi
             files={"file": ("grey-reed.paravent.zip", got.content, "application/zip")},
         )
         assert sent.status_code == 303
-        assert sent.headers["location"] == "/gm/adventures?transferred=import%3A4%3A5%3A0%3A0"
+        assert sent.headers["location"] == "/gm/adventures?transferred=import%3A5%3A5%3A0%3A0"
         landed = (await gm.get(sent.headers["location"])).text
-        assert "“Grey Reed restored” was imported: 4 records and 5 files." in landed
+        assert "“Grey Reed restored” was imported: 5 records and 5 files." in landed
         assert 'data-busy="Importing… this can take a moment"' in landed
         restored = registry.table.world()
         assert restored is not None and restored.name == "Grey Reed restored"

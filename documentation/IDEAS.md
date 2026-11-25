@@ -20,7 +20,6 @@ objects, doors and siege equipment in the tracker.
 ### Smaller
 
 - **Treasure by a monster's preferences**, and trade goods. S
-- **Session zero** — the expectations sheet kept per world, beside lines and veils. S
 
 ### Bigger
 

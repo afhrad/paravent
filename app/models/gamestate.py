@@ -1148,15 +1148,41 @@ class SafetySuggestion(GameStateModel):
     text: str = Field(max_length=300)
 
 
+class ExpectationSheet(GameStateModel):
+    """One player's game expectations sheet (the 2024 guide's), kept without a name:
+    which of the potentially sensitive elements are a hard (X) or soft (?) limit,
+    anything else to avoid, hopes and expectations, and concerns about the table."""
+
+    limits: dict[str, Literal["hard", "soft"]] = Field(default_factory=dict)
+    avoid: str = Field(default="", max_length=1000)
+    hopes: str = Field(default="", max_length=2000)
+    concerns: str = Field(default="", max_length=2000)
+
+
+Together = Literal["", "bonding", "happenstance", "acquaintance", "history", "tavern"]
+
+
 class TableSafety(Record):
     """A world's table agreements (session zero): lines — what does not happen in the
     game — and veils — what happens off screen, one per entry, as the gamemaster keeps
     them; and what players suggested anonymously, until the gamemaster takes or drops
-    it. The id is the world's."""
+    it. The gamemaster's half of session zero (app/services/safety.py): the game's
+    theme and flavor, the potentially sensitive elements, the starting location and
+    key events, house rules, how the party came together and the starting level; and
+    the players' expectations sheets, by an anonymous token each. The id is the
+    world's."""
 
     lines: list[str] = Field(default_factory=list)
     veils: list[str] = Field(default_factory=list)
     suggested: list[SafetySuggestion] = Field(default_factory=list)
+    theme: str = Field(default="", max_length=4000)
+    sensitive: list[str] = Field(default_factory=list)
+    start: str = Field(default="", max_length=4000)
+    house_rules: str = Field(default="", max_length=4000)
+    together: Together = ""
+    together_note: str = Field(default="", max_length=2000)
+    starting_level: int = Field(default=0, ge=0, le=20)  # 0: not said
+    sheets: dict[str, ExpectationSheet] = Field(default_factory=dict)
 
 
 class ClockTimer(GameStateModel):

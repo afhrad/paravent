@@ -161,6 +161,18 @@ Entscheidung des Spielers.
   auf das, was das Handbuch dazu sagt. Eine Verleihung erfährt die Runde im Protokoll. Ein
   Gefallen wird einmal eingelöst, von dir oder vom Spieler; Land, eine Festung oder ein
   Titel lassen sich zurücknehmen.
+<!-- feature: safety -->
+- **Sitzung null** (im Benutzermenü, **Sicherheitswerkzeuge**): Schreib vor der ersten
+  Sitzung Thema und Stimmung des Spiels, die möglicherweise heiklen Elemente, Startort und
+  wichtige Ereignisse, Hausregeln (die optionalen Regeln der Welt stehen darunter), wie
+  die Gruppe zusammenfand und die Startstufe. Jeder Spieler markiert jedes Element als in
+  Ordnung, weiche (?) oder harte (X) Grenze und ergänzt, was sonst vermieden werden soll,
+  seine Hoffnungen und Bedenken, ohne Namen, und kann das später ändern. Alle lesen die
+  gesammelten Bögen: wie viele Grenzen jedes Element hat, den Rest in niemandes
+  Reihenfolge. **Als Grenze** oder **Als Schleier** übernimmt ein begrenztes Element in
+  die Grenzen und Schleier der Welt, die daneben stehen, mit der X-Karte und den anonymen
+  Vorschlägen der Spieler.
+<!-- /feature -->
 <!-- feature: followers -->
 - **Gefolge** (ein Knopf auf dem Bogen): Angestellte mit Tageslohn sowie Gefährten,
   Reittiere und Sidekicks aus deinen Büchern mit eigenen Trefferpunkten. Ein Sidekick

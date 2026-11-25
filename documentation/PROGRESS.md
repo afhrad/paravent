@@ -479,6 +479,15 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         lines and veils the gamemaster keeps, players' anonymous suggestions to take or
         drop, and the X-card on the player's sheet and fight view, which tells only the
         gamemaster, always as a toast, with no name in the log
+        **Session zero** (2026-11-25, `TableSafety`): on the same page, the 2024 guide's
+        Game Expectations sheet and "Setting the Stage" — the gamemaster's theme and
+        flavor, potentially sensitive elements, starting location and key events, house
+        rules (the world's optional rules named beneath), how the party came together
+        (the guide's five ways, linked) and the starting level; each player's sheet
+        (fine / soft / hard per element, anything else to avoid, hopes, concerns) kept
+        under an HMAC token of their name, changeable, never named; everyone reads the
+        sheets gathered (limits counted per element, the rest sorted), and the
+        gamemaster takes a limited element as a line or a veil
   - [x] **Bastions** (2026-11-15, `app/services/bastions.py`): from level 5 a character's
         special facilities of the world's books up to its level (2/4/5/6 by level), an
         order each for the next turn, and the gamemaster's bastion turn into the log;

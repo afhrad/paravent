@@ -259,6 +259,65 @@ class TestSafetyTools:
         toast = (await ac.get("/log/toasts", params={"since": since})).text
         assert "X-card" in toast
 
+    async def test_session_zero_and_anonymous_sheets(
+        self, table: tuple[AsyncClient, StoreRegistry, str]
+    ) -> None:
+        ac, registry, lyra = table
+        world = registry.gamestate.characters.get(lyra).world_id
+        assert world is not None
+        registry.gamestate.worlds.update(world, combat_rules=["morale"], milestone=True)
+        await ac.post(
+            f"/safety/{world}/zero",
+            data={
+                "theme": "Grim border war, small victories.",
+                "sensitive": "Spiders\nTorture\n\nSpiders",
+                "start": "Fort Grey, the day the bridge fell.",
+                "house_rules": "Potions are a bonus action.",
+                "together": "tavern",
+                "together_note": "All owe the innkeeper.",
+                "starting_level": "3",
+            },
+        )
+        zero = registry.safety.of(world)
+        assert zero.sensitive == ["Spiders", "Torture"] and zero.together == "tavern"
+        assert zero.starting_level == 3
+        page = (await ac.get("/safety")).text
+        assert "Session zero" in page and "Grim border war" in page
+        assert "This world plays with: Level by milestones, Morale." in page
+        registry.auth.create_user("alice", PASSWORD, Role.PLAYER)
+        registry.auth.create_user("bob", PASSWORD, Role.PLAYER)
+        registry.gamestate.characters.update(lyra, player="alice")
+        bobs = registry.gamestate.characters.create(
+            PlayerCharacter(name="Bob's", player="bob", world_id=world)
+        )
+        assert bobs.world_id == world
+        app = create_app()
+        app.state.stores = registry
+        for who, limits, hopes in (
+            ("alice", {"limit_0": "hard", "limit_1": "soft"}, "Big battles"),
+            ("bob", {"limit_0": "hard"}, "Mysteries"),
+        ):
+            async with AsyncClient(
+                transport=ASGITransport(app=app), base_url="http://test"
+            ) as player:
+                await player.post("/login", data={"username": who, "password": PASSWORD})
+                read = (await player.get("/safety")).text
+                assert "Fort Grey" in read and "A tavern gathering" in read
+                assert "Your expectations sheet" in read and "As a line" not in read
+                await player.post(f"/safety/{world}/sheet", data={**limits, "hopes": hopes})
+                # Sent again: changed, not counted twice.
+                await player.post(f"/safety/{world}/sheet", data={**limits, "hopes": hopes})
+        zero = registry.safety.of(world)
+        assert len(zero.sheets) == 2
+        assert "alice" not in zero.model_dump_json() and "bob" not in zero.model_dump_json()
+        page = (await ac.get("/safety")).text
+        assert "2 sheets, no names" in page and "Big battles" in page and "Mysteries" in page
+        await ac.post(f"/safety/{world}/adopt", data={"element": "Spiders", "kind": "line"})
+        assert registry.safety.of(world).lines == ["Spiders"]
+        # Dropping an element drops its limits from the sheets.
+        await ac.post(f"/safety/{world}/zero", data={"sensitive": "Torture"})
+        assert all("Spiders" not in s.limits for s in registry.safety.of(world).sheets.values())
+
 
 class TestBastionRules:
     def test_special_facilities_by_level(self) -> None:

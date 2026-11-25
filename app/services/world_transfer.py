@@ -368,14 +368,14 @@ def _text_id() -> str:
 
 def _fresh(name: str, record: Record) -> Record:
     """A campaign record as a new group meets it: quests open with nobody on them,
-    factions with no renown, no suggestions waiting."""
+    factions with no renown, no suggestions waiting and no expectations sheets."""
     if name == "quests":
         steps = [s.model_copy(update={"done": False}) for s in getattr(record, "steps", [])]
         return record.model_copy(update={"status": "open", "characters": [], "steps": steps})
     if name == "factions":
         return record.model_copy(update={"renown": {}})
     if name == "safety":
-        return record.model_copy(update={"suggested": []})
+        return record.model_copy(update={"suggested": [], "sheets": {}})
     return record
 
 
