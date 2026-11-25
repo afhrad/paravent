@@ -1,15 +1,15 @@
-# Python Project
+# Paravent
 
-This is a Python project following modern best practices. Overall communication language is english. Use it for comments in code and discussions with the user and prompts.
+Overall communication language is English. Use it for comments in code and discussions with the user and prompts.
 
 All project documentation lives in `documentation/`; this file stays at the root so it is
 loaded automatically.
 
 - Read @documentation/PROJECT.md for project description
 - Read @documentation/TECHSTACK.md for technical solutions
-- Read @documentation/PROGRESS.md for steps in development
+- Read documentation/PROGRESS.md for what is built, feature by feature, before extending a feature or answering what exists
 - Read documentation/TODO.md for the working list (corrections, next steps, open questions); keep it current: add what is proposed or found, remove what is built or dropped
-- Read @documentation/CHARGEN.md for details on character generation
+- Read documentation/CHARGEN.md for the corpus analysis behind character generation (its traps and gaps)
 - Read documentation/CHARGEN-WIZARD.md for the character-creation wizard UX spec
 - Read documentation/ADVENTURES.md before touching worlds, adventures, chapters or their Markdown
 - Read documentation/CURRENT-WORLD.md before touching the table's current world, the world menu or the navigation
@@ -48,24 +48,17 @@ loaded automatically.
 
 ## Conventions
 
-- Use snake_case for variables and functions
-- Use PascalCase for classes
-- Use UPPER_CASE for constants
-- Keep functions small and focused
 - Write docstrings for public functions
 
 ## Testing
 
 - Use pytest for testing
-- Write unit tests for all business logic
 - Use fixtures for test setup
-- Aim for high test coverage
 
 ## Commands
 
 - `python -m pytest` - Run tests
-- `python -m pip install -r requirements.txt` - Install dependencies
-- `python -m black .` - Format code
+- `uv sync` - Install dependencies (from `pyproject.toml` / `uv.lock`)
 - `python -m mypy .` - Type check
 - `uvicorn app.main:app --reload` — Start development server on port 8000
 - `pytest` — Run test suite (`pytest -n auto` runs it on every core, about 2½ minutes)
@@ -108,9 +101,8 @@ Rules that follow:
   cache data.
 - Homebrew is **library** data, not reference data, even though it uses the 5eTools format.
 - Resolve `_copy` before validation — a shell entry often lacks required fields.
-- The load target is the **whole** corpus, all 94 entry keys, phased per TECHSTACK.md §6b.
-  All of the corpus's 93 top-level keys are accounted for (2026-11-12): 89 are read, four
-  are not content, and the corpus check names each.
+- The whole corpus is loaded (TECHSTACK.md §6b): every top-level key is either read or named
+  as not content by the corpus check, and a new upstream key shows up there as unknown.
 
 ## Reference resolution (TECHSTACK.md §6c)
 
@@ -131,7 +123,7 @@ Rules that follow:
 - **Never machine-generate `{@...}` tags from translated prose.** A glossary word in non-technical
   use would be silently mis-tagged. Tags come from the translator or the source.
 - **Units are stored per user and set by the language switch** (English → feet, any other
-  language → metres; decided 2026-10-25, replacing the separate unit menu). Convert typed
+  language → metres). Convert typed
   fields only; leave the 39,315 prose unit mentions alone (a metric reader gets a hint beside
   the clear ones, `UnitFormat.prose_hints`; the text is never rewritten). German conversion is
   `1 ft = 0.3 m`, never `1/3.28`.
@@ -155,12 +147,10 @@ Rules that follow:
 
 ## Code Conventions
 
-- All database operations use async SQLAlchemy sessions via `async with`
+- Storage is JSON files through the stores in `app/store/` (atomic writes, per-file locks); there is no database
 - Router functions are thin — delegate business logic to services/
-- Pydantic schemas separate Create, Update, and Response models (e.g., UserCreate, UserUpdate, UserResponse)
-- All routes return typed Pydantic response models — never return raw dicts or ORM objects
+- Pages and fragments are htpy rendered into `HTMLResponse`; JSON endpoints return Pydantic models
 - Use HTTPException for client errors (4xx), let unhandled exceptions become 500s
-- Background tasks via FastAPI's BackgroundTasks, not Celery (unless explicitly needed)
 
 ## Error Handling
 
@@ -171,7 +161,7 @@ Rules that follow:
 
 ## Things to Avoid
 
-- Do NOT use synchronous database drivers or blocking I/O in async routes
+- Do NOT do blocking I/O in async routes
 - Do NOT put business logic in router functions — use the service layer
 - Do NOT use `*` imports
 - Do NOT hardcode configuration — use pydantic-settings and environment variables

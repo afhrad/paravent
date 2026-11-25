@@ -10,10 +10,8 @@
 > with a visual reference at `design-reference/13-chargen-wizard.html`. This document answers
 > *what the data supports*; that one answers *what the player sees*.
 
-> **Language scope:** this analysis covers the **English corpus only**. Paravent remains
-> multilingual per PROJECT.md, but character generation is specified, built and validated against
-> English data first. Localisation of the wizard is deliberately out of scope here and is not
-> treated as a gap below.
+> **Language scope:** this analysis covers the **English corpus only**. The wizard's
+> translation is TRANSLATION.md's concern (its glossary and passages), not a gap below.
 
 ---
 
@@ -356,7 +354,7 @@ than a chargen one; it is now resolved, so the build order below starts at the P
 
 0. ~~**Corpus load Phase 1 (G7)**~~ — done. All class categories, both `generated/` lookups and
    every fluff record are in memory, so everything below can now be tested against real data.
-1. **`app/services/tags.py`** — the `{@...}` parser. *Already first on PROGRESS.md.* Every step
+1. ~~**`app/ui/tags.py`** — the `{@...}` parser~~ — done. Every step
    above renders text containing tags; nothing displays correctly without it.
 2. **`app/models/pc.py`** — the character model: chosen options + resolved state.
 3. **`app/services/character.py`** — derived stats (G1, G2, G3).

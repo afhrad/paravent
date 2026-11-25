@@ -557,9 +557,8 @@ paravent/
 │           ├── ui/             # UI string catalogues per language
 │           └── de/             # _glossary.json + one file per category
 ├── static/
-│   ├── css/                    # Tailwind output
-│   ├── daisyui/                # DaisyUI components
-│   └── js/                     # HTMX + Alpine (locally hosted, no CDN needed)
+│   ├── css/                    # token CSS from design-reference/shared/ + app.css
+│   └── js/                     # HTMX and small scripts (locally hosted, no CDN)
 └── pyproject.toml
 
 <PARAVENT_REFERENCE_DIR>/        # OUTSIDE the project — the user's 5eTools corpus, read-only
@@ -592,9 +591,9 @@ recurring villain is defined once at world level and referenced everywhere below
 
 ## 10. Feature coverage versus Lions Den "Game Master 5e"
 
-- **Combat tracker** → `combat.py` + HTMX partials (initiative, HP, conditions, statblock view), game state in `gamestate/*.json`
-- **Encounter builder/analyzer** → `services/encounter.py` (CR→XP, difficulty thresholds, random enemies)
-- **Creature builder/scaler** → `services/creature.py` (enter stats → generate the rest)
+- **Combat tracker** → `services/combat.py` + HTMX partials (initiative, HP, conditions, statblock view), game state in `library/combats.json`
+- **Encounter builder/analyzer** → `services/difficulty.py`, `services/encounter_gen.py` (CR→XP, difficulty, building a fight)
+- **Creature builder/scaler** → `services/creature_builder.py` (enter stats → generate the rest)
 - **DM screen / rules reference** → compendium search (in-memory), customizable tables, external links
 - **Campaign manager** → `campaign.py`, adventures as **Markdown** (as wished in the concept)
 - **Dice roller** → `services/dice.py` (e.g. `1d20 + 6d9 + CON`), hooked up via Alpine
