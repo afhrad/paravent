@@ -195,8 +195,49 @@ def register_backgrounds(server: MCPServer, stores: Callable[[], StoreRegistry])
         except BackgroundNotFound as exc:
             raise ToolError(f"No background design with id {design_id}") from exc
         if not design.drafted_by:
-            raise ToolError("Only drafts you created can be changed; this is the gamemaster's.")
+            raise ToolError(
+                "Only drafts you created can be changed; this is the gamemaster's. "
+                "To change it, open a revision with `start_background_revision`."
+            )
+        if design.revision_of and name is not None and name.strip() != design.name:
+            raise ToolError("A revision keeps its background's name: characters know it by it.")
         return answer(apply(design, changes_of(locals(), ("name", *FIELDS))))
+
+    @server.tool()
+    async def start_background_revision(
+        ctx: Context,
+        background: Annotated[
+            str, Field(description="The accepted background's design id, or its name")
+        ],
+    ) -> BackgroundDraft:
+        """A draft copy of a background the gamemaster accepted (or made in the builder), to
+        change with `update_background`. Answers with the copy (write to its id), or the copy
+        already open. The background stays as it is, published, until the gamemaster accepts
+        the revision; it keeps its name. Your own drafts need no copy."""
+        registry = stores()
+        found = registry.mcp_tokens.verify(bearer_of(ctx))
+        if found is None:
+            raise ToolError("This request carries no valid Paravent key.")
+        builder = registry.background_builder
+        try:
+            found_design = builder.get(background)
+        except BackgroundNotFound:
+            named = builder.named(background)
+            if named is None:
+                raise ToolError(f"No background design {background!r}") from None
+            found_design = named
+        if found_design.revision_of:
+            return answer(found_design)
+        if found_design.drafted_by:
+            raise ToolError(
+                f"{found_design.name} is still your draft: change it with update_background."
+            )
+        with tool_errors():
+            try:
+                found_design = builder.start_revision(found_design.id, found[0].id)
+            except BackgroundError as exc:
+                raise ToolError(str(exc)) from exc
+        return answer(found_design)
 
 
 __all__ = ["BackgroundDraft", "BackgroundItemInput", "register_backgrounds"]

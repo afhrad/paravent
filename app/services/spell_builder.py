@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Any
 
 from app.models.gamestate import SourceSet, SpellDesign
+from app.services import design_revisions
 from app.services.creature_builder import entries_text, text_entries
 from app.services.i18n import Translatable
 from app.services.text import first_dice
@@ -362,21 +363,17 @@ class SpellBuilder:
 
     def named(self, name: str) -> SpellDesign | None:
         wanted = name.strip().casefold()
-        return next((d for d in self.list() if d.name.casefold() == wanted), None)
+        return next(
+            (d for d in self.list() if d.name.casefold() == wanted and not d.revision_of), None
+        )
 
-    def _clean_name(self, name: str, own_id: str | None = None) -> str:
+    def _clean_name(
+        self, name: str, own_id: str | None = None, revision_of: str | None = None
+    ) -> str:
         cleaned = " ".join(name.split())[:80]
         if not cleaned:
             raise SpellError("spellbuilder.error.name")
-        clash = next(
-            (
-                d
-                for d in self._store.spell_designs.list()
-                if d.name.casefold() == cleaned.casefold() and d.id != own_id
-            ),
-            None,
-        )
-        if clash is not None:
+        if design_revisions.name_clash(self._store.spell_designs, cleaned, own_id, revision_of):
             raise SpellError("spellbuilder.error.name_taken", name=cleaned)
         return cleaned
 
@@ -412,8 +409,12 @@ class SpellBuilder:
         return self._store.spell_designs.create(design)
 
     def save(self, design: SpellDesign) -> SpellDesign:
-        """Store a changed design (not yet published)."""
-        design.name = self._clean_name(design.name, design.id)
+        """Store a changed design (not yet published); a revision keeps its spell's
+        name and world."""
+        if design.revision_of:
+            original = self.get(design.revision_of)
+            design.name, design.world_id = original.name, original.world_id
+        design.name = self._clean_name(design.name, design.id, design.revision_of)
         design.damage_types = [x for x in dict.fromkeys(design.damage_types) if x in DAMAGE_TYPES]
         design.classes = [c for c in dict.fromkeys(design.classes) if "|" in c][:40]
         if design.dice.strip() and _dice(design.dice) is None:
@@ -442,6 +443,36 @@ class SpellBuilder:
 
     def unpublished(self, design: SpellDesign) -> bool:
         return design.published_hash != self._hash(design)
+
+    def revision(self, design_id: str) -> SpellDesign | None:
+        """The open revision of a design, if Claude has one."""
+        return design_revisions.open_revision(self._store.spell_designs, design_id)
+
+    def start_revision(self, design_id: str, drafted_by: str) -> SpellDesign:
+        """A draft copy of an accepted design for Claude to change, or the one already
+        open; the design itself stays as it is, published, until the copy is accepted."""
+        original = self.get(design_id)
+        if original.drafted_by:
+            raise SpellError("itembuilder.error.revise_draft", name=original.name)
+        return design_revisions.start(
+            self._store.spell_designs, original, drafted_by, SpellDesign.model_validate
+        )
+
+    def changes(self, revision: SpellDesign) -> builtins.list[str]:
+        """The fields a revision changes against its design, in the design's order."""
+        return design_revisions.changes(self._store.spell_designs, revision)
+
+    def accept_revision(self, design_id: str) -> SpellDesign:
+        """Write a revision onto its spell (same id and name), drop the copy, and
+        publish when the spell was published."""
+        changed = design_revisions.accept(
+            self._store.spell_designs,
+            self.get(design_id),
+            lambda design, update: design.model_copy(update=update),
+        )
+        if changed.published_at is not None:
+            self.publish()
+        return self.get(changed.id)
 
     def accept(self, design_id: str) -> SpellDesign:
         """Claude's draft taken in as the gamemaster's own, then published."""

@@ -6,12 +6,14 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Any
 
 from htpy import (
     Element,
     Node,
     a,
     button,
+    details,
     div,
     fieldset,
     form,
@@ -23,6 +25,7 @@ from htpy import (
     section,
     select,
     span,
+    summary,
     textarea,
     ul,
 )
@@ -38,11 +41,35 @@ from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.library_links import confirm_page
 from app.ui.ref_pages import statblock
+from app.ui.revision_bits import revision_notice, revision_status
 from app.ui.tags import RenderContext
 from app.ui.tool_dialog import tool_dialog
 
 BACKGROUNDS_URL = "/gm/backgrounds"
 ITEM_ROWS = 3
+
+# The form's label for each field a revision may change.
+LABELS = {
+    "edition": "bgbuilder.edition",
+    "skills": "bgbuilder.proficiencies",
+    "any_skills": "bgbuilder.any_skills_label",
+    "tools": "bgbuilder.tools",
+    "any_artisan": "bgbuilder.any_artisan_label",
+    "any_gaming": "bgbuilder.any_gaming_label",
+    "any_instrument": "bgbuilder.any_instrument_label",
+    "languages": "bgbuilder.languages",
+    "any_languages": "bgbuilder.any_languages_label",
+    "equipment": "bgbuilder.equipment",
+    "gold": "bgbuilder.gold",
+    "abilities": "bgbuilder.origin",
+    "feat": "bgbuilder.feat",
+    "feature_name": "bgbuilder.feature_name",
+    "feature_text": "bgbuilder.feature_text",
+    "text": "itembuilder.text",
+    "based_on": "itembuilder.field.based_on",
+    "skill_choices": "bgbuilder.skill_choices",
+    "choose_skills": "bgbuilder.skill_choices",
+}
 
 
 def background_url(design_id: str) -> str:
@@ -64,6 +91,9 @@ class BackgroundView:
     preview: ReferenceEntry
     unpublished: bool
     published: bool
+    original: Any = None  # the design a revision changes
+    revision: Any = None  # Claude's open revision of this design
+    changes: Sequence[str] = ()
 
 
 def _field(caption: str, *content: Node, hint: str | None = None) -> Element:
@@ -115,7 +145,13 @@ def backgrounds_page(
                     )
                 ],
             ],
-            span(class_="pill accent", title=t("itembuilder.draft_hint"))[t("itembuilder.draft")]
+            span(class_="pill accent", title=t("bgbuilder.revision_hint"))[
+                t("itembuilder.revision")
+            ]
+            if r.design.revision_of
+            else span(class_="pill accent", title=t("itembuilder.draft_hint"))[
+                t("itembuilder.draft")
+            ]
             if r.design.drafted_by
             else span(class_="pill cond")[t("itembuilder.unpublished")]
             if r.unpublished
@@ -261,6 +297,26 @@ def builder_page(
                 for s in view.skills
             ]
         ],
+        details(class_="ib-defence", open=bool(d.skill_choices))[
+            summary[t("bgbuilder.skill_choices")],
+            div(class_="ib-checks")[
+                [
+                    label(class_="cs-heal-pick")[
+                        input_el(
+                            type="checkbox",
+                            name="skill_choices",
+                            value=s,
+                            checked=s in d.skill_choices,
+                        ),
+                        span[t(f"skill.{s}")],
+                    ]
+                    for s in view.skills
+                ]
+            ],
+            _field(
+                t("bgbuilder.choose_skills_label"), _number("choose_skills", d.choose_skills, 4)
+            ),
+        ],
         div(class_="ib-grid ib-small")[
             _field(t("bgbuilder.any_skills_label"), _number("any_skills", d.any_skills, 4)),
             _field(
@@ -325,7 +381,15 @@ def builder_page(
         ],
     ]
     status = (
-        p(class_="pill accent")[t("itembuilder.draft_hint")]
+        revision_status(
+            page,
+            t("bgbuilder.revision_hint"),
+            background_url(view.original.id),
+            view.changes,
+            {k: t(v) for k, v in LABELS.items()},
+        )
+        if view.original is not None
+        else p(class_="pill accent")[t("itembuilder.draft_hint")]
         if d.drafted_by
         else p(class_="muted")[
             t("itembuilder.state_new")
@@ -345,6 +409,9 @@ def builder_page(
             page_head(t("bgbuilder.heading"), d.name, t("bgbuilder.builder_lede")),
             notice(notice_text),
             alert(error),
+            revision_notice(page, t("bgbuilder.revision_open"), background_url(view.revision.id))
+            if view.revision is not None
+            else None,
             div(class_="ib-layout")[
                 form(method="post", action=url, class_="ib-form")[
                     basics,

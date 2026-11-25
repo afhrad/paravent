@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Any, get_args
 
 from app.models.gamestate import ItemDesign, ItemKind, ItemSpell, Rarity, SourceSet
+from app.services import design_revisions
 from app.services.creature_builder import entries_text, text_entries
 from app.services.i18n import Translatable
 from app.store.gamestate import GameStateStore
@@ -74,20 +75,6 @@ _DICE_TAG = re.compile(r"\{@dice ([^}|]+)[^}]*\}")
 _BONUS = re.compile(r"^[+]?(\d+)$")
 
 Lookup = Callable[[str, str, str], dict[str, Any] | None]  # (category, name, source)
-
-
-# A design's own bookkeeping, never copied into or written back from a revision.
-_OWN_FIELDS = frozenset(
-    {
-        "id",
-        "created_at",
-        "updated_at",
-        "published_at",
-        "published_hash",
-        "drafted_by",
-        "revision_of",
-    }
-)
 
 
 class ItemError(Translatable):
@@ -327,20 +314,7 @@ class ItemBuilder:
         cleaned = " ".join(name.split())[:80]
         if not cleaned:
             raise ItemError("itembuilder.error.name")
-        # A design shares its name only with its own revision.
-        kin = {own_id, revision_of} - {None}
-        clash = next(
-            (
-                d
-                for d in self._store.item_designs.list()
-                if d.name.casefold() == cleaned.casefold()
-                and d.id not in kin
-                and not (own_id is not None and d.revision_of == own_id)
-                and not (revision_of is not None and d.revision_of == revision_of)
-            ),
-            None,
-        )
-        if clash is not None:
+        if design_revisions.name_clash(self._store.item_designs, cleaned, own_id, revision_of):
             raise ItemError("itembuilder.error.name_taken", name=cleaned)
         return cleaned
 
@@ -455,9 +429,7 @@ class ItemBuilder:
 
     def revision(self, design_id: str) -> ItemDesign | None:
         """The open revision of a design, if Claude has one."""
-        return next(
-            (d for d in self._store.item_designs.list() if d.revision_of == design_id), None
-        )
+        return design_revisions.open_revision(self._store.item_designs, design_id)
 
     def start_revision(self, design_id: str, drafted_by: str) -> ItemDesign:
         """A draft copy of an accepted design for Claude to change, or the one already
@@ -465,41 +437,25 @@ class ItemBuilder:
         original = self.get(design_id)
         if original.drafted_by:
             raise ItemError("itembuilder.error.revise_draft", name=original.name)
-        found = self.revision(design_id)
-        if found is not None:
-            return found
-        copy = ItemDesign.model_validate(
-            {
-                **original.model_dump(exclude=set(_OWN_FIELDS)),
-                "drafted_by": drafted_by,
-                "revision_of": original.id,
-            }
+        return design_revisions.start(
+            self._store.item_designs, original, drafted_by, ItemDesign.model_validate
         )
-        return self._store.item_designs.create(copy)
 
     def changes(self, revision: ItemDesign) -> builtins.list[str]:
         """The fields a revision changes against its item, in the design's order."""
-        original = self._store.item_designs.find(revision.revision_of or "")
-        if original is None:
-            return []
-        mine, theirs = revision.model_dump(), original.model_dump()
-        kept = _OWN_FIELDS | {"name", "world_id"}
-        return [k for k in mine if k not in kept and mine[k] != theirs.get(k)]
+        return design_revisions.changes(self._store.item_designs, revision)
 
     def accept_revision(self, design_id: str) -> ItemDesign:
         """Write a revision onto its item (same id and name, so characters carrying it
         keep it), drop the copy, and publish when the item was published."""
-        revision = self.get(design_id)
-        original = self.get(revision.revision_of or "")
-        changed = original.model_copy(
-            update={k: getattr(revision, k) for k in self.changes(revision)}
+        changed = design_revisions.accept(
+            self._store.item_designs,
+            self.get(design_id),
+            lambda design, update: design.model_copy(update=update),
         )
-        changed.touch()
-        self._store.item_designs.replace(changed)
-        self._store.item_designs.delete(revision.id)
-        if original.published_at is not None:
+        if changed.published_at is not None:
             self.publish()
-        return self.get(original.id)
+        return self.get(changed.id)
 
     def accept(self, design_id: str) -> ItemDesign:
         """Claude's draft taken in as the gamemaster's own, then published."""

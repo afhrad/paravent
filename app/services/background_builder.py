@@ -26,6 +26,7 @@ from pathlib import Path
 from typing import Any
 
 from app.models.gamestate import BackgroundDesign, BackgroundItem, SourceSet
+from app.services import design_revisions
 from app.services.creature_builder import entries_text, text_entries
 from app.services.i18n import Translatable
 from app.store.gamestate import GameStateStore
@@ -69,10 +70,12 @@ def _item_entry(item: BackgroundItem) -> Any:
     return out
 
 
-def _plural(words: Words, key: str, n: int) -> str:
+def _plural(words: Words, key: str, n: int, **params: object) -> str:
     """A counted phrase in the translator's plural form ("two of your choice")."""
     plural = getattr(words, "plural", None)
-    return str(plural(key, n, n=n)) if plural is not None else words(key, n=n)
+    if plural is not None:
+        return str(plural(key, n, n=n, **params))
+    return words(key, n=n, **params)
 
 
 def _summary(design: BackgroundDesign, words: Words) -> dict[str, Any]:
@@ -91,6 +94,9 @@ def _summary(design: BackgroundDesign, words: Words) -> dict[str, Any]:
     skills = [f"{{@skill {s.title()}}}" for s in design.skills]
     if design.any_skills:
         skills.append(_plural(t, "bgbuilder.any_skills", design.any_skills))
+    if design.choose_skills and design.skill_choices:
+        options = ", ".join(f"{{@skill {x.title()}}}" for x in design.skill_choices)
+        skills.append(_plural(t, "bgbuilder.choose_skills", design.choose_skills, options=options))
     if skills:
         rows.append((t("bgbuilder.line.skills"), ", ".join(skills)))
     tools = [s for s in design.tools]
@@ -142,6 +148,11 @@ def background_of(design: BackgroundDesign, words: Words) -> dict[str, Any]:
     skills: dict[str, Any] = {s.lower(): True for s in design.skills}
     if design.any_skills:
         skills["any"] = design.any_skills
+    if design.choose_skills and design.skill_choices:
+        skills["choose"] = {
+            "from": [s.lower() for s in design.skill_choices],
+            "count": design.choose_skills,
+        }
     if skills:
         out["skillProficiencies"] = [skills]
     tools: dict[str, Any] = {s.lower(): True for s in design.tools}
@@ -193,6 +204,11 @@ def from_background(raw: dict[str, Any]) -> dict[str, Any]:
     fields: dict[str, Any] = {"edition": "one" if raw.get("edition") == "one" else "classic"}
     fields["skills"] = _true_keys(raw.get("skillProficiencies"))
     fields["any_skills"] = min(4, _count(raw.get("skillProficiencies"), "any"))
+    first = (raw.get("skillProficiencies") or [{}])[0]
+    choose = first.get("choose") if isinstance(first, dict) else None
+    if isinstance(choose, dict) and isinstance(choose.get("from"), list):
+        fields["skill_choices"] = [str(x).lower() for x in choose["from"]][:18]
+        fields["choose_skills"] = min(4, int(choose.get("count") or 1))
     fields["tools"] = _true_keys(raw.get("toolProficiencies"))
     for key, name in ANY_TOOLS.items():
         fields[key] = min(3, _count(raw.get("toolProficiencies"), name))
@@ -277,21 +293,19 @@ class BackgroundBuilder:
 
     def named(self, name: str) -> BackgroundDesign | None:
         wanted = name.strip().casefold()
-        return next((d for d in self.list() if d.name.casefold() == wanted), None)
+        return next(
+            (d for d in self.list() if d.name.casefold() == wanted and not d.revision_of), None
+        )
 
-    def _clean_name(self, name: str, own_id: str | None = None) -> str:
+    def _clean_name(
+        self, name: str, own_id: str | None = None, revision_of: str | None = None
+    ) -> str:
         cleaned = " ".join(name.split())[:80]
         if not cleaned:
             raise BackgroundError("bgbuilder.error.name")
-        clash = next(
-            (
-                d
-                for d in self._store.background_designs.list()
-                if d.name.casefold() == cleaned.casefold() and d.id != own_id
-            ),
-            None,
-        )
-        if clash is not None:
+        if design_revisions.name_clash(
+            self._store.background_designs, cleaned, own_id, revision_of
+        ):
             raise BackgroundError("bgbuilder.error.name_taken", name=cleaned)
         return cleaned
 
@@ -324,9 +338,20 @@ class BackgroundBuilder:
         return self._store.background_designs.create(design)
 
     def save(self, design: BackgroundDesign) -> BackgroundDesign:
-        """Store a changed design (not yet published)."""
-        design.name = self._clean_name(design.name, design.id)
+        """Store a changed design (not yet published); a revision keeps its background's
+        name and world."""
+        if design.revision_of:
+            original = self.get(design.revision_of)
+            design.name, design.world_id = original.name, original.world_id
+        design.name = self._clean_name(design.name, design.id, design.revision_of)
         design.skills = [s.strip().lower() for s in dict.fromkeys(design.skills) if s.strip()][:6]
+        design.skill_choices = [
+            s.strip().lower()
+            for s in dict.fromkeys(design.skill_choices)
+            if s.strip() and s.strip().lower() not in design.skills
+        ][:18]
+        if not design.skill_choices:
+            design.choose_skills = 0
         design.tools = [s.strip().lower() for s in dict.fromkeys(design.tools) if s.strip()][:6]
         design.languages = [
             s.strip().lower() for s in dict.fromkeys(design.languages) if s.strip()
@@ -355,6 +380,36 @@ class BackgroundBuilder:
 
     def unpublished(self, design: BackgroundDesign) -> bool:
         return design.published_hash != self._hash(design)
+
+    def revision(self, design_id: str) -> BackgroundDesign | None:
+        """The open revision of a design, if Claude has one."""
+        return design_revisions.open_revision(self._store.background_designs, design_id)
+
+    def start_revision(self, design_id: str, drafted_by: str) -> BackgroundDesign:
+        """A draft copy of an accepted design for Claude to change, or the one already
+        open; the design itself stays as it is, published, until the copy is accepted."""
+        original = self.get(design_id)
+        if original.drafted_by:
+            raise BackgroundError("itembuilder.error.revise_draft", name=original.name)
+        return design_revisions.start(
+            self._store.background_designs, original, drafted_by, BackgroundDesign.model_validate
+        )
+
+    def changes(self, revision: BackgroundDesign) -> builtins.list[str]:
+        """The fields a revision changes against its design, in the design's order."""
+        return design_revisions.changes(self._store.background_designs, revision)
+
+    def accept_revision(self, design_id: str) -> BackgroundDesign:
+        """Write a revision onto its background (same id and name), drop the copy, and
+        publish when the background was published."""
+        changed = design_revisions.accept(
+            self._store.background_designs,
+            self.get(design_id),
+            lambda design, update: design.model_copy(update=update),
+        )
+        if changed.published_at is not None:
+            self.publish()
+        return self.get(changed.id)
 
     def accept(self, design_id: str) -> BackgroundDesign:
         """Claude's draft taken in as the gamemaster's own, then published."""

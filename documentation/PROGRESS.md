@@ -145,7 +145,12 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         `app/services/background_builder.py`, `/gm/backgrounds`): skills, tools and languages
         fixed or of choice, equipment and gold, a 2014 feature or the 2024 abilities and
         origin feat, offered by the wizard (backgrounds are now also read from
-        `backgrounds/backgrounds-*.json`). Both drafted by Claude over MCP. **Over MCP**
+        `backgrounds/backgrounds-*.json`); a skill choice from a list ("one of Arcana,
+        Nature, Religion"). Both drafted by Claude over MCP, and revised like items
+        (`start_spell_revision`, `start_background_revision`; one shared
+        `app/services/design_revisions.py`). Reference pages name backgrounds, feats,
+        species, classes, options, deities, languages, traps, hazards, diseases and gifts
+        by their kind instead of "Rule". **Over MCP**
         (2026-11-11, MCP.md §10): Claude drafts
         creatures from a description, a world's setting and a CR (`create_creature`,
         `update_creature`), spells and equipment from the world's books; a draft is

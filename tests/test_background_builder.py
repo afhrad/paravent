@@ -6,7 +6,7 @@ from __future__ import annotations
 from httpx import AsyncClient
 
 from app.models.gamestate import BackgroundDesign, BackgroundItem
-from app.services.background_builder import background_of
+from app.services.background_builder import background_of, from_background
 from app.store.registry import StoreRegistry
 from tests.conftest import requires_corpus
 from tests.test_travel_downtime_shop import table
@@ -16,6 +16,23 @@ __all__ = ["table"]
 
 def words(key: str, **params: object) -> str:
     return f"{key}{params}"
+
+
+def test_a_printed_skill_choice_is_read() -> None:
+    fields = from_background(
+        {
+            "name": "Cloistered Scholar",
+            "source": "SCAG",
+            "skillProficiencies": [
+                {"history": True, "choose": {"from": ["arcana", "nature", "religion"]}}
+            ],
+        }
+    )
+    assert fields["skills"] == ["history"]
+    assert (fields["skill_choices"], fields["choose_skills"]) == (
+        ["arcana", "nature", "religion"],
+        1,
+    )
 
 
 def test_the_background_it_publishes_as() -> None:
@@ -47,6 +64,13 @@ def test_the_background_it_publishes_as() -> None:
             "B": [{"value": 5000}],
         }
     ]
+    choosing = background_of(
+        ferry.model_copy(update={"skill_choices": ["arcana", "history"], "choose_skills": 1}),
+        words,
+    )
+    assert choosing["skillProficiencies"] == [
+        {"athletics": True, "survival": True, "choose": {"from": ["arcana", "history"], "count": 1}}
+    ]
     old = background_of(ferry.model_copy(update={"edition": "classic"}), words)
     assert "edition" not in old and "feats" not in old
     assert old["startingEquipment"] == [
@@ -71,11 +95,13 @@ async def test_published_and_offered_by_the_wizard(
     assert copy.edition == "classic" and copy.skills == ["insight", "religion"]
     assert copy.any_languages == 2 and copy.gold == 15
     assert copy.feature_name == "Shelter of the Faithful" and copy.feature_text
+    sage = builder.create("", world, based_on="Sage|XPHB")
+    assert sage.skills and sage.edition == "one" and len(sage.abilities) == 3
     fresh = builder.create("Ferryman", world)
     fresh.edition, fresh.skills, fresh.abilities = "one", ["athletics"], ["str", "con", "wis"]
     fresh.feat = "Tough|XPHB"
     builder.save(fresh)
-    assert builder.publish().count == 2
+    assert builder.publish().count == 3  # with the Sage
     assert registry.compendium.get("background", "Ferryman|Homebrew") is not None
     offered = {o.name for o in registry.catalogue(world).backgrounds()}
     assert {"Ferryman", "Wandering Acolyte"} <= offered
@@ -120,7 +146,7 @@ async def test_the_builder_pages(table: tuple[AsyncClient, StoreRegistry, str]) 
         ("", "a frayed rope"),
     ]
     shown = (await ac.get(f"/ref/background/Homebrew/Bell Ringer?world={world}")).text
-    assert "You rang the hours over the river" in shown
+    assert "You rang the hours over the river" in shown and ">Background<" in shown
     bad = await ac.post(
         f"/gm/backgrounds/{design_id}",
         data={

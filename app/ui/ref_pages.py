@@ -110,6 +110,18 @@ CATEGORY_KEY = {
     "itemMastery": "ref.kind.item_mastery",
     "deck": "ref.kind.deck",
     "card": "ref.kind.card",
+    "background": "ref.kind.background",
+    "feat": "ref.kind.feat",
+    "race": "ref.kind.race",
+    "class": "ref.kind.class",
+    "subclass": "ref.kind.subclass",
+    "optionalfeature": "ref.kind.optionalfeature",
+    "deity": "ref.kind.deity",
+    "language": "ref.kind.language",
+    "trap": "ref.kind.trap",
+    "hazard": "ref.kind.hazard",
+    "disease": "ref.kind.disease",
+    "reward": "ref.kind.reward",
 }
 
 

@@ -208,8 +208,8 @@ Erbin des ertrunkenen Priesters, selten, mit dem sie unter Wasser atmen kann" wi
 Entwurf, in dem steht, was der Bogen zählt (Boni, Resistenzen, Attributswerte, Ladungen, die
 Zauber, die er wirkt), und der Rest in seinem Text. Öffne ihn unter *Gegenstandsbaukasten* und
 drücke **Annehmen und veröffentlichen**, um ihn in deine Bücher aufzunehmen. Soll Claude einen
-schon angenommenen Gegenstand ändern, schreibt es eine Überarbeitung daneben, die nichts
-ändert, bis du auch sie annimmst.
+schon angenommenen Gegenstand, Zauber oder Hintergrund ändern, schreibt es eine
+Überarbeitung daneben, die nichts ändert, bis du auch sie annimmst.
 
 Zauber und Hintergründe gehen genauso, im **Zauberbaukasten** und im
 **Hintergrundbaukasten**: ein Zauber mit Kopfzeilen, Schaden oder Heilung und den Klassen,

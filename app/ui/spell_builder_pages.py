@@ -6,6 +6,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Any
 
 from htpy import (
     Element,
@@ -42,6 +43,7 @@ from app.ui.item_links import SPELLS_URL, spell_url
 from app.ui.layout import app_shell
 from app.ui.library_links import confirm_page
 from app.ui.ref_pages import statblock
+from app.ui.revision_bits import revision_notice, revision_status
 from app.ui.tags import RenderContext
 from app.ui.tool_dialog import tool_dialog
 
@@ -51,6 +53,42 @@ AREAS = ("", "cone", "cube", "cylinder", "line", "sphere", "emanation")
 DURATIONS = ("instant", "timed", "permanent", "special")
 DURATION_UNITS = ("round", "minute", "hour", "day")
 EFFECTS = ("none", "save", "attack", "heal")
+
+# The form's label for each field a revision may change.
+LABELS = {
+    "level": "spellbuilder.level",
+    "school": "spellbuilder.school",
+    "time_number": "spellbuilder.time",
+    "time_unit": "spellbuilder.time",
+    "range_kind": "spellbuilder.range",
+    "range_amount": "spellbuilder.range",
+    "area": "spellbuilder.area",
+    "area_size": "spellbuilder.area",
+    "verbal": "spellbuilder.verbal",
+    "somatic": "spellbuilder.somatic",
+    "material": "spellbuilder.material",
+    "material_cost": "spellbuilder.material_cost",
+    "material_consumed": "spellbuilder.consumed",
+    "duration_kind": "spellbuilder.duration",
+    "duration_amount": "spellbuilder.duration",
+    "duration_unit": "spellbuilder.duration",
+    "concentration": "spellbuilder.concentration",
+    "ritual": "spellbuilder.ritual",
+    "classes": "spellbuilder.classes",
+    "effect": "spellbuilder.effect_kind",
+    "save": "spellbuilder.save",
+    "half_on_save": "spellbuilder.half_on_save",
+    "attack": "spellbuilder.attack",
+    "dice": "spellbuilder.dice",
+    "damage_types": "spellbuilder.damage_types",
+    "heal_mod": "spellbuilder.heal_mod",
+    "heal_targets": "spellbuilder.heal_targets",
+    "upcast": "spellbuilder.upcast",
+    "write_effect": "spellbuilder.write_effect",
+    "text": "itembuilder.text",
+    "higher_text": "spellbuilder.higher_text",
+    "based_on": "itembuilder.field.based_on",
+}
 
 
 @dataclass
@@ -68,6 +106,9 @@ class SpellView:
     preview: ReferenceEntry
     unpublished: bool
     published: bool
+    original: Any = None  # the design a revision changes
+    revision: Any = None  # Claude's open revision of this design
+    changes: Sequence[str] = ()
 
 
 def _choice(name: str, value: str, options: Sequence[tuple[str, str]]) -> Element:
@@ -127,7 +168,13 @@ def spells_page(
                     )
                 ],
             ],
-            span(class_="pill accent", title=t("itembuilder.draft_hint"))[t("itembuilder.draft")]
+            span(class_="pill accent", title=t("spellbuilder.revision_hint"))[
+                t("itembuilder.revision")
+            ]
+            if r.design.revision_of
+            else span(class_="pill accent", title=t("itembuilder.draft_hint"))[
+                t("itembuilder.draft")
+            ]
             if r.design.drafted_by
             else span(class_="pill cond")[t("itembuilder.unpublished")]
             if r.unpublished
@@ -385,7 +432,15 @@ def builder_page(
         ],
     ]
     status = (
-        p(class_="pill accent")[t("itembuilder.draft_hint")]
+        revision_status(
+            page,
+            t("spellbuilder.revision_hint"),
+            spell_url(view.original.id),
+            view.changes,
+            {k: t(v) for k, v in LABELS.items()},
+        )
+        if view.original is not None
+        else p(class_="pill accent")[t("itembuilder.draft_hint")]
         if d.drafted_by
         else p(class_="muted")[
             t("itembuilder.state_new")
@@ -405,6 +460,9 @@ def builder_page(
             page_head(t("spellbuilder.heading"), d.name, t("spellbuilder.builder_lede")),
             notice(notice_text),
             alert(error),
+            revision_notice(page, t("spellbuilder.revision_open"), spell_url(view.revision.id))
+            if view.revision is not None
+            else None,
             div(class_="ib-layout")[
                 form(method="post", action=url, class_="ib-form")[
                     header, effect, lists, text, actions

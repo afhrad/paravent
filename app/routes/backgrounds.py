@@ -100,6 +100,9 @@ def _builder(
         preview=ReferenceEntry("background", builder.background(design), design.world_id),
         unpublished=builder.unpublished(design),
         published=design.published_at is not None,
+        original=builder.get(design.revision_of) if design.revision_of else None,
+        revision=builder.revision(design.id),
+        changes=builder.changes(design) if design.revision_of else [],
     )
     ctx = localized_context(
         page.t,
@@ -157,6 +160,8 @@ def _read_form(
         "edition": "classic" if str(form.get("edition")) == "classic" else "one",
         "skills": [str(x) for x in form.getlist("skills")],
         "any_skills": _int(form.get("any_skills"), 4),
+        "skill_choices": [str(x) for x in form.getlist("skill_choices")],
+        "choose_skills": _int(form.get("choose_skills"), 4),
         "tools": _split(str(form.get("tools", ""))),
         "any_artisan": _int(form.get("any_artisan"), 3),
         "any_gaming": _int(form.get("any_gaming"), 3),
@@ -212,10 +217,11 @@ async def show_background(
     design_id: str,
     published: str = "",
     worlds: str = "",
+    revised: str = "",
 ) -> HTMLResponse:
     """The builder."""
     design = _design(registry, design_id)
-    notice_text = None
+    notice_text = page.t("bgbuilder.revision_accepted") if revised else None
     if published:
         notice_text = page.t.plural("bgbuilder.published_n", int(published))
         if worlds:
@@ -231,7 +237,15 @@ async def change_background(
     builder = registry.background_builder
     form = await request.form()
     action = str(form.get("action", "save"))
-    design = _read_form(_design(registry, design_id), form, registry)
+    before = _design(registry, design_id)
+    design = _read_form(before, form, registry)
+    if action == "accept" and before.revision_of:  # written onto its background
+        try:
+            builder.save(design)
+        except BackgroundError as exc:
+            return _builder(page, registry, design, error=page.t.error(exc), status_code=422)
+        accepted = builder.accept_revision(design.id)
+        return redirect(f"{background_url(accepted.id)}?revised=1")
     if action == "accept":
         design = design.model_copy(update={"drafted_by": None})
     try:

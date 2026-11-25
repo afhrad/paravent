@@ -658,6 +658,7 @@ class SpellDesign(Record):
     published_at: datetime | None = None
     published_hash: str | None = None
     drafted_by: str | None = None
+    revision_of: str | None = None  # Claude's draft copy of the accepted design with this id
 
 
 class BackgroundItem(GameStateModel):
@@ -685,6 +686,9 @@ class BackgroundDesign(Record):
     edition: Literal["classic", "one"] = "one"
     skills: list[str] = Field(default_factory=list)  # "insight"
     any_skills: int = Field(default=0, ge=0, le=4)
+    # So many skills the player chooses from these ("choose two from Arcana, History…").
+    skill_choices: list[str] = Field(default_factory=list)
+    choose_skills: int = Field(default=0, ge=0, le=4)
     tools: list[str] = Field(default_factory=list)  # "thieves' tools"
     any_artisan: int = Field(default=0, ge=0, le=3)
     any_gaming: int = Field(default=0, ge=0, le=3)
@@ -701,6 +705,7 @@ class BackgroundDesign(Record):
     published_at: datetime | None = None
     published_hash: str | None = None
     drafted_by: str | None = None
+    revision_of: str | None = None  # Claude's draft copy of the accepted design with this id
 
 
 class EncounterMonster(GameStateModel):

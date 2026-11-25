@@ -214,13 +214,52 @@ def register_spells(server: MCPServer, stores: Callable[[], StoreRegistry]) -> N
         except SpellNotFound as exc:
             raise ToolError(f"No spell design with id {design_id}") from exc
         if not design.drafted_by:
-            raise ToolError("Only drafts you created can be changed; this is the gamemaster's.")
+            raise ToolError(
+                "Only drafts you created can be changed; this is the gamemaster's. "
+                "To change it, open a revision with `start_spell_revision`."
+            )
+        if design.revision_of and name is not None and name.strip() != design.name:
+            raise ToolError("A revision keeps its spell's name: characters know it by it.")
         given = locals()
         changes = {k: given[k] for k in ("name", *FIELDS) if given.get(k) is not None}
         problems: list[str] = []
         if classes is not None:
             changes["classes"], problems = classes_of(design.world_id or "", classes)
         return answer(apply(design, changes), problems)
+
+    @server.tool()
+    async def start_spell_revision(
+        ctx: Context,
+        spell: Annotated[str, Field(description="The accepted spell's design id, or its name")],
+    ) -> SpellDraft:
+        """A draft copy of a spell the gamemaster accepted (or made in the builder), to
+        change with `update_spell`. Answers with the copy (write to its id), or the copy
+        already open. The spell stays as it is, published, until the gamemaster accepts
+        the revision; it keeps its name. Your own drafts need no copy."""
+        registry = stores()
+        found = registry.mcp_tokens.verify(bearer_of(ctx))
+        if found is None:
+            raise ToolError("This request carries no valid Paravent key.")
+        builder = registry.spell_builder
+        try:
+            found_design = builder.get(spell)
+        except SpellNotFound:
+            named = builder.named(spell)
+            if named is None:
+                raise ToolError(f"No spell design {spell!r}") from None
+            found_design = named
+        if found_design.revision_of:
+            return answer(found_design, [])
+        if found_design.drafted_by:
+            raise ToolError(
+                f"{found_design.name} is still your draft: change it with update_spell."
+            )
+        with tool_errors():
+            try:
+                found_design = builder.start_revision(found_design.id, found[0].id)
+            except SpellError as exc:
+                raise ToolError(str(exc)) from exc
+        return answer(found_design, [])
 
 
 __all__ = ["SpellDraft", "register_spells"]
