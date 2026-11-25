@@ -159,7 +159,10 @@ Entscheidung des Spielers.
   Reittiere und Sidekicks aus deinen Büchern mit eigenen Trefferpunkten. Ein Sidekick
   kann eine der Sidekick-Klassen aus Tasha erhalten; *Stufenaufstieg* erhöht seine
   Trefferpunkte, und *In den Kampf* stellt ihn auf Seite der Gruppe in den laufenden Kampf
-  der Figur.
+  der Figur. *Loyalität führen*, nur für dich sichtbar, führt den Loyalitätswert der
+  Spielleiterhandbücher: bis zum höchsten Charisma der Gruppe, zu Beginn die Hälfte,
+  bewegt durch die Gründe des Buchs (+1W4 für Hilfe oder gute Behandlung, −1W4 oder −2W4
+  für Kränkung und Missbrauch). Bei 0 wendet sich der Gefolgsmann gegen die Gruppe.
 <!-- /feature -->
 <!-- /feature -->
 

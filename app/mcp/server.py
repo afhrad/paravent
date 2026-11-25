@@ -258,9 +258,13 @@ def naming_request(
     return "\n".join(lines) + "\n\n"
 
 
-def follower_line(follower: Follower) -> str:
-    """A follower in a line: "Ash (mount, Riding Horse)"."""
-    kind = ", ".join(x for x in (follower.kind, follower.monster.partition("|")[0]) if x)
+def follower_line(follower: Follower, loyalty: int | None = None) -> str:
+    """A follower in a line: "Ash (mount, Riding Horse)", with its Loyalty Score where
+    the gamemaster keeps one ("loyalty 6", secret from the players)."""
+    parts = (follower.kind, follower.monster.partition("|")[0])
+    kind = ", ".join(x for x in parts if x)
+    if loyalty is not None:
+        kind += f", loyalty {loyalty}"
     return f"{follower.name} ({kind})"
 
 
@@ -455,7 +459,10 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
                     appearance=pc.appearance[:STORY_LIMIT],
                     backstory=pc.backstory[:STORY_LIMIT],
                     notes=pc.notes[:STORY_LIMIT],
-                    followers=[follower_line(f) for f in registry.followers.of(pc.id)],
+                    followers=[
+                        follower_line(f, registry.followers.loyalty(f))
+                        for f in registry.followers.of(pc.id)
+                    ],
                     quests=[
                         f"{q.name} ({q.status})"
                         for q in registry.quests.of(pc.world_id or "")

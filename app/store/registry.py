@@ -905,6 +905,15 @@ class StoreRegistry:
                 by,
             )
 
+        def charisma(world_id: str | None) -> int:
+            scores = [
+                ability.score.value or 0
+                for pc in self.gamestate.characters.of_world(world_id, drafts=False)
+                for ability in characters.sheet(pc).abilities
+                if ability.key == "cha"
+            ]
+            return max(scores, default=10)
+
         return FollowerService(
             self.gamestate,
             self.protocol,
@@ -913,6 +922,7 @@ class StoreRegistry:
             sidekick_classes=self.sidekick_classes,
             purse=purse,
             pay=pay,
+            charisma=charisma,
         )
 
     def sidekick_classes(self, world_id: str | None) -> list[tuple[str, str]]:

@@ -189,7 +189,10 @@ class PartyCharacter(BaseModel):
     notes: str = ""
     followers: list[str] = Field(
         default_factory=list,
-        description="Who follows them: hirelings, companions, mounts, sidekicks",
+        description=(
+            "Who follows them: hirelings, companions, mounts, sidekicks; a Loyalty Score "
+            "where the gamemaster keeps one, secret from the players"
+        ),
     )
     renown: dict[str, int] = Field(
         default_factory=dict, description="Renown with the world's factions, by faction"

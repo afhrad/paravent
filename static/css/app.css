@@ -3493,3 +3493,7 @@ dialog.ctx-dialog .panel{ margin:0; }
 .plane-picks .xp-who{ flex:1 1 240px; margin:0; }
 .plane-done{ margin:0 0 8px; padding-left:18px; }
 .wild-surges{ margin:0 0 8px; padding-left:18px; }
+.follower-loyalty{ display:grid; gap:6px; padding:8px 10px; border:1px dashed var(--border); border-radius:var(--radius-sm, 6px); }
+.follower-loyalty a{ color:var(--accent-text); }
+.follower-loyalty .inline-form{ flex-basis:auto; }
+.follower-loyalty-to{ width:4.5em; font:inherit; padding:2px 6px; }

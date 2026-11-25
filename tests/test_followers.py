@@ -7,7 +7,8 @@ import html
 from httpx import AsyncClient
 
 from app.services.clock import DAY
-from app.services.followers import hit_die, level_hp
+from app.services.dice import Dice
+from app.services.followers import hit_die, level_hp, standing
 from app.store.registry import StoreRegistry
 from tests.conftest import requires_corpus
 from tests.test_travel_downtime_shop import player_of, table
@@ -153,3 +154,62 @@ async def test_a_player_adds_no_creature_above_a_sidekicks_rating(
     # The gamemaster's word is enough.
     await ac.post(url, data={"op": "creature", "kind": "mount", "creature": "Adult Red Dragon"})
     assert len(registry.followers.of(lyra)) == 2
+
+
+class Fixed(Dice):
+    """Every die comes up at its highest."""
+
+    def die(self, faces: int) -> int:
+        return faces
+
+
+def test_loyalty_by_the_guides() -> None:
+    assert [standing(n) for n in (0, 1, 9, 10, 20)] == [
+        "disloyal",
+        "tenuous",
+        "tenuous",
+        "loyal",
+        "loyal",
+    ]
+
+
+@requires_corpus
+async def test_loyalty_kept_in_secret(table: tuple[AsyncClient, StoreRegistry, str]) -> None:
+    ac, registry, lyra = table
+    world = registry.gamestate.characters.get(lyra).world_id or ""
+    url = f"/characters/{lyra}/followers"
+    await ac.post(url, data={"op": "hire", "kind": "skilled", "name": "Tomas"})
+    (tomas,) = registry.followers.of(lyra)
+    most = registry.followers.loyalty_max(world)
+    assert 0 < most <= 20
+    page = html.unescape((await ac.get(url)).text)
+    assert "Keep its loyalty" in page and f"Charisma ({most})" in page
+    # Started at half the party's highest Charisma.
+    await ac.post(url, data={"op": "loyalty_track", "follower": tomas.id})
+    assert registry.followers.get(lyra, tomas.id).loyalty == most // 2
+    page = html.unescape((await ac.get(url)).text)
+    assert f"{most // 2} / {most}" in page and "Abused, misled or endangered" in page
+    # Abuse costs 2d4 (8 here), never below 0; at 0 the follower turns.
+    registry.followers._dice = Fixed()
+    await ac.post(url, data={"op": "loyalty", "follower": tomas.id, "reason": "abused"})
+    after = max(0, most // 2 - 8)
+    assert registry.followers.get(lyra, tomas.id).loyalty == after
+    await ac.post(url, data={"op": "loyalty", "follower": tomas.id, "reason": "set", "to": "0"})
+    assert "Disloyal" in (await ac.get(url)).text
+    # Kindness adds 1d4, never above the maximum.
+    await ac.post(url, data={"op": "loyalty", "follower": tomas.id, "reason": "set", "to": "20"})
+    assert registry.followers.get(lyra, tomas.id).loyalty == most
+    log = html.unescape((await ac.get(f"/log/panel?world={world}")).text)
+    assert "Loyalty of Tomas kept, starting at" in log
+    assert f"Loyalty of Tomas: {most // 2} → {after} (−8, Abused, misled or endangered)" in log
+    assert "no longer loyal" in log  # by the abuse, or by setting it to 0
+    # The players neither see it nor move it.
+    async with player_of(registry, lyra) as player:
+        assert "Loyalty" not in (await player.get(url)).text
+        refused = await player.post(
+            url, data={"op": "loyalty", "follower": tomas.id, "reason": "goal"}
+        )
+        assert refused.status_code == 403
+        assert "Loyalty of Tomas" not in (await player.get(f"/log/panel?world={world}")).text
+    await ac.post(url, data={"op": "loyalty_untrack", "follower": tomas.id})
+    assert registry.followers.get(lyra, tomas.id).loyalty is None

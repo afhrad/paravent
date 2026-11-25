@@ -674,6 +674,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         the party's long rest, joining the character's fight on its side under their
         name; a sidekick's level adds its hit die's average and CON; the travel form
         rides when every character has a mount
+        **Loyalty** (2026-11-25): the guides' Loyalty Score per follower, kept by the
+        gamemaster in secret (`Follower.loyalty`): up to the party's highest Charisma,
+        starting at half, moved by the book's reasons (+1d4, −1d4, −2d4) or set; loyal
+        from 10, tenuous below, disloyal at 0; logged for the gamemaster alone, and in
+        Claude's `party`
   - [x] **Spell scrolls and spellbooks** (2026-11-16, `app/services/spellbook.py`): a
         scroll keeps the spell it holds (scribed, or written in for a found one); cast
         from the sheet when on one of the character's lists, with the check above its

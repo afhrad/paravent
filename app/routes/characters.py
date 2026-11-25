@@ -58,7 +58,12 @@ from app.services.downtime import DowntimeError, crafting_days, materials, train
 from app.services.events import revision_stream
 from app.services.experience import progress
 from app.services.factions import granted, title_of
-from app.services.followers import PLAYER_FOLLOWER_CR, FollowerError, sidekick_level
+from app.services.followers import (
+    LOYALTY_PRINTED,
+    PLAYER_FOLLOWER_CR,
+    FollowerError,
+    sidekick_level,
+)
 from app.services.intervention import castable, intervention_of
 from app.services.magic_crafting import Crafter, Plan, plan
 from app.services.play import Actor, PlayError, cast_level
@@ -1147,6 +1152,11 @@ def _followers(
                 if f.sidekick_class
             },
             in_fight=bool(registry.combats.joined_by([character.id])),
+            loyalty={
+                f.id: score for f in held if (score := registry.followers.loyalty(f)) is not None
+            },
+            loyalty_max=registry.followers.loyalty_max(character.world_id),
+            loyalty_link=registry.heading_url(character.world_id, LOYALTY_PRINTED),
             error=error,
             message=message,
         ),
@@ -1344,6 +1354,23 @@ async def change_followers(
             if not identity.is_gamemaster:  # a sidekick levels when the gamemaster says
                 raise FollowerError("followers.error.level")
             service.level_up(character.id, follower_id)
+        elif op in ("loyalty", "loyalty_track", "loyalty_untrack"):
+            if not identity.is_gamemaster:  # the gamemaster keeps it in secret
+                raise HTTPException(status_code=403)
+            who = identity.user.username, identity.user.display_name or identity.user.username
+            if op == "loyalty_track":
+                service.track(character.id, follower_id, *who)
+            elif op == "loyalty_untrack":
+                service.untrack(character.id, follower_id)
+            else:
+                to = str(form.get("to", ""))
+                service.sway(
+                    character.id,
+                    follower_id,
+                    str(form.get("reason", "")),
+                    *who,
+                    to=int(to) if to.isdigit() else None,
+                )
         elif op == "dismiss":
             service.dismiss(character.id, follower_id)
         elif op == "fight":

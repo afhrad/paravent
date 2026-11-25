@@ -30,7 +30,14 @@ from htpy import (
 from htpy import input as input_el
 
 from app.models.gamestate import Follower
-from app.services.followers import CREATURES, HIRELINGS, proficiency, sidekick_level
+from app.services.followers import (
+    CREATURES,
+    HIRELINGS,
+    SWAYS,
+    proficiency,
+    sidekick_level,
+    standing,
+)
 from app.ui.context import Page
 from app.ui.forms import alert, hidden, notice
 from app.ui.home_pages import page_head
@@ -54,12 +61,22 @@ def followers_page(
     in_fight: bool,
     sidekick_classes: Sequence[tuple[str, str]] = (),
     progress: Mapping[str, tuple[Sequence[tuple[int, str]], Mapping[str, int]]] | None = None,
+    loyalty: Mapping[str, int] | None = None,
+    loyalty_max: int = 0,
+    loyalty_link: str | None = None,
     error: str | None = None,
     message: str | None = None,
 ) -> Element:
-    """Every follower of the character, and the forms to hire or add one."""
+    """Every follower of the character, and the forms to hire or add one; for the
+    gamemaster, each follower's Loyalty Score, which the players do not see."""
     t = page.t
     url = followers_url(character_id)
+    gm = page.identity is not None and page.identity.is_gamemaster
+    scores = loyalty or {}
+
+    def loyal(f: Follower) -> Node:
+        return _loyalty(page, url, f, scores.get(f.id), loyalty_max, loyalty_link) if gm else None
+
     return app_shell(
         page,
         t("followers.title", name=character_name),
@@ -77,7 +94,15 @@ def followers_page(
             section(class_="panel")[
                 ul(class_="follower-list")[
                     [
-                        _row(page, url, f, in_fight, world_id, (progress or {}).get(f.id))
+                        _row(
+                            page,
+                            url,
+                            f,
+                            in_fight,
+                            world_id,
+                            (progress or {}).get(f.id),
+                            loyal(f),
+                        )
                         for f in followers
                     ]
                 ]
@@ -152,6 +177,7 @@ def _row(
     in_fight: bool,
     world_id: str | None = None,
     progress: tuple[Sequence[tuple[int, str]], Mapping[str, int]] | None = None,
+    loyalty: Node = None,
 ) -> Element:
     t = page.t
     creature = follower.kind in CREATURES
@@ -209,6 +235,7 @@ def _row(
         else None,
         _sidekick(page, follower, progress, world_id) if follower.sidekick_class else None,
         p(class_="muted")[follower.note] if follower.note else None,
+        loyalty,
         details(class_="follower-more")[
             summary[t("followers.dismiss")],
             _post(
@@ -221,6 +248,92 @@ def _row(
                 cls="inline-form",
             ),
         ],
+    ]
+
+
+_STANDING_TONE = {"loyal": "heal", "tenuous": "neutral", "disloyal": "dmg"}
+
+
+def _loyalty(
+    page: Page,
+    url: str,
+    follower: Follower,
+    score: int | None,
+    most: int,
+    link: str | None,
+) -> Element:
+    """The gamemaster's Loyalty Score of a follower: the score against its maximum, what
+    it means, and the guides' reasons that move it; or a button to start keeping it."""
+    t = page.t
+    title = (
+        a(href=link, target="_blank", rel="noopener")[t("loyalty.title")]
+        if link
+        else b[t("loyalty.title")]
+    )
+    if score is None:
+        return div(class_="follower-loyalty")[
+            _post(
+                url,
+                "loyalty_track",
+                hidden("follower", follower.id),
+                button(type="submit", class_="btn btn-sm btn-ghost")[
+                    icon("eye-off", "sm"), span[t("loyalty.track")]
+                ],
+                cls="inline-form",
+            ),
+            small(class_="muted")[t("loyalty.track_hint", most=most, start=most // 2)],
+        ]
+    meaning = standing(score)
+    return div(class_="follower-loyalty")[
+        div(class_="follower-head")[
+            icon("eye-off", "sm"),
+            title,
+            span(class_="mono")[f"{score} / {most}"],
+            span(class_=f"pill {_STANDING_TONE[meaning]}")[t(f"loyalty.standing.{meaning}")],
+        ],
+        div(class_="follower-acts")[
+            [
+                _post(
+                    url,
+                    "loyalty",
+                    hidden("follower", follower.id),
+                    hidden("reason", reason),
+                    button(type="submit", class_="btn btn-sm")[
+                        span(class_="mono")[
+                            ("+" if sign > 0 else "−") + dice.replace("d", t("rules.dice_letter"))
+                        ],
+                        span[t(f"loyalty.reason.{reason}")],
+                    ],
+                    cls="inline-form",
+                )
+                for reason, (dice, sign) in SWAYS.items()
+            ],
+            _post(
+                url,
+                "loyalty",
+                hidden("follower", follower.id),
+                hidden("reason", "set"),
+                input_el(
+                    type="number",
+                    name="to",
+                    min="0",
+                    max=str(most),
+                    value=str(score),
+                    aria_label=t("loyalty.set_label"),
+                    class_="follower-loyalty-to",
+                ),
+                button(type="submit", class_="btn btn-sm btn-ghost")[t("loyalty.set")],
+                cls="inline-form",
+            ),
+            _post(
+                url,
+                "loyalty_untrack",
+                hidden("follower", follower.id),
+                button(type="submit", class_="btn btn-sm btn-ghost")[t("loyalty.untrack")],
+                cls="inline-form",
+            ),
+        ],
+        small(class_="muted")[t(f"loyalty.meaning.{meaning}")],
     ]
 
 

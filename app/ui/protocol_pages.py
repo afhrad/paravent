@@ -601,6 +601,23 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
                     "protocol.wages_owed", wage_days, days=days, coins=paid_text, owed=owed_text
                 )
             return t.plural("protocol.wages", wage_days, days=days, coins=paid_text)
+        if head == "loyalty":
+            reason, roll, before, after, follower = [*rest.split(":", 4), "", "", "", ""][:5]
+            if reason == "track":
+                return t("protocol.loyalty_track", name=follower, after=after)
+            why = "" if reason == "set" else t(f"loyalty.reason.{reason}")
+            sign = "−" if reason in ("against", "abused") else "+"
+            line = t(
+                "protocol.loyalty_why" if why else "protocol.loyalty",
+                name=follower,
+                before=before,
+                after=after,
+                roll=f"{sign}{roll}",
+                why=why,
+            )
+            if after == "0" and before not in ("", "0"):
+                return f"{line} — {t('protocol.loyalty_lost')}"
+            return line
         if head == "quest":
             step, _, quest_name = rest.partition(":")
             return t(f"protocol.quest_{step}", name=quest_name)

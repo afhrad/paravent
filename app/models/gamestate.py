@@ -1460,6 +1460,8 @@ class Follower(Record):
     # A sidekick's class of the books (Tasha's "Warrior Sidekick|TCE"), "" for none.
     sidekick_class: str = ""
     wage: int = Field(default=0, ge=0)  # copper a day, for a hireling
+    # The guides' Loyalty Score, kept by the gamemaster in secret; None while untracked.
+    loyalty: int | None = Field(default=None, ge=0, le=20)
 
 
 class QuestStep(GameStateModel):

@@ -12,6 +12,14 @@ Spellcaster or Warrior): its level is one more than the levels it has gained, it
 proficiency bonus follows that level, and the class's features and spell counts up to
 it are listed; its choices (roles, ability increases, spells) are the table's. A
 character's mount lets the party ride when every traveller has one.
+
+Loyalty is the guides' optional rule (2014 and 2024 alike): the gamemaster keeps a
+follower's Loyalty Score in secret, from 0 to the highest Charisma score in the party,
+starting at half of it. Helping it toward its goal, treating it particularly well or
+rescuing it raises it by 1d4; acting against its alignment or bond lowers it by 1d4,
+abusing, misleading or endangering it for selfish reasons by 2d4. From 10 it risks
+anything for the party, below it is tenuous, and at 0 it no longer acts in the party's
+interest. A score above a lowered maximum counts as the maximum.
 """
 
 from __future__ import annotations
@@ -24,6 +32,7 @@ from fractions import Fraction
 from app.models.gamestate import Combatant, Follower
 from app.models.pc import PlayerCharacter
 from app.models.protocol import EntryKind, ProtocolEntry, Scope, Visibility
+from app.services.dice import Dice
 from app.services.i18n import Translatable
 from app.services.protocol import ProtocolService
 from app.store.gamestate import GameStateStore
@@ -33,6 +42,16 @@ CREATURES = ("companion", "mount", "sidekick")
 # The strongest creature a player adds alone: a sidekick's limit (Tasha's).
 PLAYER_FOLLOWER_CR = Fraction(1, 2)
 _HIT_DICE = re.compile(r"(\d+)d(\d+)")
+# What moves a Loyalty Score, by the guides: the dice and their direction.
+SWAYS: dict[str, tuple[str, int]] = {
+    "goal": ("1d4", 1),
+    "kindness": ("1d4", 1),
+    "against": ("1d4", -1),
+    "abused": ("2d4", -1),
+}
+LOYAL_FROM = 10
+# Where the guides print the rule, the world's rules' guide first.
+LOYALTY_PRINTED = (("XDMG", "Loyalty"), ("DMG", "Loyalty"))
 
 
 class FollowerError(Translatable):
@@ -67,6 +86,11 @@ def proficiency(level: int) -> int:
     return 2 + (max(1, level) - 1) // 4
 
 
+def standing(score: int) -> str:
+    """What a Loyalty Score means: loyal from 10, tenuous below, disloyal at 0."""
+    return "loyal" if score >= LOYAL_FROM else "tenuous" if score else "disloyal"
+
+
 def level_hp(die: int, con: int) -> int:
     """What a sidekick's level adds: the die's average (rounded up) and CON, at least 1."""
     return max(1, die // 2 + 1 + con)
@@ -85,10 +109,13 @@ class FollowerService:
         sidekick_classes: Callable[[str | None], list[tuple[str, str]]] = lambda _w: [],
         purse: Callable[[str], int] = lambda _cid: 0,
         pay: Callable[[str, int], None] = lambda _cid, _copper: None,
+        charisma: Callable[[str | None], int] = lambda _w: 10,
+        dice: Dice | None = None,
     ) -> None:
         """``wages(world)`` is copper a day by kind of hireling; ``statblock(world,
         name)`` finds a creature of the world's books; ``purse(character)`` what it
-        holds in copper and ``pay(character, copper)`` takes it, as for lifestyle."""
+        holds in copper and ``pay(character, copper)`` takes it, as for lifestyle;
+        ``charisma(world)`` is the highest Charisma score among the world's characters."""
         self._store = store
         self._protocol = protocol
         self._wages = wages
@@ -96,6 +123,8 @@ class FollowerService:
         self._sidekick_classes = sidekick_classes
         self._purse = purse
         self._pay = pay
+        self._charisma = charisma
+        self._dice = dice or Dice()
 
     def of(self, character_id: str) -> list[Follower]:
         found = self._store.followers.list(lambda f: f.character_id == character_id)
@@ -245,9 +274,95 @@ class FollowerService:
         if entries and self._protocol is not None:
             self._protocol.append(entries)
 
+    def loyalty_max(self, world_id: str | None) -> int:
+        """A Loyalty Score's maximum: the highest Charisma score in the party."""
+        return max(0, min(20, self._charisma(world_id)))
+
+    def loyalty(self, follower: Follower) -> int | None:
+        """A follower's Loyalty Score, no higher than its maximum now; None untracked."""
+        if follower.loyalty is None:
+            return None
+        return min(follower.loyalty, self.loyalty_max(follower.world_id))
+
+    def track(self, character_id: str, follower_id: str, by: str, by_name: str) -> Follower:
+        """Start keeping a follower's Loyalty Score, at half its maximum."""
+        follower = self.get(character_id, follower_id)
+        if follower.loyalty is not None:
+            return follower
+        start = self.loyalty_max(follower.world_id) // 2
+        self._log_loyalty(follower, "track", None, None, start, by, by_name)
+        return self._put(follower.model_copy(update={"loyalty": start}))
+
+    def untrack(self, character_id: str, follower_id: str) -> Follower:
+        """Stop keeping a follower's Loyalty Score."""
+        follower = self.get(character_id, follower_id)
+        return self._put(follower.model_copy(update={"loyalty": None}))
+
+    def sway(
+        self,
+        character_id: str,
+        follower_id: str,
+        reason: str,
+        by: str,
+        by_name: str,
+        *,
+        to: int | None = None,
+    ) -> Follower:
+        """Move a follower's Loyalty Score by one of the guides' reasons (rolled), or set
+        it ``to`` a number (reason ``set``); kept between 0 and its maximum, logged for
+        the gamemaster alone ``loyalty:<reason>:<roll>:<before>:<after>:<name>``."""
+        follower = self.get(character_id, follower_id)
+        before = self.loyalty(follower)
+        if before is None:
+            raise FollowerError("followers.error.untracked")
+        roll: int | None = None
+        if reason == "set" and to is not None:
+            wanted = to
+        elif reason in SWAYS:
+            dice, sign = SWAYS[reason]
+            roll = self._dice.roll(dice).total
+            wanted = before + sign * roll
+        else:
+            raise FollowerError("followers.error.unknown")
+        after = max(0, min(self.loyalty_max(follower.world_id), wanted))
+        self._log_loyalty(follower, reason, roll, before, after, by, by_name)
+        return self._put(follower.model_copy(update={"loyalty": after}))
+
+    def _log_loyalty(
+        self,
+        follower: Follower,
+        reason: str,
+        roll: int | None,
+        before: int | None,
+        after: int,
+        by: str,
+        by_name: str,
+    ) -> None:
+        pc = self._store.characters.find(follower.character_id)
+        if self._protocol is None or pc is None:
+            return
+        self._protocol.append(
+            [
+                ProtocolEntry(
+                    actor=by,
+                    actor_name=by_name,
+                    subject=f"character:{pc.id}",
+                    subject_name=pc.name,
+                    kind=EntryKind.CUSTOM,
+                    what=f"loyalty:{reason}:{_num(roll)}:{_num(before)}:{after}:{follower.name}",
+                    visibility=Visibility.GM,
+                    scope=Scope(world=follower.world_id),
+                )
+            ]
+        )
+
     def _put(self, follower: Follower) -> Follower:
         follower.touch()
         return self._store.followers.upsert(follower)
+
+
+def _num(n: int | None) -> str:
+    return "" if n is None else str(n)
 
 
 def _name(text: str) -> str:
@@ -257,6 +372,9 @@ def _name(text: str) -> str:
 __all__ = [
     "CREATURES",
     "HIRELINGS",
+    "LOYALTY_PRINTED",
+    "LOYAL_FROM",
+    "SWAYS",
     "PLAYER_FOLLOWER_CR",
     "FollowerError",
     "FollowerService",
@@ -265,4 +383,5 @@ __all__ = [
     "level_hp",
     "proficiency",
     "sidekick_level",
+    "standing",
 ]
