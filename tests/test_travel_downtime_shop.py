@@ -355,6 +355,16 @@ class TestDowntime:
         work = service.start(pc, "work", "", by="a", by_name="Ana")
         with pytest.raises(DowntimeError):
             service.spend(pc, work.id, 8, "a", "Ana")  # 7 days left
+        # Without either book's training rules the gamemaster sets the days.
+        dwarvish = service.start(
+            pc, "train", "language:Dwarvish|PHB", daily=0, by="a", by_name="Ana", days_later=True
+        )
+        assert dwarvish.needed is None
+        with pytest.raises(DowntimeError):
+            service.spend(pc, dwarvish.id, 1, "a", "Ana")  # waits for the days
+        assert service.set_days(pc, dwarvish.id, 3).needed == 3
+        service.spend(pc, dwarvish.id, 3, "a", "Ana")
+        assert learned[-1] == "language:Dwarvish|PHB"
 
 
 class TestBastionEvents:

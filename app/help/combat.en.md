@@ -110,7 +110,8 @@ end by themselves.
   **Shapechange** works the same for its caster alone (any creature but a construct or
   undead, up to the caster's level), and the caster can still cast in the shape. The row then
   fights as the shape: its statblock, attacks and AC. **Revert** in the ⋯ menu ends it by
-  hand.
+  hand. A player can end only a shape their own character cast; one an enemy cast holds
+  until its caster's concentration ends, or you end it.
 - **Concentration holds the shape.** When the caster's concentration ends — dropped, a
   failed save, a new spell, 0 hit points, or Incapacitated, Paralyzed, Petrified, Stunned
   or Unconscious — every shape the spell held ends with it, logged. A shape that ends by

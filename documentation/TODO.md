@@ -14,16 +14,13 @@ Nothing agreed is waiting; see the proposals below.
 
 Paused 2026-11-22 while the user playtests; their findings come first.
 
-- **Encounter notes at a glance** — the builder's notes now read folded under their
-  editor ("How the notes read"), as on the treasure page; before, they stood under the
-  title. Put back above the plan if the gamemaster wants tactics in view while planning.
-  Open question to the user. S
-- **Villagers from a Game Master 5e backup** — a campaign's townsfolk with a statblock come
-  in as builder designs, like its monsters; they could be plain NPCs with a book statblock
-  instead. Open question to the user. S
-- **An unidentified +1 weapon** works as its base item, so its bonus does not count until
-  identified. The rules count it from the start; showing it would hint at what it is.
-  Open question to the user. S
+- **Per-world homebrew** — every world with Homebrew among its books sees every world's
+  designs (creatures, items, spells, backgrounds), as one source `Homebrew` holds them all.
+  Wanted by the user (2026-11-25), not yet built: it needs either a source per world with
+  every `Name|Homebrew` reference in the library rewritten (encounters, NPC statblocks,
+  treasure, characters' gear and spells, fights, shops, followers, chapter tags), or a
+  world filter in resolution, search and the wizard, which today know only a world's
+  books. A migration either way; plan it before building. M–L
 
 ## Known compromises
 

@@ -591,6 +591,8 @@ class SpellFormView:
     spell: str = ""
     hp: int | None = None
     hp_max: int = 1
+    # The character holds the spell itself (cast on itself): its player may end it.
+    own: bool = False
 
     @property
     def reference(self) -> str:
@@ -1016,6 +1018,7 @@ def build_sheet(
     corpus = _Corpus(compendium, source_set)
     sheet = Sheet(character=character, revision=revision, file_error=file_error)
     real = character
+    quiet = identify.quiet_bonuses(character, corpus.item)  # an unidentified +1, unnamed
     character = identify.as_seen(character, corpus.item)  # unidentified items as seen
     level = character.total_level
     sheet.level = level
@@ -1053,7 +1056,7 @@ def build_sheet(
 
     _skills(sheet, character, corpus, mods, prof_bonus)
     training = _training(character, corpus, (species, subspecies))
-    _armor_and_attacks(sheet, character, corpus, classes, mods, prof_bonus, training[1])
+    _armor_and_attacks(sheet, character, corpus, classes, mods, prof_bonus, training[1], quiet)
     sheet.attunement_slots = attunement_slots(
         {level.name.lower(): level.level for level, _data in classes}
     )
@@ -1463,12 +1466,16 @@ def _armor_and_attacks(
     mods: dict[str, int],
     prof: int,
     trained: Sequence[str] = (),
+    quiet: dict[int, tuple[int, int]] | None = None,
 ) -> None:
+    """Armour, shields and weapons as worn; ``quiet`` adds an unidentified item's weapon
+    or AC bonus to its base item's numbers, unnamed (app/services/identify.py)."""
     armor = EquippedArmor()
     magic_ac = 0
     ammo: dict[str, int] = {}
     for index, entry in enumerate(character.inventory):
         data = corpus.item(entry.item)
+        hidden_weapon, hidden_ac = (quiet or {}).get(index, (0, 0))
         kind, summary, weight = "item", "", None
         if data is not None:
             item_type = _first_word(data.get("type", ""))
@@ -1480,7 +1487,7 @@ def _armor_and_attacks(
                     armor = EquippedArmor(
                         name=str(data.get("name")),
                         armor_type=item_type,
-                        base_ac=int(data.get("ac", 10)) + _bonus(data, "bonusAc"),
+                        base_ac=int(data.get("ac", 10)) + _bonus(data, "bonusAc") + hidden_ac,
                         shield_ac=armor.shield_ac,
                         stealth_disadvantage=bool(data.get("stealth")),
                     )
@@ -1492,7 +1499,7 @@ def _armor_and_attacks(
                         name=armor.name,
                         armor_type=armor.armor_type,
                         base_ac=armor.base_ac,
-                        shield_ac=int(data.get("ac", 2)) + _bonus(data, "bonusAc"),
+                        shield_ac=int(data.get("ac", 2)) + _bonus(data, "bonusAc") + hidden_ac,
                         stealth_disadvantage=armor.stealth_disadvantage,
                     )
             elif data.get("dmg1"):
@@ -1500,7 +1507,7 @@ def _armor_and_attacks(
                 summary = f"{data['dmg1']} {DAMAGE_TYPES.get(str(data.get('dmgType')), '')}".strip()
                 if entry.equipped:
                     sheet.attacks.append(
-                        _attack(entry.item.name, data, classes, mods, prof, trained)
+                        _attack(entry.item.name, data, classes, mods, prof, trained, hidden_weapon)
                     )
             elif (
                 entry.equipped
@@ -1590,7 +1597,10 @@ def _attack(
     mods: dict[str, int],
     prof: int,
     trained: Sequence[str] = (),
+    unnamed: int = 0,
 ) -> AttackView:
+    """One weapon's attack; ``unnamed`` is an unidentified weapon's bonus, in the numbers
+    but not in their explanation, so it does not give the weapon away."""
     codes = property_codes(item)
     props = [code for code, _source in codes]
     ranged = _first_word(item.get("type", "")) == "R"
@@ -1600,13 +1610,13 @@ def _attack(
         ability = "dex" if ranged else "str"
     magic = _bonus(item, "bonusWeapon")
     proficient = _weapon_proficient(item, classes, trained)
-    to_hit = mods[ability] + (prof if proficient else 0) + magic
+    to_hit = mods[ability] + (prof if proficient else 0) + magic + unnamed
     parts = [f"{ability.upper()} {mods[ability]:+d}"]
     if proficient:
         parts.append(f"prof {prof:+d}")
     if magic:
         parts.append(f"magic {magic:+d}")
-    damage_bonus = mods[ability] + magic
+    damage_bonus = mods[ability] + magic + unnamed
     damage = f"{item['dmg1']}{damage_bonus:+d}" if damage_bonus else str(item["dmg1"])
     versatile = None
     if item.get("dmg2") and "V" in props:
@@ -2649,6 +2659,7 @@ def _spell_form(sheet: Sheet, character: PlayerCharacter, corpus: _Corpus) -> No
         shape.spell,
         min(shape.hp, form.hp) if shape.hp is not None else None,
         form.hp,
+        own=shape.caster == f"character:{character.id}",
     )
     label = f"{form.name} ({shape.spell.partition('|')[0]})"
     if form.ac is not None:

@@ -16,7 +16,6 @@ from htpy import (
     a,
     b,
     button,
-    details,
     div,
     form,
     h1,
@@ -30,7 +29,6 @@ from htpy import (
     section,
     select,
     span,
-    summary,
     textarea,
     ul,
 )
@@ -614,11 +612,19 @@ def _settings(
                 ],
             ],
         ],
-        details(class_="tr-preview")[
-            summary[t("treasure.notes_read")], div(class_="md-body enc-notes")[notes.html]
-        ]
-        if notes is not None and notes.html.strip()
-        else None,
+    ]
+
+
+def _notes_panel(page: Page, notes: Rendered | None) -> Node:
+    """The encounter's notes as they read, above the plan: tactics and setup in view
+    while the monsters are planned (written in the settings below)."""
+    if notes is None or not notes.html.strip():
+        return None
+    return section(class_="panel enc-notes-panel", aria_labelledby="enc-notes-h")[
+        div(class_="panel-head")[
+            h2(id="enc-notes-h")[icon("scroll", "sm"), " ", page.t("encounters.notes")]
+        ],
+        div(class_="md-body enc-notes")[notes.html],
     ]
 
 
@@ -731,6 +737,7 @@ def encounter_page(
             notice(notice_text),
             div(class_="enc-grid")[
                 div(class_="enc-main")[
+                    _notes_panel(page, notes),
                     _plan(page, view, name_styles),
                     _picker(page, view, result),
                     _settings(page, view, scopes, notes),

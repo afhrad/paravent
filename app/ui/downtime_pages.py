@@ -438,6 +438,28 @@ def _project(page: Page, url: str, project: DowntimeProject, free: int) -> Eleme
         ]
     left = (project.needed - project.done) if project.needed is not None else free
     daily = project.daily if project.daily is not None else DAILY.get(project.kind, 0)
+    # A training waiting for its days: the gamemaster sets them, the player sees it waits.
+    waiting = project.kind == "train" and project.needed is None and not project.finished
+    gm = page.identity is not None and page.identity.is_gamemaster
+    if waiting:
+        progress = (
+            form(method="post", action=url, class_="inline-form downtime-spend")[
+                hidden("op", "set_days"),
+                hidden("project", project.id),
+                input_el(
+                    type="number",
+                    name="days",
+                    min="1",
+                    max="365",
+                    inputmode="numeric",
+                    class_="mono party-clock-amount",
+                    aria_label=t("downtime.days_needed"),
+                ),
+                button(type="submit", class_="btn btn-sm")[t("downtime.set_days")],
+            ]
+            if gm
+            else small(class_="muted")[t("downtime.days_waiting")]
+        )
     return li(class_=f"downtime-row {project.kind}")[
         div(class_="downtime-what")[
             b[t(f"downtime.kind.{project.kind}")],
@@ -470,7 +492,7 @@ def _project(page: Page, url: str, project: DowntimeProject, free: int) -> Eleme
                 title=t("downtime.daily", coins=coin_text(page, daily)) if daily else None,
             )[t("downtime.spend")],
         ]
-        if not project.finished and free > 0
+        if not project.finished and free > 0 and not waiting
         else None,
         form(method="post", action=url, class_="inline-form")[
             hidden("op", "drop"),
@@ -660,7 +682,11 @@ def _start(page: Page, url: str, start: StartOptions) -> Node:
             select(name="item", aria_label=t("downtime.item"))[
                 [option(value=ref)[name] for ref, name in start.trainable]
             ],
-            days_field() if start.training == "table" else None,
+            days_field()
+            if start.training == "table"
+            and page.identity is not None
+            and page.identity.is_gamemaster
+            else None,
             hint=train_hint,
         )
         if start.trainable

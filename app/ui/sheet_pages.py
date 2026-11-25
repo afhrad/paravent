@@ -26,6 +26,7 @@ import weakref
 from collections import OrderedDict
 from collections.abc import Mapping
 from fractions import Fraction
+from urllib.parse import urlencode
 
 from htpy import (
     Element,
@@ -165,12 +166,19 @@ def act(
     pressed: bool | None = None,
     disabled: bool = False,
 ) -> Element:
-    """One sheet action as a form: posts normally, or swaps ``#sheet`` via HTMX."""
+    """One sheet action as a button of the sheet's one shared form (:func:`act_form`):
+    its values ride in its own address, posted normally or swapping ``#sheet`` via HTMX
+    (85 small forms became one, 2026-11-25)."""
     url = _url(sheet, f"/act/{action}")
-    return form(method="post", action=url, hx_post=url, class_="cs-act")[
-        [hidden(k, str(v)) for k, v in params.items()],
+    if params:
+        url = f"{url}?{urlencode({k: str(v) for k, v in params.items()})}"
+    return span(class_="cs-act")[
         button(
             type="submit",
+            form=act_form_id(sheet),
+            formaction=url,
+            formmethod="post",
+            hx_post=url,
             class_=cls,
             title=title,
             aria_label=label,
@@ -178,6 +186,21 @@ def act(
             disabled=disabled,
         )[content],
     ]
+
+
+def act_form_id(sheet: Sheet) -> str:
+    return f"cs-act-{sheet.character.id}"
+
+
+def act_form(sheet: Sheet) -> Element:
+    """The one empty form every :func:`act` button of the sheet submits."""
+    return form(
+        id=act_form_id(sheet),
+        method="post",
+        action=_url(sheet, "/act/roll"),
+        class_="cs-act-form",
+        hidden=True,
+    )
 
 
 def _value_title(page: Page, value: Value) -> str | None:
@@ -420,7 +443,10 @@ def _form_hp(page: Page, sheet: Sheet) -> Node:
                 {"op": "end"},
                 [icon("refresh-cw", "sm"), span[page.t("combat.polymorph.end")]],
                 cls="btn btn-sm",
-            ),
+            )
+            # Another's spell ends with its caster's concentration, or by the gamemaster.
+            if held.own or (page.identity is not None and page.identity.is_gamemaster)
+            else small(class_="muted")[page.t("combat.polymorph.not_yours")],
         ]
     view = sheet.wild_shape
     if view is None or view.form is None or view.form_hp is None:
@@ -2360,6 +2386,7 @@ def sheet_fragment(
         hx_target="this",
         hx_swap="outerHTML",
     )[
+        act_form(sheet),
         div(class_="alert", role="alert")[
             icon("triangle-alert"), span[t("sheet.file_error", error=sheet.file_error)]
         ]

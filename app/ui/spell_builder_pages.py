@@ -36,6 +36,7 @@ from app.models.gamestate import SpellDesign, World
 from app.services.references import ReferenceEntry
 from app.services.spell_builder import ABILITY_WORDS, DAMAGE_TYPES, SCHOOLS
 from app.ui.context import Page
+from app.ui.context_menu import row_menu
 from app.ui.forms import alert, notice
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
@@ -179,6 +180,12 @@ def spells_page(
             else span(class_="pill cond")[t("itembuilder.unpublished")]
             if r.unpublished
             else None,
+            row_menu(
+                page,
+                spell_url(r.design.id),
+                r.design.name,
+                fallback=f"{spell_url(r.design.id)}/delete",
+            ),
         ]
         for r in rows
     ]

@@ -20,6 +20,7 @@ from app.ui.faction_pages import FACTIONS_URL
 from app.ui.forms import alert, checkbox_field, hidden, select_field
 from app.ui.home_pages import page_head
 from app.ui.icons import icon
+from app.ui.item_links import background_url, item_url, spell_url
 from app.ui.layout import app_shell
 from app.ui.library_links import adventure_url, location_url, npc_url, treasure_url
 from app.ui.quest_pages import QUESTS_URL
@@ -46,6 +47,9 @@ def piece_url(kind: str, record_id: str) -> str:
         "treasure": treasure_url,
         "encounter": encounter_url,
         "creature": creature_url,
+        "item_design": item_url,
+        "spell_design": spell_url,
+        "background_design": background_url,
     }
     if kind in pages:
         return pages[kind](record_id)

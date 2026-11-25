@@ -3,8 +3,10 @@
 An item handed out **unidentified** shows its player only what it looks like: the
 gamemaster's words for it (``shown_as``), else the kind of thing it is ("an unidentified
 longsword", "an unidentified ring"). Until the gamemaster identifies it, it works as its
-base item — a +1 longsword as a longsword, a ring as nothing at all — so neither its name
-nor its numbers give it away on the sheet, and it cannot be attuned to.
+base item — a +1 longsword as a longsword, a ring as nothing at all — and cannot be
+attuned to. Its plain weapon or armour bonus still counts, as the rules have it from the
+start (the user's decision, 2026-11-25), quietly: added to the number under the base
+item's name, never named (:func:`quiet_bonuses`).
 
 A **cursed** item (its book's ``curse``, or the gamemaster's word on the carried item)
 binds whoever attunes to it: they cannot end the attunement, take it off, sell it or use
@@ -81,4 +83,35 @@ def as_seen(character: PlayerCharacter, item: ItemLookup) -> PlayerCharacter:
     return character.model_copy(update={"inventory": seen})
 
 
-__all__ = ["as_seen", "base_of", "is_bound", "is_cursed", "kind_of", "type_code"]
+def quiet_bonuses(character: PlayerCharacter, item: ItemLookup) -> dict[int, tuple[int, int]]:
+    """The weapon and AC bonuses of each unidentified item that needs no attunement, by
+    its place in the inventory: ``(attack and damage, AC)``, counted unnamed."""
+    out: dict[int, tuple[int, int]] = {}
+    for index, entry in enumerate(character.inventory):
+        if not entry.unidentified:
+            continue
+        data = item(entry.item) or {}
+        if data.get("reqAttune"):
+            continue
+        weapon, armor = _plus(data.get("bonusWeapon")), _plus(data.get("bonusAc"))
+        if weapon or armor:
+            out[index] = (weapon, armor)
+    return out
+
+
+def _plus(raw: Any) -> int:
+    try:
+        return int(str(raw).replace("+", "")) if raw not in (None, "") else 0
+    except ValueError:
+        return 0
+
+
+__all__ = [
+    "as_seen",
+    "base_of",
+    "is_bound",
+    "is_cursed",
+    "kind_of",
+    "quiet_bonuses",
+    "type_code",
+]

@@ -21,9 +21,4 @@ Nothing from the guides is waiting.
 
 ## From reviews and passes of the app
 
-- **One shared form for the sheet's buttons** — about 85 small forms become one; measured
-  to save about 5 of the sheet's 38 ms, and it touches every button, so it waits. M
-  (measured 2026-11-16)
-- **Left to the players, on purpose** (review 2026-11-16) — training days typed by the
-  player in a world without either rulebook's training rules, and ending a Polymorph cast
-  on one's own character. Either could become the gamemaster's.
+Nothing from the reviews is waiting.

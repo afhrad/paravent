@@ -157,7 +157,14 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         (base item, spells, classes, feat, equipment, what it began from — creature
         designs too); an ability raise needs attunement, as the sheet applies it; homebrew
         items, spells and backgrounds read as the table's own, with no "not translated"
-        note. **Over MCP**
+        note. **Settled 2026-11-25:** an encounter's notes read above its plan; an
+        unidentified weapon's or armour's plain bonus counts, unnamed
+        (`identify.quiet_bonuses`); Game Master 5e townsfolk come in as plain NPCs with the
+        book creature they name, or the design their fight made; item, spell and
+        background designs copy and move to another world like creature designs; in a
+        world without training rules the gamemaster sets a training's days; a player ends
+        only a shape their own character cast; the sheet's buttons share one form (102
+        buttons, 35 forms left), their values in their address. **Over MCP**
         (2026-11-11, MCP.md §10): Claude drafts
         creatures from a description, a world's setting and a CR (`create_creature`,
         `update_creature`), spells and equipment from the world's books; a draft is

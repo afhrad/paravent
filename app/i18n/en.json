@@ -5397,5 +5397,16 @@
   "bgbuilder.revision_hint": "Claude's proposed changes to a background you accepted: the background stays as it is until you accept them.",
   "bgbuilder.revision_open": "Claude has proposed changes to this background.",
   "bgbuilder.revision_accepted": "The revision was written onto the background.",
-  "itembuilder.error.raise_attune": "A score is raised only while attuned: tick Requires attunement, or set the score instead."
+  "itembuilder.error.raise_attune": "A score is raised only while attuned: tick Requires attunement, or set the score instead.",
+  "copy.kind.item_design": "Item design",
+  "copy.kind.spell_design": "Spell design",
+  "copy.kind.background_design": "Background design",
+  "menu.kind.item_design": "Item design",
+  "menu.kind.spell_design": "Spell design",
+  "menu.kind.background_design": "Background design",
+  "downtime.set_days": "Set the days",
+  "downtime.days_waiting": "Waiting for the gamemaster to say how many days it takes.",
+  "downtime.error.days_unset": "The gamemaster has not set this training's days yet.",
+  "play.error.not_your_spell": "Only its caster, by ending their concentration, or the gamemaster ends this shape.",
+  "combat.polymorph.not_yours": "Ends with its caster's concentration."
 }

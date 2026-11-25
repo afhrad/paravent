@@ -128,13 +128,16 @@ class DowntimeService:
         daily: int | None = None,
         by: str,
         by_name: str,
+        days_later: bool = False,
     ) -> DowntimeProject:
         """A new project. Crafting needs the item's ``price`` (its materials are paid
         now); training a ``language:`` or ``tool:`` reference with its ``needed`` days
-        and ``daily`` cost (``training_plan``); scribing ``"<scroll>;<spell>"`` with
-        its days and full ``price``, paid now; a magic item (``enchant``) its reference,
-        days, the ``price`` paid now and the ``daily`` cost (app/services/magic_crafting.py);
-        research and anything else may name their days."""
+        and ``daily`` cost (``training_plan``), or none with ``days_later``, the
+        gamemaster setting them later (a world without either book's training rules);
+        scribing ``"<scroll>;<spell>"`` with its days and full ``price``, paid now; a
+        magic item (``enchant``) its reference, days, the ``price`` paid now and the
+        ``daily`` cost (app/services/magic_crafting.py); research and anything else may
+        name their days."""
         label = " ".join(label.split())[:200]
         if kind not in KINDS:
             raise DowntimeError("downtime.error.kind")
@@ -145,7 +148,9 @@ class DowntimeService:
         elif kind == "train":
             if label.partition(":")[0] not in ("language", "tool") or ":" not in label:
                 raise DowntimeError("downtime.error.item")
-            if needed is None or not 0 < needed <= MOST_DAYS:
+            if needed is None and days_later:
+                pass  # waits for the gamemaster's days
+            elif needed is None or not 0 < needed <= MOST_DAYS:
                 raise DowntimeError("downtime.error.days")
         elif kind == "scribe":
             if ";" not in label or price is None or price < 0 or not needed:
@@ -184,6 +189,21 @@ class DowntimeService:
         self._log(pc.world_id, by, by_name, f"downtime_start:{kind}:{label}", pc)
         return project
 
+    def set_days(self, pc: PlayerCharacter, project_id: str, days: int) -> DowntimeProject:
+        """The gamemaster's days for a training that waits for them."""
+        held = self.of(pc.id)
+        project = next((p for p in held.projects if p.id == project_id), None)
+        if project is None or project.finished or project.kind != "train":
+            raise DowntimeError("downtime.error.project")
+        if not 0 < days <= MOST_DAYS:
+            raise DowntimeError("downtime.error.days")
+        changed = project.model_copy(update={"needed": max(days, project.done)})
+        projects = [changed if p.id == project_id else p for p in held.projects]
+        record = held.model_copy(update={"projects": projects})
+        record.touch()
+        self._store.downtime.upsert(record)
+        return changed
+
     def spend(
         self, pc: PlayerCharacter, project_id: str, days: int, by: str, by_name: str
     ) -> DowntimeProject:
@@ -193,6 +213,8 @@ class DowntimeService:
         project = next((p for p in held.projects if p.id == project_id), None)
         if project is None or project.finished:
             raise DowntimeError("downtime.error.project")
+        if project.kind == "train" and project.needed is None:
+            raise DowntimeError("downtime.error.days_unset")
         if project.needed is not None:
             days = min(days, project.needed - project.done)
         if not 0 < days <= held.days:

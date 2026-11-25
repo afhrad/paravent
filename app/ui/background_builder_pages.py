@@ -35,9 +35,11 @@ from app.models.gamestate import BackgroundDesign, BackgroundItem, World
 from app.services.background_builder import ABILITIES
 from app.services.references import ReferenceEntry
 from app.ui.context import Page
+from app.ui.context_menu import row_menu
 from app.ui.forms import alert, notice
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
+from app.ui.item_links import BACKGROUNDS_URL, background_url
 from app.ui.layout import app_shell
 from app.ui.library_links import confirm_page
 from app.ui.ref_pages import statblock
@@ -45,7 +47,6 @@ from app.ui.revision_bits import revision_notice, revision_status
 from app.ui.tags import RenderContext
 from app.ui.tool_dialog import tool_dialog
 
-BACKGROUNDS_URL = "/gm/backgrounds"
 ITEM_ROWS = 3
 
 # The form's label for each field a revision may change.
@@ -70,10 +71,6 @@ LABELS = {
     "skill_choices": "bgbuilder.skill_choices",
     "choose_skills": "bgbuilder.skill_choices",
 }
-
-
-def background_url(design_id: str) -> str:
-    return f"{BACKGROUNDS_URL}/{design_id}"
 
 
 @dataclass
@@ -156,6 +153,12 @@ def backgrounds_page(
             else span(class_="pill cond")[t("itembuilder.unpublished")]
             if r.unpublished
             else None,
+            row_menu(
+                page,
+                background_url(r.design.id),
+                r.design.name,
+                fallback=f"{background_url(r.design.id)}/delete",
+            ),
         ]
         for r in rows
     ]

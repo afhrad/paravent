@@ -4,11 +4,12 @@
 A whole world travels by export and import (app/services/world_transfer.py); this takes
 pieces across: an **adventure** with its chapters, its pictures and everything placed in
 it, or **NPCs**, **places**, **treasure**, **encounters**, **quests**, **factions** and
-**creature designs**, one or several of a list at once. They are gathered into a
-:class:`Bundle` — records as data, an adventure's folder as files, pictures and tokens as
-bytes — which is written into a world, or saved as a file (``*.paravent-pieces.zip``) and
-read back into a world at any table. Writing gives every id new and replaces it wherever it
-is written (front matter, records naming each other, Markdown), as an import does.
+**creature, item, spell and background designs**, one or several of a list at once. They
+are gathered into a :class:`Bundle` — records as data, an adventure's folder as files,
+pictures and tokens as bytes — which is written into a world, or saved as a file
+(``*.paravent-pieces.zip``) and read back into a world at any table. Writing gives every
+id new and replaces it wherever it is written (front matter, records naming each other,
+Markdown), as an import does.
 
 * **What a text names comes along**, when asked: the world-level NPCs, places, treasure
   and encounters its Markdown links to (``{@npc Mara}``, ``[Mara](/gm/npcs/<id>)``) or its
@@ -50,10 +51,16 @@ from app.services.world_transfer import WorldTransferError, _checked
 from app.store.gamestate import Collection, GameStateStore
 from app.store.prose import ADVENTURE_FILE, ADVENTURES_DIR, slugify
 
-Kind = Literal["adventure", "npc", "place", "treasure", "encounter", "quest", "faction", "creature"]
+Kind = Literal[
+    "adventure", "npc", "place", "treasure", "encounter", "quest", "faction", "creature",
+    "item_design", "spell_design", "background_design",
+]  # fmt: skip
 KINDS: tuple[Kind, ...] = (
     "adventure", "npc", "place", "treasure", "encounter", "quest", "faction", "creature",
+    "item_design", "spell_design", "background_design",
 )  # fmt: skip
+# The builders' designs: one name space each across the table, published to homebrew.
+DESIGNS = ("creature", "item_design", "spell_design", "background_design")
 # Where each record kind lives on the store.
 COLLECTIONS: dict[str, str] = {
     "npc": "npcs",
@@ -63,6 +70,9 @@ COLLECTIONS: dict[str, str] = {
     "quest": "quests",
     "faction": "factions",
     "creature": "creatures",
+    "item_design": "item_designs",
+    "spell_design": "spell_designs",
+    "background_design": "background_designs",
 }
 # The kinds placed by a scope (world, adventure, chapter).
 SCOPED = ("npc", "place", "treasure")
@@ -426,8 +436,8 @@ class WorldCopy:
         if kind == "adventure":
             rows = self._store.adventures.list(lambda a: a.world_id == target_id)
             return {a.name.casefold() for a in rows}
-        if kind == "creature":
-            return {d.name.casefold() for d in self._store.creatures.list()}
+        if kind in DESIGNS:
+            return {d.name.casefold() for d in self._collection(kind).list()}
         names: set[str] = set()
         for record in self._collection(kind).list():
             if kind in ("quest", "faction"):
@@ -629,8 +639,10 @@ class WorldCopy:
                 data["faction_id"] = None
         if entry.kind == "faction":
             data["renown"] = {}
-        if entry.kind == "creature":
+        if entry.kind in DESIGNS:
             data.update(published_at=None, published_hash=None)
+            if entry.kind != "creature":
+                data.update(revision_of=None)
         if entry.id in plan.renamed:
             data["name"] = plan.renamed[entry.id]
         files = self._place_files(entry, data, target, ids[entry.id], copied_ids)

@@ -88,7 +88,8 @@ checks, in the panel and the log. The ✕ leaves the dungeon.
 <!-- feature: downtime -->
 - **Grant downtime** on the clock panel. Each character spends the days on its
   *Downtime* page: crafting with the right tools, training, scribing scrolls, research,
-  recuperating, work, or the book's activities from carousing to crime.
+  recuperating, work, or the book's activities from carousing to crime. Where the world has
+  neither book's training rules, a training waits on that page until you set its days.
 <!-- /feature -->
 <!-- feature: downtime -->
 - **Magic items** are crafted from a formula: *Give the formula* on a magic item's page

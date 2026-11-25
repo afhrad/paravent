@@ -123,7 +123,8 @@ Zustände mit einer Rundenzahl enden von selbst.
   nur auf den Zaubernden selbst (jede Kreatur außer Konstrukt oder Untotem, bis zu seiner
   Stufe), und er kann in der Gestalt weiter zaubern. Die Zeile kämpft dann als die
   Gestalt: ihr Werteblock, ihre Angriffe und ihre RK. **Zurückverwandeln** im ⋯-Menü beendet
-  sie von Hand.
+  sie von Hand. Ein Spieler beendet nur eine Gestalt, die seine eigene Figur gewirkt hat;
+  die eines Gegners hält, bis dessen Konzentration endet oder du sie beendest.
 - **Die Konzentration hält die Gestalt.** Endet die Konzentration des Zaubernden —
   aufgegeben, ein misslungener Rettungswurf, ein neuer Zauber, 0 Trefferpunkte oder
   Kampfunfähig, Gelähmt, Versteinert, Betäubt oder Bewusstlos —, enden alle Gestalten des

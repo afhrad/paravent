@@ -12,7 +12,16 @@ from httpx import ASGITransport, AsyncClient
 
 from app.config import Settings
 from app.main import create_app
-from app.models.gamestate import EncounterMonster, Faction, Quest, Role, SourceSet
+from app.models.gamestate import (
+    BackgroundDesign,
+    EncounterMonster,
+    Faction,
+    ItemDesign,
+    Quest,
+    Role,
+    SourceSet,
+    SpellDesign,
+)
 from app.services.world_copy import WorldCopyError
 from app.services.worlds import WorldInput
 from app.store.registry import StoreRegistry
@@ -300,3 +309,21 @@ async def test_select_save_and_import_through_the_pages(registry: StoreRegistry)
             "/gm/copy/import", files={"file": ("x.zip", b"nope", "application/zip")}
         )
         assert "not a file saved" in bad.text
+
+
+def test_designs_copy_and_move_to_another_world(registry: StoreRegistry) -> None:
+    t = _worlds(registry)
+    store = registry.gamestate
+    ring = store.item_designs.create(ItemDesign(name="Ember Ring", world_id=t["reed"]))
+    spell = store.spell_designs.create(SpellDesign(name="Frost Lance", world_id=t["reed"]))
+    background = store.background_designs.create(
+        BackgroundDesign(name="Ferryman", world_id=t["reed"], published_hash="x")
+    )
+    done = registry.world_copy.copy("item_design", [ring.id], t["ash"])
+    copied = store.item_designs.get(done.ids[ring.id])
+    assert copied.world_id == t["ash"] and copied.name == "Ember Ring (2)"  # one name space
+    registry.world_copy.move("spell_design", [spell.id], t["ash"])
+    assert store.spell_designs.get(spell.id).world_id == t["ash"]  # moved in place
+    done = registry.world_copy.copy("background_design", [background.id], t["ash"])
+    fresh = store.background_designs.get(done.ids[background.id])
+    assert fresh.published_hash is None and fresh.name == "Ferryman (2)"

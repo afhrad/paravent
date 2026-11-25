@@ -12,7 +12,8 @@ become the new world's books. Then:
   leaves out — skills, saves, senses, a trait — comes from the book; whatever the backup
   states wins;
 * items are matched the same way into treasure, coins counted, the rest written into the
-  treasure's notes; notes become chapters, encounters encounters, NPCs NPCs, pictures
+  treasure's notes; notes become chapters, encounters encounters, NPCs plain NPCs (the
+  book's creature they are or name as statblock, never a design of their own), pictures
   covers. Player characters and the app's own compendium stay behind.
 
 :meth:`Gm5Import.plan` says all of that before anything is written.
@@ -517,6 +518,7 @@ class _Run:
         self.items = importer.item_names(self.world.source_set, t.code)
         self.designs: dict[str, str] = {}  # a backup name → its design's reference
         self.design_count = 0
+        self.plain_npcs: list[tuple[str, str]] = []  # (NPC id, backup name) without a statblock
         self.taken: dict[str, set[str]] = {k: set() for k in ("adv", "enc", "npc", "tre")}
         self.titles: dict[str, set[str]] = {}  # chapter titles per adventure
         self.counts = Counter[str]()
@@ -716,12 +718,31 @@ class _Run:
         return made.name
 
     def npc(self, block: Statblock, where: Scope) -> None:
-        ref = self.ref_of(block)
+        """A townsperson as a plain NPC (the user's decision, 2026-11-25): the book's
+        creature it is or names ("Bürgermeister (Noble)"), never a design of its own; a
+        statblock the books do not hold keeps its numbers in the NPC's notes, unless the
+        townsperson also fights, whose design the fight made it statblock."""
+        ref = (
+            self.creatures.exact(block.name)
+            or self.creatures.within(block.name)
+            or self.designs.get(block.name, "")
+        )
         name = unique(block.label or block.name, self.taken["npc"])
-        notes = block.name if block.name.casefold() != name.casefold() else ""
-        self.registry.gamestate.npcs.create(
+        lines = [block.name] if block.name.casefold() != name.casefold() else []
+        if not ref and block.has_numbers:
+            stated = [
+                f"{label} {value}"
+                for label, value in (("AC", block.ac), ("HP", block.hp), ("CR", block.cr))
+                if value not in (None, "")
+            ]
+            if stated:
+                lines.append(", ".join(stated))
+        notes = "\n\n".join(lines)
+        made = self.registry.gamestate.npcs.create(
             Npc(scope=where, name=name, statblock=ref or None, notes=notes)
         )
+        if not ref:
+            self.plain_npcs.append((made.id, block.name))
         self.counts["npcs"] += 1
 
     def treasure(self, name: str, items: list[Item], where: Scope) -> str:
@@ -819,6 +840,10 @@ class _Run:
                 else:  # fights alone: a chapter of its name holds them as cards
                     self.gathered(part, adventure_id)
                 self.pending_image = ""
+        # A townsperson who also fights has the design its fight made as statblock.
+        for npc_id, name in self.plain_npcs:
+            if name in self.designs:
+                self.registry.gamestate.npcs.update(npc_id, statblock=self.designs[name])
         if self.design_count:
             self.registry.creatures.publish()
         c = self.counts

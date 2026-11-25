@@ -46,6 +46,14 @@ from app.ui.copy_links import copy_link
 from app.ui.creature_links import CREATURES_URL, creature_url
 from app.ui.encounter_pages import ENCOUNTERS_URL, encounter_url
 from app.ui.hand_pages import hand_url
+from app.ui.item_links import (
+    BACKGROUNDS_URL,
+    ITEMS_URL,
+    SPELLS_URL,
+    background_url,
+    item_url,
+    spell_url,
+)
 from app.ui.journal_pages import SHARE_URL
 from app.ui.library_links import (
     ADVENTURES_URL,
@@ -77,6 +85,8 @@ _ADDRESS = re.compile(
     f"|(?P<treasure>{TREASURE_URL})|(?P<chapter>{CHAPTERS_URL})|(?P<adventure>{ADVENTURES_URL})"
     "|(?P<character>/characters)"
     f"|(?P<note>{SESSIONS_URL})|(?P<creature>{CREATURES_URL})|(?P<style>{NAMING_URL})"
+    f"|(?P<item_design>{ITEMS_URL})|(?P<spell_design>{SPELLS_URL})"
+    f"|(?P<background_design>{BACKGROUNDS_URL})"
     ")/(?P<id>[A-Za-z0-9_-]+)$"
 )
 # The kinds a copy can be made of, and the collection each lives in.
@@ -398,6 +408,41 @@ def _note_menu(page: Page, registry: StoreRegistry, note_id: str) -> HTMLRespons
     )
 
 
+# The item, spell and background builders' designs, by kind: where each is read.
+DESIGN_MENUS = {
+    "item_design": item_url,
+    "spell_design": spell_url,
+    "background_design": background_url,
+}
+
+
+def _design_menu(page: Page, registry: StoreRegistry, kind: str, design_id: str) -> HTMLResponse:
+    """An item, spell or background design: open it, copy or move it to another world,
+    delete it (asked)."""
+    t = page.t
+    address = DESIGN_MENUS[kind]
+    collection = getattr(registry.gamestate, f"{kind}s")
+    design = collection.find(design_id)
+    if design is None:
+        raise HTTPException(status_code=404)
+    url = address(design.id)
+    return _menu(
+        page,
+        design.name,
+        t(f"menu.kind.{kind}"),
+        [
+            MenuGroup(
+                [
+                    MenuItem(t("menu.open"), "arrow-right", href=url),
+                    MenuItem(t("menu.open_tab"), "arrow-up", href=url, new_tab=True),
+                ]
+            ),
+            MenuGroup(_to_world(page, registry, kind, design.id)),
+            _delete_ask(page, f"{url}/delete"),
+        ],
+    )
+
+
 def _creature_menu(page: Page, registry: StoreRegistry, design_id: str) -> HTMLResponse:
     """A creature design: open it in the builder, delete it (asked)."""
     t = page.t
@@ -476,6 +521,8 @@ async def link_menu(
         return _note_menu(page, registry, record_id)
     if kind == "creature":
         return _creature_menu(page, registry, record_id)
+    if kind in DESIGN_MENUS:
+        return _design_menu(page, registry, kind, record_id)
     if kind == "style":
         return _style_menu(page, registry, record_id)
     pc = registry.gamestate.characters.find(record_id)

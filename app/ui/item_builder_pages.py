@@ -43,6 +43,7 @@ from app.services.item_builder import (
 )
 from app.services.references import ReferenceEntry
 from app.ui.context import Page
+from app.ui.context_menu import row_menu
 from app.ui.forms import alert, notice
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
@@ -130,6 +131,12 @@ def items_page(
             else span(class_="pill cond")[t("itembuilder.unpublished")]
             if r.unpublished
             else None,
+            row_menu(
+                page,
+                item_url(r.design.id),
+                r.design.name,
+                fallback=f"{item_url(r.design.id)}/delete",
+            ),
         ]
         for r in rows
     ]

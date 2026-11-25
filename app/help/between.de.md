@@ -96,7 +96,8 @@ Uhr und im Protokoll. Das ✕ verlässt den Dungeon.
 - **Auszeit gewähren** in der Uhr. Jede Figur verbringt die Tage auf ihrer Seite
   *Auszeit*: Handwerk mit dem richtigen Werkzeug, Ausbildung, Schriftrollen schreiben,
   Forschung, Erholung, Arbeit oder die Tätigkeiten des Buchs vom Feiern bis zum
-  Verbrechen.
+  Verbrechen. Hat die Welt keine Ausbildungsregeln eines Buchs, wartet eine Ausbildung dort,
+  bis du ihre Tage festlegst.
 <!-- /feature -->
 <!-- feature: downtime -->
 - **Magische Gegenstände** entstehen aus einer Formel: *Formel geben* auf der Seite eines

@@ -304,15 +304,24 @@ async def character_action(
     character_id: str,
     action: str,
 ) -> Response:
-    """Apply one action and return the updated sheet."""
+    """Apply one action and return the updated sheet. A sheet button carries its values
+    in its address (one shared form, app/ui/sheet_pages.py ``act``); what the body
+    sends (advantage, privately, the view) joins them."""
     form = await request.form()
-    params = {k: str(v) for k, v in form.items()}
+    params = {k: str(v) for k, v in request.query_params.items()}
+    params.update({k: str(v) for k, v in form.items()})
     # The tab and view on screen ride along, so the response shows the same place.
     state = {k: request.query_params.get(k, "") or params.get(k, "") for k in _VIEW_KEYS}
     flash: str | None = None
     error_key = ""
     started = datetime.now(UTC)  # what the action logs after this, it rolled
     try:
+        if action == "polymorph" and params.get("op") == "end" and not identity.is_gamemaster:
+            # The target of someone else's Polymorph cannot end it: the caster's
+            # concentration does, or the gamemaster (the user's decision, 2026-11-25).
+            held = registry.gamestate.characters.get(character_id).state.polymorph
+            if held is not None and held.caster != f"character:{character_id}":
+                raise PlayError("play.error.not_your_spell")
         characters.act(identity, character_id, action, params)
         if action == "roll" and params.get("kind") == "attack":
             # In a running fight the attack also waits for the gamemaster's hit or miss.
@@ -1534,9 +1543,10 @@ async def change_downtime(
                 if label not in {ref for ref, _ in _trainable(page, registry, character)}:
                     raise DowntimeError("downtime.error.item")
                 modifier = registry.characters.sheet(character).ability("int").modifier
-                needed, daily = training_plan(
-                    registry.training_rule(character.world_id), modifier, needed
-                )
+                rule = registry.training_rule(character.world_id)
+                if rule == "table" and not identity.is_gamemaster:
+                    needed = None  # the gamemaster sets the days (no book's training rules)
+                needed, daily = training_plan(rule, modifier, needed)
             elif kind == "scribe":
                 spell, _, level = str(form.get("spell", "")).rpartition("|")
                 chosen = next(
@@ -1573,6 +1583,8 @@ async def change_downtime(
                 daily=daily,
                 by=user.username,
                 by_name=name,
+                days_later=kind == "train"
+                and registry.training_rule(character.world_id) == "table",
             )
             message = page.t("downtime.started")
         elif op == "activity":
@@ -1645,6 +1657,14 @@ async def change_downtime(
             else:
                 registry.activities.refuse(character, project_id, index, expected)
                 message = None
+        elif op == "set_days":
+            if not identity.is_gamemaster:  # the gamemaster sets a training's days
+                raise HTTPException(status_code=403)
+            raw = str(form.get("days", ""))
+            service.set_days(
+                character, str(form.get("project", "")), int(raw) if raw.isdigit() else 0
+            )
+            message = None
         elif op == "spend":
             raw = str(form.get("days", ""))
             project = service.spend(

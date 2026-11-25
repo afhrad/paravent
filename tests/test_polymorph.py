@@ -371,3 +371,29 @@ class TestOnScreen:
             data={"op": "assume", "form": "Giant Ape|MM", "spell": "Polymorph|PHB", "hp": "999"},
         )
         assert fight.pc().state.polymorph is None
+
+
+@requires_corpus
+class TestWhoEndsAShape:
+    async def test_only_the_caster_or_the_gamemaster(self, fight: Fight, gm: AsyncClient) -> None:
+        bugbear = fight.member("Bugbear")
+        fight.registry.combats.polymorph(
+            fight.combat.id,
+            fight.lyra_row(),
+            "Giant Ape|MM",
+            "Polymorph|PHB",
+            f"combatant:{bugbear}",
+            GM,
+        )
+        fight.registry.auth.create_user("wren", PASSWORD, Role.PLAYER)
+        fight.registry.gamestate.characters.update(fight.lyra.id, player="wren")
+        app = create_app()
+        app.state.stores = fight.registry
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as pl:
+            await pl.post("/login", data={"username": "wren", "password": PASSWORD})
+            page = (await pl.get(f"/characters/{fight.lyra.id}")).text
+            assert "Ends with its caster" in page
+            await pl.post(f"/characters/{fight.lyra.id}/act/polymorph", data={"op": "end"})
+            assert fight.pc().state.polymorph is not None  # the bugbear's spell holds
+        await gm.post(f"/characters/{fight.lyra.id}/act/polymorph", data={"op": "end"})
+        assert fight.pc().state.polymorph is None

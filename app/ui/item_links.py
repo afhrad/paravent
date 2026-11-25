@@ -12,6 +12,7 @@ from app.ui.icons import icon
 
 ITEMS_URL = "/gm/items"
 SPELLS_URL = "/gm/spells"
+BACKGROUNDS_URL = "/gm/backgrounds"
 
 
 def item_url(design_id: str) -> str:
@@ -20,6 +21,10 @@ def item_url(design_id: str) -> str:
 
 def spell_url(design_id: str) -> str:
     return f"{SPELLS_URL}/{design_id}"
+
+
+def background_url(design_id: str) -> str:
+    return f"{BACKGROUNDS_URL}/{design_id}"
 
 
 def make_from_button(page: Page, ref: str, *, spell: bool = False) -> Node:
@@ -34,4 +39,12 @@ def make_from_button(page: Page, ref: str, *, spell: bool = False) -> Node:
     ]
 
 
-__all__ = ["ITEMS_URL", "SPELLS_URL", "item_url", "make_from_button", "spell_url"]
+__all__ = [
+    "BACKGROUNDS_URL",
+    "ITEMS_URL",
+    "SPELLS_URL",
+    "background_url",
+    "item_url",
+    "make_from_button",
+    "spell_url",
+]

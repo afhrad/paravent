@@ -106,7 +106,32 @@ async def test_the_player_sees_only_its_looks(table: tuple[StoreRegistry, str, s
     assert not ring.attunable and not ring.found  # its magic waits to be identified
     assert sword.seen_kind == "Longsword" and sword.true_name == "+1 Longsword"
     attack = next(a for a in sheet.attacks if "longsword" in a.name.lower())
-    assert attack.name.lower() == "longsword"  # a plain longsword, no +1 to give it away
+    assert attack.name.lower() == "longsword"  # a plain longsword by name
+    # Its +1 counts, as the rules have it, but quietly: in the numbers, never named.
+    plain = registry.characters.sheet(
+        registry.gamestate.characters.get(lyra).model_copy(
+            update={
+                "inventory": [
+                    *registry.gamestate.characters.get(lyra).inventory[:-2],
+                    registry.gamestate.characters.get(lyra)
+                    .inventory[-2]
+                    .model_copy(
+                        update={
+                            "item": registry.gamestate.characters.get(lyra)
+                            .inventory[-2]
+                            .item.model_copy(update={"name": "Longsword", "source": "PHB"}),
+                            "unidentified": False,
+                        }
+                    ),
+                ]
+            }
+        )
+    )
+    plain_attack = next(a for a in plain.attacks if a.name.lower() == "longsword")
+    assert attack.bonus.value == (plain_attack.bonus.value or 0) + 1
+    assert "magic" not in attack.bonus.explanation and "+1 Longsword" not in str(
+        attack.bonus.sources
+    )
     async with _client(registry, "wren") as player:
         page = (await player.get(f"/characters/{lyra}?view=gear")).text
         assert "a ring of black iron" in page and "Longsword (unidentified)" in page

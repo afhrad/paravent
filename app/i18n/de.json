@@ -5397,5 +5397,16 @@
   "bgbuilder.revision_hint": "Claudes vorgeschlagene Änderungen an einem angenommenen Hintergrund: Er bleibt, wie er ist, bis du sie annimmst.",
   "bgbuilder.revision_open": "Claude hat Änderungen an diesem Hintergrund vorgeschlagen.",
   "bgbuilder.revision_accepted": "Die Überarbeitung wurde in den Hintergrund übernommen.",
-  "itembuilder.error.raise_attune": "Ein Wert wird nur erhöht, solange eingestimmt: Kreuze Erfordert Einstimmung an, oder setze den Wert stattdessen."
+  "itembuilder.error.raise_attune": "Ein Wert wird nur erhöht, solange eingestimmt: Kreuze Erfordert Einstimmung an, oder setze den Wert stattdessen.",
+  "copy.kind.item_design": "Gegenstandsentwurf",
+  "copy.kind.spell_design": "Zauberentwurf",
+  "copy.kind.background_design": "Hintergrundentwurf",
+  "menu.kind.item_design": "Gegenstandsentwurf",
+  "menu.kind.spell_design": "Zauberentwurf",
+  "menu.kind.background_design": "Hintergrundentwurf",
+  "downtime.set_days": "Tage festlegen",
+  "downtime.days_waiting": "Wartet darauf, dass die Spielleitung sagt, wie viele Tage es dauert.",
+  "downtime.error.days_unset": "Die Spielleitung hat die Tage dieser Ausbildung noch nicht festgelegt.",
+  "play.error.not_your_spell": "Nur der Wirkende, indem er die Konzentration beendet, oder die Spielleitung beendet diese Gestalt.",
+  "combat.polymorph.not_yours": "Endet mit der Konzentration des Wirkenden."
 }
