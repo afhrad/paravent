@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-25T11:18:47+01:00",
+  "en": "Item builder: make your own magic items, blank or from one of the books, and the sheet counts their bonuses, charges and spells like the printed ones.",
+  "de": "Gegenstandsbaukasten: Baut eigene magische Gegenstände, leer oder ausgehend von einem aus den Büchern, und der Bogen zählt ihre Boni, Ladungen und Zauber wie die gedruckten."
+ },
+ {
   "at": "2026-11-25T10:44:20+01:00",
   "en": "Session zero: write the kind of game, its sensitive elements and how the party met; players mark their limits and hopes on an anonymous sheet everyone reads gathered.",
   "de": "Sitzung null: Beschreibe die Art des Spiels, seine heiklen Elemente und wie die Gruppe sich traf; die Spieler markieren Grenzen und Hoffnungen auf einem anonymen Bogen, den alle gesammelt lesen."
@@ -293,10 +298,5 @@
   "at": "2026-11-20T09:36:20+01:00",
   "en": "The world menu exports a whole campaign as one file, imports one, and duplicates a world for a second group.",
   "de": "Das Weltmenü exportiert eine ganze Kampagne als eine Datei, importiert eine und dupliziert eine Welt für eine zweite Gruppe."
- },
- {
-  "at": "2026-11-20T09:12:04+01:00",
-  "en": "When the game master switches worlds, open pages on players' phones say so and offer to reload.",
-  "de": "Wechselt die Spielleitung die Welt, sagen es offene Seiten auf den Handys der Spieler und bieten Neuladen an."
  }
 ]
