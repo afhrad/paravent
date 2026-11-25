@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-25T13:04:45+01:00",
+  "en": "Claude can propose changes to spells and backgrounds you accepted, backgrounds can offer a choice of skills, and reference pages say what kind of entry you are reading.",
+  "de": "Claude kann Änderungen an angenommenen Zaubern und Hintergründen vorschlagen, Hintergründe können eine Auswahl an Fertigkeiten bieten, und Nachschlageseiten sagen, welche Art Eintrag ihr lest."
+ },
+ {
   "at": "2026-11-25T12:43:39+01:00",
   "en": "Spell and background builders, Claude's revisions of your items, treasure that leans to what the creatures hoard, trade goods, and ship crews that mutiny when their loyalty runs out.",
   "de": "Zauber- und Hintergrundbaukasten, Claudes Überarbeitungen eurer Gegenstände, Schätze nach den Vorlieben der Kreaturen, Handelswaren und Schiffsbesatzungen, die meutern, wenn ihre Loyalität erschöpft ist."
@@ -293,10 +298,5 @@
   "at": "2026-11-20T09:56:47+01:00",
   "en": "An imported or duplicated world whose name is taken gets a number, so the world menu tells them apart.",
   "de": "Eine importierte oder duplizierte Welt mit vergebenem Namen bekommt eine Nummer, damit das Weltmenü sie unterscheidet."
- },
- {
-  "at": "2026-11-20T09:36:30+01:00",
-  "en": "The image browser renames, merges and removes a world's picture tags in one place.",
-  "de": "Der Bilderbrowser benennt die Bild-Tags einer Welt an einer Stelle um, führt sie zusammen oder entfernt sie."
  }
 ]
