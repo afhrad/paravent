@@ -54,6 +54,7 @@ from app.services.events import PARTY, revision_stream
 from app.services.hazards import KINDS, Hazard, HazardError, Scale, party_level, scale
 from app.services.hazards import effect as hazard_effect
 from app.services.madness import rolls_2014
+from app.services.planes import Befell, befell_of
 from app.services.play import Actor, PlayError
 from app.services.player_view import player_choice, player_ticks
 from app.services.references import ReferenceNotFound
@@ -100,6 +101,7 @@ from app.ui.gm_pages import (
 from app.ui.hazard_pages import hazard_form, hazard_tool
 from app.ui.madness_pages import madness_tool
 from app.ui.nav import WORLD_SECTIONS, world_section_of
+from app.ui.plane_pages import PLANE_URL, plane_dialog_url, plane_tool
 from app.ui.shop_pages import SHOP_URL, shop_panel
 from app.ui.trap_pages import (
     HAZARDS_URL,
@@ -392,6 +394,7 @@ async def party(
     world: str = "",
     upkeep: str = "",
     surged: int = 0,
+    planed: int = 0,
 ) -> HTMLResponse:
     """Every character at the table, updating live, in the table's world
     (documentation/CURRENT-WORLD.md); ``world`` names another, as its own forms do.
@@ -433,6 +436,9 @@ async def party(
             )
             if world_id is not None and registry.feature(world_id, "hazards")
             else None,
+            plane=_plane(page, registry, world_id, members, planed)
+            if world_id is not None and registry.feature(world_id, "planes")
+            else None,
             upkeep=upkeep_tool(
                 page,
                 world_id,
@@ -444,6 +450,36 @@ async def party(
             if world_id is not None and registry.feature(world_id, "upkeep")
             else None,
         )
+    )
+
+
+def _plane(
+    page: Page,
+    registry: StoreRegistry,
+    world_id: str,
+    members: list[tuple[str, str]],
+    count: int,
+) -> Node:
+    """The plane tool: where the party is, its rules, and the newest ``count`` things
+    they did."""
+    rules = registry.planes.rules(world_id)
+    done: list[Befell] = []
+    if count > 0:
+        for entry in reversed(registry.protocol.store.entries(log_key(world_id))):
+            read = befell_of(entry.what, entry.subject, entry.subject_name)
+            if read is not None:
+                done.append(read)
+                if len(done) >= min(count, 40):
+                    break
+    return plane_tool(
+        page,
+        world_id,
+        members,
+        plane=registry.planes.of(world_id),
+        rules=rules,
+        spared={x.key: registry.planes.spared(world_id, x.key) for x in rules},
+        links={x.key: url for x in rules if (url := registry.heading_url(world_id, x.printed))},
+        done=done[::-1],
     )
 
 
@@ -913,6 +949,42 @@ async def change_wild(
     ]
     count = sum(1 for x in rolled if x is not None)
     return redirect(f"{wild_dialog_url(world_id)}&surged={count}")
+
+
+@router.post(f"{PLANE_URL}/{{world_id}}/{{op}}")
+async def change_plane(
+    request: Request,
+    gm: GamemasterDep,
+    worlds: WorldsDep,
+    registry: RegistryDep,
+    world_id: str,
+    op: str,
+) -> Response:
+    """The party goes to another plane (``enter``), a rule's spared characters are kept
+    (``spare``), or a rule the gamemaster calls for acts (``call``); back to the dialog,
+    what the rules did shown."""
+    if worlds.find(world_id) is None or not registry.feature(world_id, "planes"):
+        raise HTTPException(status_code=404)
+    form = await request.form()
+    user = gm.user
+    by, by_name = user.username, user.display_name or user.username
+    done: list[Befell] = []
+    if op == "enter":
+        try:
+            done = registry.planes.enter(world_id, str(form.get("plane", "")), by, by_name)
+        except ValueError as exc:
+            raise HTTPException(status_code=400) from exc
+    elif op == "spare":
+        rule = str(form.get("rule", ""))
+        ticked = {str(c) for c in form.getlist("to")}
+        party = [pc.id for pc in registry.gamestate.characters.of_world(world_id)]
+        registry.planes.spare(world_id, rule, [c for c in party if c not in ticked])
+    elif op == "call":
+        done = registry.planes.call(world_id, str(form.get("rule", "")), by, by_name)
+    else:
+        raise HTTPException(status_code=404)
+    url = plane_dialog_url(world_id)
+    return redirect(f"{url}&planed={len(done)}" if done else url)
 
 
 @router.get(f"{HAZARDS_URL}/form", response_class=HTMLResponse)

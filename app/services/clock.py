@@ -247,6 +247,11 @@ class ClockService:
         """The party enters (``on``) or leaves a wild magic zone."""
         return self._save(self.of(world_id).model_copy(update={"wild_magic": on}))
 
+    def planar(self, world_id: str, **update: object) -> WorldClock:
+        """Change where the party is among the planes (``plane``, ``plane_since``,
+        ``plane_hour``, ``plane_spared``)."""
+        return self._save(self.of(world_id).model_copy(update=update))
+
     def dated(self, world_id: str, calendar: str, epoch: int, era: str) -> WorldClock:
         """Date the days by a calendar (its key; "" for plain day numbers): ``epoch`` is
         the calendar's day of the clock's first day (app/services/calendar.py)."""

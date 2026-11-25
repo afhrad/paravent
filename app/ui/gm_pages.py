@@ -415,6 +415,7 @@ def party_page(
     madness: Node = None,
     hazard: Node = None,
     wild: Node = None,
+    plane: Node = None,
     upkeep: Node = None,
 ) -> Element:
     """The gamemaster's landing screen: every character at the table, live; above it,
@@ -450,6 +451,7 @@ def party_page(
                     madness,
                     hazard,
                     wild,
+                    plane,
                     upkeep,
                     span(class_="cs-live", data_live_indicator="1", title=t("party.live_title"))[
                         span(class_="dot"), span[t("sheet.live")]

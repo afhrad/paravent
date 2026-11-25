@@ -737,6 +737,20 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         a 20 surging. Switching hazards off leaves the zone. Also: a tool dialog opened from
         the start (`?tool=`, after its form) opens as a modal, centred however far the page
         is scrolled
+  - [x] **Planes** (2026-11-24, `app/services/planes.py`, `app/ui/plane_pages.py`): **Plane**
+        on the party view puts the party on a plane (`WorldClock.plane`) and lists its rules
+        from the world's guides, each linked to its heading (`StoreRegistry.heading_url`).
+        Carried out: saves at the end of each long rest (Psychic Dissonance on the Upper and
+        Lower Planes, Pervasive Goodwill and Evil, Overwhelming Joy, Abyssal Corruption,
+        Vile Transformation, Imposing Order), each hour of the clock (Pandemonium's Mad
+        Winds, a day's worth at most per move), on leaving (the Feywild's Memory Loss and
+        Time Warp after a day, Arborea's Intense Yearning at DC 5 + days), and at the
+        gamemaster's call (Shadowfell Despair, a psychic wind's location and mind effects,
+        an ether cyclone), with exhaustion, the books' tables or a word in the log; despair,
+        corruption and yearning are carried as afflictions (`plane`) that a long rest's
+        save ends (rule `one`). Characters keep no alignment, so who a rule spares is ticked
+        per rule. Rules that simply hold are listed to apply. A feature of its own
+        (Exploration); switched off, the party is back on the Material Plane
   - [x] **Deities and Divine Intervention** (2026-11-24, `app/services/intervention.py`,
         `app/ui/intervention_pages.py`): a character's deity (the file's `deity`) chosen on
         the sheet from the world's books, narrowed by the world's **Pantheons** (World

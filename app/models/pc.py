@@ -463,7 +463,7 @@ class Affliction(GameStateModel):
     a lingering injury (app/services/combat_rules.py) likewise, until the gamemaster ends it."""
 
     id: str
-    kind: Literal["disease", "poison", "curse", "madness", "injury", "charm"]
+    kind: Literal["disease", "poison", "curse", "madness", "injury", "charm", "plane"]
     name: str = Field(max_length=200)
     ref: str = Field(default="", max_length=300)
     note: str = Field(default="", max_length=2000)
@@ -477,7 +477,7 @@ class Affliction(GameStateModel):
     course: Literal["", "long_rest", "dawn"] = ""
     dc: int | None = None
     ability: Literal["", "str", "dex", "con", "int", "wis", "cha"] = ""
-    rule: Literal["", "exhaustion", "three", "dc_drop"] = ""
+    rule: Literal["", "exhaustion", "three", "dc_drop", "one"] = ""
     drop: str = Field(default="", max_length=40)
     successes: int = Field(default=0, ge=0)
     failures: int = Field(default=0, ge=0)

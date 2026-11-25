@@ -20,6 +20,7 @@ from htpy import Element, Node, a, b, button, dialog, div, form, li, ol, p, span
 
 from app.models.protocol import Die, EntryKind, ProtocolEntry, RollRecord, Visibility
 from app.services import coins
+from app.services.planes import befell_of
 from app.services.protocol_view import Filter, LogPage, Shown
 from app.services.safety import XCARD
 from app.services.travel import PACES
@@ -29,6 +30,7 @@ from app.ui.cues import cue
 from app.ui.forms import hidden
 from app.ui.icons import icon
 from app.ui.names import name_text
+from app.ui.plane_pages import befell_text, plane_name
 from app.ui.rules_text import dice as dice_words
 
 # A handout in the journal (app/ui/journal_pages.py), which imports from here.
@@ -695,6 +697,11 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
                 roll=roll,
                 effect=text,
             )
+        if head == "plane":
+            return t("protocol.plane", plane=t(f"plane.name.{rest}"))
+        if head == "plane_rule":
+            read = befell_of(entry.what, entry.subject, entry.subject_name)
+            return befell_text(page, read) if read is not None else entry.what
         if head == "sentient":
             # sentient:conflict:<item>:<item's check>:<bearer's roll>:<DC>:<item won>
             _op, item, mine, theirs, dc, won = (rest.split(":") + [""] * 6)[:6]
@@ -862,6 +869,10 @@ def _affliction_words(page: Page, fields: list[str]) -> str:
     (app/services/afflictions.py)."""
     t = page.t
     step, *rest = fields + [""] * 7
+    # A plane's hold is stored by its rule's key, named in the reader's words.
+    at = {"caught": 1, "save": 0, "ended": 1, "curse": 0}.get(step)
+    if at is not None:
+        rest[at] = plane_name(page, rest[at])
     if step == "caught":
         kind, name, roll, dc, caught, damage = rest[:6]
         key = "protocol.affliction_caught" if caught == "1" else "protocol.affliction_resisted"

@@ -106,7 +106,8 @@
             "curse",
             "madness",
             "injury",
-            "charm"
+            "charm",
+            "plane"
           ],
           "title": "Kind",
           "type": "string"
@@ -230,7 +231,8 @@
             "",
             "exhaustion",
             "three",
-            "dc_drop"
+            "dc_drop",
+            "one"
           ],
           "title": "Rule",
           "type": "string"

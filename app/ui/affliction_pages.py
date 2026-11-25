@@ -38,6 +38,7 @@ from app.ui.clock_pages import clock_label
 from app.ui.context import Page
 from app.ui.forms import hidden
 from app.ui.icons import icon
+from app.ui.plane_pages import plane_name
 from app.ui.tags import ref_url
 
 AFFLICTIONS_URL = "/gm/afflictions"
@@ -284,7 +285,7 @@ def _row(
     page: Page, pc: PlayerCharacter, x: Affliction, clock: int | None, gamemaster: bool
 ) -> Element:
     t = page.t
-    name_part: Node = span[x.name]
+    name_part: Node = span[plane_name(page, x.name) if x.kind == "plane" else x.name]
     if x.ref:
         title, _, source = x.ref.partition("|")
         category = "disease" if x.kind == "disease" else "item"
@@ -370,7 +371,7 @@ def party_chips(page: Page, pc: PlayerCharacter) -> Node:
         span(
             class_=f"pill {'cond' if x.showing else 'neutral'}",
             title=page.t(f"affliction.kind.{x.kind}"),
-        )[x.name]
+        )[plane_name(page, x.name) if x.kind == "plane" else x.name]
         for x in pc.state.afflictions
     ]
 

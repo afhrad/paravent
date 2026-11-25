@@ -5,7 +5,7 @@ the days off, the bastion, and the people the characters know. Most of it starts
 party view (*Table*), in the world the table plays in.
 
 Not every table wants all of it. **World settings → Features** switches each part on or
-off for the world: travel and its survival, dungeon checks, hazards, shops, lifestyle,
+off for the world: travel and its survival, dungeon checks, hazards, the planes, shops, lifestyle,
 followers, upkeep, downtime, bastions, quests, factions, chases, madness and the safety
 tools. One switched off is gone from your screens and the players' — and from this page —
 and nothing of it runs on the clock; what was made with it is kept for when it comes
@@ -170,6 +170,17 @@ player's decision.
   characters you tick, and tells everyone what happens. Tick *The party is in a wild magic
   zone* and every spell slot a character spends from the sheet rolls a d20: on a 20 the
   spell surges. The button says *zone* while it lasts.
+<!-- /feature -->
+<!-- feature: planes -->
+- **Plane** on the party view says where the party is among the planes. Each plane's
+  rules from your guide are listed with a link to their text: saves after each long rest
+  (the Abyss's corruption, Hades's exhaustion, Psychic Dissonance on the Upper and Lower
+  Planes), each hour (Pandemonium's winds), on leaving (the Feywild's Memory Loss and Time
+  Warp), or at your call (a Shadowfell despair, a psychic wind, an ether cyclone). The
+  rolls are made and logged for you; a despair or corruption stays on the character until
+  a long rest's save shakes it off. Characters have no alignment in Paravent, so untick
+  whom a rule spares. Rules that simply hold while you are there are listed for you to
+  apply.
 <!-- /feature -->
 - **A disease or a poison** in a chapter or on its page has **Afflict**: tick who meets
   it, and roll their saves or let them catch it outright. A poison deals its damage and

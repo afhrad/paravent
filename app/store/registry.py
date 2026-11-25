@@ -110,6 +110,7 @@ from app.services.news import NewsFeed
 from app.services.npcs import NpcService, TreasureService
 from app.services.party_notes import PartyNotesService
 from app.services.places import PlaceService
+from app.services.planes import PlaneService
 from app.services.play import Actor, PlayError
 from app.services.play_session import PlaySessionService
 from app.services.player_view import Reader, needs_reader, reader_for
@@ -165,7 +166,12 @@ from app.store.maps import MapIndex
 from app.store.npc_tables import NpcTables
 from app.store.projections import MonsterProjection, coerce_cr
 from app.store.protocol import ProtocolStore, log_key
-from app.store.published import PublishedAdventures, PublishedBooks, ReferenceScreens
+from app.store.published import (
+    PublishedAdventures,
+    PublishedBooks,
+    ReferenceScreens,
+    heading_anchor,
+)
 from app.store.snapshot import Snapshot, fingerprint
 from app.store.watcher import JsonWatcher
 
@@ -207,6 +213,8 @@ class StoreRegistry:
         self._books: BookCatalog | None = None
         self._subclass_names: dict[tuple[str, str], str] | None = None
         self._tables: dict[str, dict[str, Rows]] | None = None
+        # Each rulebook's named entries, by name, with their chapter (heading_url).
+        self._heading_index: dict[str, dict[str, int]] = {}
         self._vessels: dict[str, list[Vessel]] = {}
         self._summonings: tuple[int, dict[str, Summoning]] | None = None
         self._watcher: JsonWatcher | None = None
@@ -703,6 +711,9 @@ class StoreRegistry:
         charges a rest brings back."""
         self.afflictions.rested(character_id, by, by_name)
         self.item_charges.rested(character_id, by, by_name)
+        pc = self.gamestate.characters.find(character_id)
+        if pc is not None and pc.world_id and self.feature(pc.world_id, "planes"):
+            self.planes.rested(character_id, pc.world_id, by, by_name)
 
     def _timed(
         self, pc: PlayerCharacter, kind: str, reference: str, minutes: int, concentration: bool
@@ -743,6 +754,40 @@ class StoreRegistry:
         self.afflictions.passed(world, before, now, by, by_name)
         self.item_charges.passed(world, before, now, by, by_name)
         self.gifts.passed(world, before, now, by, by_name)
+        if self.feature(world, "planes"):
+            self.planes.passed(world, before, now)
+
+    @cached_property
+    def planes(self) -> PlaneService:
+        """The plane each world's party is on and its rules (app/services/planes.py)."""
+        characters = self.characters
+        by = Actor("Paravent", username="")
+
+        def save(character_id: str, ability: str) -> int:
+            return characters.roll_for(character_id, "save", ability, by, private=False) or 0
+
+        def tire(character_id: str) -> None:
+            characters.act_for(character_id, "exhaustion", {"delta": "1"}, by)
+
+        def find(world_id: str) -> Callable[[str, Sequence[str]], Rows | None]:
+            return lambda caption, books: self.book_table(world_id, caption, books)
+
+        def has(world_id: str) -> Callable[[str], bool]:
+            world = self.gamestate.worlds.find(world_id)
+            if world is None or world.source_set.is_unrestricted:
+                return lambda book: True
+            return lambda book: book.lower() in world.source_set.normalized
+
+        return PlaneService(
+            self.clock,
+            self.protocol,
+            self.afflictions,
+            party=self.gamestate.characters.of_world,
+            save=save,
+            tire=tire,
+            find=find,
+            has=has,
+        )
 
     @cached_property
     def holdings(self) -> Holdings:
@@ -1220,6 +1265,9 @@ class StoreRegistry:
             self.delve.leave(world_id, by, by_name)
         if not self.feature(world_id, "hazards") and self.wild_magic.zone(world_id):
             self.wild_magic.enter(world_id, False, by, by_name)
+        if not self.feature(world_id, "planes") and self.planes.of(world_id):
+            # Back on the Material Plane quietly: nothing of leaving is rolled.
+            self.clock.planar(world_id, plane="", plane_spared={})
 
     @cached_property
     def wild_magic(self) -> WildMagicService:
@@ -1403,6 +1451,45 @@ class StoreRegistry:
                 query = f"?world={world_id}" if world_id else ""
                 out[name] = f"/ref/hazard/{getattr(entry, 'source', '')}/{quote(name)}{query}"
         return out
+
+    def heading_url(self, world_id: str | None, printed: Sequence[tuple[str, str]]) -> str | None:
+        """Where the first of the world's books in ``printed`` (book, heading) prints that
+        heading: its chapter with the heading's anchor; None without one."""
+        world = self.gamestate.worlds.find(world_id) if world_id else None
+        for book, heading in printed:
+            restricted = world is not None and not world.source_set.is_unrestricted
+            if restricted and book.lower() not in world.source_set.normalized:  # type: ignore[union-attr]
+                continue
+            index = self._headings(book).get(heading.lower())
+            if index is not None:
+                found = self.rulebooks.get(book)
+                ident = found.id if found is not None else book
+                return f"/books/{ident}/{index}#{heading_anchor(heading)}"
+        return None
+
+    def _headings(self, book: str) -> dict[str, int]:
+        """A rulebook's named entries by name, each with its chapter's position (the
+        first where a name repeats); read once per book."""
+        key = book.lower()
+        if key not in self._heading_index:
+            found: dict[str, int] = {}
+            body = self.rulebooks.body(book)
+
+            def walk(node: Any, index: int) -> None:
+                if isinstance(node, dict):
+                    name = node.get("name")
+                    if isinstance(name, str):
+                        found.setdefault(name.lower(), index)
+                    for value in node.values():
+                        walk(value, index)
+                elif isinstance(node, list):
+                    for value in node:
+                        walk(value, index)
+
+            for index, section in enumerate(body.sections if body is not None else ()):
+                walk(section.entry, index)
+            self._heading_index[key] = found
+        return self._heading_index[key]
 
     def book_table(self, world_id: str | None, caption: str, sources: Sequence[str]) -> Rows | None:
         """The rows of a table the books print (``caption``), from the first of
@@ -2552,6 +2639,7 @@ class StoreRegistry:
         self._books = None
         self._subclass_names = None
         self._tables = None
+        self._heading_index = {}
         self._vessels = {}
         if "published" in self.__dict__:
             self.published.clear()

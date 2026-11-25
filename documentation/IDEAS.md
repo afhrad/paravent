@@ -26,7 +26,6 @@ objects, doors and siege equipment in the tracker.
 
 ### Bigger
 
-- **Planar effects** — the rules of the plane the party is on, rolled or applied. M
 - **Spell, magic item and background builders**, published as homebrew like the creature
   builder's creatures. L
 

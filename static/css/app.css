@@ -3481,3 +3481,15 @@ dialog.ctx-dialog .panel{ margin:0; }
 .cs-item-mind{ font-size:13px; margin-top:4px; }
 .cs-item-mind p{ margin:0; }
 .cs-item-props{ margin:2px 0 0; padding-left:18px; }
+
+/* The plane the party is on and its rules (app/ui/plane_pages.py): a rule a box each,
+   its name (linked to the guide) and when it acts on one line. */
+.plane-rules{ list-style:none; margin:8px 0 0; padding:0; display:grid; gap:8px; }
+.plane-rule{ padding:8px 10px; border:1px solid var(--border); border-radius:var(--r); background:var(--surface-2); }
+.plane-rule-head{ display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; }
+.plane-rule .field-hint{ margin:4px 0; }
+.plane-rule .inline-form{ margin:4px 0 0; }
+.plane-picks{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:6px 10px; margin-top:4px; }
+.plane-picks .xp-who{ flex:1 1 240px; margin:0; }
+.plane-done{ margin:0 0 8px; padding-left:18px; }
+.wild-surges{ margin:0 0 8px; padding-left:18px; }

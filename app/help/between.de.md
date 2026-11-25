@@ -6,7 +6,7 @@ Gruppenansicht (*Spieltisch*), in der Welt, in der der Tisch spielt.
 
 Nicht jeder Tisch will alles davon. **Welteinstellungen → Funktionen** schaltet jeden Teil
 für die Welt an oder aus: das Reisen und das Überleben unterwegs, die Begegnungswürfe im
-Dungeon, Gefahren, Läden, Lebensstil, Gefolge, Unterhalt, Auszeit, Bastionen, Quests,
+Dungeon, Gefahren, die Ebenen, Läden, Lebensstil, Gefolge, Unterhalt, Auszeit, Bastionen, Quests,
 Fraktionen, Verfolgungsjagden, Wahnsinn und die Sicherheitswerkzeuge. Was abgeschaltet ist,
 verschwindet von deinen Bildschirmen und denen der Spieler — und von dieser Seite —, und
 nichts davon läuft auf der Uhr; was damit gemacht wurde, bleibt erhalten, bis es
@@ -186,6 +186,18 @@ Entscheidung des Spielers.
   Gruppe ist in einer Zone wilder Magie* an, und jeder Zauberplatz, den ein Charakter auf
   dem Bogen verbraucht, würfelt einen W20: Bei einer 20 erzeugt der Zauber eine Woge. Der
   Knopf sagt *Zone*, solange sie anhält.
+<!-- /feature -->
+<!-- feature: planes -->
+- **Ebene** in der Gruppenansicht sagt, wo die Gruppe unter den Ebenen ist. Die Regeln
+  jeder Ebene aus deinem Leitfaden stehen dort mit einem Link zu ihrem Text: Rettungswürfe
+  nach jeder langen Rast (die Verderbnis des Abyss, die Erschöpfung im Hades, die
+  psychische Dissonanz der Oberen und Unteren Ebenen), jede Stunde (die Winde von
+  Pandämonium), beim Verlassen (Gedächtnisverlust und Zeitverzerrung der Feenwildnis)
+  oder auf deinen Ruf (Verzweiflung im Shadowfell, ein psychischer Wind, ein Ätherzyklon).
+  Die Würfe macht und protokolliert Paravent; Verzweiflung oder Verderbnis bleibt am
+  Charakter, bis ein Rettungswurf nach einer langen Rast sie abschüttelt. Charaktere haben
+  in Paravent keine Gesinnung, also hake ab, wen eine Regel verschont. Regeln, die einfach
+  gelten, solange ihr dort seid, stehen zum Anwenden da.
 <!-- /feature -->
 - **Eine Krankheit oder ein Gift** in einem Kapitel oder auf seiner Seite hat
   **Anstecken**: hake an, wen es trifft, und würfle ihre Rettungswürfe oder lass sie sich

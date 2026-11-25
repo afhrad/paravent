@@ -1295,6 +1295,13 @@ class WorldClock(Record):
     # The party in a wild magic zone: a spell slot spent there may surge
     # (app/services/wild_magic.py).
     wild_magic: bool = False
+    # The plane the party is on ("" the Material Plane) and since when, the minute up to
+    # which its hourly rules have run, and per rule the characters it spares
+    # (app/services/planes.py).
+    plane: str = ""
+    plane_since: int = Field(default=0, ge=0)
+    plane_hour: int = Field(default=0, ge=0)
+    plane_spared: dict[str, list[str]] = Field(default_factory=dict)
 
 
 class DowntimeProject(GameStateModel):

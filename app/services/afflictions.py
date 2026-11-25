@@ -43,7 +43,7 @@ from app.store.gamestate import GameStateStore
 
 DAY = 24 * 60
 DAWN = 6 * 60  # the hour a "daily at dawn" save is rolled
-KINDS = ("disease", "poison", "curse", "madness", "injury", "charm")
+KINDS = ("disease", "poison", "curse", "madness", "injury", "charm", "plane")
 _UNIT = {"minute": 1, "hour": 60, "day": DAY}
 _WORDS = {"one": 1, "a": 1, "an": 1, "two": 2, "three": 3}
 _COURSE = re.compile(
@@ -407,6 +407,44 @@ class AfflictionService:
             )
         return curse if pc is not None else None
 
+    def befall(
+        self,
+        world_id: str,
+        character_id: str,
+        name: str,
+        note: str,
+        *,
+        ability: str = "",
+        dc: int | None = None,
+    ) -> bool:
+        """A plane's hold on a character (app/services/planes.py): kept, with its ``note``,
+        until a save of ``ability`` against ``dc`` at the end of a long rest shakes it off
+        (none: until the gamemaster ends it); one of the same name is replaced. Logged by
+        the plane. False when the character is gone."""
+        held = Affliction(
+            id=uuid.uuid4().hex[:12],
+            kind="plane",
+            name=" ".join(name.split())[:200] or "?",
+            note=note.strip()[:2000],
+            since=self._now(world_id),
+            course="long_rest" if ability and dc is not None else "",
+            ability=ability if ability in ("str", "dex", "con", "int", "wis", "cha") else "",
+            dc=dc if ability else None,
+            rule="one" if ability and dc is not None else "",
+        )
+
+        def change(pc: PlayerCharacter) -> None:
+            pc.state.afflictions = [
+                *(
+                    a
+                    for a in pc.state.afflictions
+                    if not (a.kind == "plane" and a.name == held.name)
+                ),
+                held,
+            ]
+
+        return self._mutate(character_id, change) is not None
+
     def injure(self, world_id: str | None, character_id: str, name: str, note: str) -> bool:
         """A lingering injury on a character (app/services/combat_rules.py), kept until the
         gamemaster ends it; the fight's log tells it. False when the character is gone."""
@@ -627,7 +665,7 @@ class AfflictionService:
                     mine.exhaustion = min(6, mine.exhaustion + 1)
                     state.exhaustion = min(6, state.exhaustion + 1)
                     outcome[0] = "worse"
-            elif held.rule == "three" and mine.successes >= 3:
+            elif held.rule == "three" and mine.successes >= 3 or held.rule == "one" and ok:
                 outcome[0] = "cured"
             elif held.rule == "dc_drop" and ok:
                 mine.dc = max(0, (mine.dc or 0) - drop)
