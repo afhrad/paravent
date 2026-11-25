@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-25T14:35:16+01:00",
+  "en": "Encounter notes above the plan, an unidentified +1 that quietly counts, homebrew designs you can copy to another world, and the gamemaster deciding training days and enemy Polymorphs.",
+  "de": "Begegnungsnotizen über dem Plan, ein unidentifiziertes +1, das still mitzählt, Homebrew-Entwürfe, die ihr in eine andere Welt kopieren könnt, und die Spielleitung entscheidet über Ausbildungstage und gegnerische Verwandlungen."
+ },
+ {
   "at": "2026-11-25T13:48:20+01:00",
   "en": "Exported and duplicated worlds take their homebrew items, spells and backgrounds along, and German pages no longer call your own homebrew untranslated.",
   "de": "Exportierte und duplizierte Welten nehmen ihre eigenen Gegenstände, Zauber und Hintergründe mit, und deutsche Seiten nennen euer eigenes Homebrew nicht mehr unübersetzt."
@@ -293,10 +298,5 @@
   "at": "2026-11-20T10:33:39+01:00",
   "en": "The chapter check suggests the NPC, place, treasure or chapter a broken link probably meant, fixed with one press.",
   "de": "Die Kapitelprüfung schlägt vor, welchen NSC, Ort, Schatz oder welches Kapitel ein kaputter Link wohl meinte, mit einem Druck behoben."
- },
- {
-  "at": "2026-11-20T10:09:39+01:00",
-  "en": "A link to an NPC, place, treasure or encounter that does not exist yet offers to create it with a click.",
-  "de": "Ein Link auf einen NSC, Ort, Schatz oder eine Begegnung, die es noch nicht gibt, bietet an, sie mit einem Klick anzulegen."
  }
 ]
