@@ -195,8 +195,8 @@ class LibraryCheck:
 
     def _table(self) -> None:
         """What play keeps between sessions: quest rewards, followers and sidekick
-        classes, factions' renown tables, bastion facilities, shop shelves and the
-        calendars the worlds' clocks date by."""
+        classes, factions' renown tables, bastion facilities, shop shelves, the
+        builders' designs and the calendars the worlds' clocks date by."""
         from app.ui.faction_pages import factions_url
         from app.ui.follower_pages import followers_url
         from app.ui.quest_pages import quests_url
@@ -229,6 +229,7 @@ class LibraryCheck:
         for shop in state.shops.list():
             for ware in shop.stock:
                 self._missing(f"shop: {shop.name}", f"/gm?world={shop.id}", ITEMS, ware.ref)
+        self._designs()
         # Tags kept for a picture that is no longer in its world's folder.
         prose = state.prose
         for world in state.worlds.list():
@@ -253,6 +254,36 @@ class LibraryCheck:
                     detail=clock.calendar,
                     href=f"/gm?world={clock.id}",
                 )
+
+    def _designs(self) -> None:
+        """The builders' designs: what each began from, a magic item's base item and
+        spells, a spell's classes, a background's feat and equipment."""
+        state = self._stores.gamestate
+        for creature in state.creatures.list():
+            self._missing(
+                f"creature design: {creature.name}",
+                f"/gm/creatures/{creature.id}",
+                ("monster",),
+                creature.based_on,
+            )
+        for item in state.item_designs.list():
+            subject, href = f"item design: {item.name}", f"/gm/items/{item.id}"
+            self._missing(subject, href, ITEMS, item.based_on)
+            self._missing(subject, href, ("baseitem", "item"), item.base_item or None)
+            for spell in item.spells:
+                self._missing(subject, href, ("spell",), spell.spell)
+        for spell_design in state.spell_designs.list():
+            subject, href = f"spell design: {spell_design.name}", f"/gm/spells/{spell_design.id}"
+            self._missing(subject, href, ("spell",), spell_design.based_on)
+            for cls in spell_design.classes:
+                self._missing(subject, href, ("class",), cls)
+        for background in state.background_designs.list():
+            subject = f"background design: {background.name}"
+            href = f"/gm/backgrounds/{background.id}"
+            self._missing(subject, href, ("background",), background.based_on)
+            self._missing(subject, href, ("feat",), background.feat or None)
+            for piece in background.equipment:
+                self._missing(subject, href, ITEMS, piece.item or None)
 
     def _character(self, pc: Any) -> None:
         """Only what names its book: a bare skill or free-text gear means no entry."""

@@ -5396,5 +5396,6 @@
   "spellbuilder.revision_accepted": "Die Überarbeitung wurde in den Zauber übernommen.",
   "bgbuilder.revision_hint": "Claudes vorgeschlagene Änderungen an einem angenommenen Hintergrund: Er bleibt, wie er ist, bis du sie annimmst.",
   "bgbuilder.revision_open": "Claude hat Änderungen an diesem Hintergrund vorgeschlagen.",
-  "bgbuilder.revision_accepted": "Die Überarbeitung wurde in den Hintergrund übernommen."
+  "bgbuilder.revision_accepted": "Die Überarbeitung wurde in den Hintergrund übernommen.",
+  "itembuilder.error.raise_attune": "Ein Wert wird nur erhöht, solange eingestimmt: Kreuze Erfordert Einstimmung an, oder setze den Wert stattdessen."
 }

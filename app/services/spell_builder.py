@@ -429,6 +429,8 @@ class SpellBuilder:
     def delete(self, design_id: str) -> SpellDesign:
         design = self.get(design_id)
         self._store.spell_designs.delete(design_id)
+        if (revision := self.revision(design_id)) is not None:  # nothing left to revise
+            self._store.spell_designs.delete(revision.id)
         if design.published_at is not None:
             self.publish()
         return design

@@ -391,6 +391,9 @@ class ItemBuilder:
         design.ability_raise = {
             k: max(1, min(4, v)) for k, v in design.ability_raise.items() if k in ABILITIES and v
         }
+        if design.ability_raise and not design.attunement:
+            # The sheet raises a score only through an item it is attuned to.
+            raise ItemError("itembuilder.error.raise_attune")
         if not design.charges:
             design.recharge, design.recharge_amount = "", ""
         design.spells = [s for s in design.spells if s.spell.strip()][:20]
@@ -400,6 +403,8 @@ class ItemBuilder:
     def delete(self, design_id: str) -> ItemDesign:
         design = self.get(design_id)
         self._store.item_designs.delete(design_id)
+        if (revision := self.revision(design_id)) is not None:  # nothing left to revise
+            self._store.item_designs.delete(revision.id)
         if design.published_at is not None:
             self.publish()
         return design

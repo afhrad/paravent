@@ -8,7 +8,8 @@ they belong to the table, not to a world.
 **Import** makes a new world of such a zip, every id inside it given anew, so it never
 clashes with what the table has, not even with the world it came from. It takes the
 campaign — adventures, chapters, pictures, NPCs, places, treasure, encounters, factions,
-quests, the instructions for Claude, the world's naming styles and creatures — and, if
+quests, the instructions for Claude, the world's naming styles and the builders' designs
+(creatures, magic items, spells, backgrounds) — and, if
 asked, the play so far: the log, the clock, fights, checks, the journal's handouts and
 party notes, session notes, what the party learned of creatures, the shop. Without the
 play, quests start open with nobody on them and factions with no renown.
@@ -71,9 +72,14 @@ CAMPAIGN: dict[str, str] = {
     "factions": "world",
     "quests": "world",
     "creatures": "world",
+    "item_designs": "world",
+    "spell_designs": "world",
+    "background_designs": "world",
     "naming_styles": "for_world",
     "safety": "id",
 }
+# The builders' designs, published to homebrew under one name space each.
+BUILDERS = ("creatures", "item_designs", "spell_designs", "background_designs")
 PLAY: dict[str, str] = {
     "combats": "world",
     "session_notes": "world",
@@ -303,7 +309,11 @@ class WorldTransfer:
         done: Imported,
     ) -> None:
         kinds = CAMPAIGN | (PLAY if play else {})
-        designs = {d.name.casefold() for d in self._store.creatures.list()}
+        # Each builder's designs share one name space with the table's (one homebrew
+        # entry per name and source).
+        designs = {
+            kind: {d.name.casefold() for d in self._collection(kind).list()} for kind in BUILDERS
+        }
         for name, rows in raw_records.items():
             if name not in kinds or not isinstance(rows, list):
                 continue
@@ -316,11 +326,11 @@ class WorldTransfer:
                 except ValidationError:
                     done.skipped.append(f"{name}: {row.get('id', '?')}")
                     continue
-                if name == "creatures":
-                    # The table's own design of that name stays: its statblock is the
-                    # one the homebrew file holds (one creature per name and source).
+                if name in BUILDERS:
+                    # The table's own design of that name stays: it is what the homebrew
+                    # file holds. A revision copy does not travel; it would orphan.
                     design = str(getattr(record, "name", ""))
-                    if design.casefold() in designs:
+                    if design.casefold() in designs[name] or getattr(record, "revision_of", None):
                         done.creatures_kept.append(design)
                         continue
                     record = record.model_copy(

@@ -150,7 +150,14 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         (`start_spell_revision`, `start_background_revision`; one shared
         `app/services/design_revisions.py`). Reference pages name backgrounds, feats,
         species, classes, options, deities, languages, traps, hazards, diseases and gifts
-        by their kind instead of "Rule". **Over MCP**
+        by their kind instead of "Rule". **A review of the builders** (2026-11-25): a
+        world's item, spell and background designs travel with its export and duplicate
+        (the table's own of a name kept, a revision copy left behind); deleting a design
+        takes its open revision along; the library check reads what each design names
+        (base item, spells, classes, feat, equipment, what it began from — creature
+        designs too); an ability raise needs attunement, as the sheet applies it; homebrew
+        items, spells and backgrounds read as the table's own, with no "not translated"
+        note. **Over MCP**
         (2026-11-11, MCP.md §10): Claude drafts
         creatures from a description, a world's setting and a CR (`create_creature`,
         `update_creature`), spells and equipment from the world's books; a draft is

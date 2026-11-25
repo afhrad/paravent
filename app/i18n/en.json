@@ -5396,5 +5396,6 @@
   "spellbuilder.revision_accepted": "The revision was written onto the spell.",
   "bgbuilder.revision_hint": "Claude's proposed changes to a background you accepted: the background stays as it is until you accept them.",
   "bgbuilder.revision_open": "Claude has proposed changes to this background.",
-  "bgbuilder.revision_accepted": "The revision was written onto the background."
+  "bgbuilder.revision_accepted": "The revision was written onto the background.",
+  "itembuilder.error.raise_attune": "A score is raised only while attuned: tick Requires attunement, or set the score instead."
 }

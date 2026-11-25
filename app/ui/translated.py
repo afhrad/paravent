@@ -20,12 +20,15 @@ from app.services.translations import Coverage, record_key, translation_key
 from app.ui.context import Page
 from app.ui.icons import icon
 
+# What Paravent's builders publish (creatures, magic items, spells, backgrounds).
+BUILT = frozenset({"monster", "item", "spell", "background"})
+
 
 def table_written(category: str, source: str) -> bool:
-    """A creature of the creature builder: written by the table in its own language
-    (Claude writes a world's creatures in the world's language), so nothing offers to
+    """A design of one of Paravent's builders: written by the table in its own language
+    (Claude writes a world's designs in the world's language), so nothing offers to
     translate it and no note calls it English."""
-    return category == "monster" and source == HOMEBREW_SOURCE
+    return category in BUILT and source == HOMEBREW_SOURCE
 
 
 def localized(page: Page, entry: ReferenceEntry) -> tuple[ReferenceEntry, Coverage]:
