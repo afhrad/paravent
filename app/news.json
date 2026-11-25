@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-25T09:49:43+01:00",
+  "en": "Follower loyalty: keep each follower's Loyalty Score in secret, raised and lowered by the guides' reasons, and see who might turn on the party.",
+  "de": "Loyalität im Gefolge: Führe geheim den Loyalitätswert jedes Gefolgsmanns, bewegt durch die Gründe der Spielleiterhandbücher, und sieh, wer sich gegen die Gruppe wenden könnte."
+ },
+ {
   "at": "2026-11-25T07:30:40+01:00",
   "en": "Planes: put the party on the Feywild, the Shadowfell or an Outer Plane, and Paravent rolls its rules from the guides — after rests, by the hour, on leaving and when you call for them.",
   "de": "Ebenen: Schickt die Gruppe in die Feenwildnis, in den Shadowfell oder auf eine Äußere Ebene, und Paravent würfelt deren Regeln aus den Spielleiterhandbüchern – nach Rasten, stündlich, beim Verlassen und auf euren Ruf."
@@ -293,10 +298,5 @@
   "at": "2026-11-19T23:49:26+01:00",
   "en": "Tagging a picture offers the world's tags as you type, so one place is not tagged two ways.",
   "de": "Beim Verschlagworten eines Bildes werden die Schlagworte der Welt beim Tippen angeboten, damit nichts doppelt verschlagwortet wird."
- },
- {
-  "at": "2026-11-19T23:49:25+01:00",
-  "en": "Claude can reuse your world's existing NPCs, places, encounters and treasure in the adventures it drafts.",
-  "de": "Claude kann die vorhandenen NSC, Orte, Begegnungen und Schätze deiner Welt in seinen Abenteuerentwürfen wiederverwenden."
  }
 ]
