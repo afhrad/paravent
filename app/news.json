@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-25T15:35:29+01:00",
+  "en": "Homebrew stays in its world: creatures, items, spells and backgrounds you build appear only in the world they belong to.",
+  "de": "Homebrew bleibt in seiner Welt: gebaute Kreaturen, Gegenstände, Zauber und Hintergründe erscheinen nur in der Welt, zu der sie gehören."
+ },
+ {
   "at": "2026-11-25T14:35:16+01:00",
   "en": "Encounter notes above the plan, an unidentified +1 that quietly counts, homebrew designs you can copy to another world, and the gamemaster deciding training days and enemy Polymorphs.",
   "de": "Begegnungsnotizen über dem Plan, ein unidentifiziertes +1, das still mitzählt, Homebrew-Entwürfe, die ihr in eine andere Welt kopieren könnt, und die Spielleitung entscheidet über Ausbildungstage und gegnerische Verwandlungen."
@@ -293,10 +298,5 @@
   "at": "2026-11-20T10:49:35+01:00",
   "en": "Check links in the world menu lists every broken link of the world, each fixed with one press or created.",
   "de": "Links prüfen im Weltmenü listet jeden kaputten Link der Welt, jeder mit einem Druck korrigiert oder angelegt."
- },
- {
-  "at": "2026-11-20T10:33:39+01:00",
-  "en": "The chapter check suggests the NPC, place, treasure or chapter a broken link probably meant, fixed with one press.",
-  "de": "Die Kapitelprüfung schlägt vor, welchen NSC, Ort, Schatz oder welches Kapitel ein kaputter Link wohl meinte, mit einem Druck behoben."
  }
 ]
