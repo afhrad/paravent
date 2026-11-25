@@ -64,6 +64,7 @@ def followers_page(
     loyalty: Mapping[str, int] | None = None,
     loyalty_max: int = 0,
     loyalty_link: str | None = None,
+    mutinies: Mapping[str, bool] | None = None,
     error: str | None = None,
     message: str | None = None,
 ) -> Element:
@@ -91,6 +92,7 @@ def followers_page(
             ),
             alert(error),
             notice(message),
+            _crews(page, url, followers, mutinies or {}) if gm and mutinies else None,
             section(class_="panel")[
                 ul(class_="follower-list")[
                     [
@@ -125,6 +127,7 @@ def followers_page(
                         ]
                     ],
                     _text("name", t("followers.name"), required=False),
+                    _text("ship", t("followers.ship"), required=False),
                     button(type="submit", class_="btn btn-sm")[
                         icon("user-plus", "sm"), span[t("followers.hire")]
                     ],
@@ -194,6 +197,9 @@ def _row(
             small(class_="muted")[t("followers.levels", n=follower.levels)]
             if follower.levels
             else None,
+            span(class_="pill neutral")[t("followers.crews", ship=follower.ship)]
+            if follower.ship
+            else None,
         ],
         div(class_="follower-acts")[
             span(class_="mono follower-hp")[f"{follower.hp} / {follower.hp_max}"],
@@ -252,6 +258,46 @@ def _row(
 
 
 _STANDING_TONE = {"loyal": "heal", "tenuous": "neutral", "disloyal": "dmg"}
+
+
+def _crews(
+    page: Page, url: str, followers: Sequence[Follower], mutinies: Mapping[str, bool]
+) -> Element:
+    """The gamemaster's ships: each crew's size, how many stand at a Loyalty of 0, a
+    mutiny when half do, and **Berth**, which lets the disloyal leave."""
+    t = page.t
+    rows = []
+    for ship, mutiny in mutinies.items():
+        crew = [f for f in followers if f.ship == ship]
+        disloyal = sum(1 for f in crew if f.loyalty == 0)
+        rows.append(
+            li(class_="follower-crew")[
+                icon("ship", "sm"),
+                b[ship],
+                small(class_="muted")[t("followers.crew_count", n=len(crew), zero=disloyal)],
+                span(class_="pill dmg")[t("followers.mutiny")]
+                if mutiny
+                else span(class_="pill heal")[t("followers.crew_holds")],
+                _post(
+                    url,
+                    "berth",
+                    hidden("ship", ship),
+                    button(
+                        type="submit",
+                        class_="btn btn-sm btn-ghost",
+                        title=t("followers.berth_hint"),
+                    )[t("followers.berth")],
+                    cls="inline-form",
+                )
+                if disloyal
+                else None,
+            ]
+        )
+    return section(class_="panel follower-ships")[
+        div(class_="panel-head")[h2[t("followers.ships")]],
+        p(class_="muted")[t("followers.ships_hint")],
+        ul(class_="follower-list")[rows],
+    ]
 
 
 def _loyalty(

@@ -181,7 +181,10 @@ Entscheidung des Spielers.
   der Figur. *Loyalität führen*, nur für dich sichtbar, führt den Loyalitätswert der
   Spielleiterhandbücher: bis zum höchsten Charisma der Gruppe, zu Beginn die Hälfte,
   bewegt durch die Gründe des Buchs (+1W4 für Hilfe oder gute Behandlung, −1W4 oder −2W4
-  für Kränkung und Missbrauch). Bei 0 wendet sich der Gefolgsmann gegen die Gruppe.
+  für Kränkung und Missbrauch). Bei 0 wendet sich der Gefolgsmann gegen die Gruppe. Ein
+  Angestellter kann auf einem Schiff dienen (beim Anheuern nennen): Steht während einer
+  Fahrt die Hälfte der Besatzung bei 0, meutert sie, und das Protokoll sagt es dir;
+  **Anlegen** im Hafen lässt die Illoyalen gehen.
 <!-- /feature -->
 <!-- /feature -->
 

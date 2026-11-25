@@ -512,7 +512,7 @@
       },
       {
         "q": "Can I bring my own adventures and homebrew?",
-        "a": "Yes. Adventures are plain Markdown, written in Paravent or in any editor, Obsidian included. Your own creatures come from the creature builder and your own magic items from the item builder, and homebrew in the 5eTools format sits next to the books and works like them."
+        "a": "Yes. Adventures are plain Markdown, written in Paravent or in any editor, Obsidian included. Your own creatures, magic items, spells and backgrounds come from Paravent's builders, and homebrew in the 5eTools format sits next to the books and works like them."
       }
     ]
   },

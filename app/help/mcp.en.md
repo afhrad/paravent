@@ -198,7 +198,14 @@ Magic items work the same way in the **item builder** (the user menu): "a ring f
 drowned priest's heir, rare, that lets her breathe underwater" becomes a draft with what
 the sheet counts typed (bonuses, resistances, ability scores, charges, the spells it
 casts) and the rest in its text. Open it under *Item builder* and press **Accept and
-publish** to put it into your books.
+publish** to put it into your books. Asked to change an item you already accepted, Claude
+writes a revision beside it, which changes nothing until you accept that too.
+
+Spells and backgrounds go the same way, in the **spell builder** and the **background
+builder**: a spell with its header, its damage or healing and the classes whose lists it
+joins, cast from the sheet like a printed one; a background with its skills, tools,
+languages and equipment, and under the 2024 rules its abilities and origin feat, offered
+by the character wizard.
 
 ## 7. When it does not work
 

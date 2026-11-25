@@ -1159,6 +1159,10 @@ def _followers(
             },
             loyalty_max=registry.followers.loyalty_max(character.world_id),
             loyalty_link=registry.heading_url(character.world_id, LOYALTY_PRINTED),
+            mutinies={
+                ship: registry.followers.mutiny(character.id, ship)
+                for ship in registry.followers.crews(character.id)
+            },
             error=error,
             message=message,
         ),
@@ -1396,7 +1400,12 @@ async def change_followers(
     message = None
     try:
         if op == "hire":
-            service.hire(character, str(form.get("kind", "")), str(form.get("name", "")))
+            service.hire(
+                character,
+                str(form.get("kind", "")),
+                str(form.get("name", "")),
+                ship=str(form.get("ship", "")),
+            )
         elif op == "creature":
             service.add_creature(
                 character,
@@ -1415,6 +1424,16 @@ async def change_followers(
             if not identity.is_gamemaster:  # a sidekick levels when the gamemaster says
                 raise FollowerError("followers.error.level")
             service.level_up(character.id, follower_id)
+        elif op == "berth":
+            if not identity.is_gamemaster:
+                raise HTTPException(status_code=403)
+            left = service.berth(
+                character.id,
+                str(form.get("ship", "")),
+                identity.user.username,
+                identity.user.display_name or identity.user.username,
+            )
+            message = page.t.plural("followers.crew_left", len(left), n=len(left))
         elif op in ("loyalty", "loyalty_track", "loyalty_untrack"):
             if not identity.is_gamemaster:  # the gamemaster keeps it in secret
                 raise HTTPException(status_code=403)

@@ -2273,6 +2273,15 @@ def _spell_view(option: ChosenOption, data: dict[str, Any] | None, level: int) -
         heal_upcast = step.group(2).replace(" ", "") if step else ""
         group = _UP_TO.search(words)
         heal_targets = _NUMBERS.get(group.group(1).lower(), 1) if group else 1
+    # A homebrew spell of the spell builder types its healing (its text may be in any
+    # language, where the English words above are not found).
+    typed = data.get("healing")
+    heal_mod = "spellcasting ability modifier" in str(data.get("entries")).lower()
+    if isinstance(typed, dict) and typed.get("dice"):
+        heal = str(typed["dice"])
+        heal_upcast = str(typed.get("upcast") or "")
+        heal_mod = bool(typed.get("mod"))
+        heal_targets = int(typed.get("targets") or 1)
     return SpellView(
         reference=option.reference,
         name=str(data.get("name", option.name)),
@@ -2292,7 +2301,7 @@ def _spell_view(option: ChosenOption, data: dict[str, Any] | None, level: int) -
         upcast=scale.group(1).replace(" ", "") if scale else "",
         heal=heal,
         heal_upcast=heal_upcast,
-        heal_mod="spellcasting ability modifier" in str(data.get("entries")).lower(),
+        heal_mod=heal_mod,
         heal_targets=heal_targets,
         damage_types=tuple(data.get("damageInflict") or ()),
         material=material_text,

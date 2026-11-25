@@ -603,6 +603,104 @@ class ItemDesign(Record):
     # The MCP key that drafted it: Claude's draft, left out of a publish until the
     # gamemaster accepts it; None for the gamemaster's own designs.
     drafted_by: str | None = None
+    # A revision: Claude's draft copy of the accepted design with this id, under the
+    # same name; accepting it writes it onto that design.
+    revision_of: str | None = None
+
+
+class SpellDesign(Record):
+    """A spell made in the spell builder (app/services/spell_builder.py).
+
+    Typed is what casting it from the sheet uses — its header (level, school, casting
+    time, range and area, components, duration, concentration, ritual), the class lists
+    it is on, and its effect: a save or a spell attack with damage, or healing, with
+    what a higher slot adds (a cantrip's damage grows with the caster's level). The
+    builder writes the effect's sentence and its "at higher levels" in the world's
+    language; ``text`` is everything else. Published as source ``Homebrew``.
+    """
+
+    name: str
+    world_id: str | None = None
+    based_on: str | None = None  # ``Name|SOURCE`` of the printed spell it began from
+    level: int = Field(default=1, ge=0, le=9)
+    school: Literal["A", "C", "D", "E", "V", "I", "N", "T"] = "V"
+    time_number: int = Field(default=1, ge=1, le=99)
+    time_unit: Literal["action", "bonus", "reaction", "minute", "hour"] = "action"
+    range_kind: Literal["feet", "miles", "self", "touch", "sight", "unlimited"] = "feet"
+    range_amount: int = Field(default=60, ge=0, le=100000)
+    area: Literal["", "cone", "cube", "cylinder", "line", "sphere", "emanation"] = ""
+    area_size: int = Field(default=0, ge=0, le=10000)  # feet
+    verbal: bool = True
+    somatic: bool = True
+    material: str = Field(default="", max_length=300)  # "" for none
+    material_cost: int = Field(default=0, ge=0)  # gp
+    material_consumed: bool = False
+    duration_kind: Literal["instant", "timed", "permanent", "special"] = "instant"
+    duration_amount: int = Field(default=1, ge=1, le=999)
+    duration_unit: Literal["round", "minute", "hour", "day"] = "minute"
+    concentration: bool = False
+    ritual: bool = False
+    classes: list[str] = Field(default_factory=list)  # "Wizard|PHB"
+    effect: Literal["none", "save", "attack", "heal"] = "none"
+    save: Literal["str", "dex", "con", "int", "wis", "cha"] = "dex"
+    half_on_save: bool = True
+    attack: Literal["M", "R"] = "R"
+    dice: str = Field(default="", max_length=40)  # "8d6"
+    damage_types: list[str] = Field(default_factory=list)
+    heal_mod: bool = True
+    heal_targets: int = Field(default=1, ge=1, le=12)
+    upcast: str = Field(default="", max_length=40)  # what each slot above adds, "1d6"
+    # Whether the builder writes the effect's sentence (off for a printed spell's text,
+    # which already says it).
+    write_effect: bool = True
+    text: str = Field(default="", max_length=8000)
+    higher_text: str = Field(default="", max_length=2000)
+    published_at: datetime | None = None
+    published_hash: str | None = None
+    drafted_by: str | None = None
+
+
+class BackgroundItem(GameStateModel):
+    """A piece of a background's starting equipment: an item of the books by
+    ``Name|SOURCE``, or something the books do not list (``special``), so many of it."""
+
+    item: str = Field(default="", max_length=200)
+    special: str = Field(default="", max_length=200)
+    quantity: int = Field(default=1, ge=1, le=999)
+
+
+class BackgroundDesign(Record):
+    """A background made in the background builder (app/services/background_builder.py).
+
+    Typed is what the character wizard reads: the skills, tools and languages it gives
+    (fixed, or so many of the player's choice), its starting equipment and gold, a feature
+    (2014), and for the 2024 rules the three abilities its +2/+1 (or +1/+1/+1) falls on and
+    its origin feat. Its rules edition follows ``edition``. Published as source
+    ``Homebrew``, the wizard offers it beside the books' own.
+    """
+
+    name: str
+    world_id: str | None = None
+    based_on: str | None = None
+    edition: Literal["classic", "one"] = "one"
+    skills: list[str] = Field(default_factory=list)  # "insight"
+    any_skills: int = Field(default=0, ge=0, le=4)
+    tools: list[str] = Field(default_factory=list)  # "thieves' tools"
+    any_artisan: int = Field(default=0, ge=0, le=3)
+    any_gaming: int = Field(default=0, ge=0, le=3)
+    any_instrument: int = Field(default=0, ge=0, le=3)
+    languages: list[str] = Field(default_factory=list)  # "elvish"
+    any_languages: int = Field(default=0, ge=0, le=4)
+    equipment: list[BackgroundItem] = Field(default_factory=list)
+    gold: int = Field(default=0, ge=0, le=100000)  # gp in the pouch, or option A's
+    abilities: list[str] = Field(default_factory=list)  # three, 2024
+    feat: str = Field(default="", max_length=200)  # "Alert|XPHB", 2024
+    feature_name: str = Field(default="", max_length=120)  # 2014
+    feature_text: str = Field(default="", max_length=4000)
+    text: str = Field(default="", max_length=4000)
+    published_at: datetime | None = None
+    published_hash: str | None = None
+    drafted_by: str | None = None
 
 
 class EncounterMonster(GameStateModel):
@@ -1572,6 +1670,9 @@ class Follower(Record):
     wage: int = Field(default=0, ge=0)  # copper a day, for a hireling
     # The guides' Loyalty Score, kept by the gamemaster in secret; None while untracked.
     loyalty: int | None = Field(default=None, ge=0, le=20)
+    # The vessel it crews ("The Grey Heron"), "" for none: its crew's loyalty decides a
+    # mutiny (the 2024 guide's Crew Loyalty and Mutiny).
+    ship: str = Field(default="", max_length=80)
 
 
 class QuestStep(GameStateModel):

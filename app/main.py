@@ -30,6 +30,7 @@ from app.mcp.server import build_server
 from app.routes import adventures as adventure_routes
 from app.routes import afflictions as affliction_routes
 from app.routes import auth as auth_routes
+from app.routes import backgrounds as background_routes
 from app.routes import backups as backup_routes
 from app.routes import books as books_routes
 from app.routes import cast as cast_routes
@@ -73,6 +74,7 @@ from app.routes import search as search_routes
 from app.routes import sentient as sentient_routes
 from app.routes import session_notes as session_routes
 from app.routes import sound as sound_routes
+from app.routes import spells as spell_routes
 from app.routes import story_seeds as story_seed_routes
 from app.routes import themes as theme_routes
 from app.routes import title_images as title_image_routes
@@ -393,6 +395,8 @@ def create_app() -> FastAPI:
     app.include_router(npc_gen_routes.router)
     app.include_router(creature_routes.router)
     app.include_router(item_routes.router)
+    app.include_router(spell_routes.router)
+    app.include_router(background_routes.router)
     app.include_router(sound_routes.router)
     app.include_router(theme_routes.router)
     app.include_router(journal_routes.router)

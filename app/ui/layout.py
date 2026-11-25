@@ -384,6 +384,16 @@ def user_menu(page: Page, name: str, username: str) -> Element:
                 ]
                 if page.identity is not None and page.identity.is_gamemaster
                 else None,
+                a(href="/gm/spells", class_="usermenu-link")[
+                    icon("wand-sparkles", "sm"), span[t("spellbuilder.heading")]
+                ]
+                if page.identity is not None and page.identity.is_gamemaster
+                else None,
+                a(href="/gm/backgrounds", class_="usermenu-link")[
+                    icon("scroll", "sm"), span[t("bgbuilder.heading")]
+                ]
+                if page.identity is not None and page.identity.is_gamemaster
+                else None,
             ],
             form(method="post", action="/logout", class_="usermenu-section usermenu-logout")[
                 button(type="submit", class_="btn btn-ghost")[

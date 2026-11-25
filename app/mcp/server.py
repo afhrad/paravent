@@ -18,6 +18,7 @@ from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
 from pydantic import Field
 
+from app.mcp.backgrounds import register_backgrounds
 from app.mcp.common import (
     current_or,
     needs,
@@ -66,6 +67,7 @@ from app.mcp.models import (
     WorldOverview,
     WorldSummary,
 )
+from app.mcp.spells import register_spells
 from app.models.gamestate import Follower, Location, Npc, SourceSet, Treasure, World
 from app.models.naming import SUBJECTS, Subject
 from app.services import features
@@ -1394,6 +1396,8 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
     register_drafts(server, stores)
     register_creatures(server, stores)
     register_items(server, stores)
+    register_spells(server, stores)
+    register_backgrounds(server, stores)
     return server
 
 

@@ -41,6 +41,7 @@ from app.services.activities import Activities, Offered, rarity_of
 from app.services.adventures import AdventureService
 from app.services.afflictions import AfflictionService
 from app.services.auth import AuthService, Identity
+from app.services.background_builder import BackgroundBuilder
 from app.services.backlinks import BacklinkIndex
 from app.services.backup import BackupService
 from app.services.bastion_events import EventTools, item_ref
@@ -91,7 +92,7 @@ from app.services.gifts import GiftService
 from app.services.glossary import Glossary, LinkCounts
 from app.services.handouts import HandoutService
 from app.services.holdings import Holdings
-from app.services.i18n import FALLBACK, UiCatalogue
+from app.services.i18n import FALLBACK, Translator, UiCatalogue
 from app.services.image_effects import ImageEffects
 from app.services.item_builder import ItemBuilder
 from app.services.item_charges import Charges, ItemCharges
@@ -131,6 +132,7 @@ from app.services.session_notes import SessionNoteService
 from app.services.sheet import CONDITIONS
 from app.services.shop import ShopService
 from app.services.sound import SoundDesk, SoundLibrary
+from app.services.spell_builder import SpellBuilder
 from app.services.spellbook import SpellbookService
 from app.services.story import StoryService
 from app.services.style_drafts import ApiAgent, StyleDrafts
@@ -1764,6 +1766,25 @@ class StoreRegistry:
                 return rows_of(SimpleNamespace(rows=node.get("rows")))
         return None
 
+    def trade_goods(self, world_id: str | None) -> list[tuple[str, str, str]]:
+        """The trade goods of the world's guide that are items of its books (the 2024
+        *Trade Goods* table names them): ``(Name|SOURCE, what it is, its cost)``, cheapest
+        first. A table whose goods are plain text (2014) offers none."""
+        rows = self.book_table(world_id, "Trade Goods", ["XDMG"]) or []
+        out: list[tuple[str, str, str]] = []
+        for row in rows:
+            if len(row) < 2:
+                continue
+            cost = strip_tags(str(row[0])).strip()
+            for found in re.finditer(r"\{@item ([^}|]+)\|([^}|]+)(?:\|([^}]*))?\}", str(row[1])):
+                name, source = found[1].strip(), found[2].strip()
+                record = self.corpus_record("item", name, source)
+                if record is None:
+                    continue
+                proper = str(record.get("name") or name)
+                out.append((f"{proper}|{record.get('source') or source}", proper, cost))
+        return out
+
     def rarity_values(self, world_id: str | None) -> dict[str, int]:
         """A magic item's value by rarity in copper, from the world's guide: the 2024
         table, else *Xanathar's* base prices, else the top of the 2014 guide's range."""
@@ -2474,31 +2495,69 @@ class StoreRegistry:
             self.reload_compendium,
         )
 
+    def corpus_record(self, category: str, name: str, source: str) -> dict[str, Any] | None:
+        """One compendium record by name and source, as plain data; None if absent."""
+        try:
+            entry = self.compendium.get(category, f"{name}|{source}")
+        except EntryNotFound:
+            return None
+        dumped: dict[str, Any] = entry.model_dump(by_alias=True, exclude_none=True)
+        return dumped
+
+    def plays_2024(self, world_id: str | None) -> bool:
+        """Whether a world plays the 2024 rules: it declares the 2024 handbook or guide,
+        or declares no books at all."""
+        world = self.worlds.find(world_id) if world_id else None
+        if world is None or world.source_set.is_unrestricted:
+            return True
+        return any(world.source_set.allows(b) for b in ("XDMG", "XPHB"))
+
+    def world_words(self, world_id: str | None) -> Translator:
+        """A translator in a world's language, for text written into its homebrew."""
+        world = self.worlds.find(world_id) if world_id else None
+        return self.ui.translator(
+            world.language if world else "en",
+            self.glossary,
+            self.translations,
+            self.item_names.compose,
+        )
+
     @cached_property
     def item_builder(self) -> ItemBuilder:
         """Item-builder designs, published to homebrew (app/services/item_builder.py)."""
-
-        def lookup(category: str, name: str, source: str) -> dict[str, Any] | None:
-            try:
-                entry = self.compendium.get(category, f"{name}|{source}")
-            except EntryNotFound:
-                return None
-            dumped: dict[str, Any] = entry.model_dump(by_alias=True, exclude_none=True)
-            return dumped
-
-        def newer(world_id: str | None) -> bool:
-            world = self.worlds.find(world_id) if world_id else None
-            if world is None or world.source_set.is_unrestricted:
-                return True
-            return any(world.source_set.allows(b) for b in ("XDMG", "XPHB"))
-
         return ItemBuilder(
             self.gamestate,
             self.settings.homebrew_dir,
-            lookup,
+            self.corpus_record,
             self.reload_compendium,
-            newer=newer,
+            newer=self.plays_2024,
             rarity_values=self.rarity_values,
+        )
+
+    @cached_property
+    def spell_builder(self) -> SpellBuilder:
+        """Spell-builder designs, published to homebrew (app/services/spell_builder.py)."""
+        return SpellBuilder(
+            self.gamestate,
+            self.settings.homebrew_dir,
+            self.corpus_record,
+            self.reload_compendium,
+            words=self.world_words,
+            # Read at call time: a reload replaces the lookup.
+            class_lists=lambda name, source: self.lookups.spell_sources.classes_for(name, source),
+        )
+
+    @cached_property
+    def background_builder(self) -> BackgroundBuilder:
+        """Background-builder designs, published to homebrew
+        (app/services/background_builder.py)."""
+        return BackgroundBuilder(
+            self.gamestate,
+            self.settings.homebrew_dir,
+            self.corpus_record,
+            self.reload_compendium,
+            words=self.world_words,
+            newer=self.plays_2024,
         )
 
     def creature_wording(self, world_id: str | None, fallback: str) -> Wording:

@@ -3539,3 +3539,11 @@ dialog.ctx-dialog .panel{ margin:0; }
 .ib-text{ width:100%; font:inherit; }
 .ib-preview{ position:sticky; top:12px; }
 .ref-make-from{ margin:8px 0; }
+.ib-pair{ display:flex; gap:6px; }
+.ib-pair > *{ min-width:0; flex:1 1 0; }
+.ib-pair input[type=number]{ flex:0 0 6em; }
+.tr-themes{ border:0; padding:0; margin:0; display:flex; flex-wrap:wrap; gap:4px 14px; }
+.tr-themes > legend{ font-weight:600; margin-bottom:4px; }
+.tr-themes .field-hint{ flex-basis:100%; }
+.ib-wide{ grid-column:1 / -1; }
+.ib-item{ grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) 4.5em; }

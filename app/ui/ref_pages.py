@@ -1285,6 +1285,11 @@ def reference_page(
             and page.identity.is_gamemaster
             and str(entry.data.get("rarity") or "none") not in ("none", "unknown")
             else None,
+            make_from_button(page, f"{entry.name}|{entry.source}", spell=True)
+            if entry.category == "spell"
+            and page.identity is not None
+            and page.identity.is_gamemaster
+            else None,
             _description(page, entry, ctx, description),
             _backlinks(page, backlinks, entry.world_id) if backlinks else None,
             _names_form(page, entry),

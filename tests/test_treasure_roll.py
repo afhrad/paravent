@@ -21,7 +21,14 @@ from app.models.gamestate import (
     World,
 )
 from app.services.dice import Dice
-from app.services.treasure_roll import BOOK_2014, BOOK_2024, Rolled, roller_for, tables_for
+from app.services.treasure_roll import (
+    BOOK_2014,
+    BOOK_2024,
+    Rolled,
+    preferred_themes,
+    roller_for,
+    tables_for,
+)
 from app.store.compendium import CompendiumStore
 from app.store.loot import LootTables
 from app.store.registry import StoreRegistry
@@ -162,3 +169,59 @@ class TestTreasure:
         assert "kind=hoard" in location and "cr=1" in location  # the bugbear's CR
         treasure = registry.treasure.list(world_id)[0]
         assert treasure.name == "Treasure: Cave mouth"
+
+
+class TestPreferencesAndTradeGoods:
+    def test_themes_by_the_creatures(self) -> None:
+        creatures = [
+            {"treasure": ["implements", "individual"]},
+            {"treasure": ["arcana"]},
+            {"treasure": ["implements"]},
+            {"treasure": ["any"]},
+        ]
+        assert preferred_themes(creatures) == ["implements", "arcana"]
+        assert preferred_themes([{"treasure": ["any"]}, {}]) == []
+
+    def test_a_hoard_leans_to_the_themes(
+        self, loaded_compendium: CompendiumStore, loot: LootTables
+    ) -> None:
+        roller = roller_for(loaded_compendium, loot, SourceSet(sources=BOOKS_2024), BOOK_2024)
+        lines: list[str] = []
+        for _ in range(40):
+            lines += roller.roll("hoard", 17, BOOK_2024, ["arcana"]).lines
+        themed = [x for x in lines if x.startswith(("Arcana", "Armaments", "Implements", "Relics"))]
+        assert themed and all(x.startswith("Arcana") for x in themed)
+
+    async def test_a_fight_of_liches_and_trade_goods(
+        self, client: tuple[AsyncClient, StoreRegistry, str]
+    ) -> None:
+        ac, registry, world_id = client
+        registry.gamestate.worlds.update(world_id, source_set=SourceSet(sources=BOOKS_2024))
+        encounter = registry.gamestate.encounters.create(
+            Encounter(
+                name="Crypt",
+                world_id=world_id,
+                monsters=[
+                    EncounterMonster(name="Lich", source="XMM"),
+                    EncounterMonster(name="Goblin Warrior", source="XMM", count=2),
+                ],
+            )
+        )
+        combat = registry.combats.start(encounter, "dm")
+        registry.combats.end(combat.id, "dm")
+        opened = await ac.post(f"/gm/combat/{combat.id}/treasure")
+        location = opened.headers["location"]
+        assert "themes=implements%2Carcana" in location
+        page = (await ac.get(location)).text
+        assert 'name="theme" value="implements" checked' in page
+        assert "Trade goods" in page
+        treasure = registry.treasure.list(world_id)[0]
+        goods = registry.trade_goods(world_id)
+        assert goods and goods[0][2].endswith("CP")
+        await ac.post(f"/gm/treasure/{treasure.id}/trade", data={"ref": goods[0][0], "count": "5"})
+        held = registry.treasure.get(treasure.id).items
+        assert [(i.name, i.count) for i in held] == [(goods[0][0].split("|")[0], 5)]
+        refused = await ac.post(
+            f"/gm/treasure/{treasure.id}/trade", data={"ref": "Longsword|XPHB", "count": "1"}
+        )
+        assert refused.status_code == 422

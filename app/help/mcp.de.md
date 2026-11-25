@@ -207,7 +207,15 @@ Magische Gegenstände gehen genauso im **Gegenstandsbaukasten** (Benutzermenü):
 Erbin des ertrunkenen Priesters, selten, mit dem sie unter Wasser atmen kann" wird ein
 Entwurf, in dem steht, was der Bogen zählt (Boni, Resistenzen, Attributswerte, Ladungen, die
 Zauber, die er wirkt), und der Rest in seinem Text. Öffne ihn unter *Gegenstandsbaukasten* und
-drücke **Annehmen und veröffentlichen**, um ihn in deine Bücher aufzunehmen.
+drücke **Annehmen und veröffentlichen**, um ihn in deine Bücher aufzunehmen. Soll Claude einen
+schon angenommenen Gegenstand ändern, schreibt es eine Überarbeitung daneben, die nichts
+ändert, bis du auch sie annimmst.
+
+Zauber und Hintergründe gehen genauso, im **Zauberbaukasten** und im
+**Hintergrundbaukasten**: ein Zauber mit Kopfzeilen, Schaden oder Heilung und den Klassen,
+auf deren Listen er kommt, vom Bogen gewirkt wie ein gedruckter; ein Hintergrund mit
+Fertigkeiten, Werkzeugen, Sprachen und Ausrüstung, nach den Regeln 2024 mit Attributen und
+Herkunftstalent, vom Charakterassistenten angeboten.
 
 ## 7. Wenn es nicht klappt
 

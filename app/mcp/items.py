@@ -241,7 +241,12 @@ def register_items(server: MCPServer, stores: Callable[[], StoreRegistry]) -> No
         except ItemNotFound as exc:
             raise ToolError(f"No item design with id {design_id}") from exc
         if not design.drafted_by:
-            raise ToolError("Only drafts you created can be changed; this is the gamemaster's.")
+            raise ToolError(
+                "Only drafts you created can be changed; this is the gamemaster's. "
+                "To change it, open a revision with `start_item_revision`."
+            )
+        if design.revision_of and name is not None and name.strip() != design.name:
+            raise ToolError("A revision keeps its item's name: characters carry it by it.")
         changes = changes_of(
             name=name,
             rarity=rarity,
@@ -267,6 +272,37 @@ def register_items(server: MCPServer, stores: Callable[[], StoreRegistry]) -> No
             value=value_gp * 100 if value_gp is not None else None,
         )
         return answer(apply(design, changes))
+
+    @server.tool()
+    async def start_item_revision(
+        ctx: Context,
+        item: Annotated[str, Field(description="The accepted item's design id, or its name")],
+    ) -> ItemDraft:
+        """A draft copy of an item the gamemaster accepted (or made in the builder), to
+        change with `update_item`. Answers with the copy (write to its id), or the copy
+        already open. The item stays as it is, published and carried, until the
+        gamemaster accepts the revision; it keeps its name. Your own drafts need no copy."""
+        registry = stores()
+        found = registry.mcp_tokens.verify(bearer_of(ctx))
+        if found is None:
+            raise ToolError("This request carries no valid Paravent key.")
+        builder = registry.item_builder
+        try:
+            design = builder.get(item)
+        except ItemNotFound:
+            named = builder.named(item)
+            if named is None:
+                raise ToolError(f"No item design {item!r}") from None
+            design = named
+        if design.revision_of:
+            return answer(design)
+        if design.drafted_by:
+            raise ToolError(f"{design.name} is still your draft: change it with update_item.")
+        with tool_errors():
+            try:
+                return answer(builder.start_revision(design.id, found[0].id))
+            except ItemError as exc:
+                raise ToolError(str(exc)) from exc
 
 
 __all__ = ["ItemDraft", "ItemSpellInput", "register_items"]

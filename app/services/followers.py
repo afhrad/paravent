@@ -20,6 +20,11 @@ rescuing it raises it by 1d4; acting against its alignment or bond lowers it by 
 abusing, misleading or endangering it for selfish reasons by 2d4. From 10 it risks
 anything for the party, below it is tenuous, and at 0 it no longer acts in the party's
 interest. A score above a lowered maximum counts as the maximum.
+
+A follower may crew a ship (the 2024 guide's Crew Loyalty and Mutiny): when at least half
+of a ship's crew stand at a Loyalty Score of 0 during a voyage, the crew turns hostile and
+mutinies, which the gamemaster is told in the log the moment it happens; berthed, the
+disloyal crew leave the ship and never return.
 """
 
 from __future__ import annotations
@@ -136,8 +141,10 @@ class FollowerService:
             raise FollowerError("followers.error.unknown")
         return found
 
-    def hire(self, pc: PlayerCharacter, kind: str, name: str, note: str = "") -> Follower:
-        """A hireling at the world's daily wage."""
+    def hire(
+        self, pc: PlayerCharacter, kind: str, name: str, note: str = "", ship: str = ""
+    ) -> Follower:
+        """A hireling at the world's daily wage, crewing ``ship`` if named."""
         if kind not in HIRELINGS:
             raise FollowerError("followers.error.kind")
         wage = self._wages(pc.world_id).get(kind, 0)
@@ -151,6 +158,7 @@ class FollowerService:
                 name=_name(name) or kind,
                 note=note.strip()[:2000],
                 wage=wage,
+                ship=_name(ship)[:80],
             )
         )
 
@@ -326,7 +334,53 @@ class FollowerService:
             raise FollowerError("followers.error.unknown")
         after = max(0, min(self.loyalty_max(follower.world_id), wanted))
         self._log_loyalty(follower, reason, roll, before, after, by, by_name)
-        return self._put(follower.model_copy(update={"loyalty": after}))
+        mutinous = bool(follower.ship) and self.mutiny(character_id, follower.ship)
+        saved = self._put(follower.model_copy(update={"loyalty": after}))
+        if follower.ship and not mutinous and self.mutiny(character_id, follower.ship):
+            self._log_crew(saved, f"mutiny:{follower.ship}", by, by_name)
+        return saved
+
+    def crews(self, character_id: str) -> dict[str, list[Follower]]:
+        """A character's ships and the followers crewing each, by ship name."""
+        out: dict[str, list[Follower]] = {}
+        for follower in self.of(character_id):
+            if follower.ship:
+                out.setdefault(follower.ship, []).append(follower)
+        return out
+
+    def mutiny(self, character_id: str, ship: str) -> bool:
+        """Whether at least half of a ship's crew stand at a Loyalty Score of 0."""
+        crew = self.crews(character_id).get(ship, [])
+        disloyal = sum(1 for f in crew if self.loyalty(f) == 0)
+        return bool(crew) and disloyal * 2 >= len(crew)
+
+    def berth(self, character_id: str, ship: str, by: str, by_name: str) -> list[Follower]:
+        """The ship is berthed: its disloyal crew (Loyalty 0) leave and never return."""
+        leaving = [f for f in self.crews(character_id).get(ship, []) if self.loyalty(f) == 0]
+        for follower in leaving:
+            self._store.followers.delete(follower.id)
+        if leaving:
+            self._log_crew(leaving[0], f"crew_left:{len(leaving)}:{ship}", by, by_name)
+        return leaving
+
+    def _log_crew(self, follower: Follower, what: str, by: str, by_name: str) -> None:
+        pc = self._store.characters.find(follower.character_id)
+        if self._protocol is None or pc is None:
+            return
+        self._protocol.append(
+            [
+                ProtocolEntry(
+                    actor=by,
+                    actor_name=by_name,
+                    subject=f"character:{pc.id}",
+                    subject_name=pc.name,
+                    kind=EntryKind.CUSTOM,
+                    what=what,
+                    visibility=Visibility.GM,
+                    scope=Scope(world=follower.world_id),
+                )
+            ]
+        )
 
     def _log_loyalty(
         self,

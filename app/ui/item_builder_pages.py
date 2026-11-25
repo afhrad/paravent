@@ -83,6 +83,9 @@ class ItemView:
     value: int | None
     unpublished: bool
     published: bool
+    original: ItemDesign | None = None  # what a revision changes
+    revision: ItemDesign | None = None  # Claude's open revision of this design
+    changes: Sequence[str] = ()
 
 
 def items_page(
@@ -116,7 +119,13 @@ def items_page(
                     )
                 ],
             ],
-            span(class_="pill accent", title=t("itembuilder.draft_hint"))[t("itembuilder.draft")]
+            span(class_="pill accent", title=t("itembuilder.revision_hint"))[
+                t("itembuilder.revision")
+            ]
+            if r.design.revision_of
+            else span(class_="pill accent", title=t("itembuilder.draft_hint"))[
+                t("itembuilder.draft")
+            ]
             if r.design.drafted_by
             else span(class_="pill cond")[t("itembuilder.unpublished")]
             if r.unpublished
@@ -461,7 +470,20 @@ def builder_page(
         ],
     ]
     status = (
-        p(class_="pill accent")[t("itembuilder.draft_hint")]
+        div(class_="ib-revision")[
+            p(class_="pill accent")[t("itembuilder.revision_hint")],
+            p(class_="muted")[
+                t(
+                    "itembuilder.revision_changes",
+                    fields=", ".join(t(f"itembuilder.field.{k}") for k in view.changes),
+                )
+                if view.changes
+                else t("itembuilder.revision_same")
+            ],
+            a(href=item_url(view.original.id))[t("itembuilder.revision_original")],
+        ]
+        if view.original is not None
+        else p(class_="pill accent")[t("itembuilder.draft_hint")]
         if d.drafted_by
         else p(class_="muted")[
             t("itembuilder.state_new")
@@ -481,6 +503,13 @@ def builder_page(
             page_head(t("itembuilder.heading"), d.name, t("itembuilder.builder_lede")),
             notice(notice_text),
             alert(error),
+            p(class_="notice")[
+                t("itembuilder.revision_open"),
+                " ",
+                a(href=item_url(view.revision.id))[t("itembuilder.revision_see")],
+            ]
+            if view.revision is not None
+            else None,
             div(class_="ib-layout")[
                 form(method="post", action=url, class_="ib-form")[
                     basics, bonuses, defences, abilities, charges, text, actions

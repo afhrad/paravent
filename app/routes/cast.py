@@ -14,6 +14,7 @@ opens, since the next thing to do is fill it in.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from typing import Annotated
 from urllib.parse import urlencode
 
@@ -34,7 +35,7 @@ from app.services.npc_gen import edition_for
 from app.services.npcs import ObjectError
 from app.services.play import Actor
 from app.services.references import ReferenceNotFound
-from app.services.treasure_roll import TreasureRollError, roller_for, tables_for
+from app.services.treasure_roll import THEMES, TreasureRollError, roller_for, tables_for
 from app.store.registry import StoreRegistry
 from app.ui.cast_pages import (
     NEW_NPC_NAME_URL,
@@ -547,7 +548,12 @@ async def create_treasure(
 
 
 def _roll_form(
-    registry: StoreRegistry, source_set: SourceSet | None, kind: str, cr: int, book: str
+    registry: StoreRegistry,
+    source_set: SourceSet | None,
+    kind: str,
+    cr: int,
+    book: str,
+    themes: Sequence[str] = (),
 ) -> RollForm | None:
     """The roll form's defaults: the world's tables unless another was chosen."""
     books = tuple(sorted(registry.loot.books()))
@@ -555,7 +561,11 @@ def _roll_form(
         return None
     chosen = book if book in books else tables_for(source_set, set(books))
     return RollForm(
-        kind if kind in ("individual", "hoard") else "hoard", max(0, min(30, cr)), chosen, books
+        kind if kind in ("individual", "hoard") else "hoard",
+        max(0, min(30, cr)),
+        chosen,
+        books,
+        tuple(t for t in themes if t in THEMES),
     )
 
 
@@ -572,6 +582,7 @@ def _treasure(
     kind: str = "hoard",
     cr: int = 0,
     book: str = "",
+    themes: Sequence[str] = (),
     notes_text: str | None = None,
     base: str | None = None,
     conflict: str | None = None,
@@ -596,7 +607,8 @@ def _treasure(
             result,
             scope.choices(registry.adventures, world.id),
             _notes(page, registry, treasure.scope, treasure.notes),
-            roll=_roll_form(registry, world.source_set, kind, cr, book),
+            roll=_roll_form(registry, world.source_set, kind, cr, book, themes),
+            trade_goods=registry.trade_goods(world.id),
             notes_text=notes_text,
             base=text_version(treasure.notes) if base is None else base,
             conflict=conflict,
@@ -623,8 +635,10 @@ async def show_treasure(
     saved: str = "",
     kind: str = "hoard",
     cr: int = 0,
+    themes: str = "",
 ) -> HTMLResponse:
-    """A treasure, with the item picker and the roll form (``kind``/``cr`` prefill it)."""
+    """A treasure, with the item picker and the roll form (``kind``/``cr``/``themes``
+    prefill it)."""
     notice_text = (
         (page.t("treasure.coins_saved") if saved == "coins" else page.t("treasure.saved"))
         if saved
@@ -639,6 +653,7 @@ async def show_treasure(
         notice_text=notice_text,
         kind=kind,
         cr=cr,
+        themes=[t for t in themes.split(",") if t],
     )
 
 
@@ -688,16 +703,19 @@ async def roll_treasure(
     kind: Annotated[str, Form()] = "hoard",
     cr: Annotated[int, Form(ge=0, le=30)] = 0,
     book: Annotated[str, Form()] = "",
+    theme: Annotated[list[str] | None, Form()] = None,
 ) -> HTMLResponse:
     """Roll on the treasure tables and put the result into the treasure."""
     treasure = registry.treasure.get(treasure_id)
     world = registry.adventures.world(treasure.scope.world_id)
-    form = _roll_form(registry, world.source_set, kind, cr, book)
+    form = _roll_form(registry, world.source_set, kind, cr, book, theme or ())
     if form is None:
         return _treasure(page, registry, treasure_id, error=page.t("treasure.no_tables"))
     roller = roller_for(registry.compendium, registry.loot, world.source_set, form.book)
     try:
-        rolled = roller.roll("individual" if form.kind == "individual" else "hoard", cr, form.book)
+        rolled = roller.roll(
+            "individual" if form.kind == "individual" else "hoard", cr, form.book, form.themes
+        )
     except TreasureRollError:
         return _treasure(page, registry, treasure_id, error=page.t("treasure.no_tables"))
     registry.treasure.add_rolled(treasure_id, rolled)
@@ -709,7 +727,14 @@ async def roll_treasure(
         detail=" · ".join(rolled.lines),
     )
     return _treasure(
-        page, registry, treasure_id, notice_text=summary, kind=form.kind, cr=cr, book=form.book
+        page,
+        registry,
+        treasure_id,
+        notice_text=summary,
+        kind=form.kind,
+        cr=cr,
+        book=form.book,
+        themes=form.themes,
     )
 
 
@@ -786,6 +811,26 @@ async def add_item(
         return _treasure(page, registry, treasure_id, error=page.t.error(exc), status_code=422)
     params = urlencode({k: v for k, v in (("q", q.strip()), ("all", all)) if v})
     return redirect(f"{treasure_url(treasure_id)}{'?' + params if params else ''}#picker")
+
+
+@router.post(f"{TREASURE_URL}/{{treasure_id}}/trade")
+async def add_trade_goods(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    treasure_id: str,
+    ref: Annotated[str, Form()] = "",
+    count: Annotated[int, Form(ge=1, le=999)] = 1,
+) -> Response:
+    """Add trade goods of the world's guide (so many pounds of salt, a cow)."""
+    treasure = registry.treasure.get(treasure_id)
+    offered = {r for r, _name, _cost in registry.trade_goods(treasure.scope.world_id)}
+    if ref not in offered:
+        return _treasure(
+            page, registry, treasure_id, error=page.t("treasure.error.trade"), status_code=422
+        )
+    registry.treasure.add_item(treasure_id, ref, count)
+    return redirect(f"{treasure_url(treasure_id)}#trade-h")
 
 
 @router.post(f"{TREASURE_URL}/{{treasure_id}}/items/{{index}}")

@@ -17,14 +17,7 @@ massive damage, lingering injuries, mobs, side initiative), the variant rules fo
 (rest variants, hero points, Honor and Sanity, slow healing, healer's kit, defeated not dead),
 objects, doors and siege equipment in the tracker.
 
-### Smaller
-
-- **Treasure by a monster's preferences**, and trade goods. S
-
-### Bigger
-
-- **Spell and background builders**, published as homebrew like the creature builder's
-  creatures and the item builder's magic items. L
+Nothing from the guides is waiting.
 
 ## From reviews and passes of the app
 

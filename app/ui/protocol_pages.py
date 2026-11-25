@@ -606,6 +606,13 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
             return t(f"protocol.{head}", kind=t(f"prestige.kind.{mark_kind}"), name=mark_name)
         if head == "mark_spent":
             return t("protocol.mark_spent", name=rest)
+        if head == "mutiny":
+            return t("protocol.mutiny", ship=rest)
+        if head == "crew_left":
+            count, _, ship = rest.partition(":")
+            return t.plural(
+                "protocol.crew_left", int(count) if count.isdigit() else 0, n=count, ship=ship
+            )
         if head == "loyalty":
             reason, roll, before, after, follower = [*rest.split(":", 4), "", "", "", ""][:5]
             if reason == "track":

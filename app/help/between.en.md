@@ -165,7 +165,9 @@ player's decision.
   adds it to the character's running fight on the party's side. *Keep its loyalty*,
   seen only by you, keeps the guides' Loyalty Score: up to the party's highest Charisma,
   starting at half of it, moved by the book's reasons (+1d4 for help or kindness, −1d4 or
-  −2d4 for slights and abuse). At 0 the follower turns on the party.
+  −2d4 for slights and abuse). At 0 the follower turns on the party. A hireling may crew
+  a ship (name it when hiring): when half a ship's crew stand at 0 during a voyage, they
+  mutiny, and you are told in the log; **Berth** in port lets the disloyal leave.
 <!-- /feature -->
 <!-- /feature -->
 

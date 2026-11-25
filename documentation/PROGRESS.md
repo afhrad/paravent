@@ -92,7 +92,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         out; a fight's summary opens a new treasure ready to roll at its highest CR. Rows
         that offer a choice resolve: one of a list, of a generic variant's items, of an
         item group, or 2024's "a rare item" via a rolled theme. Every item of 1,600 hoards
-        per edition resolves. **Random-encounter
+        per edition resolves. **Treasure preferences and trade goods** (2026-11-25): a
+        hoard's "rare item" drawn from the themes ticked on the roll form (arcana,
+        armaments, implements, relics), a fight's treasure ticking its creatures'
+        preferences (the 2024 Monster Manual's `treasure`); the 2024 guide's trade goods
+        added to a treasure by the pound or the head. **Random-encounter
         tables done 2026-10-19** (`app/store/encounter_tables.py`,
         `app/services/encounter_roll.py`): the 42 environments of `encounters.json`. The
         builder rolls the environment's table for the party's level (the world's books
@@ -130,7 +134,19 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         added to its world's books. Claude drafts them over MCP (`create_item`,
         `update_item`), accepted in the builder. The sheet now also counts worn items'
         ability scores (Gauntlets of Ogre Power, an Ioun stone's +2 up to 20), printed
-        ones too. **Over MCP** (2026-11-11, MCP.md §10): Claude drafts
+        ones too; Claude's revisions of an accepted item (`start_item_revision`).
+        **The spell builder** (2026-11-25, `app/services/spell_builder.py`, `/gm/spells`): spells
+        blank or from a printed one, typed as Cast uses them — header, effect (save or
+        attack with damage, or healing; a cantrip's growth, a slot's upcast) — with the
+        effect's sentence and "at higher levels" written in the world's language, and the
+        classes whose lists it joins (homebrew `generated/gendata-spell-source-lookup.json`,
+        which the lookups now merge across roots); healing typed in the record (`healing`),
+        read by the sheet before the English words. **The background builder** (2026-11-25,
+        `app/services/background_builder.py`, `/gm/backgrounds`): skills, tools and languages
+        fixed or of choice, equipment and gold, a 2014 feature or the 2024 abilities and
+        origin feat, offered by the wizard (backgrounds are now also read from
+        `backgrounds/backgrounds-*.json`). Both drafted by Claude over MCP. **Over MCP**
+        (2026-11-11, MCP.md §10): Claude drafts
         creatures from a description, a world's setting and a CR (`create_creature`,
         `update_creature`), spells and equipment from the world's books; a draft is
         published only once the gamemaster accepts it. A picture by web address
@@ -708,7 +724,8 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
         gamemaster in secret (`Follower.loyalty`): up to the party's highest Charisma,
         starting at half, moved by the book's reasons (+1d4, −1d4, −2d4) or set; loyal
         from 10, tenuous below, disloyal at 0; logged for the gamemaster alone, and in
-        Claude's `party`
+        Claude's `party`. **Crews** (2026-11-25): a hireling crewing a ship; half a crew at
+        loyalty 0 is a mutiny, told to the gamemaster; **Berth** lets the disloyal leave
   - [x] **Spell scrolls and spellbooks** (2026-11-16, `app/services/spellbook.py`): a
         scroll keeps the spell it holds (scribed, or written in for a found one); cast
         from the sheet when on one of the character's lists, with the check above its

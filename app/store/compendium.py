@@ -147,7 +147,13 @@ CATEGORIES: tuple[Category, ...] = (
     Category("condition", Condition, "condition", ("conditionsdiseases.json",)),
     Category("disease", Disease, "disease", ("conditionsdiseases.json",)),
     Category("status", Status, "status", ("conditionsdiseases.json",)),
-    Category("background", Background, "background", ("backgrounds.json",)),
+    # ``backgrounds/backgrounds-*.json``: homebrew (the background builder's).
+    Category(
+        "background",
+        Background,
+        "background",
+        ("backgrounds.json", "backgrounds/backgrounds-*.json"),
+    ),
     Category("feat", Feat, "feat", ("feats.json",)),
     Category("race", Race, "race", ("races.json",), supports_copy=True),
     Category("subrace", Race, "subrace", ("races.json",), supports_copy=True),

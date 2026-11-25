@@ -236,6 +236,7 @@ class GameStateStore:
         """``root`` is the directory holding one JSON file per collection."""
         from app.models.gamestate import (
             Adventure,
+            BackgroundDesign,
             Bastion,
             Chapter,
             Chase,
@@ -264,6 +265,7 @@ class GameStateStore:
             Shop,
             Sound,
             SoundScene,
+            SpellDesign,
             TableSafety,
             TableSettings,
             TrashedObject,
@@ -349,6 +351,14 @@ class GameStateStore:
         # Item-builder designs; their items are published to homebrew/.
         self.item_designs: Collection[ItemDesign] = Collection(
             root / "item_designs.json", ItemDesign
+        )
+        # Spell-builder designs; their spells are published to homebrew/.
+        self.spell_designs: Collection[SpellDesign] = Collection(
+            root / "spell_designs.json", SpellDesign
+        )
+        # Background-builder designs; their backgrounds are published to homebrew/.
+        self.background_designs: Collection[BackgroundDesign] = Collection(
+            root / "background_designs.json", BackgroundDesign
         )
         # Naming styles, shared by every world (documentation/NAMES.md).
         self.naming_styles: Collection[NamingStyle] = Collection(

@@ -49,6 +49,7 @@ from app.services.npcs import KNOWN_ROLES, TreasureLine
 from app.services.references import ReferenceEntry
 from app.services.scope import encode
 from app.services.search import SearchResult
+from app.services.treasure_roll import THEMES
 from app.store.projections import ITEM_KIND_NAMES
 from app.ui.attitude import attitude_panel, attitude_pill
 from app.ui.auth_pages import message_panel
@@ -77,6 +78,7 @@ from app.ui.library_links import (
 )
 from app.ui.markdown import Rendered
 from app.ui.name_roller import name_roller
+from app.ui.names import name_text
 from app.ui.palette import SearchTarget, search_form
 from app.ui.pick import pick_box, pick_scope
 from app.ui.ref_pages import statblock
@@ -1033,6 +1035,8 @@ class RollForm:
     cr: int
     book: str  # "DMG" or "XDMG"
     books: tuple[str, ...]
+    # The 2024 treasure themes "a rare item" is drawn from (the creatures' preferences).
+    themes: tuple[str, ...] = ()
 
 
 def _roll_panel(page: Page, url: str, roll: RollForm) -> Element:
@@ -1078,9 +1082,67 @@ def _roll_panel(page: Page, url: str, roll: RollForm) -> Element:
                     ],
                 ],
             ],
+            fieldset(class_="field tr-themes")[
+                legend[t("treasure.roll_themes")],
+                [
+                    label(class_="cs-heal-pick")[
+                        input_el(
+                            type="checkbox", name="theme", value=theme, checked=theme in roll.themes
+                        ),
+                        span[t(f"treasure.theme.{theme}")],
+                    ]
+                    for theme in THEMES
+                ],
+                span(class_="field-hint")[t("treasure.roll_themes_hint")],
+            ]
+            if "XDMG" in roll.books
+            else None,
             div(class_="form-actions")[
                 button(type="submit", class_="btn btn-primary")[
                     icon("dices", "sm"), span[t("treasure.roll_go")]
+                ]
+            ],
+        ],
+    ]
+
+
+def _trade_panel(page: Page, url: str, goods: Sequence[tuple[str, str, str]]) -> Element:
+    """Trade goods of the world's guide, added by the pound or the head."""
+    t = page.t
+    return section(class_="panel tr-trade", aria_labelledby="trade-h")[
+        div(class_="panel-head")[
+            h2(id="trade-h")[icon("coins", "sm"), " ", t("treasure.trade")],
+            p(class_="muted")[t("treasure.trade_hint")],
+        ],
+        form(method="post", action=f"{url}/trade", class_="stack-form")[
+            div(class_="field-row")[
+                div(class_="field")[
+                    label(for_="f-trade")[t("treasure.trade_goods")],
+                    select(id="f-trade", name="ref")[
+                        [
+                            option(value=ref)[
+                                f"{name_text(page, ('item', 'baseitem'), name)} · {cost}"
+                            ]
+                            for ref, name, cost in goods
+                        ]
+                    ],
+                ],
+                div(class_="field")[
+                    label(for_="f-trade-n")[t("treasure.trade_count")],
+                    input_el(
+                        type="number",
+                        id="f-trade-n",
+                        name="count",
+                        min="1",
+                        max="999",
+                        value="1",
+                        inputmode="numeric",
+                    ),
+                ],
+            ],
+            div(class_="form-actions")[
+                button(type="submit", class_="btn btn-sm")[
+                    icon("plus", "sm"), span[t("treasure.trade_add")]
                 ]
             ],
         ],
@@ -1104,6 +1166,7 @@ def treasure_page(
     notice_text: str | None = None,
     roll: RollForm | None = None,
     characters: Sequence[tuple[str, str]] = (),
+    trade_goods: Sequence[tuple[str, str, str]] = (),
 ) -> Element:
     """A treasure, laid out for editing: what it holds (items, coins, the picker to add
     more) and its details (name, place, notes) in the wide column; sharing it out, rolling
@@ -1188,6 +1251,7 @@ def treasure_page(
                 div(class_="tr-side")[
                     _share_panel(page, treasure, lines, characters),
                     _roll_panel(page, url, roll) if roll is not None else None,
+                    _trade_panel(page, url, trade_goods) if trade_goods else None,
                     token_panel(page, tok, "treasure", treasure.id),
                 ],
             ],

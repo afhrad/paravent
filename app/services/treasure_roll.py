@@ -9,7 +9,8 @@ items are rolled on their table, and a row may name an item, or a choice:
 * ``fromGeneric`` — one of the specific items a generic variant makes (+1 Ammunition);
 * ``fromGroup`` — one of an item group's items (a potion of resistance);
 * ``fromMatching`` — 2024's "a rare item": a theme is rolled (arcana, armaments,
-  implements, relics — even odds), then that theme's table of that rarity.
+  implements, relics — even odds, or among the themes the creatures prefer, the 2024
+  *Monster Manual*'s treasure preferences), then that theme's table of that rarity.
 
 2024 hoards roll "1d4 − 1 items by level": the hoard's band picks the by-level table.
 
@@ -22,7 +23,7 @@ object the corpus names but does not list) is returned as text, never dropped.
 from __future__ import annotations
 
 import re
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
@@ -62,6 +63,18 @@ class Rolled:
     lines: list[str] = field(default_factory=list)
 
 
+def preferred_themes(monsters: Sequence[Mapping[str, Any]]) -> list[str]:
+    """The treasure themes a group of creatures prefer (the 2024 Monster Manual's
+    ``treasure``: arcana, armaments, implements, relics), most common first; "any" and
+    "individual" lean on nothing."""
+    counts: dict[str, int] = {}
+    for monster in monsters:
+        for theme in monster.get("treasure") or []:
+            if theme in THEMES:
+                counts[theme] = counts.get(theme, 0) + 1
+    return sorted(counts, key=lambda t: (-counts[t], THEMES.index(t)))
+
+
 def tables_for(source_set: SourceSet | None, books: set[str]) -> str:
     """Which *Dungeon Master's Guide* a world rolls on: 2024 unless only 2014 is declared."""
     if source_set is None or source_set.is_unrestricted:
@@ -84,6 +97,7 @@ class TreasureRoller:
         self._resolve = resolve
         self._specifics = specifics
         self._dice = dice or Dice()
+        self._themes: tuple[str, ...] = ()
 
     # -- dice ------------------------------------------------------------------------
 
@@ -161,7 +175,7 @@ class TreasureRoller:
                 return
             matching = choose.get("fromMatching")
             if isinstance(matching, dict) and matching.get("rarity"):
-                theme = str(self._pick(THEMES))
+                theme = str(self._pick(self._themes or THEMES))
                 self._magic(f"{theme}.{matching['rarity']}", book, out)
                 return
         if isinstance(row.get("table"), list):
@@ -205,8 +219,11 @@ class TreasureRoller:
             self._magic(table_type, book, out)
         return out.items
 
-    def roll(self, kind: Kind, cr: float, book: str) -> Rolled:
-        """Roll individual treasure or a hoard for a challenge rating, on ``book``'s tables."""
+    def roll(self, kind: Kind, cr: float, book: str, themes: Sequence[str] = ()) -> Rolled:
+        """Roll individual treasure or a hoard for a challenge rating, on ``book``'s tables;
+        ``themes`` (2024: arcana, armaments, implements, relics) are the ones "a rare item"
+        is drawn from, as the creatures' treasure preferences lean, all four if none."""
+        self._themes = tuple(t for t in themes if t in THEMES)
         table = (
             self._loot.individual(book, cr) if kind == "individual" else self._loot.hoard(book, cr)
         )

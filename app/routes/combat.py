@@ -48,6 +48,7 @@ from app.services.recap import recap, session_combats
 from app.services.references import ReferenceEntry, ReferenceNotFound
 from app.services.sheet import Sheet
 from app.services.translation_targets import Target, TargetNotFound
+from app.services.treasure_roll import preferred_themes
 from app.store.registry import StoreRegistry
 from app.ui.combat_pages import (
     COMBATS_URL,
@@ -939,18 +940,22 @@ async def combat_treasure(
     combat = registry.combats.get(combat_id)
     if not combat.world_id:
         return redirect(combat_url(combat_id, error="combat.error.treasure_world"))
-    crs = [
-        monster.cr.value
+    foes = [
+        monster
         for c in combat.combatants
-        if not c.is_character
-        and (monster := registry.combats.monster_of(c)) is not None
-        and monster.cr is not None
+        if not c.is_character and (monster := registry.combats.monster_of(c)) is not None
     ]
+    crs = [m.cr.value for m in foes if m.cr is not None]
     treasure = registry.treasure.create(
         page.t("combat.treasure_name", name=combat.name), f"w:{combat.world_id}", combat.world_id
     )
     cr = int(max(crs, default=0))
-    return redirect(f"{treasure_url(treasure.id)}?{urlencode({'kind': 'hoard', 'cr': cr})}#roll-h")
+    # What the creatures' treasure leans to (the 2024 Monster Manual's preferences).
+    themes = preferred_themes(
+        [r for m in foes if (r := registry.corpus_record("monster", m.name, m.source)) is not None]
+    )
+    query = {"kind": "hoard", "cr": cr, "themes": ",".join(themes)}
+    return redirect(f"{treasure_url(treasure.id)}?{urlencode(query)}#roll-h")
 
 
 @router.post(f"{COMBATS_URL}/{{combat_id}}/award")

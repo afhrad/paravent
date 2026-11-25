@@ -213,3 +213,41 @@ async def test_loyalty_kept_in_secret(table: tuple[AsyncClient, StoreRegistry, s
         assert "Loyalty of Tomas" not in (await player.get(f"/log/panel?world={world}")).text
     await ac.post(url, data={"op": "loyalty_untrack", "follower": tomas.id})
     assert registry.followers.get(lyra, tomas.id).loyalty is None
+
+
+@requires_corpus
+async def test_a_crew_mutinies_and_leaves_in_port(
+    table: tuple[AsyncClient, StoreRegistry, str],
+) -> None:
+    ac, registry, lyra = table
+    world = registry.gamestate.characters.get(lyra).world_id or ""
+    url = f"/characters/{lyra}/followers"
+    for name in ("Ned", "Rook", "Tam", "Wil"):
+        await ac.post(
+            url, data={"op": "hire", "kind": "untrained", "name": name, "ship": "Grey Heron"}
+        )
+    crew = registry.followers.crews(lyra)["Grey Heron"]
+    assert len(crew) == 4 and not registry.followers.mutiny(lyra, "Grey Heron")
+    for member in crew:
+        await ac.post(url, data={"op": "loyalty_track", "follower": member.id})
+    page = html.unescape((await ac.get(url)).text)
+    assert "Ships" in page and "4 aboard, 0 at loyalty 0" in page and "Holds" in page
+    # One at 0 holds; a second tips half the crew into mutiny, told in the log.
+    for member in crew[:2]:
+        await ac.post(
+            url, data={"op": "loyalty", "follower": member.id, "reason": "set", "to": "0"}
+        )
+    assert registry.followers.mutiny(lyra, "Grey Heron")
+    log = html.unescape((await ac.get(f"/log/panel?world={world}")).text)
+    assert log.count("Mutiny aboard Grey Heron") == 1
+    assert "Mutiny" in html.unescape((await ac.get(url)).text)
+    # Berthed, the disloyal leave; the players may not berth the ship.
+    async with player_of(registry, lyra) as player:
+        assert (
+            await player.post(url, data={"op": "berth", "ship": "Grey Heron"})
+        ).status_code == 403
+        assert "Ships" not in (await player.get(url)).text
+    await ac.post(url, data={"op": "berth", "ship": "Grey Heron"})
+    assert [f.name for f in registry.followers.crews(lyra)["Grey Heron"]] == ["Tam", "Wil"]
+    log = html.unescape((await ac.get(f"/log/panel?world={world}")).text)
+    assert "2 disloyal crew members left Grey Heron" in log

@@ -198,13 +198,25 @@ class LookupTables:
         self.missing: list[str] = []
 
     def load(self, *roots: Path) -> None:
-        """Read the lookups from the first root that has them."""
-        self.spell_sources = SpellSourceLookup(self._read(SPELL_SOURCE_LOOKUP, roots))
+        """Read the lookups from the first root that has them; the spell-source lookup
+        is merged from every root, so homebrew (the spell builder's) adds its spells to
+        the class lists beside the corpus's."""
+        merged: dict[str, Any] = {}
+        for root in roots:
+            found = self._read(SPELL_SOURCE_LOOKUP, (root,), count_missing=False)
+            for source, spells in (found or {}).items():
+                if isinstance(spells, dict):
+                    merged.setdefault(source, {}).update(spells)
+        if not merged:
+            self.missing.append(SPELL_SOURCE_LOOKUP)
+        self.spell_sources = SpellSourceLookup(merged)
         self.subclasses = SubclassLookup(self._read(SUBCLASS_LOOKUP, roots))
         if self.missing:
             logger.info("Lookup tables not found: %s", ", ".join(self.missing))
 
-    def _read(self, relative: str, roots: tuple[Path, ...]) -> dict[str, Any] | None:
+    def _read(
+        self, relative: str, roots: tuple[Path, ...], *, count_missing: bool = True
+    ) -> dict[str, Any] | None:
         """Return the first readable copy of ``relative`` across ``roots``."""
         for root in roots:
             path = root / relative
@@ -218,7 +230,8 @@ class LookupTables:
             if isinstance(data, dict):
                 return data
             logger.warning("%s is not a JSON object; ignoring", path)
-        self.missing.append(relative)
+        if count_missing:
+            self.missing.append(relative)
         return None
 
 
