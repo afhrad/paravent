@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-25T07:30:40+01:00",
+  "en": "Planes: put the party on the Feywild, the Shadowfell or an Outer Plane, and Paravent rolls its rules from the guides — after rests, by the hour, on leaving and when you call for them.",
+  "de": "Ebenen: Schickt die Gruppe in die Feenwildnis, in den Shadowfell oder auf eine Äußere Ebene, und Paravent würfelt deren Regeln aus den Spielleiterhandbüchern – nach Rasten, stündlich, beim Verlassen und auf euren Ruf."
+ },
+ {
   "at": "2026-11-24T20:46:52+01:00",
   "en": "Wild magic on the party view rolls a surge on the characters you tick, and in a wild magic zone every spell slot spent can set one off.",
   "de": "Wilde Magie in der Gruppenansicht würfelt eine Woge für die angehakten Charaktere, und in einer Zone wilder Magie kann jeder verbrauchte Zauberplatz eine auslösen."
@@ -293,10 +298,5 @@
   "at": "2026-11-19T23:49:25+01:00",
   "en": "Claude can reuse your world's existing NPCs, places, encounters and treasure in the adventures it drafts.",
   "de": "Claude kann die vorhandenen NSC, Orte, Begegnungen und Schätze deiner Welt in seinen Abenteuerentwürfen wiederverwenden."
- },
- {
-  "at": "2026-11-19T23:34:47+01:00",
-  "en": "The image browser shows where each picture is used; rename one and every use follows, or delete one nothing uses.",
-  "de": "Der Bildbrowser zeigt, wo jedes Bild verwendet wird; benenne eins um, und jede Verwendung folgt, oder lösche eins, das nichts verwendet."
  }
 ]
