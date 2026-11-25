@@ -1,5 +1,15 @@
 [
  {
+  "at": "2026-11-25T10:44:20+01:00",
+  "en": "Session zero: write the kind of game, its sensitive elements and how the party met; players mark their limits and hopes on an anonymous sheet everyone reads gathered.",
+  "de": "Sitzung null: Beschreibe die Art des Spiels, seine heiklen Elemente und wie die Gruppe sich traf; die Spieler markieren Grenzen und Hoffnungen auf einem anonymen Bogen, den alle gesammelt lesen."
+ },
+ {
+  "at": "2026-11-25T10:43:54+01:00",
+  "en": "Marks of prestige: grant titles, land, medals and favors on a character's story, or make one a quest's reward.",
+  "de": "Ehrenzeichen: Verleihe Titel, Land, Orden und Gefallen in der Geschichte einer Figur, oder mach eines zur Belohnung eines Auftrags."
+ },
+ {
   "at": "2026-11-25T09:49:43+01:00",
   "en": "Follower loyalty: keep each follower's Loyalty Score in secret, raised and lowered by the guides' reasons, and see who might turn on the party.",
   "de": "Loyalität im Gefolge: Führe geheim den Loyalitätswert jedes Gefolgsmanns, bewegt durch die Gründe der Spielleiterhandbücher, und sieh, wer sich gegen die Gruppe wenden könnte."
@@ -288,15 +298,5 @@
   "at": "2026-11-20T09:12:04+01:00",
   "en": "When the game master switches worlds, open pages on players' phones say so and offer to reload.",
   "de": "Wechselt die Spielleitung die Welt, sagen es offene Seiten auf den Handys der Spieler und bieten Neuladen an."
- },
- {
-  "at": "2026-11-19T23:49:26+01:00",
-  "en": "New treasure and places go straight into your world, and a new NPC can take the statblock of the creature it is.",
-  "de": "Neue Schätze und Orte landen direkt in deiner Welt, und ein neuer NSC kann die Werte der Kreatur übernehmen, die er ist."
- },
- {
-  "at": "2026-11-19T23:49:26+01:00",
-  "en": "Tagging a picture offers the world's tags as you type, so one place is not tagged two ways.",
-  "de": "Beim Verschlagworten eines Bildes werden die Schlagworte der Welt beim Tippen angeboten, damit nichts doppelt verschlagwortet wird."
  }
 ]
