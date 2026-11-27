@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-27T12:41:44+01:00",
+  "en": "Draw roads on your maps, mark their terrain, and send the party along one: the clock counts the miles, terrain and pace, and the map shows where they are.",
+  "de": "Zeichne Straßen auf deine Karten, gib ihnen Gelände, und schick die Gruppe darauf los: die Uhr zählt Meilen, Gelände und Tempo, und die Karte zeigt, wo sie stehen."
+ },
+ {
   "at": "2026-11-27T10:47:51+01:00",
   "en": "Map layers and names: write the names of towns, rivers and mountain ranges on your maps, and keep places, names, roads and notes on layers you show or hide. Measuring and drawing the scale now work by dragging, without moving the map.",
   "de": "Kartenebenen und Namen: Schreibt die Namen von Städten, Flüssen und Gebirgen auf eure Karten, und legt Orte, Namen, Wege und Notizen auf Ebenen, die ihr zeigt oder ausblendet. Messen und das Zeichnen des Maßstabs gehen jetzt durch Ziehen, ohne dass sich die Karte verschiebt."
@@ -293,10 +298,5 @@
   "at": "2026-11-20T11:26:05+01:00",
   "en": "Check links also lists the NPCs, places, treasure and encounters nothing uses, to open or delete.",
   "de": "Links prüfen listet auch die NSC, Orte, Schätze und Begegnungen, die nichts verwendet, zum Öffnen oder Löschen."
- },
- {
-  "at": "2026-11-20T11:16:38+01:00",
-  "en": "Check links can rename an NPC, place, treasure or encounter to the name the text uses, and Claude can check a whole world.",
-  "de": "Links prüfen kann einen NSC, Ort, Schatz oder eine Begegnung auf den Namen im Text umbenennen, und Claude kann eine ganze Welt prüfen."
  }
 ]
