@@ -8,11 +8,7 @@ Sizes are rough — **S** a day's change, **M** a few, **L** a feature of its ow
 
 ## Next, agreed or recommended
 
-- **Maps** (agreed 2026-11-27, spec [MAPS.md](MAPS.md); gamemaster only, world and
-  adventure maps, an adventure's sticking to it; steps 1–3 (the maps, pins and maps
-  within maps, layers and names) built 2026-11-27). Each step usable without the next:
-  4. **Roads and travel (M):** roads with terrain stretches, their lengths, *Travel*
-     filling the travel dialog, the party's position on the map.
+Nothing agreed is waiting; see the proposals below.
 
 ## Proposed, not yet chosen
 

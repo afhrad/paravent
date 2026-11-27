@@ -5,8 +5,9 @@ question before it is deleted."""
 from __future__ import annotations
 
 import json
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from typing import Any
 
 from htpy import (
     Element,
@@ -40,6 +41,8 @@ from markupsafe import Markup
 from app.models.gamestate import Adventure, MapView, World, WorldMap
 from app.services.map_tiles import MAX_BYTES, TileJob, max_zoom, needs_tiles
 from app.services.maps import LONG_UNITS, UNITS
+from app.services.travel import TERRAINS
+from app.ui.clock_pages import route_travel_form
 from app.ui.context import Page
 from app.ui.context_menu import row_menu
 from app.ui.forms import alert, hidden, notice, text_field
@@ -290,6 +293,22 @@ def _words(page: Page) -> str:
             "angle": t("atlas.label.angle"),
             "remove_label": t("atlas.label.remove"),
             "locked": t("atlas.layer.locked_note"),
+            "route_place": t("atlas.route.tap"),
+            "route_kinds": {k: t(f"atlas.route.kind.{k or 'country'}") for k in ROUTE_KINDS},
+            "terrains": {n: t(f"travel.terrain.{n.lower()}") for n in TERRAINS},
+            "no_terrain": t("atlas.route.no_terrain"),
+            "difficult": t("travel.difficult"),
+            "travel": t("atlas.route.travel"),
+            "edit_points": t("atlas.route.edit_points"),
+            "split": t("atlas.route.split"),
+            "remove_point": t("atlas.route.remove_point"),
+            "remove_route": t("atlas.route.remove"),
+            "route_start": t("atlas.route.start"),
+            "route_end": t("atlas.route.end"),
+            "point": t("atlas.route.point"),
+            "party": t("atlas.route.party"),
+            "route_name": t("atlas.route.name"),
+            "edit": t("players.edit"),
         },
         ensure_ascii=False,
     )
@@ -492,6 +511,21 @@ class LabelView:
 
 
 @dataclass(frozen=True)
+class RouteView:
+    """A road as the viewer draws it: its points, its stretches (start, terrain,
+    difficult, miles), its length in miles (None without a scale) and its stops."""
+
+    id: str
+    layer: str
+    name: str
+    kind: str
+    points: list[list[float]]
+    stretches: list[dict[str, Any]]
+    miles: float | None
+    stops: list[dict[str, Any]]
+
+
+@dataclass(frozen=True)
 class Candidate:
     """Something a pin may point at, for the pin dialog."""
 
@@ -516,6 +550,12 @@ class MapContext:
     focus: str = ""
     layers: Sequence[LayerView] = ()
     labels: Sequence[LabelView] = ()
+    routes: Sequence[RouteView] = ()
+    # Where the party stopped on one of the map's roads: x, y, route, at, to.
+    party: dict[str, Any] | None = None
+    # Whether the party may travel along the map's roads: the world plays with the road,
+    # and the map has a scale.
+    travel: bool = False
 
 
 # The kinds in the pin dialog's list, in its order.
@@ -835,6 +875,98 @@ def _labels_json(labels: Sequence[LabelView]) -> str:
     return json.dumps([vars(x) for x in labels], ensure_ascii=False)
 
 
+ROUTE_KINDS = ("road", "trail", "river", "sea", "")
+
+
+def _route_dialog(page: Page, found: WorldMap) -> Element:
+    """A road just drawn: its name and kind. Its points and each segment's terrain come
+    from the drawing."""
+    t = page.t
+    return tool_dialog(
+        page,
+        "route",
+        t("atlas.route.title"),
+        form(
+            method="post", action=f"{map_url(found.id)}/routes", class_="stack-form map-route-form"
+        )[
+            hidden("points", ""),
+            hidden("terrains", ""),
+            hidden("difficult", ""),
+            hidden("layer", ""),
+            text_field(
+                "name",
+                t("atlas.route.name"),
+                value="",
+                autocomplete="off",
+                required=False,
+                optional_text=t("common.optional"),
+            ),
+            div(class_="field")[
+                label(for_="f-route-kind")[t("atlas.route.kind")],
+                select(id="f-route-kind", name="kind")[
+                    [option(value=k)[t(f"atlas.route.kind.{k or 'country'}")] for k in ROUTE_KINDS]
+                ],
+                p(class_="field-hint")[t("atlas.route.kind_hint")],
+            ],
+            div(class_="form-actions")[
+                button(type="submit", class_="btn btn-primary")[
+                    icon("check"), span[t("atlas.route.submit")]
+                ]
+            ],
+        ],
+        keep_open=True,
+    )
+
+
+def _route_bar(page: Page) -> Element:
+    """While a road is drawn: the terrain the next segments go through, whether it is
+    difficult, and done or cancel."""
+    t = page.t
+    return div(class_="map-route-bar", hidden=True, data_route_bar="")[
+        label(class_="map-route-bar-field")[
+            span[t("travel.terrain")],
+            select(name="terrain", data_route_terrain="")[
+                option(value="")[t("atlas.route.no_terrain")],
+                [option(value=n)[t(f"travel.terrain.{n.lower()}")] for n in TERRAINS],
+            ],
+        ],
+        label(class_="check-inline")[
+            input_el(type="checkbox", data_route_difficult=""), span[t("travel.difficult")]
+        ],
+        button(type="button", class_="btn btn-sm btn-primary", data_route_done="")[
+            icon("check", "sm"), span[t("atlas.route.done")]
+        ],
+        button(type="button", class_="btn btn-sm btn-ghost", data_route_cancel="")[
+            t("common.cancel")
+        ],
+    ]
+
+
+def _travel_dialog(page: Page, found: WorldMap, choices: Mapping[str, Any]) -> Element:
+    """Travel along a road: from where to where (filled from the road's stops by the
+    script), then the road's choices as the clock's travel form asks them."""
+    t = page.t
+    head = div(class_="tool-grid map-travel-head")[
+        hidden("route", ""),
+        div(class_="field")[
+            label(for_="f-travel-from")[t("atlas.route.from")],
+            select(id="f-travel-from", name="from", data_travel_from=""),
+        ],
+        div(class_="field")[
+            label(for_="f-travel-to")[t("atlas.route.to")],
+            select(id="f-travel-to", name="to", data_travel_to=""),
+        ],
+        p(class_="field-hint tool-span", data_travel_way="")[""],
+    ]
+    return tool_dialog(
+        page,
+        "travel",
+        t("atlas.route.travel_title"),
+        route_travel_form(page, f"{map_url(found.id)}/travel", head, **choices),
+        keep_open=True,
+    )
+
+
 def _pins_json(pins: Sequence[PinView]) -> str:
     return json.dumps([vars(p) for p in pins], ensure_ascii=False)
 
@@ -854,6 +986,7 @@ def map_page(
     view: MapView | None,
     around: MapContext | None = None,
     notes: Markup | None = None,
+    travel_choices: Mapping[str, Any] | None = None,
     notice_text: str | None = None,
     error: str | None = None,
 ) -> Element:
@@ -884,6 +1017,9 @@ def map_page(
         data_frames=_frames_json(around.frames),
         data_layers=_layers_json(around.layers),
         data_labels=_labels_json(around.labels),
+        data_routes=json.dumps([vars(r) for r in around.routes], ensure_ascii=False),
+        data_party=json.dumps(around.party) if around.party else None,
+        data_travel="1" if around.travel and travel_choices is not None else None,
         data_focus=around.focus or None,
         role="application",
         aria_label=t("atlas.viewer", name=found.name),
@@ -928,6 +1064,9 @@ def map_page(
                 button(
                     type="button", class_="btn btn-sm", data_map_tool="label", aria_pressed="false"
                 )[icon("pen-line", "sm"), span[t("atlas.label.button")]],
+                button(
+                    type="button", class_="btn btn-sm", data_map_tool="route", aria_pressed="false"
+                )[icon("footprints", "sm"), span[t("atlas.route.button")]],
                 button(type="button", class_="btn btn-sm btn-ghost", data_map_tool="frame")[
                     icon("map", "sm"), span[t("atlas.frame.button")]
                 ]
@@ -940,6 +1079,7 @@ def map_page(
                     t("atlas.ruler.needs_scale") if scale is None else None
                 ],
             ],
+            _route_bar(page),
             div(class_="map-body")[
                 stage if ready else tiling_panel(page, found, job),
                 _layer_panel(page, found, around.layers) if ready and around.layers else None,
@@ -950,6 +1090,10 @@ def map_page(
             _scale_dialog(page, found),
             _pin_dialog(page, found, around.candidates),
             _label_dialog(page, found),
+            _route_dialog(page, found),
+            _travel_dialog(page, found, travel_choices)
+            if around.travel and travel_choices is not None
+            else None,
             _frame_dialog(page, found, around.framable) if around.framable else None,
         ],
         world_id=world.id,
@@ -1053,6 +1197,7 @@ def map_delete_page(page: Page, found: WorldMap) -> Element:
 
 
 __all__ = [
+    "RouteView",
     "LabelView",
     "LayerView",
     "Candidate",

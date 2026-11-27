@@ -3650,3 +3650,25 @@ dialog.ctx-dialog .panel{ margin:0; }
 .map-label-numbers input{ max-width:8em; }
 /* While a tool draws, a finger draws too: the page must not scroll or the map pan. */
 .map-stage.map-drawing{ touch-action:none; }
+/* Roads on a map */
+.map-route{ fill:none; stroke-linecap:round; stroke-linejoin:round; opacity:.9; cursor:pointer; }
+.map-route-road{ stroke:var(--cond-text); }
+.map-route-trail{ stroke:var(--cond); stroke-dasharray:10 7; }
+.map-route-river{ stroke:var(--accent); }
+.map-route-sea{ stroke:var(--accent-text); stroke-dasharray:14 8; }
+.map-route-country{ stroke:var(--text-2); stroke-dasharray:2 9; }
+.map-route-difficult{ stroke-width:7; }
+.map-route-name.leaflet-tooltip{ display:none; background:color-mix(in srgb, var(--surface) 85%, transparent); border:0; box-shadow:none; font:italic 600 12px var(--font-body); color:var(--text); }
+.map-route-name.leaflet-tooltip::before{ display:none; }
+.map-show-names .map-route-name.leaflet-tooltip{ display:block; }
+.map-route-point{ background:var(--surface); border:2px solid var(--accent); border-radius:50%; cursor:grab; }
+.map-route-point.is-start{ background:var(--accent); }
+.map-route-stretches{ list-style:none; margin:4px 0; padding:0; display:flex; flex-direction:column; gap:4px; }
+.map-route-stretch{ display:flex; align-items:center; gap:6px; }
+.map-route-stretch select{ flex:1; min-width:0; }
+.map-route-bar{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:8px 10px; border:1px solid var(--accent); border-radius:var(--r); background:var(--accent-weak); }
+.map-route-bar[hidden]{ display:none; }
+.map-route-bar-field{ display:flex; align-items:center; gap:6px; font-size:14px; }
+.map-party span{ display:block; width:22px; height:22px; border-radius:50%; background:var(--heal); border:3px solid var(--surface); box-shadow:0 0 0 2px var(--heal), var(--shadow-md); }
+.map-route-more > summary{ cursor:pointer; color:var(--text-2); font-size:13px; }
+.map-route-more[open] > summary{ margin-bottom:4px; }

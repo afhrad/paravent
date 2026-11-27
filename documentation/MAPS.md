@@ -5,8 +5,8 @@ and dragging through them however large they are, the scale every map carries, m
 on them, the pins that tie a map to the world's places, people and stories, the layers of
 names and notes laid over the picture, and the roads whose length becomes travel time.
 
-**Date:** 2026-11-27 · **Status:** steps 1–3 built 2026-11-27 (the maps; pins and maps
-within maps; layers and names); step 4, roads and travel, specified. Steps in §10.
+**Date:** 2026-11-27 · **Status:** built, all four steps, 2026-11-27 (the maps; pins and
+maps within maps; layers and names; roads and travel). Later ideas in §11.
 
 > **One sentence:** a map is a picture with a scale; everything on it — pins, names, notes,
 > roads, the ruler — is stored in the picture's own pixels, so it holds at every zoom and survives
@@ -258,33 +258,47 @@ line, with the time on foot at the three paces (2, 3, 4 mph; 8 travelling hours 
 "212 miles · normal pace 9 days". Double tap or *Done* ends it; nothing is kept. Without a
 scale the ruler asks for one first.
 
-**Roads are kept.** `MapRoute`: `id`, `layer` (*Roads* unless chosen), `name`, `kind` (road, trail, river, sea route) and
-`stretches`, each a line of points with its **terrain** (the rows of the 2024 *Travel
+**Roads are kept.** `MapRoute`: `id`, `layer` (*Roads* unless chosen), `name`, `kind` (road,
+trail, river, sea route, or "" across country), its `points`, and `stretches`
+(`RouteStretch`: the point it begins at, its **terrain** (the rows of the 2024 *Travel
 Terrain* table that `app/services/travel.py` already reads: Arctic, Coastal, Desert, Forest,
-Grassland, Hill, Mountain, Swamp, Underdark, Urban, Waterborne) and whether it is difficult.
-Consecutive stretches share their end points, so a road from the city through the forest
-into the hills is three stretches. A road or trail is a path: nobody has to navigate on it,
-as travel already treats a path; across country (a route of no kind) the navigator rolls.
+Grassland, Hill, Mountain, Swamp, Underdark, Urban, Waterborne) and whether it is difficult).
+A stretch runs to the next one's first point, so consecutive stretches share their end
+points, and a road from the city through the forest into the hills is three stretches;
+neighbours alike are folded into one. A road, trail, river or sea route is a path: nobody
+has to navigate on it, as travel already treats a path; across country the navigator rolls.
 
-**Drawn as lines** coloured by kind, the name along them when zoomed in. Editing: *Road*
-in the toolbar, tap the points, choose a terrain; a point dragged moves; *Split here* starts a
-new stretch at a point; a pin can be snapped to as a start or an end.
+**Drawn as lines** coloured by kind (a difficult stretch thicker), the name on its middle
+stretch when zoomed in. Editing: *Road* in the toolbar, then taps or drags for its points,
+the terrain and difficulty chosen in a bar above the map as it goes (each segment takes the
+choice made when it was drawn), *Done* or a double tap, then its name and kind. Its card
+says its kind, length and terrains, and offers *Travel* and *Move its points*; folded under
+*Edit*, its name, kind, layer and each stretch's terrain and difficulty, and *Remove road*.
+*Move its points* shows them to drag; a point's card starts a new stretch there or takes the
+point out. **As built:** a pin is not snapped to; instead a pin standing on one of the
+road's points names that point as a stop.
 
 **Lengths are computed, never typed:** a stretch's length is its points' distances times the
 scale, shown per stretch and in total, in the reader's units. Changing the scale changes them.
 
-**Travel along a road.** A road's card offers *Travel*: from one of its points or pins to
-another, in either direction. It opens the existing travel dialog (`TravelService.travel`)
-with the stretches filled in, so the party walks them in order, each at its terrain's pace
-(the 2024 *Travel Terrain* table's fastest pace, difficult terrain halving, as travel reads
-now), and the clock, rations, weather, survival checks and encounters run as they do today.
-For this, `Plan` gains an optional route: the list of `(miles, terrain, difficult)` the party
-walks, from which travel computes the hours and changes terrain at each border, instead of
-one terrain for the whole stretch.
+**Travel along a road.** A road's card offers *Travel* (when the world plays with the road
+and the map has a scale): from one of its points to another, in either direction, or from
+where the party stands on it. The dialog is the clock's travel form without how long, the
+terrain or difficult ground, which the road gives. **As built:** rather than a route inside
+one plan, `TravelService.travel_route` walks the way a stretch of terrain at a time
+(`Leg`), each through `travel` itself with its minutes (`Plan.minutes`) worked out from that
+terrain's pace (`speed`: the 2024 table's fastest pace, difficult ground and altitude
+halving, a vessel's own speed), so every rule of the road applies per stretch unchanged.
+A stretch ending with the day still has its night when more road follows (`onward`), and
+the next does not roll the weather again (`resumed`). The stretches are joined into one
+journey, kept on the clock and logged once; an encounter stops the rest. More than thirty
+days on the road is refused.
 
 **Where the party is.** A stretch of travel that stops partway (an encounter, the day's end)
-records where on the route: `Journey` gains `map_id`, `route_id` and `at` (miles from the
-start). The map shows the party there as a marker, and *Travel on* starts from it. Only one
+records where on the route: `Journey` gains `map_id`, `route_id`, `route_at` and
+`route_to` (miles from the route's first point). The map shows the party there as a marker,
+and the road's *Travel* starts from it, towards where it was going. The map says how far
+the party went and whether an encounter stopped it. Only one
 party position per world, the clock's; nothing else on the map moves by itself.
 
 ---
@@ -315,7 +329,7 @@ Paravent ships none.
 3. ~~**Layers and names (M).**~~ Built 2026-11-27. Layers with the panel, visibility per user, locks and
    `from_zoom`; labels with styles, size and angle; notes on their layer. Pins made in
    step 2 move onto *Places* and *Notes*.
-4. **Roads and travel (M).** Routes with stretches and terrain, their lengths, *Travel*
+4. ~~**Roads and travel (M).**~~ Built 2026-11-27. Routes with stretches and terrain, their lengths, *Travel*
    filling the travel dialog, `Plan` walking a route, the party's position.
 
 Each step is usable without the next.

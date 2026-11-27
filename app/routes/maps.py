@@ -14,22 +14,25 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import re
 from typing import Annotated, Any
 from urllib.parse import urlencode
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, Response
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
-from app.models.gamestate import Adventure, Scope, WorldMap
+from app.models.gamestate import Adventure, MapRoute, Scope, WorldMap
 from app.routes import adventures as adventure_routes
 from app.routes.auth import back_with_undo, html, redirect, safe_next
+from app.routes.gm import travel_abundance, travel_choices, travel_plan
 from app.routes.paravent_markdown import paravent_markdown
 from app.services.i18n import Translatable
 from app.services.map_tiles import needs_tiles
 from app.services.maps import LAYER_ROLES, MapError
 from app.services.tokens import Token
+from app.services.travel import Leg
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
 from app.ui.encounter_pages import encounter_url
@@ -49,6 +52,7 @@ from app.ui.map_pages import (
     LayerView,
     MapContext,
     PinView,
+    RouteView,
     map_delete_page,
     map_form_page,
     map_page,
@@ -264,6 +268,43 @@ def _candidates(page: Page, registry: StoreRegistry, found: WorldMap) -> list[Ca
     return out
 
 
+def _route_view(registry: StoreRegistry, found: WorldMap, route: MapRoute) -> RouteView:
+    """A route as the viewer draws it: its points, its stretches with their lengths, and
+    the stops a journey along it may start or end at."""
+    service = registry.world_maps
+    lengths = service.stretch_miles(found, route)
+    return RouteView(
+        id=route.id,
+        layer=route.layer,
+        name=route.name,
+        kind=route.kind,
+        points=[list(p) for p in route.points],
+        stretches=[
+            {
+                "start": st.start,
+                "terrain": st.terrain,
+                "difficult": st.difficult,
+                "miles": round(lengths[i], 3) if lengths is not None else None,
+            }
+            for i, st in enumerate(route.stretches)
+        ],
+        miles=round(sum(lengths), 3) if lengths is not None else None,
+        stops=[{"at": x.at, "index": x.index, "name": x.name} for x in service.stops(found, route)],
+    )
+
+
+def _party(registry: StoreRegistry, found: WorldMap) -> dict[str, Any] | None:
+    """Where the party stopped on a route of this map, if its last journey was one."""
+    journey = registry.clock.of(found.scope.world_id).journey
+    if journey is None or journey.map_id != found.id or journey.route_at is None:
+        return None
+    route = next((r for r in found.routes if r.id == journey.route_id), None)
+    if route is None or found.scale is None:
+        return None
+    x, y = registry.world_maps.position(found, route, journey.route_at)
+    return {"x": x, "y": y, "route": route.id, "at": journey.route_at, "to": journey.route_to}
+
+
 def _context(
     page: Page, registry: StoreRegistry, found: WorldMap, user_id: str, focus: str = ""
 ) -> MapContext:
@@ -309,7 +350,12 @@ def _context(
         for child in service.framed_on(found.id)
         if child.frame is not None and child.scope.world_id == found.scope.world_id
     ]
+    routes = [_route_view(registry, found, r) for r in found.routes]
+    party = _party(registry, found)
     return MapContext(
+        routes=routes,
+        party=party,
+        travel=registry.feature(found.scope.world_id, "travel") and found.scale is not None,
         pins=_pins(page, registry, found),
         frames=frames,
         path=service.path(found),
@@ -331,8 +377,10 @@ async def show_map(
     saved: str = "",
     error: str = "",
     pin: str = "",
+    travelled: str = "",
 ) -> HTMLResponse:
-    """The map in its viewer, where the user left it, or at ``pin``."""
+    """The map in its viewer, where the user left it, or at ``pin``; after a journey
+    along one of its roads, how it went."""
     found = registry.world_maps.with_layers(_map(registry, map_id).id, layer_names(page))
     world = registry.adventures.world(found.scope.world_id)
     ready = _start_tiles(registry, found)
@@ -341,7 +389,18 @@ async def show_map(
         if found.notes.strip()
         else None
     )
-    message = page.t(error) if error.startswith("atlas.error.") else None
+    known = ("atlas.error.", "travel.error.", "clock.error.")
+    message = page.t(error) if error.startswith(known) else None
+    notice_text = page.t("atlas.saved") if saved else None
+    journey = registry.clock.of(world.id).journey if travelled else None
+    if journey is not None and journey.map_id == found.id:
+        notice_text = page.t(
+            "atlas.route.travelled_stopped"
+            if journey.check is not None
+            else "atlas.route.travelled",
+            miles=page.u.miles(journey.miles),
+            hours=journey.hours,
+        )
     return html(
         map_page(
             page,
@@ -353,7 +412,10 @@ async def show_map(
             view=registry.world_maps.view(gm.user.id, found.id),
             around=_context(page, registry, found, gm.user.id, pin),
             notes=notes,
-            notice_text=page.t("atlas.saved") if saved else None,
+            notice_text=notice_text,
+            travel_choices=travel_choices(registry, world.id)
+            if registry.feature(world.id, "travel")
+            else None,
             error=message,
         )
     )
@@ -896,6 +958,173 @@ async def remove_label(
     except MapError as exc:
         raise HTTPException(status_code=404) from exc
     return Response(status_code=204)
+
+
+# -- roads and travel (documentation/MAPS.md §8) -------------------------------------
+
+
+def _json_list(text: str) -> list[Any]:
+    try:
+        value = json.loads(text or "[]")
+    except ValueError:
+        return []
+    return value if isinstance(value, list) else []
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/routes")
+async def add_route(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    map_id: str,
+    name: Annotated[str, Form()] = "",
+    kind: Annotated[str, Form()] = "road",
+    points: Annotated[str, Form()] = "",
+    terrains: Annotated[str, Form()] = "",
+    difficult: Annotated[str, Form()] = "",
+    layer: Annotated[str, Form()] = "",
+) -> Response:
+    """A road drawn on the map: its points and each segment's terrain (JSON lists)."""
+    found = _map(registry, map_id)
+    drawn = [
+        (float(p[0]), float(p[1]))
+        for p in _json_list(points)
+        if isinstance(p, list) and len(p) == 2 and all(isinstance(v, int | float) for v in p)
+    ]
+    try:
+        registry.world_maps.add_route(
+            found.id,
+            name=name,
+            kind=kind,
+            points=drawn,
+            terrains=[str(t) for t in _json_list(terrains)],
+            difficult=[bool(d) for d in _json_list(difficult)],
+            layer=layer,
+        )
+    except Translatable as exc:
+        return redirect(f"{map_url(found.id)}?{urlencode({'error': exc.key})}")
+    return redirect(map_url(found.id))
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/routes/{{route_id}}", status_code=204)
+async def edit_route(
+    request: Request,
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    map_id: str,
+    route_id: str,
+) -> Response:
+    """A road's name, kind, layer, and each stretch's terrain (``terrain_<n>``) and
+    difficulty (``difficult_<n>``), from its card."""
+    form = await request.form()
+    found = registry.world_maps.with_layers(_map(registry, map_id).id)
+    route = next((r for r in found.routes if r.id == route_id), None)
+    if route is None:
+        raise HTTPException(status_code=404)
+    stretches = [
+        (str(form.get(f"terrain_{i}", st.terrain)), form.get(f"difficult_{i}") == "1")
+        for i, st in enumerate(route.stretches)
+    ]
+    try:
+        registry.world_maps.edit_route(
+            found.id,
+            route_id,
+            name=str(form.get("name", route.name)),
+            kind=str(form.get("kind", route.kind)),
+            layer=str(form.get("layer", "")),
+            stretches=stretches,
+        )
+    except MapError as exc:
+        raise HTTPException(status_code=422) from exc
+    return Response(status_code=204)
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/routes/{{route_id}}/points/{{index}}/{{action}}")
+async def route_point(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    map_id: str,
+    route_id: str,
+    index: int,
+    action: str,
+    x: Annotated[str, Form()] = "",
+    y: Annotated[str, Form()] = "",
+) -> Response:
+    """One of a road's points: ``move`` it, ``split`` the road there into a new stretch,
+    or ``delete`` it."""
+    service = registry.world_maps
+    found = _map(registry, map_id)
+    try:
+        if action == "move":
+            px, py = _number(x), _number(y)
+            if px is None or py is None:
+                raise MapError("atlas.error.view")
+            service.move_route_point(found.id, route_id, index, px, py)
+        elif action == "split":
+            service.split_route(found.id, route_id, index)
+        elif action == "delete":
+            service.remove_route_point(found.id, route_id, index)
+        else:
+            raise HTTPException(status_code=404)
+    except MapError as exc:
+        raise HTTPException(status_code=422) from exc
+    return Response(status_code=204)
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/routes/{{route_id}}/delete", status_code=204)
+async def remove_route(
+    _gm: GamemasterDep, registry: RegistryDep, map_id: str, route_id: str
+) -> Response:
+    """A road taken off the map."""
+    try:
+        registry.world_maps.remove_route(_map(registry, map_id).id, route_id)
+    except MapError as exc:
+        raise HTTPException(status_code=404) from exc
+    return Response(status_code=204)
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/travel")
+async def travel_route(
+    request: Request, gm: GamemasterDep, page: PageDep, registry: RegistryDep, map_id: str
+) -> Response:
+    """The party travels along a road, from one stop to another (miles along it), each
+    stretch at its terrain's pace; the clock, rations and encounters run as on any road,
+    and where the party stops is kept for the map."""
+    form = await request.form()
+    found = _map(registry, map_id)
+    world_id = found.scope.world_id
+    route = next((r for r in found.routes if r.id == str(form.get("route", ""))), None)
+    start, end = _number(str(form.get("from", ""))), _number(str(form.get("to", "")))
+    user = gm.user
+    try:
+        if not registry.feature(world_id, "travel"):
+            raise MapError("clock.error.switched_off")
+        if route is None or start is None or end is None:
+            raise MapError("atlas.error.route_gone")
+        abundance = travel_abundance(form)
+        legs = [
+            Leg(miles, registry.terrain(world_id, terrain, abundance), hard)
+            for miles, terrain, hard in registry.world_maps.legs(found, route, start, end)
+        ]
+        journey, covered = registry.travel.travel_route(
+            world_id,
+            travel_plan(registry, world_id, form),
+            legs,
+            path=route.kind != "",
+            rules=registry.rules_of(world_id),
+            resolve=registry.monster_resolve(world_id),
+            by=user.username,
+            by_name=user.display_name or user.username,
+            weather=registry.weather(world_id),
+        )
+    except Translatable as exc:
+        return redirect(f"{map_url(found.id)}?{urlencode({'error': exc.key})}")
+    at = start + covered if end >= start else start - covered
+    kept = journey.model_copy(
+        update={"map_id": found.id, "route_id": route.id, "route_at": round(at, 3),
+                "route_to": end}
+    )  # fmt: skip
+    registry.clock.keep(world_id, kept)
+    return redirect(f"{map_url(found.id)}?travelled=1")
 
 
 __all__ = ["router"]

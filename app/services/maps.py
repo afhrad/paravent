@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO
 
@@ -19,10 +20,12 @@ from app.models.gamestate import (
     MapLabel,
     MapLayer,
     MapPin,
+    MapRoute,
     MapScale,
     MapUnit,
     MapView,
     Place,
+    RouteStretch,
     Scope,
     WorldMap,
 )
@@ -31,6 +34,7 @@ from app.services.adventures import AdventureService, clean_name
 from app.services.i18n import Translatable
 from app.services.map_tiles import MapTiles, remove_original, store_original
 from app.services.trash import Trash
+from app.services.travel import TERRAINS
 from app.store.gamestate import GameStateStore
 
 # Feet in one of each unit a scale is typed in, by Paravent's own factors
@@ -45,12 +49,49 @@ LONG_UNITS = frozenset({"mi", "km"})
 LAYER_ROLES: tuple[str, ...] = ("places", "names", "roads", "notes")
 LAYER_NAMES = {"places": "Places", "names": "Names", "roads": "Roads", "notes": "Notes"}
 LABEL_STYLES: tuple[str, ...] = ("settlement", "region", "water", "feature")
+# What a route may be (documentation/MAPS.md §8); all but a way across country ("") are
+# paths nobody has to find.
+ROUTE_KINDS: tuple[str, ...] = ("road", "trail", "river", "sea", "")
+FEET_PER_MILE = 5280.0
 # What a pin may point at (documentation/MAPS.md §6).
 PIN_KINDS = ("place", "npc", "encounter", "treasure", "adventure", "chapter", "map", "note")
 
 
 class MapError(Translatable):
     """A map, or a change to one, that cannot be made."""
+
+
+@dataclass(frozen=True)
+class Stop:
+    """A place on a route a journey may start or end at: how far along the route (in
+    miles from its first point), which point it is, and what is there (a pin's name)."""
+
+    at: float
+    index: int
+    name: str = ""
+
+
+def stretches_of(terrains: Sequence[str], difficult: Sequence[bool]) -> list[RouteStretch]:
+    """A route's stretches from each segment's terrain and difficulty: consecutive
+    segments alike make one stretch."""
+    out: list[RouteStretch] = []
+    for index, terrain in enumerate(terrains):
+        hard = bool(difficult[index]) if index < len(difficult) else False
+        name = terrain if terrain in TERRAINS else ""
+        if out and out[-1].terrain == name and out[-1].difficult == hard:
+            continue
+        out.append(RouteStretch(start=index, terrain=name, difficult=hard))
+    return out or [RouteStretch(start=0)]
+
+
+def _merged(stretches: Sequence[RouteStretch]) -> list[RouteStretch]:
+    """Stretches with a neighbour alike folded into it."""
+    out: list[RouteStretch] = []
+    for st in sorted(stretches, key=lambda x: x.start):
+        if out and (out[-1].terrain, out[-1].difficult) == (st.terrain, st.difficult):
+            continue
+        out.append(st)
+    return out
 
 
 def default_layers(names: Mapping[str, str] | None = None) -> list[MapLayer]:
@@ -187,6 +228,10 @@ class MapService:
             lab.model_copy(update={"x": lab.x * rx, "y": lab.y * ry, "size": lab.size * rx})
             for lab in before.labels
         ]
+        routes = [
+            r.model_copy(update={"points": [[x * rx, y * ry] for x, y in r.points]})
+            for r in before.routes
+        ]
         saved = self._store.maps.update(
             map_id,
             image=stored.path,
@@ -196,6 +241,7 @@ class MapService:
             scale=scale,
             pins=pins,
             labels=labels,
+            routes=routes,
         )
         if (rx, ry) != (1, 1):
             for child in self.framed_on(map_id):
@@ -401,9 +447,15 @@ class MapService:
             lab if lab.layer in ids else lab.model_copy(update={"layer": home("names")})
             for lab in found.labels
         ]
-        if layers == found.layers and pins == found.pins and labels == found.labels:
+        routes = [
+            r if r.layer in ids else r.model_copy(update={"layer": home("roads")})
+            for r in found.routes
+        ]
+        if (layers, pins, labels, routes) == (found.layers, found.pins, found.labels, found.routes):
             return found
-        return self._store.maps.update(map_id, layers=layers, pins=pins, labels=labels)
+        return self._store.maps.update(
+            map_id, layers=layers, pins=pins, labels=labels, routes=routes
+        )
 
     def _layer(self, found: WorldMap, layer_id: str) -> MapLayer:
         layer = next((x for x in found.layers if x.id == layer_id), None)
@@ -430,7 +482,8 @@ class MapService:
     def counts(self, found: WorldMap) -> dict[str, int]:
         """How many things sit on each layer."""
         counted = {layer.id: 0 for layer in found.layers}
-        for layer_id in [*(p.layer for p in found.pins), *(x.layer for x in found.labels)]:
+        on = [p.layer for p in found.pins] + [x.layer for x in found.labels]
+        for layer_id in [*on, *(r.layer for r in found.routes)]:
             if layer_id in counted:
                 counted[layer_id] += 1
         return counted
@@ -510,11 +563,16 @@ class MapService:
                 x.model_copy(update={"layer": move_to}) if x.layer == layer_id else x
                 for x in found.labels
             ]
+            routes = [
+                r.model_copy(update={"layer": move_to}) if r.layer == layer_id else r
+                for r in found.routes
+            ]
         else:
             pins = [p for p in found.pins if p.layer != layer_id]
             labels = [x for x in found.labels if x.layer != layer_id]
+            routes = [r for r in found.routes if r.layer != layer_id]
         layers = [x for x in found.layers if x.id != layer_id]
-        self._store.maps.update(map_id, layers=layers, pins=pins, labels=labels)
+        self._store.maps.update(map_id, layers=layers, pins=pins, labels=labels, routes=routes)
 
     def shown(self, user_id: str, found: WorldMap) -> dict[str, bool]:
         """Whether the user sees each layer: as they chose, else the layer's default."""
@@ -614,6 +672,218 @@ class MapService:
         found = self.with_layers(map_id)
         self._label(found, label_id)
         self._store.maps.update(map_id, labels=[x for x in found.labels if x.id != label_id])
+
+    # -- roads (documentation/MAPS.md §8) -----------------------------------------------
+
+    def _route(self, found: WorldMap, route_id: str) -> MapRoute:
+        route = next((r for r in found.routes if r.id == route_id), None)
+        if route is None:
+            raise MapError("atlas.error.route_gone")
+        return route
+
+    def _put_route(self, map_id: str, found: WorldMap, route: MapRoute) -> MapRoute:
+        self._store.maps.update(
+            map_id, routes=[route if r.id == route.id else r for r in found.routes]
+        )
+        return route
+
+    def add_route(
+        self,
+        map_id: str,
+        *,
+        name: str,
+        kind: str,
+        points: Sequence[Sequence[float]],
+        terrains: Sequence[str] = (),
+        difficult: Sequence[bool] = (),
+        layer: str = "",
+    ) -> MapRoute:
+        """A road, trail, river or sea route drawn on the map: its points, and each
+        segment's terrain, made into stretches; on ``layer`` (else *Roads*)."""
+        found = self.with_layers(map_id)
+        if kind not in ROUTE_KINDS:
+            raise MapError("atlas.error.route")
+        drawn = [list(self._clamped(found, float(x), float(y))) for x, y in points]
+        if len(drawn) < 2:
+            raise MapError("atlas.error.route_points")
+        on = self._open_layer(found, layer, "roads")
+        segments = len(drawn) - 1
+        route = MapRoute(
+            layer=on.id,
+            name=" ".join(name.split())[:80],
+            kind=kind,  # checked against ROUTE_KINDS
+            points=drawn,
+            stretches=stretches_of(
+                [*terrains, *[""] * segments][:segments], [*difficult, *[False] * segments]
+            ),
+        )
+        self._store.maps.update(map_id, routes=[*found.routes, route])
+        return route
+
+    def edit_route(
+        self,
+        map_id: str,
+        route_id: str,
+        *,
+        name: str,
+        kind: str,
+        layer: str = "",
+        stretches: Sequence[tuple[str, bool]] = (),
+    ) -> MapRoute:
+        """A route's name, kind and layer, and each stretch's terrain and difficulty."""
+        found = self.with_layers(map_id)
+        route = self._route(found, route_id)
+        if kind not in ROUTE_KINDS:
+            raise MapError("atlas.error.route")
+        changed = list(route.stretches)
+        for index, (terrain, hard) in enumerate(stretches[: len(changed)]):
+            changed[index] = changed[index].model_copy(
+                update={"terrain": terrain if terrain in TERRAINS else "", "difficult": hard}
+            )
+        edited = route.model_copy(
+            update={
+                "name": " ".join(name.split())[:80],
+                "kind": kind,
+                "layer": self._layer(found, layer).id if layer else route.layer,
+                "stretches": _merged(changed),
+            }
+        )
+        return self._put_route(map_id, found, edited)
+
+    def move_route_point(
+        self, map_id: str, route_id: str, index: int, x: float, y: float
+    ) -> MapRoute:
+        """Move one of a route's points."""
+        found = self.with_layers(map_id)
+        route = self._route(found, route_id)
+        self._unlocked(found, route.layer)
+        if not 0 <= index < len(route.points):
+            raise MapError("atlas.error.route_points")
+        points = [list(p) for p in route.points]
+        points[index] = list(self._clamped(found, x, y))
+        return self._put_route(map_id, found, route.model_copy(update={"points": points}))
+
+    def split_route(self, map_id: str, route_id: str, index: int) -> MapRoute:
+        """Begin a new stretch at a point, through the same terrain until changed."""
+        found = self.with_layers(map_id)
+        route = self._route(found, route_id)
+        if not 0 < index < len(route.points) - 1:
+            raise MapError("atlas.error.route_points")
+        if any(st.start == index for st in route.stretches):
+            return route
+        current = [st for st in route.stretches if st.start < index][-1]
+        added = current.model_copy(update={"start": index})
+        stretches = sorted([*route.stretches, added], key=lambda st: st.start)
+        return self._put_route(map_id, found, route.model_copy(update={"stretches": stretches}))
+
+    def remove_route_point(self, map_id: str, route_id: str, index: int) -> MapRoute:
+        """Take a point out of a route; a route keeps two."""
+        found = self.with_layers(map_id)
+        route = self._route(found, route_id)
+        if not 0 <= index < len(route.points) or len(route.points) <= 2:
+            raise MapError("atlas.error.route_points")
+        points = [list(p) for i, p in enumerate(route.points) if i != index]
+        stretches: list[RouteStretch] = []
+        for st in route.stretches:
+            start = st.start - 1 if st.start > index else st.start
+            if start < len(points) - 1 and not any(x.start == start for x in stretches):
+                stretches.append(st.model_copy(update={"start": start}))
+        if not stretches or stretches[0].start != 0:
+            first = route.stretches[0].model_copy(update={"start": 0})
+            stretches = [first, *[x for x in stretches if x.start != 0]]
+        edited = route.model_copy(update={"points": points, "stretches": _merged(stretches)})
+        return self._put_route(map_id, found, edited)
+
+    def remove_route(self, map_id: str, route_id: str) -> None:
+        """Take a route off the map."""
+        found = self.with_layers(map_id)
+        self._route(found, route_id)
+        self._store.maps.update(map_id, routes=[r for r in found.routes if r.id != route_id])
+
+    @staticmethod
+    def segment_miles(found: WorldMap, route: MapRoute) -> list[float] | None:
+        """Each segment's length in miles, by the map's scale; None without one."""
+        if found.scale is None:
+            return None
+        per = found.scale.feet_per_px / FEET_PER_MILE
+        return [
+            math.hypot(b[0] - a[0], b[1] - a[1]) * per
+            for a, b in zip(route.points, route.points[1:], strict=False)
+        ]
+
+    def stretch_miles(self, found: WorldMap, route: MapRoute) -> list[float] | None:
+        """Each stretch's length in miles; None without a scale."""
+        segments = self.segment_miles(found, route)
+        if segments is None:
+            return None
+        bounds = [st.start for st in route.stretches] + [len(segments)]
+        return [sum(segments[a:b]) for a, b in zip(bounds, bounds[1:], strict=False)]
+
+    def stops(self, found: WorldMap, route: MapRoute) -> list[Stop]:
+        """Where a journey along the route may start or end: each of its points, named
+        by a pin standing on it (within a hundred and fiftieth of the map)."""
+        segments = self.segment_miles(found, route) or [0.0] * (len(route.points) - 1)
+        near = max(found.width, found.height) / 150
+        out = []
+        at = 0.0
+        for index, (x, y) in enumerate(route.points):
+            if index:
+                at += segments[index - 1]
+            pin = min(
+                (p for p in found.pins if math.hypot(p.x - x, p.y - y) <= near),
+                key=lambda p: math.hypot(p.x - x, p.y - y),
+                default=None,
+            )
+            out.append(Stop(round(at, 3), index, (pin.label or pin.name) if pin else ""))
+        return out
+
+    def legs(
+        self, found: WorldMap, route: MapRoute, start: float, end: float
+    ) -> list[tuple[float, str, bool]]:
+        """The way from ``start`` to ``end`` (miles along the route, either way round)
+        as ``(miles, terrain, difficult)`` in the order walked, a stretch of terrain
+        each."""
+        segments = self.segment_miles(found, route)
+        if segments is None:
+            raise MapError("atlas.ruler.needs_scale")
+        total = sum(segments)
+        a, b = sorted((min(max(start, 0.0), total), min(max(end, 0.0), total)))
+        if b - a < 1e-6:
+            raise MapError("atlas.error.route_same")
+        terrain_of = {}
+        for st in route.stretches:
+            terrain_of[st.start] = (st.terrain, st.difficult)
+        current = ("", False)
+        pieces: list[tuple[float, str, bool]] = []
+        at = 0.0
+        for index, miles in enumerate(segments):
+            current = terrain_of.get(index, current)
+            lo, hi = max(a, at), min(b, at + miles)
+            if hi > lo:
+                pieces.append((hi - lo, *current))
+            at += miles
+        if end < start:
+            pieces.reverse()
+        joined: list[tuple[float, str, bool]] = []
+        for miles, terrain, hard in pieces:
+            if joined and joined[-1][1:] == (terrain, hard):
+                joined[-1] = (joined[-1][0] + miles, terrain, hard)
+            else:
+                joined.append((miles, terrain, hard))
+        return joined
+
+    def position(self, found: WorldMap, route: MapRoute, at: float) -> tuple[float, float]:
+        """The spot ``at`` miles along the route, in the picture's pixels."""
+        segments = self.segment_miles(found, route) or []
+        walked = 0.0
+        for index, miles in enumerate(segments):
+            if walked + miles >= at and miles > 0:
+                part = (at - walked) / miles
+                (x1, y1), (x2, y2) = route.points[index], route.points[index + 1]
+                return (x1 + (x2 - x1) * part, y1 + (y2 - y1) * part)
+            walked += miles
+        x, y = route.points[-1]
+        return (x, y)
 
     # -- maps within maps -------------------------------------------------------------
 
@@ -738,6 +1008,8 @@ __all__ = [
     "LAYER_NAMES",
     "LAYER_ROLES",
     "PIN_KINDS",
+    "ROUTE_KINDS",
+    "Stop",
     "MapError",
     "MapService",
     "default_layers",

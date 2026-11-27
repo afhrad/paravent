@@ -74,6 +74,10 @@ geprüft wird, mit Rationen und Wasser, beritten oder an Bord eines Schiffs.
   Kreaturen eine **heimlich reisende** Gruppe überraschen würde. Ob du es nutzt, liegt bei
   dir; es steht auch in den Notizen der Begegnung.
 - Das Reiseformular wählt *beritten* von selbst, wenn jede Figur ein Reittier hat.
+- **Einen Weg auf einer Karte entlang**: Zeichne den Weg auf einer deiner Karten (*Weg*, sein
+  Gelände Abschnitt für Abschnitt), dann tippe ihn an und wähle *Reisen*. Der Weg sagt, wie
+  weit und wodurch, jeder Abschnitt geht im Tempo seines Geländes, und die Karte zeigt, wo
+  die Gruppe angehalten hat.
 <!-- /feature -->
 
 <!-- feature: dungeon -->

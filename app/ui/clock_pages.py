@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Mapping, Sequence
+from typing import Any
 from urllib.parse import quote, urlencode
 
 from htpy import (
@@ -547,10 +548,13 @@ def _travel_form(
     abundance: bool = False,
     rules: str = "classic",
     survival: bool = True,
+    along: bool = False,
 ) -> Element:
     """How long, how fast, through what, how watchful, with what; with ``terrains``, who
     navigates and forages there (of ``party``, characters' names by id). Without
-    ``survival`` the party needs no rations or water and nobody forages."""
+    ``survival`` the party needs no rations or water and nobody forages. ``along`` a
+    route of a map (MAPS.md §8): the route says how far and through what, so neither
+    how long, nor the terrain, nor difficult ground is asked."""
     t = page.t
 
     def check(name: str, caption: str, *, on: bool = False, title: str | None = None) -> Element:
@@ -561,7 +565,9 @@ def _travel_form(
     return post(
         "travel",
         div(class_="tool-grid")[
-            _how_long(
+            None
+            if along
+            else _how_long(
                 page,
                 "tv",
                 select(name="unit", aria_label=t("clock.unit"))[
@@ -629,7 +635,7 @@ def _travel_form(
             ),
         ],
         div(class_="tool-checks")[
-            check("difficult", t("travel.difficult")),
+            None if along else check("difficult", t("travel.difficult")),
             check("altitude", t("travel.altitude"), title=t("travel.altitude_hint")),
             check("rations", t("travel.rations"), on=True) if survival else None,
             check("rest", t("travel.rest"), on=True),
@@ -637,10 +643,12 @@ def _travel_form(
             check("around", t("travel.around"), title=t("travel.around_hint")) if vessels else None,
             check("weather", t("travel.weather"), on=True) if weather else None,
         ],
-        _terrain_fields(page, terrains, party or {}, abundance and survival, rules, survival)
+        _terrain_fields(
+            page, terrains, party or {}, abundance and survival, rules, survival, along=along
+        )
         if terrains
         else None,
-        p(class_="field-hint")[t("travel.hint")],
+        p(class_="field-hint")[t("atlas.route.travel_hint" if along else "travel.hint")],
         div(class_="form-actions")[
             button(type="submit", class_="btn btn-primary")[
                 icon("footprints", "sm"), span[t("travel.go")]
@@ -650,6 +658,16 @@ def _travel_form(
     )
 
 
+def route_travel_form(page: Page, action: str, head: Node, **choices: Any) -> Element:
+    """The travel form for a route of a map (MAPS.md §8): ``head`` (which route, from
+    where to where) and the road's choices, posted to ``action``."""
+
+    def post(_path: str, *content: Node, cls: str = "inline-form") -> Element:
+        return form(method="post", action=action, class_=cls)[head, content]
+
+    return _travel_form(page, post, along=True, **choices)
+
+
 def _terrain_fields(
     page: Page,
     terrains: Sequence[str],
@@ -657,9 +675,10 @@ def _terrain_fields(
     abundance: bool,
     rules: str,
     survival: bool = True,
+    along: bool = False,
 ) -> Element:
-    """The terrain, its navigator and foragers (with ``survival``), and moving
-    stealthily."""
+    """The terrain (not ``along`` a route, which has its own), its navigator and
+    foragers (with ``survival``), and moving stealthily."""
     t = page.t
 
     def check(name: str, caption: str, value: str = "1", title: str | None = None) -> Element:
@@ -669,7 +688,9 @@ def _terrain_fields(
 
     return div(class_="tool-section-part")[
         div(class_="tool-grid")[
-            _field(
+            None
+            if along
+            else _field(
                 "tv-terrain",
                 t("travel.terrain"),
                 select(id="tv-terrain", name="terrain")[
@@ -1229,6 +1250,7 @@ __all__ = [
     "spotting",
     "CLOCK_URL",
     "clock_label",
+    "route_travel_form",
     "clock_panel",
     "remaining",
     "sheet_time",

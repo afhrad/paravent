@@ -20,7 +20,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from typing import Annotated
+from typing import Annotated, Any
 from urllib.parse import urlencode
 
 from fastapi import APIRouter, Form, HTTPException, Request
@@ -223,8 +223,29 @@ def _encounter_from(
     return made.id
 
 
-def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_name: str) -> None:
-    """Set out on the road with the travel form's plan."""
+def travel_choices(registry: StoreRegistry, world_id: str) -> dict[str, Any]:
+    """What the travel form offers in a world: its encounter tables, vessels, whether
+    everyone rides, the weather table, terrains, the party, abundance, the rules and
+    survival (also for the map's road travel, MAPS.md §8)."""
+    members = registry.gamestate.characters.of_world(world_id, drafts=False)
+    return {
+        "environments": [
+            (e.key, f"{e.name} ({e.source})") for e in _environments(registry, world_id)
+        ],
+        "vessels": [v.name for v in registry.vessels(world_id)],
+        "mounted": registry.feature(world_id, "followers")
+        and registry.followers.mounted([pc.id for pc in members]),
+        "weather": registry.weather(world_id) is not None,
+        "terrains": registry.terrains(world_id),
+        "party": {pc.id: pc.name or "?" for pc in members},
+        "abundance": registry.foraging_by_abundance(world_id),
+        "rules": registry.rules_of(world_id),
+        "survival": registry.feature(world_id, "survival"),
+    }
+
+
+def travel_plan(registry: StoreRegistry, world_id: str, form: FormData) -> Plan:
+    """The plan the travel form sets out (also the map's road travel, MAPS.md §8)."""
     amount = str(form.get("amount", "")).strip()
     hours = (
         int(amount) * (TRAVEL_DAY if form.get("unit") == "day" else 1) if amount.isdigit() else 0
@@ -239,41 +260,51 @@ def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_
     water = str(form.get("water", "enough"))
     climate = str(form.get("climate", ""))
     # The terrain chosen, else the one the encounter table's environment travels through.
-    abundance = str(form.get("abundance", "limited"))
     terrain = registry.terrain(
         world_id,
         str(form.get("terrain", "")) or (terrain_of(environment.name) if environment else ""),
-        abundance if abundance in ABUNDANCE else "limited",
+        travel_abundance(form),
     )
     party = {pc.id for pc in registry.gamestate.characters.of_world(world_id, drafts=False)}
     navigator = str(form.get("navigator", ""))
     # Without survival the party needs no rations or water and nobody forages.
     survival = registry.feature(world_id, "survival")
+    return Plan(
+        hours=hours,
+        pace=pace if pace in PACES else "normal",  # type: ignore[arg-type]
+        difficult=form.get("difficult") == "1",
+        environment=environment,
+        checks=int(checks) if checks.isdigit() and int(checks) <= 3 else 1,
+        rations=survival and form.get("rations") == "1",
+        rest=form.get("rest") == "1",
+        water=water if survival and water in WATER else "enough",  # type: ignore[arg-type]
+        mounted=by_ship == "mounted",
+        vessel=vessel,
+        night_check=form.get("night") == "1",
+        weather=form.get("weather") == "1",
+        climate=climate if climate in CLIMATES else "",  # type: ignore[arg-type]
+        altitude=form.get("altitude") == "1",
+        terrain=terrain,
+        navigator=navigator if navigator in party else "",
+        helped=form.get("helped") == "1",
+        foragers=tuple(str(f) for f in form.getlist("forager") if str(f) in party)
+        if survival
+        else (),
+        stealthy=form.get("stealthy") == "1",
+    )
+
+
+def travel_abundance(form: FormData) -> str:
+    """How much food and water the land gives, from the travel form."""
+    abundance = str(form.get("abundance", "limited"))
+    return abundance if abundance in ABUNDANCE else "limited"
+
+
+def _travel(registry: StoreRegistry, world_id: str, form: FormData, by: str, by_name: str) -> None:
+    """Set out on the road with the travel form's plan."""
     registry.travel.travel(
         world_id,
-        Plan(
-            hours=hours,
-            pace=pace if pace in PACES else "normal",  # type: ignore[arg-type]
-            difficult=form.get("difficult") == "1",
-            environment=environment,
-            checks=int(checks) if checks.isdigit() and int(checks) <= 3 else 1,
-            rations=survival and form.get("rations") == "1",
-            rest=form.get("rest") == "1",
-            water=water if survival and water in WATER else "enough",  # type: ignore[arg-type]
-            mounted=by_ship == "mounted",
-            vessel=vessel,
-            night_check=form.get("night") == "1",
-            weather=form.get("weather") == "1",
-            climate=climate if climate in CLIMATES else "",  # type: ignore[arg-type]
-            altitude=form.get("altitude") == "1",
-            terrain=terrain,
-            navigator=navigator if navigator in party else "",
-            helped=form.get("helped") == "1",
-            foragers=tuple(str(f) for f in form.getlist("forager") if str(f) in party)
-            if survival
-            else (),
-            stealthy=form.get("stealthy") == "1",
-        ),
+        travel_plan(registry, world_id, form),
         rules=registry.rules_of(world_id),
         resolve=registry.monster_resolve(world_id),
         by=by,

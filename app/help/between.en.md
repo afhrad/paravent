@@ -68,6 +68,9 @@ often to check, with rations and water, mounted or aboard a ship.
   party **moving stealthily** would catch unaware. Use it or not; it goes into the
   encounter's notes.
 - The travel form chooses *mounted* by itself when every character has a mount.
+- **Along a road on a map**: draw the road on one of your maps (*Road*, its terrain chosen
+  stretch by stretch), then tap it and choose *Travel*. The road says how far and through what,
+  each stretch goes at its terrain's pace, and the map marks where the party stopped.
 <!-- /feature -->
 
 <!-- feature: dungeon -->

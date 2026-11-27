@@ -143,7 +143,7 @@
 
   // The tools that draw: while one is in hand, a drag draws instead of moving the map,
   // and a tap still sets a point. The arrow keys and the zoom still move the map.
-  var DRAWING = { ruler: true, line: true, frame: true };
+  var DRAWING = { ruler: true, line: true, frame: true, route: true };
 
   function setMode(next) {
     mode = next;
@@ -151,7 +151,7 @@
     if (mode) map.doubleClickZoom.disable(); else map.doubleClickZoom.enable();
     if (DRAWING[mode]) map.dragging.disable(); else map.dragging.enable();
     if (rulerButton) rulerButton.setAttribute('aria-pressed', mode === 'ruler' ? 'true' : 'false');
-    ['pin', 'label'].forEach(function (tool) {
+    ['pin', 'label', 'route'].forEach(function (tool) {
       var b = document.querySelector('[data-map-tool="' + tool + '"]');
       if (b) b.setAttribute('aria-pressed', mode === tool ? 'true' : 'false');
     });
@@ -492,6 +492,234 @@
   showLayers();
   scaleLabels();
 
+  // -- roads (documentation/MAPS.md §8) ------------------------------------------------
+
+  var routes = JSON.parse(el.dataset.routes || '[]');
+  var party = el.dataset.party ? JSON.parse(el.dataset.party) : null;
+  var canTravel = !!el.dataset.travel;
+  var editing = null;  // the road whose points are shown to drag
+
+  function stopName(route, stop) {
+    if (stop.name) return stop.name;
+    if (stop.index === 0) return words.route_start;
+    if (stop.index === route.points.length - 1) return words.route_end;
+    return fill(words.point, { n: stop.index });
+  }
+
+  function miles(m) { return distance(m * 5280); }
+
+  function routeCard(route) {
+    var base = '/gm/maps/' + mapId + '/routes/' + route.id;
+    var name = node('input', { type: 'text', name: 'name', value: route.name, maxlength: '80',
+      'aria-label': words.route_name, placeholder: words.route_name });
+    var kind = node('select', { name: 'kind', 'aria-label': words.route_name });
+    Object.keys(words.route_kinds || {}).forEach(function (k) {
+      var opt = node('option', { value: k, text: words.route_kinds[k] });
+      if (k === route.kind) opt.selected = true;
+      kind.appendChild(opt);
+    });
+    var layerInput = layers.length > 1 ? layerSelect(route.layer) : null;
+    var rows = route.stretches.map(function (st, i) {
+      var terrain = node('select', { name: 'terrain_' + i, 'aria-label': words.no_terrain });
+      terrain.appendChild(node('option', { value: '', text: words.no_terrain }));
+      Object.keys(words.terrains || {}).forEach(function (k) {
+        var opt = node('option', { value: k, text: words.terrains[k] });
+        if (k === st.terrain) opt.selected = true;
+        terrain.appendChild(opt);
+      });
+      var hard = node('input', { type: 'checkbox', name: 'difficult_' + i, value: '1',
+        'aria-label': words.difficult, title: words.difficult });
+      hard.checked = !!st.difficult;
+      return node('li', { 'class': 'map-route-stretch' }, [
+        terrain, hard,
+        node('span', { 'class': 'muted', text: st.miles === null ? '' : miles(st.miles) })
+      ]);
+    });
+    var save = node('button', { type: 'submit', 'class': 'btn btn-sm btn-primary', text: words.save });
+    var form = node('form', { 'class': 'map-card-form' }, [
+      name, kind, layerInput, node('ul', { 'class': 'map-route-stretches' }, rows),
+      node('span', { 'class': 'map-card-actions' }, [save])
+    ]);
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      post(base, Object.fromEntries(new FormData(form).entries())).then(function (r) {
+        if (r.ok) location.reload();
+      });
+    });
+    var travel = canTravel && route.miles
+      ? node('button', { type: 'button', 'class': 'btn btn-sm btn-primary', text: words.travel }) : null;
+    if (travel) travel.addEventListener('click', function () { map.closePopup(); openTravel(route); });
+    var points = isLocked(route.layer) ? null
+      : node('button', { type: 'button', 'class': 'btn btn-sm', text: words.edit_points });
+    if (points) points.addEventListener('click', function () { map.closePopup(); editPoints(route); });
+    var remove = node('button', { type: 'button', 'class': 'btn btn-sm btn-ghost btn-danger',
+      text: words.remove_route });
+    remove.addEventListener('click', function () {
+      post(base + '/delete').then(function (r) { if (r.ok) location.reload(); });
+    });
+    var head = (words.route_kinds || {})[route.kind] || '';
+    if (route.miles !== null) head += ' · ' + miles(route.miles);
+    var terrains = route.stretches.map(function (st) {
+      return ((words.terrains || {})[st.terrain] || words.no_terrain) +
+        (st.difficult ? ' (' + words.difficult + ')' : '');
+    }).filter(function (v, i, all) { return all.indexOf(v) === i; }).join(', ');
+    var more = node('details', { 'class': 'map-route-more' }, [
+      node('summary', { text: words.edit }), form, node('p', { 'class': 'map-card-links' }, [remove])
+    ]);
+    return node('div', { 'class': 'map-card map-route-card' }, [
+      node('span', { 'class': 'eyebrow', text: head }),
+      route.name ? node('b', { 'class': 'map-card-title', text: route.name }) : null,
+      node('span', { 'class': 'map-card-text', text: terrains }),
+      node('p', { 'class': 'map-card-links' }, [travel, points]),
+      more
+    ]);
+  }
+
+  function addRoute(route) {
+    var group = holder(route.layer);
+    var latlngs = route.points.map(function (p) { return toLatLng(p[0], p[1]); });
+    var card = L.popup({ minWidth: 260, maxWidth: 320 });
+    route.stretches.forEach(function (st, i) {
+      var end = i + 1 < route.stretches.length ? route.stretches[i + 1].start : latlngs.length - 1;
+      var line = L.polyline(latlngs.slice(st.start, end + 1), {
+        pane: paneOf(route.layer),
+        className: 'map-route map-route-' + (route.kind || 'country') +
+          (st.difficult ? ' map-route-difficult' : ''),
+        weight: 5
+      }).addTo(group);
+      line.on('click', function (e) {
+        L.DomEvent.stop(e);
+        if (mode) { if (!DRAWING[mode]) tap(e.latlng); return; }
+        card.setLatLng(e.latlng).setContent(routeCard(route)).openOn(map);
+      });
+      if (route.name && i === Math.floor(route.stretches.length / 2)) {
+        line.bindTooltip(route.name, { permanent: true, direction: 'center',
+          className: 'map-route-name' });
+      }
+    });
+  }
+  routes.forEach(addRoute);
+
+  // A road's points to drag, each with a card to split the road there or take it out.
+  var pointLayer = L.layerGroup().addTo(map);
+  function editPoints(route) {
+    pointLayer.clearLayers();
+    editing = route;
+    var base = '/gm/maps/' + mapId + '/routes/' + route.id + '/points/';
+    var starts = route.stretches.map(function (st) { return st.start; });
+    route.points.forEach(function (p, i) {
+      var handle = L.marker(toLatLng(p[0], p[1]), {
+        draggable: true,
+        icon: L.divIcon({ className: 'map-route-point' + (starts.indexOf(i) >= 0 ? ' is-start' : ''),
+          iconSize: [14, 14], iconAnchor: [7, 7] }),
+        zIndexOffset: 500
+      }).addTo(pointLayer);
+      handle.on('dragend', function () {
+        var at = toPixels(handle.getLatLng());
+        post(base + i + '/move', { x: at[0].toFixed(1), y: at[1].toFixed(1) }).then(function (r) {
+          if (r.ok) location.reload();
+        });
+      });
+      var actions = [];
+      if (i > 0 && i < route.points.length - 1 && starts.indexOf(i) < 0) {
+        var split = node('button', { type: 'button', 'class': 'btn btn-sm', text: words.split });
+        split.addEventListener('click', function () {
+          post(base + i + '/split').then(function (r) { if (r.ok) location.reload(); });
+        });
+        actions.push(split);
+      }
+      if (route.points.length > 2) {
+        var drop = node('button', { type: 'button', 'class': 'btn btn-sm btn-ghost btn-danger',
+          text: words.remove_point });
+        drop.addEventListener('click', function () {
+          post(base + i + '/delete').then(function (r) { if (r.ok) location.reload(); });
+        });
+        actions.push(drop);
+      }
+      if (actions.length) handle.bindPopup(node('div', { 'class': 'map-card' }, actions));
+    });
+  }
+
+  // Travel along a road: from where to where, then the road's choices.
+  var travelDialog = document.getElementById('tool-travel');
+  function openTravel(route) {
+    if (!travelDialog) return;
+    var form = travelDialog.querySelector('form');
+    var from = form.querySelector('[data-travel-from]');
+    var to = form.querySelector('[data-travel-to]');
+    var way = form.querySelector('[data-travel-way]');
+    form.elements.route.value = route.id;
+    [from, to].forEach(function (select) { select.innerHTML = ''; });
+    var here = party && party.route === route.id ? party : null;
+    if (here) from.appendChild(node('option', { value: String(here.at), text: words.party }));
+    route.stops.forEach(function (stop) {
+      var text = stopName(route, stop) + ' · ' + miles(stop.at);
+      from.appendChild(node('option', { value: String(stop.at), text: text }));
+      to.appendChild(node('option', { value: String(stop.at), text: text }));
+    });
+    var last = route.stops[route.stops.length - 1].at;
+    var goal = here && here.to !== null && Math.abs(here.to - here.at) > 1e-3 ? here.to
+      : (here && Math.abs(here.at - last) < 1e-3 ? 0 : last);
+    to.value = String(goal);
+    if (!to.value && to.options.length) to.selectedIndex = to.options.length - 1;
+    function show() {
+      way.textContent = miles(Math.abs(parseFloat(to.value) - parseFloat(from.value)));
+    }
+    from.onchange = to.onchange = show;
+    show();
+    if (travelDialog.showModal) travelDialog.showModal(); else travelDialog.setAttribute('open', '');
+  }
+
+  if (party) {
+    L.marker(toLatLng(party.x, party.y), {
+      icon: L.divIcon({ className: 'map-party', html: '<span></span>', iconSize: [22, 22],
+        iconAnchor: [11, 11] }),
+      title: words.party, keyboard: false, zIndexOffset: 1000, interactive: false
+    }).addTo(map);
+  }
+
+  // The road tool: tap or drag its points, the terrain chosen as it goes, then done.
+  var routeButton = document.querySelector('[data-map-tool="route"]');
+  var routeBar = document.querySelector('[data-route-bar]');
+  var routeDialog = document.getElementById('tool-route');
+  var segTerrains = [], segHard = [];
+  function routeEnd(keep) {
+    if (routeBar) routeBar.hidden = true;
+    var drawnPoints = points.slice();
+    setMode('');
+    say('');
+    if (!keep || drawnPoints.length < 2) { clearDrawing(); return; }
+    var form = routeDialog.querySelector('.map-route-form');
+    form.elements.points.value = JSON.stringify(drawnPoints.map(function (ll) {
+      var at = toPixels(ll);
+      return [Math.round(at[0] * 10) / 10, Math.round(at[1] * 10) / 10];
+    }));
+    form.elements.terrains.value = JSON.stringify(segTerrains);
+    form.elements.difficult.value = JSON.stringify(segHard);
+    form.elements.layer.value = currentLayer();
+    if (routeDialog.showModal) routeDialog.showModal(); else routeDialog.setAttribute('open', '');
+  }
+  if (routeButton && routeBar) {
+    routeButton.addEventListener('click', function () {
+      if (mode === 'route') { routeEnd(true); return; }
+      clearDrawing();
+      segTerrains = []; segHard = [];
+      setMode('route');
+      routeBar.hidden = false;
+      say(words.route_place || '');
+    });
+    routeBar.querySelector('[data-route-done]').addEventListener('click', function () { routeEnd(true); });
+    routeBar.querySelector('[data-route-cancel]').addEventListener('click', function () { routeEnd(false); });
+  }
+  function routePoint(latlng) {
+    addPoint(latlng);
+    if (points.length > 1) {
+      segTerrains.push(routeBar.querySelector('[data-route-terrain]').value);
+      segHard.push(routeBar.querySelector('[data-route-difficult]').checked);
+    }
+    if (feetPerPx && points.length > 1) say(fill(words.total, { distance: distance(pathFeet(points)) }));
+  }
+
   // -- the layer panel ----------------------------------------------------------------
 
   var currentKey = 'paravent-map-layer-' + mapId;
@@ -668,6 +896,8 @@
       setMode('');
       say('');
       placeLabel(latlng);
+    } else if (mode === 'route') {
+      routePoint(latlng);
     }
   }
   map.on('click', function (e) { if (!DRAWING[mode]) tap(e.latlng); });
@@ -694,16 +924,18 @@
     if (e.target.closest && e.target.closest('.leaflet-control')) return;
     pressed = { x: e.clientX, y: e.clientY, latlng: at(e), moved: false };
     if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
-  });
+    e.stopPropagation();  // a road, pin or name beneath is drawn over, not opened
+  }, true);
   el.addEventListener('pointermove', function (e) {
     if (!pressed) return;
     if (Math.hypot(e.clientX - pressed.x, e.clientY - pressed.y) > 6 && !pressed.moved) {
       pressed.moved = true;
       // The drag's start is the first point, unless the ruler already has one.
-      if (!points.length || mode !== 'ruler') { if (mode !== 'ruler') clearDrawing(); tap(pressed.latlng); }
+      var chained = mode === 'ruler' || mode === 'route';
+      if (!points.length || !chained) { if (!chained) clearDrawing(); tap(pressed.latlng); }
     }
     if (pressed.moved) follow(at(e));
-  });
+  }, true);
   function release(e) {
     if (!pressed) return;
     var was = pressed;
@@ -712,14 +944,20 @@
     if (was.moved && points.length) tap(at(e));
     else if (!was.moved) tap(was.latlng);
   }
-  el.addEventListener('pointerup', release);
-  el.addEventListener('pointercancel', release);
+  // Listened for before anything on the map can stop them: drawing works over a road,
+  // a pin or a name as well as over bare map.
+  el.addEventListener('pointerup', release, true);
+  el.addEventListener('pointercancel', release, true);
 
-  map.on('dblclick', function () { if (mode === 'ruler') endRuler(); });
+  map.on('dblclick', function () {
+    if (mode === 'ruler') endRuler();
+    else if (mode === 'route') routeEnd(true);
+  });
 
   document.addEventListener('keydown', function (e) {
     if (e.key !== 'Escape' || !mode) return;
     if (mode === 'ruler') endRuler();
+    else if (mode === 'route') routeEnd(false);
     else { setMode(''); clearDrawing(); say(''); }
   });
 })();

@@ -644,3 +644,189 @@ class TestLayerPages:
         assert registry.world_maps.get(coast.id).labels[0].layer == names
         removed = await raw.post(f"/gm/maps/{coast.id}/labels/{label.id}/delete")
         assert removed.status_code == 204
+
+
+class TestRouteTravel:
+    """Walking a route stretch by stretch (app/services/travel.py ``travel_route``)."""
+
+    @pytest.fixture
+    def road(self, tmp_path: Path) -> dict[str, Any]:
+        from app.services.clock import ClockService
+        from app.services.travel import TravelService
+        from app.store.gamestate import GameStateStore
+        from tests.test_travel_downtime_shop import FixedDice
+
+        state: dict[str, Any] = {"rests": 0}
+        state["clock"] = ClockService(GameStateStore(tmp_path), None)
+
+        def rest(_world: str) -> None:
+            state["rests"] += 1
+
+        state["make"] = lambda rolls=(): TravelService(
+            state["clock"],
+            None,
+            party=lambda _w: [],
+            eat=lambda pc: True,
+            tire=lambda pc, cause: None,
+            con_mod=lambda pc: 0,
+            rest=rest,
+            dice=FixedDice(rolls),
+        )
+        return state
+
+    def _go(self, road: dict[str, Any], legs: list[Any], rolls: tuple[int, ...] = ()) -> Any:
+        from app.services.travel import Plan
+
+        return road["make"](rolls).travel_route(
+            "w",
+            Plan(hours=0),
+            legs,
+            path=True,
+            rules="classic",
+            resolve=lambda n, s: None,
+            by="dm",
+            by_name="DM",
+        )
+
+    def test_each_stretch_at_its_pace(self, road: dict[str, Any]) -> None:
+        from app.services.clock import DAY
+        from app.services.travel import Leg
+
+        # 12 miles at 3 mph (4 hours), then 12 difficult miles at 1.5 (8 hours).
+        journey, covered = self._go(road, [Leg(12), Leg(12, difficult=True)])
+        assert (journey.hours, journey.miles, covered) == (12, 24.0, 24)
+        # Eight hours on the first day, the night, four on the second.
+        assert road["clock"].of("w").minute == 8 * 60 + DAY + 4 * 60
+        assert road["rests"] == 1 and journey.difficult
+
+    def test_a_stretch_ending_with_the_day_still_has_its_night(self, road: dict[str, Any]) -> None:
+        from app.services.clock import DAY
+        from app.services.travel import Leg
+
+        journey, _ = self._go(road, [Leg(24), Leg(6)])
+        assert road["clock"].of("w").minute == 8 * 60 + DAY + 2 * 60
+        assert road["rests"] == 1 and journey.hours == 10
+
+    def test_an_encounter_stops_it_partway(self, road: dict[str, Any]) -> None:
+        from app.services.travel import Leg
+
+        # The day's check falls at its eighth hour, four hours into the second stretch.
+        journey, covered = self._go(road, [Leg(12), Leg(12, difficult=True)], rolls=(19,))
+        assert journey.check == 19 and covered == pytest.approx(18)
+        assert road["clock"].of("w").journey == journey
+
+
+class TestRoutes:
+    def test_draw_measure_and_edit(self, table: Table) -> None:  # noqa: F811
+        _raw, facts = table
+        registry = _registry(facts)
+        world_id = facts["world"].id
+        service = registry.world_maps
+        coast = _map(registry, world_id, "coast")  # 1000 × 500
+        service.set_scale(coast.id, way="width", amount=100, unit="mi")  # 10 px a mile
+        town = registry.locations.create("Grey Reed", f"w:{world_id}", world_id)
+        service.add_pin(coast.id, x=401, y=2, kind="place", target=town.id)
+        made = service.add_route(
+            coast.id,
+            name="  King's   Road ",
+            kind="road",
+            points=[(0, 0), (300, 0), (300, 400), (400, 400)],
+            terrains=["Grassland", "Grassland", "Forest"],
+            difficult=[False, False, True],
+        )
+        found = service.get(coast.id)
+        assert made.name == "King's Road" and made.layer == found.layers[2].id  # Roads
+        assert [(st.start, st.terrain, st.difficult) for st in made.stretches] == [
+            (0, "Grassland", False),
+            (2, "Forest", True),
+        ]
+        assert service.stretch_miles(found, made) == pytest.approx([70, 10])
+        stops = service.stops(found, made)
+        assert [s.at for s in stops] == pytest.approx([0, 30, 70, 80])
+        # Forward from the start to the end, and back from the end to the middle.
+        assert service.legs(found, made, 0, 80) == [
+            pytest.approx((70, "Grassland", False)),
+            pytest.approx((10, "Forest", True)),
+        ]
+        assert service.legs(found, made, 80, 50) == [
+            pytest.approx((10, "Forest", True)),
+            pytest.approx((20, "Grassland", False)),
+        ]
+        assert service.position(found, made, 50) == pytest.approx((300, 200))
+        with pytest.raises(MapError):
+            service.legs(found, made, 30, 30)
+        split = service.split_route(coast.id, made.id, 1)
+        assert [st.start for st in split.stretches] == [0, 1, 2]
+        merged = service.edit_route(
+            coast.id,
+            made.id,
+            name="King's Road",
+            kind="trail",
+            stretches=[("Grassland", False), ("Grassland", False), ("Hill", False)],
+        )
+        assert [(st.start, st.terrain) for st in merged.stretches] == [
+            (0, "Grassland"),
+            (2, "Hill"),
+        ]
+        moved = service.move_route_point(coast.id, made.id, 3, 500, 400)
+        assert moved.points[3] == [500, 400]
+        shorter = service.remove_route_point(coast.id, made.id, 1)
+        assert len(shorter.points) == 3 and shorter.stretches[0].start == 0
+        assert [st.start for st in shorter.stretches] == [0, 1]
+        with pytest.raises(MapError):
+            service.add_route(coast.id, name="", kind="road", points=[(1, 1)])
+        service.remove_route(coast.id, made.id)
+        assert service.get(coast.id).routes == []
+
+
+class TestRoutePages:
+    async def test_draw_travel_and_see_the_party(self, table: Table) -> None:  # noqa: F811
+        raw, facts = table
+        registry = _registry(facts)
+        world_id = facts["world"].id
+        await _login(raw)
+        coast = _map(registry, world_id, "coast")
+        registry.world_maps.set_scale(coast.id, way="width", amount=100, unit="mi")
+        drawn = await raw.post(
+            f"/gm/maps/{coast.id}/routes",
+            data={
+                "name": "King's Road",
+                "kind": "road",
+                "points": "[[0, 0], [300, 0], [300, 300]]",
+                "terrains": '["Grassland", "Forest"]',
+                "difficult": "[false, true]",
+            },
+        )
+        assert drawn.status_code == 303
+        (route,) = registry.world_maps.get(coast.id).routes
+        page = html.unescape((await raw.get(f"/gm/maps/{coast.id}")).text)
+        assert '"name": "King\'s Road"' in page and 'id="tool-travel"' in page
+        assert 'id="tool-route"' in page and "data-travel=" in page
+        edited = await raw.post(
+            f"/gm/maps/{coast.id}/routes/{route.id}",
+            data={"name": "Old Road", "kind": "road", "terrain_0": "Hill", "terrain_1": "Forest",
+                  "difficult_1": "1"},
+        )  # fmt: skip
+        assert edited.status_code == 204
+        assert registry.world_maps.get(coast.id).routes[0].stretches[0].terrain == "Hill"
+        split = await raw.post(f"/gm/maps/{coast.id}/routes/{route.id}/points/1/split")
+        assert split.status_code == 204
+        # 30 miles at 3 mph, then 30 difficult at 1.5: thirty travelling hours.
+        went = await raw.post(
+            f"/gm/maps/{coast.id}/travel",
+            data={"route": route.id, "from": "0", "to": "60", "pace": "normal", "checks": "0"},
+        )
+        assert went.status_code == 303 and "travelled=1" in went.headers["location"]
+        journey = registry.clock.of(world_id).journey
+        assert (journey.map_id, journey.route_id) == (coast.id, route.id)
+        assert journey.route_at == pytest.approx(60) and journey.hours == 30
+        page = html.unescape((await raw.get(went.headers["location"])).text)
+        assert "data-party=" in page and '"route": "' + route.id in page
+        assert "travelling hours" in page or "Reisestunden" in page
+        refused = await raw.post(
+            f"/gm/maps/{coast.id}/travel",
+            data={"route": route.id, "from": "10", "to": "10", "pace": "normal"},
+        )
+        assert "error=atlas.error.route_same" in refused.headers["location"]
+        gone = await raw.post(f"/gm/maps/{coast.id}/routes/{route.id}/delete")
+        assert gone.status_code == 204

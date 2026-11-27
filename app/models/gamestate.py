@@ -509,6 +509,33 @@ class MapLabel(GameStateModel):
     angle: float = 0
 
 
+# What a route on a map is (documentation/MAPS.md §8): a road or a trail is a path
+# nobody has to find; "" is a way across country, where the navigator rolls.
+RouteKind = Literal["road", "trail", "river", "sea", ""]
+
+
+class RouteStretch(GameStateModel):
+    """A stretch of a route through one terrain: it begins at the route's point
+    ``start`` and runs to the next stretch's start, or the route's end. The terrain is a
+    row of the 2024 *Travel Terrain* table ("Forest"), "" for none."""
+
+    start: int = Field(ge=0)
+    terrain: str = Field(default="", max_length=40)
+    difficult: bool = False
+
+
+class MapRoute(GameStateModel):
+    """A road, trail, river or sea route drawn on a map: its points in the picture's
+    pixels and its stretches by terrain. Its length comes from the map's scale."""
+
+    id: str = Field(default_factory=_new_id)
+    layer: str = ""
+    name: str = Field(default="", max_length=80)
+    kind: RouteKind = "road"
+    points: list[list[float]] = Field(default_factory=list)
+    stretches: list[RouteStretch] = Field(default_factory=list)
+
+
 class MapFrame(GameStateModel):
     """Where a map lies on the map it is part of: a rectangle in that map's pixels."""
 
@@ -538,6 +565,7 @@ class WorldMap(Record):
     # In drawing order, the last on top (documentation/MAPS.md §7).
     layers: list[MapLayer] = Field(default_factory=list)
     labels: list[MapLabel] = Field(default_factory=list)
+    routes: list[MapRoute] = Field(default_factory=list)
     # The map this one lies on, and where (documentation/MAPS.md §6).
     parent: str | None = None
     frame: MapFrame | None = None
@@ -1592,6 +1620,12 @@ class Journey(GameStateModel):
     ambush: list[str] = Field(default_factory=list)
     party_stealth: int | None = None
     unaware: list[str] = Field(default_factory=list)
+    # Travelled along a route of a map (documentation/MAPS.md §8): which, where on it
+    # the party stopped and where it was going, in miles from the route's first point.
+    map_id: str = ""
+    route_id: str = ""
+    route_at: float | None = None
+    route_to: float | None = None
 
 
 class DelveFinding(GameStateModel):
@@ -2004,6 +2038,9 @@ class Knowledge(Record):
 
 __all__ = [
     "LabelStyle",
+    "MapRoute",
+    "RouteKind",
+    "RouteStretch",
     "LayerRole",
     "MapFrame",
     "MapLabel",

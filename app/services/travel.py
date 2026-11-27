@@ -58,7 +58,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Literal
 
 from app.models.gamestate import EncounterMonster, Journey
@@ -182,6 +182,18 @@ class Plan:
     helped: bool = False  # a map, the sky or a helper: advantage on navigating
     foragers: tuple[str, ...] = ()  # characters' ids
     stealthy: bool = False
+    # Travelling minutes instead of ``hours``: a stretch of a route on a map.
+    minutes: int = 0
+
+
+@dataclass(frozen=True)
+class Leg:
+    """A stretch of a route on a map the party walks (documentation/MAPS.md §8): how far,
+    through what terrain, whether difficult."""
+
+    miles: float
+    terrain: Terrain | None = None
+    difficult: bool = False
 
 
 def hunger_limit(con_mod: int, rules: str) -> int:
@@ -248,11 +260,18 @@ class TravelService:
         by: str,
         by_name: str,
         weather: Callable[[], str] | None = None,
+        onward: bool = False,
+        resumed: bool = False,
+        log: bool = True,
     ) -> Journey:
         """Travel until the time is up or an encounter stops the party; the journey is
-        kept on the world's clock for the party view and logged. ``weather()`` rolls
-        a day's weather on the books' table ("temperature|wind|precipitation")."""
-        if not 0 < plan.hours <= MOST_HOURS or plan.pace not in PACES:
+        kept on the world's clock for the party view and logged (unless not ``log``).
+        ``weather()`` rolls a day's weather on the books' table
+        ("temperature|wind|precipitation"). A stretch of a route: ``onward``, more road
+        follows, so a day ending with this stretch still has its night; ``resumed``, it
+        follows another stretch, whose night already rolled the weather."""
+        total = plan.minutes or plan.hours * 60
+        if not 0 < total <= MOST_HOURS * 60 or plan.pace not in PACES:
             raise TravelError("travel.error.bad")
         if plan.water not in WATER or (plan.vessel is not None and plan.vessel.mph <= 0):
             raise TravelError("travel.error.bad")
@@ -261,24 +280,8 @@ class TravelService:
         party = [pc for pc in self._party(world_id) if not pc.in_wizard]
         levels = [max(1, pc.total_level) for pc in party] or [1]
         level = round(sum(levels) / len(levels))
-        pace = plan.pace
         terrain = plan.terrain
-        # Under the 2024 rules the terrain allows no faster than its pace.
-        slowed = bool(
-            rules == "one"
-            and plan.vessel is None
-            and terrain is not None
-            and terrain.max_pace in _PACE_ORDER
-            and _PACE_ORDER.index(pace) > _PACE_ORDER.index(terrain.max_pace)
-        )
-        if slowed and terrain is not None:
-            pace = terrain.max_pace  # type: ignore[assignment]
-        if plan.vessel is not None:
-            mph = plan.vessel.mph
-        else:
-            mph = PACES[pace] / (2 if plan.difficult else 1)
-            # High in the mountains each hour counts as two: half the way in a day.
-            mph /= 2 if plan.altitude else 1
+        pace, mph, slowed = speed(plan, rules)
         day_length = (
             DAY if plan.vessel is not None and plan.vessel.around_the_clock else TRAVEL_DAY * 60
         )
@@ -291,7 +294,7 @@ class TravelService:
             pace=pace,
             slowed=slowed,
             terrain=terrain.name if terrain is not None else "",
-            planned=plan.hours,
+            planned=plan.hours or -(-total // 60),
             difficult=plan.difficult and plan.vessel is None,
             environment=plan.environment.key if plan.environment else "",
             water=plan.water,
@@ -310,9 +313,9 @@ class TravelService:
         every = TRAVEL_DAY * 60 // plan.checks if plan.checks > 0 else 0
         elapsed = 0  # minutes on the clock, nights included
         miles = 0.0
-        left = plan.hours * 60
+        left = total
         stopped = False
-        if plan.weather and weather is not None and offset == 0:
+        if plan.weather and weather is not None and offset == 0 and not resumed:
             journey.weather.append(weather())
         while left > 0 and not stopped:
             # Read afresh each day: exhaustion gained on the road counts from here on.
@@ -358,7 +361,7 @@ class TravelService:
             food, gallons = self._forage(journey, party, plan, pace, rules)
             tired = self._supper(journey, party, hungry, plan.rations, rules, meals=food)
             tired += self._drink(journey, party, _water_with(plan, gallons, len(party)), rules)
-            if left > 0 and not stopped:
+            if (left > 0 or onward) and not stopped:
                 night = DAY - day_length
                 if plan.night_check and night > 0:
                     roll = self._dice.die(20)
@@ -393,8 +396,67 @@ class TravelService:
             hungry,
             road=(part, clock.minute // DAY) if part and not journey.night else (0, None),
         )
-        self._log(world_id, journey, by, by_name)
+        if log:
+            self._log(world_id, journey, by, by_name)
         return journey
+
+    def travel_route(
+        self,
+        world_id: str,
+        plan: Plan,
+        legs: Sequence[Leg],
+        *,
+        path: bool,
+        rules: str,
+        resolve: Resolve,
+        by: str,
+        by_name: str,
+        weather: Callable[[], str] | None = None,
+    ) -> tuple[Journey, float]:
+        """Walk a route of a map stretch by stretch (documentation/MAPS.md §8): each at
+        its terrain's pace, with that terrain's navigation, foraging and encounter
+        distance, the clock, rations, water, nights and checks running as on any road,
+        until the way is done or an encounter stops the party. On a ``path`` (a road, a
+        trail, a river) nobody navigates. The journey as one, kept and logged, and how
+        many miles of the way the party covered."""
+        if not legs:
+            raise TravelError("travel.error.bad")
+        timed = []
+        for leg in legs:
+            stretch = replace(
+                plan,
+                hours=0,
+                terrain=leg.terrain,
+                difficult=leg.difficult,
+                navigator="" if path else plan.navigator,
+            )
+            mph = speed(stretch, rules)[1]
+            timed.append(replace(stretch, minutes=max(1, round(leg.miles / mph * 60))))
+        if sum(t.minutes for t in timed) > MOST_HOURS * 60:
+            raise TravelError("travel.error.too_far")
+        merged: Journey | None = None
+        covered = 0.0
+        for index, (leg, stretch) in enumerate(zip(legs, timed, strict=True)):
+            done = self.travel(
+                world_id,
+                stretch,
+                rules=rules,
+                resolve=resolve,
+                by=by,
+                by_name=by_name,
+                weather=weather,
+                onward=index < len(legs) - 1,
+                resumed=index > 0,
+                log=False,
+            )
+            covered += min(leg.miles, max(0.0, done.miles - done.astray))
+            merged = done if merged is None else _joined(merged, done)
+            if done.check is not None:
+                break
+        assert merged is not None
+        self._clock.keep(world_id, merged)
+        self._log(world_id, merged, by, by_name)
+        return merged, covered
 
     def _fresh(self, world_id: str, party: Sequence[PlayerCharacter]) -> list[PlayerCharacter]:
         """The same characters as they are now."""
@@ -669,6 +731,63 @@ class TravelService:
         self._protocol.append(entries)
 
 
+def speed(plan: Plan, rules: str) -> tuple[Pace, float, bool]:
+    """The pace a plan moves at, its miles an hour, and whether the terrain held it to a
+    slower pace than chosen (2024 rules). Aboard a vessel its speed; difficult terrain
+    halves the pace, and so does high altitude."""
+    pace = plan.pace
+    terrain = plan.terrain
+    slowed = bool(
+        rules == "one"
+        and plan.vessel is None
+        and terrain is not None
+        and terrain.max_pace in _PACE_ORDER
+        and _PACE_ORDER.index(pace) > _PACE_ORDER.index(terrain.max_pace)
+    )
+    if slowed and terrain is not None:
+        pace = terrain.max_pace  # type: ignore[assignment]
+    if plan.vessel is not None:
+        return pace, plan.vessel.mph, slowed
+    mph = PACES[pace] / (2 if plan.difficult else 1)
+    # High in the mountains each hour counts as two: half the way in a day.
+    return pace, mph / (2 if plan.altitude else 1), slowed
+
+
+def _joined(first: Journey, then: Journey) -> Journey:
+    """Two stretches of a route as one journey: from the first's start to the second's
+    end, their hours, miles, meals and checks added, the second's encounter."""
+
+    def both(a: list[str], b: list[str]) -> list[str]:
+        return [*a, *b]
+
+    def once(a: list[str], b: list[str]) -> list[str]:
+        return list(dict.fromkeys([*a, *b]))
+
+    return then.model_copy(
+        update={
+            "started": first.started,
+            "planned": first.planned + then.planned,
+            "hours": first.hours + then.hours,
+            "miles": round(first.miles + then.miles, 1),
+            "difficult": first.difficult or then.difficult,
+            "slowed": first.slowed or then.slowed,
+            "rations": first.rations + then.rations,
+            "hungry": once(first.hungry, then.hungry),
+            "exhausted": both(first.exhausted, then.exhausted),
+            "thirsty": once(first.thirsty, then.thirsty),
+            "weather": both(first.weather, then.weather),
+            "exposed": both(first.exposed, then.exposed),
+            "navigation": both(first.navigation, then.navigation),
+            "navigator": then.navigator or first.navigator,
+            "lost_days": first.lost_days + then.lost_days,
+            "astray": round(first.astray + then.astray, 1),
+            "foraged_food": first.foraged_food + then.foraged_food,
+            "foraged_water": first.foraged_water + then.foraged_water,
+            "foraged_meals": first.foraged_meals + then.foraged_meals,
+        }
+    )
+
+
 def _water_with(plan: Plan, gallons: int, people: int) -> Water:
     """The day's water once what was foraged is added to what the party carries: enough,
     half or none, a character needing a gallon (two in extreme heat)."""
@@ -691,11 +810,13 @@ __all__ = [
     "TERRAINS",
     "TRAVEL_DAY",
     "WATER",
+    "Leg",
     "Plan",
     "Terrain",
     "TravelError",
     "TravelService",
     "Vessel",
     "hunger_limit",
+    "speed",
     "terrain_of",
 ]

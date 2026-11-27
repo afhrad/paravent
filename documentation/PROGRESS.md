@@ -1298,6 +1298,17 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       *Name* writes words on the map (`MapLabel`) in four theme styles, sized in the
       picture's pixels so they scale with the map, turned for a river or a range, hidden
       below 5 px; dragged to move, a card to edit or remove
+- [x] **Maps, step 4: roads and travel** (2026-11-27, MAPS.md §8): roads, trails, rivers,
+      sea routes and ways across country drawn on a map (`MapRoute`), on *Roads*, their
+      stretches by terrain (`RouteStretch`, the 2024 travel terrains, difficult or not)
+      chosen while drawing, lengths from the scale; drag their points, split or shorten
+      them. *Travel* walks a road between two of its points or from where the party is,
+      stretch by stretch through the travel service (`travel_route`, `Leg`, `speed`,
+      `Plan.minutes`), each at its terrain's pace with its navigation (none on a path),
+      foraging and encounter distance, nights falling between stretches; the journey is
+      kept as one with the party's place on the road (`Journey.route_at`), which the map
+      marks. Drawing tools read the pointer before anything on the map, so a drag draws
+      over roads, pins and names too
 - [x] Wizard state when going back a step — checked 2026-11-02 (CHARGEN-WIZARD.md §6): answers
       live in the draft's file, a step is a GET of them, and a changed answer marks later
       steps for review without dropping them. Typed text followed by a footer click now
