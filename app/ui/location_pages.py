@@ -225,8 +225,10 @@ def location_page(
     here: Sequence[Here],
     *,
     notice_text: str | None = None,
+    on_maps: Sequence[tuple[str, str]] = (),
 ) -> Element:
-    """One place: picture, tags, where it is placed, its notes and what they name."""
+    """One place: picture, tags, where it is placed, its notes and what they name, and
+    the maps it is pinned on (``(map name, address at the pin)``)."""
     t = page.t
     return app_shell(
         page,
@@ -281,6 +283,17 @@ def location_page(
                 ],
             ]
             if here
+            else None,
+            section(class_="prose-section")[
+                h2(class_="section-title")[t("atlas.on_the_map")],
+                ul(class_="place-here")[
+                    [
+                        li[a(href=url, class_="ref")[icon("map-pinned", "xs"), name]]
+                        for name, url in on_maps
+                    ]
+                ],
+            ]
+            if on_maps
             else None,
         ],
         world_id=world.id,

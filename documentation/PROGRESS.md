@@ -1277,6 +1277,17 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       in the reader's units and says the days at each pace. An adventure's maps stick to
       it: deleted, copied, moved and restored with it, never moved up; a world's map copies
       or moves to another world alone; the trash forgets a map's picture with it
+- [x] **Maps, step 2: pins and maps within maps** (2026-11-27, MAPS.md §6): a map's
+      pins (`WorldMap.pins`) point by id at a place, NPC, encounter, treasure, adventure,
+      chapter or another map of its world, or are a note; *Pin* and a tap open a filtered
+      list, *New place here* or a note. Drawn as the element's token, the name beside it
+      when zoomed in; a card opens the target, renames the pin, removes it; dragged pins
+      move. A pin whose target is gone, or left in another world, stays grey with the name
+      it had. A place's page lists *On the map*, each opening the map at the pin. *Lay a
+      map on it* draws where another map lies (`parent`, `frame`): its outline opens it,
+      the map shows the path of maps it lies in and says when the frame and its own scale
+      disagree by more than a tenth; never on itself or what lies in it, nor a world's map
+      on an adventure's. A sharper picture stretches pins and frames along
 - [x] Wizard state when going back a step — checked 2026-11-02 (CHARGEN-WIZARD.md §6): answers
       live in the draft's file, a step is a GET of them, and a changed answer marks later
       steps for review without dropping them. Typed text followed by a footer click now

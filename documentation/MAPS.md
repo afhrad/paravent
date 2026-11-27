@@ -5,8 +5,8 @@ and dragging through them however large they are, the scale every map carries, m
 on them, the pins that tie a map to the world's places, people and stories, the layers of
 names and notes laid over the picture, and the roads whose length becomes travel time.
 
-**Date:** 2026-11-27 · **Status:** step 1, the maps themselves, built 2026-11-27; steps 2–4 specified. Steps in
-§10.
+**Date:** 2026-11-27 · **Status:** step 1, the maps themselves, and step 2, pins and maps within maps, built
+2026-11-27; steps 3–4 specified. Steps in §10.
 
 > **One sentence:** a map is a picture with a scale; everything on it — pins, names, notes,
 > roads, the ruler — is stored in the picture's own pixels, so it holds at every zoom and survives
@@ -54,8 +54,9 @@ without it, they are copied, moved and deleted with it, and a map's file entry s
 **The original is kept as uploaded** (JPEG, PNG or WebP, never re-encoded) in the scope's
 `media/maps/`, so it is in the world's folder, its backups, its export and its copy like
 every other picture (ADVENTURES.md §3); an adventure's map in the adventure's folder.
-Replacing the image keeps pins, labels and routes where they are in pixels; a picture of a
-different size asks first whether to stretch them onto it.
+Replacing the image with a picture of another size takes it for the same map at another
+resolution (decided while building, 2026-11-27): the scale, the pins (and later labels and
+routes) and the frames of the maps lying on it are stretched onto it, without asking.
 
 **Coordinates** are pixels of the original, `x` right and `y` down, as floats. Nothing stored
 depends on the tiles, the zoom or the screen.
@@ -153,16 +154,20 @@ maps; a Mercator-style map measures wrong towards its edges, which the scale for
 
 ## 6. Pins and maps within maps
 
-`MapPin`: `id`, `layer`, `x`, `y`, `target` and an optional `label` (shown instead of the
-target's name). The target is one of:
+`MapPin`: `id`, `x`, `y`, `kind`, `target` (an id), `name` (the target's when pinned), an
+optional `label` (shown instead of the target's name; a note's title) and a note's `note`;
+`layer` comes with step 3. The target is one of:
 
 | Kind | Points at |
 | --- | --- |
 | `place` | a place (`Location`) |
-| `npc`, `encounter`, `treasure`, `shop` | those objects |
+| `npc`, `encounter`, `treasure` | those objects |
 | `adventure`, `chapter` | where a story happens |
 | `map` | another map: the city on the world map opens the city's map |
 | `note` | nothing: the label and a line of Markdown, for what deserves no record |
+
+**No shop pins** (decided while building): a world has one shop, opened from the clock, with
+no place of its own; a place's notes say where it stands.
 
 **Pins point by id**, not by name: a rename changes nothing, and the pin shows the new name.
 A pin whose target is gone (deleted, in the trash, left behind by a world copy) stays grey,
@@ -170,12 +175,17 @@ names what it pointed at, and comes back to life when the target is restored.
 
 **Drawn as the element's round token** (TOKENS.md): a place's picture, an NPC's portrait, the
 kind's disc otherwise; small at a distance, the name beside it when zoomed in. A tap opens a
-card: the name, a line of the target's notes, *Open*, and for a `map` pin *Go to map*.
+card: the name, a line of the target's notes, *Open*, and for a `map` pin *Go to map*;
+there its label (and a note's text) is changed and the pin removed. Names show from three
+zoom levels short of the original's resolution. A world map shows an adventure's place, NPC,
+encounter or treasure only through a pin on the adventure's own map; adventures, chapters
+and maps of the world it may show all. Opened at a pin (`?pin=`), the map centres on it and
+opens its card.
 
 **Placing a pin**: *Pin* in the map's toolbar, then a tap on the map, then the target from a
 search over the scope's objects (the world's and, on an adventure's map, the adventure's
-too), onto the layer chosen in the toolbar,
-or *New place here*, which creates the place and pins it in one go. Dragging moves a pin;
+too), or *New place here*, which creates the place (in the map's world, or its adventure)
+and pins it in one go, or a note. Dragging moves a pin;
 its card removes it.
 
 **A map within a map.** A map may lie on another: `parent` and `frame`, a rectangle in the
@@ -184,6 +194,9 @@ shows its parents as a path above it ("Faerûn › Sword Coast › Waterdeep"). 
 frame are two ways to the same thing; a frame says how far the map reaches. When both maps
 have a scale and the frame is set, the form says if they disagree by more than a tenth
 ("this frame makes the city 4 miles across, its own scale 12"), and corrects neither.
+*Lay a map on it* (the larger map's toolbar) chooses the map and draws its rectangle with
+two taps at opposite corners; the outline's card opens the map or takes it off. A map copied
+to another world alone loses the map it lay on.
 An adventure's map may lie on a world map: the world map then shows its frame with the
 adventure's name, and loses it when the adventure is deleted. A world map never lies on an
 adventure's.
@@ -284,7 +297,7 @@ Paravent ships none.
    with the pixel limit, the viewer (one picture or tiles), the scale form with both ways,
    the ruler with paces, the remembered view, *Maps* in the navigation and on the adventure
    page, context menus, trash, world copy and move.
-2. **Pins (M).** Every target kind, tokens, the card, *New place here*, grey pins of gone
+2. ~~**Pins (M).**~~ Built 2026-11-27. Every target kind, tokens, the card, *New place here*, grey pins of gone
    targets, *On the map* on a place's page, maps within maps with frames and the path.
 3. **Layers and names (M).** Layers with the panel, visibility per user, locks and
    `from_zoom`; labels with styles, size and angle; notes on their layer. Pins made in

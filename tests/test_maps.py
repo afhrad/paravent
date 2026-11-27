@@ -322,3 +322,164 @@ class TestPages:
         await _login(raw)
         page = await raw.get("/gm/maps")
         assert page.status_code == 200 and 'href="/gm/maps"' in page.text
+
+
+def _map(registry: Any, world_id: str, name: str, size: tuple[int, int] = (1000, 500), **kw: Any):
+    return registry.world_maps.create(
+        world_id, name, f"{name}.png", io.BytesIO(picture(*size)), kw.get("adventure")
+    )
+
+
+class TestPins:
+    def test_what_a_map_may_show(self, table: Table) -> None:  # noqa: F811
+        _raw, facts = table
+        registry = _registry(facts)
+        world_id = facts["world"].id
+        service = registry.world_maps
+        adventure = registry.adventures.create(world_id, "Fog on the River")
+        town = registry.locations.create("Grey Reed", f"w:{world_id}", world_id)
+        ferry = registry.locations.create("Ferry", f"a:{adventure.id}", world_id)
+        coast = _map(registry, world_id, "coast")
+        own = _map(registry, world_id, "ferry-map", adventure=adventure.id)
+        pin = service.add_pin(coast.id, x=-5, y=9999, kind="place", target=town.id)
+        assert (pin.x, pin.y, pin.name) == (0, 500, "Grey Reed")  # held inside the picture
+        # An adventure's place: on its own map, not on the world's.
+        with pytest.raises(MapError):
+            service.add_pin(coast.id, x=1, y=1, kind="place", target=ferry.id)
+        service.add_pin(own.id, x=1, y=1, kind="place", target=ferry.id)
+        service.add_pin(coast.id, x=2, y=2, kind="adventure", target=adventure.id)
+        service.add_pin(coast.id, x=3, y=3, kind="map", target=own.id)
+        with pytest.raises(MapError):
+            service.add_pin(coast.id, x=3, y=3, kind="map", target=coast.id)
+        with pytest.raises(MapError):
+            service.add_pin(coast.id, x=3, y=3, kind="note", label="  ")
+        note = service.add_pin(coast.id, x=4, y=4, kind="note", label="Bridge", note="It is out.")
+        service.move_pin(coast.id, note.id, 40, 50)
+        service.edit_pin(coast.id, note.id, label="The bridge", note="Out since spring.")
+        saved = {p.id: p for p in service.get(coast.id).pins}
+        assert (saved[note.id].x, saved[note.id].label) == (40, "The bridge")
+        assert [m.name for m, _ in service.pins_to("place", town.id)] == ["coast"]
+        service.remove_pin(coast.id, note.id)
+        assert note.id not in {p.id for p in service.get(coast.id).pins}
+
+    def test_maps_within_maps(self, table: Table) -> None:  # noqa: F811
+        _raw, facts = table
+        registry = _registry(facts)
+        world_id = facts["world"].id
+        service = registry.world_maps
+        adventure = registry.adventures.create(world_id, "Fog on the River")
+        world = _map(registry, world_id, "world", (2000, 1000))
+        coast = _map(registry, world_id, "coast", (1000, 500))
+        city = _map(registry, world_id, "city", (800, 800))
+        dungeon = _map(registry, world_id, "dungeon", (500, 500), adventure=adventure.id)
+        service.set_frame(coast.id, world.id, [500, 400, 100, 200])
+        child = service.get(coast.id)
+        assert (child.frame.x, child.frame.y, child.frame.width) == (100, 200, 400)
+        service.set_frame(city.id, coast.id, [10, 10, 60, 60])
+        assert [m.name for m in service.path(service.get(city.id))] == ["world", "coast"]
+        with pytest.raises(MapError):  # a map never lies in what lies in it
+            service.set_frame(world.id, city.id, [1, 1, 50, 50])
+        with pytest.raises(MapError):  # nor a world's map on an adventure's
+            service.set_frame(coast.id, dungeon.id, [1, 1, 50, 50])
+        service.set_frame(dungeon.id, world.id, [1, 1, 50, 50])
+        assert [m.name for m in service.frame_candidates(dungeon)] == []
+        # 2000 px of world are 400 miles; the coast's frame, 400 px, is 80 miles across,
+        # its own scale says 200: they disagree.
+        service.set_scale(world.id, way="width", amount=400, unit="mi")
+        service.set_scale(coast.id, way="width", amount=200, unit="mi")
+        framed, own = service.scales_disagree(service.get(coast.id))
+        assert (round(framed / 5280), round(own / 5280)) == (80, 200)
+        service.set_scale(coast.id, way="width", amount=82, unit="mi")
+        assert service.scales_disagree(service.get(coast.id)) is None
+        # The world map at twice the resolution: pins and frames follow.
+        service.add_pin(world.id, x=100, y=50, kind="note", label="Here")
+        service.replace_image(world.id, "world.png", io.BytesIO(picture(4000, 2000)))
+        assert service.get(world.id).pins[0].x == 200
+        assert service.get(coast.id).frame.x == 200
+        service.clear_frame(city.id)
+        assert service.path(service.get(city.id)) == []
+
+    def test_copied_alone_a_map_leaves_its_parent(self, table: Table) -> None:  # noqa: F811
+        _raw, facts = table
+        registry = _registry(facts)
+        world_id = facts["world"].id
+        other = registry.gamestate.worlds.create(World(name="Ashfall"))
+        world = _map(registry, world_id, "world", (2000, 1000))
+        coast = _map(registry, world_id, "coast")
+        town = registry.locations.create("Grey Reed", f"w:{world_id}", world_id)
+        registry.world_maps.set_frame(coast.id, world.id, [1, 1, 50, 50])
+        registry.world_maps.add_pin(coast.id, x=1, y=1, kind="place", target=town.id)
+        done = registry.world_copy.copy("map", [coast.id], other.id, bring=False)
+        copied = registry.world_maps.get(done.ids[coast.id])
+        assert copied.parent is None and copied.frame is None
+        # Its pin to a place left behind shows as gone there.
+        assert not registry.world_maps.shows(copied, "place", town.id)
+
+
+class TestPinPages:
+    async def test_pin_open_drag_remove(self, table: Table) -> None:  # noqa: F811
+        raw, facts = table
+        registry = _registry(facts)
+        world_id = facts["world"].id
+        await _login(raw)
+        coast = _map(registry, world_id, "coast")
+        town = registry.locations.create("Grey Reed", f"w:{world_id}", world_id)
+        made = await raw.post(
+            f"/gm/maps/{coast.id}/pins",
+            data={"x": "100,5", "y": "50", "choice": f"place:{town.id}"},
+        )
+        assert made.status_code == 303 and "pin=" in made.headers["location"]
+        (pin,) = registry.world_maps.get(coast.id).pins
+        page = html.unescape((await raw.get(made.headers["location"])).text)
+        assert f'"id": "{pin.id}"' in page and f'data-focus="{pin.id}"' in page
+        assert f'"url": "/gm/places/{town.id}"' in page
+        assert 'id="tool-pin"' in page and "Grey Reed" in page
+        shown = html.unescape((await raw.get(f"/gm/places/{town.id}")).text)
+        assert f"/gm/maps/{coast.id}?pin={pin.id}" in shown
+        new = await raw.post(
+            f"/gm/maps/{coast.id}/pins",
+            data={"x": "10", "y": "10", "choice": "new", "place_name": "Old Mill"},
+        )
+        assert new.status_code == 303
+        mill = next(x for x in registry.locations.list(world_id) if x.name == "Old Mill")
+        assert any(p.target == mill.id for p in registry.world_maps.get(coast.id).pins)
+        note = await raw.post(
+            f"/gm/maps/{coast.id}/pins", data={"x": "5", "y": "5", "choice": "note"}
+        )
+        assert "error=atlas.error.note" in note.headers["location"]
+        moved = await raw.post(
+            f"/gm/maps/{coast.id}/pins/{pin.id}/move", data={"x": "300", "y": "200"}
+        )
+        assert moved.status_code == 204
+        edited = await raw.post(f"/gm/maps/{coast.id}/pins/{pin.id}", data={"label": "Reed"})
+        assert edited.status_code == 204
+        assert registry.world_maps.get(coast.id).pins[0].label == "Reed"
+        # The place deleted: the pin stays, grey, with the name it had.
+        registry.locations.delete(town.id)
+        page = html.unescape((await raw.get(f"/gm/maps/{coast.id}")).text)
+        assert '"gone": true' in page and '"name": "Grey Reed"' in page
+        gone = await raw.post(f"/gm/maps/{coast.id}/pins/{pin.id}/delete")
+        assert gone.status_code == 204
+        assert pin.id not in {p.id for p in registry.world_maps.get(coast.id).pins}
+
+    async def test_lay_a_map_on_another(self, table: Table) -> None:  # noqa: F811
+        raw, facts = table
+        registry = _registry(facts)
+        world_id = facts["world"].id
+        await _login(raw)
+        world = _map(registry, world_id, "world", (2000, 1000))
+        coast = _map(registry, world_id, "coast")
+        laid = await raw.post(
+            f"/gm/maps/{world.id}/frames",
+            data={"child": coast.id, "x1": "10", "y1": "10", "x2": "210", "y2": "110"},
+        )
+        assert laid.status_code == 303 and "saved=1" in laid.headers["location"]
+        page = html.unescape((await raw.get(f"/gm/maps/{world.id}")).text)
+        assert f'"url": "/gm/maps/{coast.id}"' in page and "data-frames=" in page
+        child = html.unescape((await raw.get(f"/gm/maps/{coast.id}")).text)
+        assert 'class="map-path"' in child and f'href="/gm/maps/{world.id}"' in child
+        cleared = await raw.post(
+            f"/gm/maps/{coast.id}/frame/clear", data={"next": f"/gm/maps/{world.id}"}
+        )
+        assert cleared.headers["location"] == f"/gm/maps/{world.id}"
+        assert registry.world_maps.get(coast.id).parent is None

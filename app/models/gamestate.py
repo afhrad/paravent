@@ -452,6 +452,36 @@ class MapScale(GameStateModel):
     line: list[float] = Field(default_factory=list)
 
 
+# What a pin on a map points at (documentation/MAPS.md §6); a note points at nothing.
+PinKind = Literal["place", "npc", "encounter", "treasure", "adventure", "chapter", "map", "note"]
+
+
+class MapPin(GameStateModel):
+    """A spot on a map tied to the world (documentation/MAPS.md §6): where it is in the
+    original's pixels, what it points at by id, and the name that had when pinned, so a
+    pin whose target is gone still says what it was."""
+
+    id: str = Field(default_factory=_new_id)
+    x: float
+    y: float
+    kind: PinKind
+    target: str = ""
+    name: str = ""
+    # Shown instead of the target's name; a note's title.
+    label: str = Field(default="", max_length=120)
+    # A note's text, Paravent Markdown.
+    note: str = Field(default="", max_length=4000)
+
+
+class MapFrame(GameStateModel):
+    """Where a map lies on the map it is part of: a rectangle in that map's pixels."""
+
+    x: float
+    y: float
+    width: float = Field(gt=0)
+    height: float = Field(gt=0)
+
+
 class WorldMap(Record):
     """A map of a world or of one adventure (documentation/MAPS.md §2): a picture of the
     gamemaster's with a scale. Called WorldMap so it does not shadow ``map``. An
@@ -468,6 +498,10 @@ class WorldMap(Record):
     digest: str
     scale: MapScale | None = None
     notes: str = ""
+    pins: list[MapPin] = Field(default_factory=list)
+    # The map this one lies on, and where (documentation/MAPS.md §6).
+    parent: str | None = None
+    frame: MapFrame | None = None
 
 
 SoundKind = Literal["effect", "ambience", "music"]
@@ -1928,7 +1962,10 @@ class Knowledge(Record):
 
 
 __all__ = [
+    "MapFrame",
+    "MapPin",
     "MapScale",
+    "PinKind",
     "MapUnit",
     "MapView",
     "WorldMap",

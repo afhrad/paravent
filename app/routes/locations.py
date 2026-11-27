@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from contextlib import suppress
 from typing import Annotated
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse, Response
@@ -39,6 +40,7 @@ from app.ui.location_pages import (
     place_name_field,
     world_locations_url,
 )
+from app.ui.map_pages import map_url
 from app.ui.markdown import LIBRARY_ICON
 from app.ui.settlement_pages import settlement_page, size_text
 
@@ -169,6 +171,11 @@ async def show_location(
             paravent_markdown(page, registry, location.scope, location.notes),
             here_of(registry, location),
             notice_text=page.t("places.saved") if saved else None,
+            on_maps=[
+                (found.name, f"{map_url(found.id)}?{urlencode({'pin': pin.id})}")
+                for found, pin in registry.world_maps.pins_to("place", location.id)
+                if found.scope.world_id == location.scope.world_id
+            ],
         )
     )
 

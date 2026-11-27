@@ -645,6 +645,9 @@ class WorldCopy:
             }
         else:
             data["world_id"] = target
+        if entry.kind == "map" and data.get("parent") not in copied_ids:
+            # The map it lay on stayed behind; its pins to what stayed show as gone.
+            data["parent"] = data["frame"] = None
         if entry.kind == "encounter" and data.get("adventure_id") not in copied_ids:
             data["adventure_id"] = data["chapter_id"] = None
         if entry.kind == "quest":

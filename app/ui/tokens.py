@@ -31,6 +31,11 @@ KIND_ICONS = {
     "spell": "wand-sparkles",
     "vehicle": "footprints",
     "object": "vault",
+    # What a map's pins point at besides (documentation/MAPS.md §6).
+    "adventure": "book-open",
+    "chapter": "scroll",
+    "map": "map-pinned",
+    "note": "notebook-pen",
 }
 SIZES = frozenset({"sm", "md", "lg", "xl", "xxl"})
 

@@ -6,9 +6,11 @@ from __future__ import annotations
 
 import json
 from collections.abc import Sequence
+from dataclasses import dataclass
 
 from htpy import (
     Element,
+    Node,
     a,
     b,
     button,
@@ -22,6 +24,7 @@ from htpy import (
     legend,
     li,
     link,
+    nav,
     option,
     p,
     section,
@@ -265,9 +268,49 @@ def _words(page: Page) -> str:
             "line_end": t("atlas.scale.line_end"),
             "line_drawn": t("atlas.scale.drawn"),
             "no_scale": t("atlas.no_scale"),
+            "pin_place": t("atlas.pin.tap"),
+            "frame_start": t("atlas.frame.corner_start"),
+            "frame_end": t("atlas.frame.corner_end"),
+            "frame_drawn": t("atlas.frame.drawn"),
+            "open": t("menu.open"),
+            "go_to_map": t("atlas.pin.go_to_map"),
+            "label": t("atlas.pin.label"),
+            "note_text": t("atlas.pin.note_text"),
+            "save": t("worlds.save"),
+            "remove": t("atlas.pin.remove"),
+            "gone": t("atlas.pin.gone"),
+            "unframe": t("atlas.frame.remove"),
+            "kinds": {k: t(f"atlas.pin.kind.{k}") for k in (*_PIN_ORDER, "note")},
         },
         ensure_ascii=False,
     )
+
+
+def _path(page: Page, path: Sequence[WorldMap]) -> Node:
+    """The maps this one lies in, the widest first, each a link."""
+    if not path:
+        return None
+    parts: list[Node] = []
+    for found in path:
+        parts += [a(href=map_url(found.id))[found.name], " › "]
+    return nav(class_="map-path", aria_label=page.t("atlas.frame.path"))[parts[:-1]]
+
+
+def _disagree(page: Page, found: WorldMap, disagree: tuple[float, float] | None) -> Node:
+    """Says when the frame on the larger map and the map's own scale disagree."""
+    if disagree is None:
+        return None
+    framed, own = disagree
+    long = is_long(found)
+    return p(class_="field-hint map-disagree")[
+        icon("ruler", "xs"),
+        " ",
+        page.t(
+            "atlas.frame.disagree",
+            framed=distance_text(page, framed, long),
+            own=distance_text(page, own, long),
+        ),
+    ]
 
 
 def tiling_panel(page: Page, found: WorldMap, job: TileJob | None) -> Element:
@@ -377,6 +420,180 @@ def _scale_dialog(page: Page, found: WorldMap) -> Element:
     )
 
 
+@dataclass(frozen=True)
+class PinView:
+    """A pin as the viewer draws it: where, what it is called, where it leads, its
+    token, a line of its target's notes, and whether its target is gone."""
+
+    id: str
+    x: float
+    y: float
+    kind: str
+    name: str
+    label: str
+    url: str | None
+    map_url: str | None
+    token: str
+    excerpt: str
+    gone: bool
+    note: str = ""
+
+
+@dataclass(frozen=True)
+class FrameView:
+    """A map lying on this one: its name, its page, its rectangle here."""
+
+    id: str
+    name: str
+    url: str
+    x: float
+    y: float
+    width: float
+    height: float
+
+
+@dataclass(frozen=True)
+class Candidate:
+    """Something a pin may point at, for the pin dialog."""
+
+    kind: str
+    id: str
+    name: str
+    where: str = ""
+
+
+@dataclass(frozen=True)
+class MapContext:
+    """What lies on a map and around it (documentation/MAPS.md §6): its pins, the maps
+    lying on it, the maps it lies in, what may be pinned or framed on it, and whether
+    its frame and its own scale disagree (``(by the frame, its own)`` in feet)."""
+
+    pins: Sequence[PinView] = ()
+    frames: Sequence[FrameView] = ()
+    path: Sequence[WorldMap] = ()
+    candidates: Sequence[Candidate] = ()
+    framable: Sequence[WorldMap] = ()
+    disagree: tuple[float, float] | None = None
+    focus: str = ""
+
+
+# The kinds in the pin dialog's list, in its order.
+_PIN_ORDER = ("place", "npc", "encounter", "treasure", "adventure", "chapter", "map")
+
+
+def _pin_dialog(page: Page, found: WorldMap, candidates: Sequence[Candidate]) -> Element:
+    """What a new pin points at: something of the world from a filtered list, a new
+    place made here, or a note. The spot comes from the tap on the map."""
+    t = page.t
+    rows = [
+        label(class_="map-pin-choice", data_pin_text=f"{c.name} {c.where}".casefold())[
+            input_el(type="radio", name="choice", value=f"{c.kind}:{c.id}", required=True),
+            span(class_="map-pin-choice-kind muted")[t(f"atlas.pin.kind.{c.kind}")],
+            span[c.name],
+            span(class_="muted")[c.where] if c.where else None,
+        ]
+        for kind in _PIN_ORDER
+        for c in candidates
+        if c.kind == kind
+    ]
+    return tool_dialog(
+        page,
+        "pin",
+        t("atlas.pin.title"),
+        form(method="post", action=f"{map_url(found.id)}/pins", class_="stack-form map-pin-form")[
+            hidden("x", ""),
+            hidden("y", ""),
+            p(class_="field-hint")[t("atlas.pin.lede")],
+            label(class_="map-pin-choice map-pin-new")[
+                input_el(type="radio", name="choice", value="new", required=True),
+                span[t("atlas.pin.new_place")],
+                input_el(
+                    type="text",
+                    name="place_name",
+                    placeholder=t("atlas.pin.new_place_name"),
+                    aria_label=t("atlas.pin.new_place_name"),
+                    autocomplete="off",
+                ),
+            ],
+            label(class_="map-pin-choice map-pin-new")[
+                input_el(type="radio", name="choice", value="note", required=True),
+                span[t("atlas.pin.note")],
+            ],
+            input_el(
+                type="search",
+                class_="map-pin-filter",
+                placeholder=t("atlas.pin.filter"),
+                aria_label=t("atlas.pin.filter"),
+                data_pin_filter="",
+            )
+            if rows
+            else None,
+            div(class_="map-pin-list")[rows] if rows else None,
+            text_field(
+                "label",
+                t("atlas.pin.label"),
+                value="",
+                autocomplete="off",
+                required=False,
+                optional_text=t("common.optional"),
+                hint=t("atlas.pin.label_hint"),
+            ),
+            div(class_="field map-pin-note")[
+                label(for_="f-pin-note")[t("atlas.pin.note_text")],
+                textarea(id="f-pin-note", name="note", rows="3"),
+            ],
+            div(class_="form-actions")[
+                button(type="submit", class_="btn btn-primary")[
+                    icon("map-pin", "sm"), span[t("atlas.pin.submit")]
+                ]
+            ],
+        ],
+        keep_open=True,
+    )
+
+
+def _frame_dialog(page: Page, found: WorldMap, framable: Sequence[WorldMap]) -> Element:
+    """Lay another map on this one: which, then its rectangle drawn with two taps."""
+    t = page.t
+    return tool_dialog(
+        page,
+        "frame",
+        t("atlas.frame.title"),
+        form(
+            method="post", action=f"{map_url(found.id)}/frames", class_="stack-form map-frame-form"
+        )[
+            p(class_="field-hint")[t("atlas.frame.lede")],
+            div(class_="field")[
+                label(for_="f-frame-child")[t("atlas.frame.which")],
+                select(id="f-frame-child", name="child")[
+                    [option(value=m.id)[m.name] for m in framable]
+                ],
+            ],
+            div(class_="map-scale-line")[
+                button(type="button", class_="btn btn-sm", data_map_frame_draw="")[
+                    icon("pen-line", "sm"), span[t("atlas.frame.draw")]
+                ],
+                span(class_="muted", data_frame_state="")[t("atlas.frame.not_drawn")],
+                [hidden(name, "") for name in ("x1", "y1", "x2", "y2")],
+            ],
+            div(class_="form-actions")[
+                button(type="submit", class_="btn btn-primary")[
+                    icon("check"), span[t("atlas.frame.submit")]
+                ]
+            ],
+        ],
+        keep_open=True,
+    )
+
+
+def _pins_json(pins: Sequence[PinView]) -> str:
+    return json.dumps([vars(p) for p in pins], ensure_ascii=False)
+
+
+def _frames_json(frames: Sequence[FrameView]) -> str:
+    return json.dumps([vars(f) for f in frames], ensure_ascii=False)
+
+
 def map_page(
     page: Page,
     found: WorldMap,
@@ -386,11 +603,14 @@ def map_page(
     ready: bool,
     job: TileJob | None,
     view: MapView | None,
+    around: MapContext | None = None,
     notes: Markup | None = None,
     notice_text: str | None = None,
     error: str | None = None,
 ) -> Element:
-    """One map in its viewer: zoom and drag, the ruler, the scale."""
+    """One map in its viewer: zoom and drag, the ruler, the scale, its pins and the maps
+    lying on it."""
+    around = around or MapContext()
     t = page.t
     url = map_url(found.id)
     tiled = needs_tiles(found.width, found.height)
@@ -411,6 +631,9 @@ def map_page(
         data_lang=page.lang,
         data_view=json.dumps(view.model_dump()) if view is not None else "",
         data_words=_words(page),
+        data_pins=_pins_json(around.pins),
+        data_frames=_frames_json(around.frames),
+        data_focus=around.focus or None,
         role="application",
         aria_label=t("atlas.viewer", name=found.name),
     )
@@ -427,8 +650,10 @@ def map_page(
                     span(class_="eyebrow")[
                         adventure.name if adventure is not None else t("atlas.world_map")
                     ],
+                    _path(page, around.path),
                     h1[found.name],
                     scale_badge(page, found),
+                    _disagree(page, found, around.disagree),
                 ],
                 div(class_="map-head-actions")[
                     a(href=f"{url}/edit", class_="btn btn-ghost")[
@@ -446,6 +671,14 @@ def map_page(
                     disabled=scale is None,
                     title=None if scale is not None else t("atlas.ruler.needs_scale"),
                 )[icon("ruler", "sm"), span[t("atlas.ruler.button")]],
+                button(
+                    type="button", class_="btn btn-sm", data_map_tool="pin", aria_pressed="false"
+                )[icon("map-pin", "sm"), span[t("atlas.pin.button")]],
+                button(type="button", class_="btn btn-sm btn-ghost", data_map_tool="frame")[
+                    icon("map", "sm"), span[t("atlas.frame.button")]
+                ]
+                if around.framable
+                else None,
                 a(href="?tool=scale", class_="btn btn-sm btn-ghost", data_dialog="tool-scale")[
                     icon("scaling", "sm"), span[t("atlas.scale.button")]
                 ],
@@ -458,6 +691,8 @@ def map_page(
             if notes is not None and notes.strip()
             else None,
             _scale_dialog(page, found),
+            _pin_dialog(page, found, around.candidates),
+            _frame_dialog(page, found, around.framable) if around.framable else None,
         ],
         world_id=world.id,
         main_class="shell-main map-main",
@@ -560,6 +795,10 @@ def map_delete_page(page: Page, found: WorldMap) -> Element:
 
 
 __all__ = [
+    "Candidate",
+    "FrameView",
+    "MapContext",
+    "PinView",
     "MAPS_URL",
     "MAP_SCRIPTS",
     "adventure_maps_section",

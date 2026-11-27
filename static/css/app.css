@@ -3575,3 +3575,37 @@ dialog.ctx-dialog .panel{ margin:0; }
 .map-scale-amount .inline-fields{ display:flex; gap:8px; }
 .map-scale-amount .inline-fields input{ max-width:10em; }
 .map-scale-form:has(input[name=way][value=width]:checked) [data-scale-line]{ display:none; }
+/* Pins and frames on a map */
+.map-pin{ background:none; border:0; }
+.map-pin > span{ display:flex; align-items:center; gap:4px; white-space:nowrap; }
+.map-pin .map-pin-token .tok{ box-shadow:var(--shadow-md); }
+.map-pin-name{ display:none; padding:1px 6px; border-radius:var(--r-sm); background:color-mix(in srgb, var(--surface) 88%, transparent); color:var(--text); font:600 12px/1.4 var(--font-ui); box-shadow:var(--shadow-sm); }
+.map-show-names .map-pin-name{ display:inline-block; }
+.map-pin-gone{ filter:grayscale(1); opacity:.55; }
+.map-pin-gone .map-pin-name{ text-decoration:line-through; }
+.map-frame{ stroke:var(--accent); stroke-dasharray:8 6; fill:var(--accent); fill-opacity:.06; }
+.map-frame-new{ stroke-dasharray:none; fill-opacity:.12; }
+.map-frame-name.leaflet-tooltip{ background:color-mix(in srgb, var(--surface) 85%, transparent); border:0; box-shadow:none; color:var(--accent-text); font:600 13px var(--font-ui); }
+.map-frame-name.leaflet-tooltip::before{ display:none; }
+.map-card{ display:flex; flex-direction:column; gap:4px; font-family:var(--font-ui); }
+.map-card-title{ font-size:15px; }
+.map-card-text{ margin:2px 0; color:var(--text-2); font-size:13px; }
+.map-card-links{ display:flex; gap:6px; margin:4px 0; }
+.map-card-form{ display:flex; flex-direction:column; gap:6px; margin-top:4px; }
+.map-card-form input, .map-card-form textarea{ width:100%; font:inherit; font-size:13px; }
+.map-card-actions{ display:flex; gap:6px; justify-content:space-between; }
+.map-stage .leaflet-popup-content-wrapper{ background:var(--surface); color:var(--text); border-radius:var(--r); }
+.map-stage .leaflet-popup-tip{ background:var(--surface); }
+.map-path{ font-size:13px; color:var(--text-2); }
+.map-path a{ color:inherit; }
+.map-disagree{ margin:0; display:flex; align-items:center; gap:4px; }
+.map-pin-list{ max-height:260px; overflow:auto; display:flex; flex-direction:column; border:1px solid var(--border); border-radius:var(--r-sm); }
+.map-pin-choice{ display:flex; align-items:center; gap:8px; padding:6px 10px; cursor:pointer; font-size:14px; }
+.map-pin-list .map-pin-choice + .map-pin-choice{ border-top:1px solid var(--border); }
+.map-pin-choice:has(input:checked){ background:var(--accent-weak); }
+.map-pin-choice[hidden]{ display:none; }
+.map-pin-choice-kind{ font-size:12px; min-width:6.5em; }
+.map-pin-new{ border:1px solid var(--border); border-radius:var(--r-sm); }
+.map-pin-new input[type=text]{ flex:1; min-width:0; }
+.map-pin-filter{ width:100%; }
+.map-pin-form:not(:has(input[name=choice][value=note]:checked)) .map-pin-note{ display:none; }
