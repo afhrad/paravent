@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-27T23:31:38+01:00",
+  "en": "Players get a toast when you show them a map, and the toasts of handouts now reach every player at the table.",
+  "de": "Spieler bekommen einen Toast, wenn du ihnen eine Karte zeigst, und Handouts erreichen jetzt alle Spieler am Tisch mit ihrem Toast."
+ },
+ {
   "at": "2026-11-27T23:01:03+01:00",
   "en": "Every place, NPC, encounter, treasure, character, handout, quest and faction shows where it is pinned on your maps, with a button to pin it on another in two taps.",
   "de": "Jeder Ort, NSC, jede Begegnung, jeder Schatz, Charakter, jedes Handout, jede Quest und Fraktion zeigt, wo er auf euren Karten angeheftet ist, mit einem Knopf, ihn mit zwei Tippern auf einer weiteren anzuheften."
@@ -293,10 +298,5 @@
   "at": "2026-11-20T12:16:51+01:00",
   "en": "The gamemaster's home page shows what's new in Paravent since they last looked.",
   "de": "Die Startseite der Spielleitung zeigt, was in Paravent neu ist, seit sie zuletzt geschaut hat."
- },
- {
-  "at": "2026-11-20T11:59:33+01:00",
-  "en": "The session page names the world's broken links before play, and the world menu counts unused objects.",
-  "de": "Die Sitzungsseite nennt vor dem Spiel die kaputten Links der Welt, und das Weltmenü zählt unbenutzte Objekte."
  }
 ]
