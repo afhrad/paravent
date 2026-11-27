@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-27T19:45:39+01:00",
+  "en": "Map pins can point at anything in Paravent: characters, quests, factions, handouts, session notes and entries of your books, and a world map now offers the places, NPCs, encounters and treasure of every adventure.",
+  "de": "Kartennadeln können auf alles in Paravent zeigen: Charaktere, Quests, Fraktionen, Handouts, Sitzungsnotizen und Einträge eurer Bücher, und eine Weltkarte bietet jetzt die Orte, NSC, Begegnungen und Schätze aller Abenteuer an."
+ },
+ {
   "at": "2026-11-27T13:26:00+01:00",
   "en": "Show a map to your players with only the layers you choose, hand it out as a picture in their journal, lay a hex grid over it for a hex crawl, and let Claude pin the places of the adventures it writes on their maps.",
   "de": "Zeig deinen Spielern eine Karte mit nur den Ebenen, die du wählst, gib sie als Bild in ihr Journal, leg ein Hexfeld-Raster für eine Hexcrawl-Reise darüber, und lass Claude die Orte seiner Abenteuer auf ihre Karten setzen."
@@ -293,10 +298,5 @@
   "at": "2026-11-20T11:59:29+01:00",
   "en": "Deleted NPCs, places, treasure and encounters wait 30 days under Recently deleted on Check links, to restore.",
   "de": "Gelöschte NSC, Orte, Schätze und Begegnungen warten 30 Tage unter Kürzlich gelöscht bei Links prüfen, zum Wiederherstellen."
- },
- {
-  "at": "2026-11-20T11:41:38+01:00",
-  "en": "The editor's check can rename an object to the name the text uses, and unused objects can be deleted together.",
-  "de": "Die Prüfung im Editor kann ein Objekt auf den Namen im Text umbenennen, und unbenutzte Objekte lassen sich gemeinsam löschen."
  }
 ]
