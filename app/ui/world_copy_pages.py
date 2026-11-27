@@ -23,6 +23,7 @@ from app.ui.icons import icon
 from app.ui.item_links import background_url, item_url, spell_url
 from app.ui.layout import app_shell
 from app.ui.library_links import adventure_url, location_url, npc_url, treasure_url
+from app.ui.map_pages import MAPS_URL, map_url
 from app.ui.quest_pages import QUESTS_URL
 
 # Each kind's list, to go back to.
@@ -35,6 +36,7 @@ LISTS = {
     "creature": "/gm/creatures",
     "quest": QUESTS_URL,
     "faction": FACTIONS_URL,
+    "map": MAPS_URL,
 }
 
 
@@ -50,6 +52,7 @@ def piece_url(kind: str, record_id: str) -> str:
         "item_design": item_url,
         "spell_design": spell_url,
         "background_design": background_url,
+        "map": map_url,
     }
     if kind in pages:
         return pages[kind](record_id)

@@ -140,7 +140,11 @@ file per collection under `library/`:
 
 Images, sounds, maps, tokens **never** go into JSON – only as files under `library/media/`,
 referenced by ID/path. FastAPI serves them as static files. Media is authored content, so it sits
-in `library/`, backed up with everything else the user made.
+in `library/`, backed up with everything else the user made. **The gamemaster's maps**
+(2026-11-27, MAPS.md) keep their original in the scope's `media/maps/`; a large one's tiles
+are derived, so they go to a third write root outside the library and its backups
+(`PARAVENT_MAP_CACHE_DIR`, default `map-cache/` beside the library), covered by the
+reference guard.
 
 **Architecture tip:** use Pydantic models as a shared layer for JSON loading – one validation model.
 

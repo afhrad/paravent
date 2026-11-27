@@ -61,6 +61,14 @@ class Settings(BaseSettings):
     # changed takes about half the time; any change to the corpus or homebrew makes a new one.
     reference_snapshot: bool = True
 
+    # --- Maps (documentation/MAPS.md §4) --------------------------------------
+    # Where a large map's tiles go: made from the original, so outside the library and
+    # its backups. Empty means "map-cache" beside the library folder.
+    map_cache_dir: Path = Path()
+    # The largest map picture taken, in pixels (width × height): decoding takes three
+    # to four bytes a pixel, so 250 MP needs about a gigabyte while it is tiled.
+    map_max_pixels: int = 250_000_000
+
     # --- Backups of the library (app/services/backup.py) ---------------------
     # Where the zip files go; empty means no backups. Never the reference data.
     backup_dir: Path = Path()
@@ -156,6 +164,13 @@ class Settings(BaseSettings):
     def media_dir(self) -> Path:
         """Images, sounds, maps and tokens — referenced from JSON, never stored in it."""
         return self.library_dir / "media"
+
+    @property
+    def map_cache(self) -> Path:
+        """Where map tiles are kept (``map_cache_dir``, else beside the library)."""
+        if str(self.map_cache_dir) not in ("", "."):
+            return self.map_cache_dir
+        return self.library_dir.parent / "map-cache"
 
     @property
     def secret_key_file(self) -> Path:

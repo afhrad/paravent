@@ -24,8 +24,8 @@ sind Monster, Zauber, Gegenstände und Regelbücher da.
 Das Weltmenü links in der oberen Leiste → **Neue Welt**. Eine Welt ist deine Kampagne:
 ihr Name, ihre Sprache und vor allem **die Bücher, mit denen ihr spielt**. Der Tisch spielt
 immer in einer Welt – der im Menü, dort gewählt –, und alles in Paravent spielt in ihr: die
-Abenteuer, NSC, Orte, Schätze und Begegnungen der oberen Leiste, jeder Charakter und jeder
-Spieler. Ihre Einstellungen (Bücher, Sprache und der Rest) stehen unter
+Abenteuer, NSC, Orte, Karten, Schätze und Begegnungen der oberen Leiste, jeder Charakter
+und jeder Spieler. Ihre Einstellungen (Bücher, Sprache und der Rest) stehen unter
 **Welteinstellungen** im selben Menü. **Welt exportieren** sichert dort die ganze Kampagne
 als eine Datei, **Welt importieren** holt eine zurück (hier oder an einem anderen Tisch) und
 **Welt duplizieren** kopiert sie für eine zweite Gruppe.

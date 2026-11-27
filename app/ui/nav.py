@@ -37,7 +37,7 @@ class NavItem:
     itself, since everything else lives below it; any other root matches its subtree.
     ``covers`` adds further subtrees that belong to the section, or with a leading ``^``
     a pattern a whole path must match (a world's list, ``/gm/worlds/<id>/npcs``).
-    ``rank`` decides where the gamemaster's thirteen links go when the bar is short of
+    ``rank`` decides where the gamemaster's fourteen links go when the bar is short of
     room (documentation/CURRENT-WORLD.md §4): 0 stays in the bar even on a phone, 1 on
     anything wider, 2 and 3 move into **More** in turn. ``world`` marks a section of the
     table's world, whose remembered page is forgotten when the world changes. ``feature``
@@ -83,6 +83,7 @@ NAV: dict[Role, tuple[NavItem, ...]] = {
         ),
         NavItem("nav.npcs", "/gm/npcs", "circle-user", (f"^{_WORLD}/npcs(/.*)?",), 2, True),
         NavItem("nav.places", "/gm/places", "map-pin", (f"^{_WORLD}/places(/.*)?",), 2, True),
+        NavItem("nav.maps", "/gm/maps", "map-pinned", (f"^{_WORLD}/maps(/.*)?",), 3, True),
         NavItem("nav.treasure", "/gm/treasure", "gem", (f"^{_WORLD}/treasure(/.*)?",), 2, True),
         NavItem("nav.encounters", "/gm/encounters", "skull", world=True),
         NavItem("nav.combat", "/gm/combat", "zap", world=True),

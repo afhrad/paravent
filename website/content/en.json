@@ -147,6 +147,11 @@
         "text": "Write chapters the way you write notes. Obsidian works. NPCs, places, fights and treasure sit in the text as cards you can open mid session. You can also start from a published adventure and add your own ideas."
       },
       {
+        "title": "Maps of your world",
+        "icon": "map-pinned",
+        "text": "Upload your own maps of the world and of each adventure, however large: a big map is cut into tiles once and zooms like an online map, and it opens where you left it. Give it its scale with a line across the scale bar, then measure any way on it and see how many days the party walks at each pace."
+      },
+      {
         "title": "Handouts",
         "icon": "send",
         "text": "Pass a letter, a map or a description to the players who found it. They get their own copy on their phone, your secrets stay out of it, and you see who has read it."

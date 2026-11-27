@@ -274,6 +274,7 @@ class GameStateStore:
             World,
             WorldClock,
             WorldInstructions,
+            WorldMap,
         )
         from app.models.naming import NamingStyle
         from app.store.characters import CharacterStore
@@ -344,6 +345,8 @@ class GameStateStore:
         # The campaign's places, ``{@place}`` (documentation/ADVENTURES.md §4).
         self.locations: Collection[Location] = Collection(root / "locations.json", Location)
         self.treasures: Collection[Treasure] = Collection(root / "treasures.json", Treasure)
+        # The gamemaster's maps of worlds and adventures (documentation/MAPS.md).
+        self.maps: Collection[WorldMap] = Collection(root / "maps.json", WorldMap)
         # Creature-builder designs; their statblocks are published to homebrew/.
         self.creatures: Collection[CreatureDesign] = Collection(
             root / "creatures.json", CreatureDesign
@@ -399,6 +402,7 @@ class GameStateStore:
             "knowledge": self.knowledge,
             "npcs": self.npcs,
             "locations": self.locations,
+            "maps": self.maps,
             "treasures": self.treasures,
             "creatures": self.creatures,
             "characters": self.characters,

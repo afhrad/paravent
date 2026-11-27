@@ -3,8 +3,9 @@
 
 A whole world travels by export and import (app/services/world_transfer.py); this takes
 pieces across: an **adventure** with its chapters, its pictures and everything placed in
-it, or **NPCs**, **places**, **treasure**, **encounters**, **quests**, **factions** and
-**creature, item, spell and background designs**, one or several of a list at once. They
+it (its maps among it), or **NPCs**, **places**, **treasure**, **encounters**, **quests**,
+**factions**, a world's **maps** and **creature, item, spell and background designs**, one
+or several of a list at once. They
 are gathered into a :class:`Bundle` — records as data, an adventure's folder as files,
 pictures and tokens as bytes — which is written into a world, or saved as a file
 (``*.paravent-pieces.zip``) and read back into a world at any table. Writing gives every
@@ -44,7 +45,7 @@ from typing import IO, Any, Literal
 from pydantic import ValidationError
 
 from app import __version__
-from app.models.gamestate import Adventure, Record, Scope, World, new_id
+from app.models.gamestate import Adventure, Record, Scope, World, WorldMap, new_id
 from app.services.i18n import Translatable
 from app.services.media import IMAGE_TYPES, sniff
 from app.services.world_transfer import WorldTransferError, _checked
@@ -53,11 +54,11 @@ from app.store.prose import ADVENTURE_FILE, ADVENTURES_DIR, slugify
 
 Kind = Literal[
     "adventure", "npc", "place", "treasure", "encounter", "quest", "faction", "creature",
-    "item_design", "spell_design", "background_design",
+    "item_design", "spell_design", "background_design", "map",
 ]  # fmt: skip
 KINDS: tuple[Kind, ...] = (
     "adventure", "npc", "place", "treasure", "encounter", "quest", "faction", "creature",
-    "item_design", "spell_design", "background_design",
+    "item_design", "spell_design", "background_design", "map",
 )  # fmt: skip
 # The builders' designs: one name space each across the table, published to homebrew.
 DESIGNS = ("creature", "item_design", "spell_design", "background_design")
@@ -73,9 +74,10 @@ COLLECTIONS: dict[str, str] = {
     "item_design": "item_designs",
     "spell_design": "spell_designs",
     "background_design": "background_designs",
+    "map": "maps",
 }
 # The kinds placed by a scope (world, adventure, chapter).
-SCOPED = ("npc", "place", "treasure")
+SCOPED = ("npc", "place", "treasure", "map")
 # The kinds an adventure holds.
 HELD = ("npc", "place", "treasure", "encounter")
 # What a Markdown link names, by its tag.
@@ -97,11 +99,12 @@ PICTURES = {
     "encounter": "cover",
     "quest": "cover",
     "faction": "cover",
+    "map": "image",
 }
 # The kinds that carry a token of the table's own (app/services/tokens.py OWN_KINDS).
 TOKENS = ("npc", "treasure", "creature")
 # The kinds a delete keeps in Recently deleted; the others move in place.
-TRASHED = ("adventure", "npc", "place", "treasure", "encounter")
+TRASHED = ("adventure", "npc", "place", "treasure", "encounter", "map")
 
 # The file a bundle is saved as.
 FORMAT = 1
@@ -264,6 +267,9 @@ class WorldCopy:
         worlds = {self.world_of(r) for r in chosen}
         if len(worlds) != 1:
             raise WorldCopyError("copy.error.mixed")
+        if any(isinstance(r, WorldMap) and r.scope.adventure_id for r in chosen):
+            # An adventure's map goes only with its adventure (documentation/MAPS.md §3).
+            raise WorldCopyError("copy.error.map_in_adventure")
         world_id = worlds.pop() or ""
         world = self._store.worlds.find(world_id)
         bundle = Bundle(source=world.name if world is not None else "", world_id=world_id)
@@ -290,6 +296,9 @@ class WorldCopy:
                 scope = found.scope
                 if scope is not None and scope.adventure_id == record.id:
                     bundle.entries.append(self._entry(inner, found, "inside"))
+        # Its maps stick to it (documentation/MAPS.md §3); their pictures are in its folder.
+        for found in self._store.maps.list(lambda m: m.scope.adventure_id == record.id):
+            bundle.entries.append(self._entry("map", found, "inside"))
         folder = self._store.prose.folder(record.id)
         files: dict[str, bytes] = {}
         bundle.adventures[record.id] = files

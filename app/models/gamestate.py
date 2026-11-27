@@ -435,6 +435,41 @@ class Location(Record):
     notes: str = ""
 
 
+# The units a map's scale is typed in (documentation/MAPS.md §5).
+MapUnit = Literal["mi", "km", "ft", "m"]
+
+
+class MapScale(GameStateModel):
+    """How far a pixel of a map's original picture is (documentation/MAPS.md §5): the
+    one number measuring needs, and how the gamemaster gave it, for the form."""
+
+    feet_per_px: float = Field(gt=0)
+    # A line drawn on the map (across its scale bar, or one hex), or the map's width.
+    way: Literal["line", "width"] = "line"
+    amount: float = Field(gt=0)
+    unit: MapUnit = "mi"
+    # The line's ends in the original's pixels, ``[x1, y1, x2, y2]``; empty for a width.
+    line: list[float] = Field(default_factory=list)
+
+
+class WorldMap(Record):
+    """A map of a world or of one adventure (documentation/MAPS.md §2): a picture of the
+    gamemaster's with a scale. Called WorldMap so it does not shadow ``map``. An
+    adventure's map sticks to the adventure; a map is never placed in a chapter."""
+
+    scope: Scope
+    name: str
+    # The original as uploaded, relative to the scope's record folder
+    # (``media/maps/coast.jpg``); never re-encoded.
+    image: str
+    width: int = Field(gt=0)
+    height: int = Field(gt=0)
+    # The original's SHA-256, naming its tiles (app/services/map_tiles.py).
+    digest: str
+    scale: MapScale | None = None
+    notes: str = ""
+
+
 SoundKind = Literal["effect", "ambience", "music"]
 
 
@@ -1260,6 +1295,14 @@ class SheetView(GameStateModel):
     filter: str = ""
 
 
+class MapView(GameStateModel):
+    """Where a user left a map: its centre in the original's pixels and the zoom."""
+
+    x: float
+    y: float
+    zoom: float
+
+
 class Place(Record):
     """Where a user left the app, so logging in again carries on from there.
 
@@ -1272,6 +1315,8 @@ class Place(Record):
     last: str = ""
     nav: dict[str, str] = Field(default_factory=dict)
     sheets: dict[str, SheetView] = Field(default_factory=dict)
+    # How each map was left, by the map's id (documentation/MAPS.md §4).
+    maps: dict[str, MapView] = Field(default_factory=dict)
     # The newest "What's new" line the user has dismissed (its time, app/services/news.py).
     news_seen: str = ""
 
@@ -1861,6 +1906,7 @@ class TrashedObject(Record):
         "chapter",
         "adventure",
         "world",
+        "map",
     ]
     world_id: str
     name: str
@@ -1882,6 +1928,10 @@ class Knowledge(Record):
 
 
 __all__ = [
+    "MapScale",
+    "MapUnit",
+    "MapView",
+    "WorldMap",
     "HOMEBREW",
     "is_homebrew",
     "is_world_homebrew",

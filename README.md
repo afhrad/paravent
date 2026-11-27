@@ -136,6 +136,20 @@ shares the compendium keyspace and can be a `_copy` target, but it is your work,
 on the backed-up side of the line. It loads after the corpus, so an entry with the same
 `name` and `source` overrides an imported one.
 
+### Maps
+
+The gamemaster's own maps keep their pictures in the world's folder, so they are backed up
+with it. A large map is cut into tiles once; the tiles are made again whenever they are
+missing, so they live outside the library:
+
+```bash
+PARAVENT_MAP_CACHE_DIR=data/map-cache          # empty: map-cache beside the library folder
+PARAVENT_MAP_MAX_PIXELS=250000000              # the largest map taken, width × height
+```
+
+Cutting a map holds it decoded in memory, three to four bytes a pixel: 250 MP needs about
+a gigabyte while it runs.
+
 ### Backups
 
 Paravent backs the library up by itself — the library only: the 5eTools corpus is a

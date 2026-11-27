@@ -102,6 +102,8 @@ from app.services.lifestyle import LifestyleService, costs_2014, costs_2024
 from app.services.locations import LocationService
 from app.services.machine_translation import MachineTranslator
 from app.services.magic_crafting import CraftRule, Formulas, rule_from
+from app.services.map_tiles import MapTiles
+from app.services.maps import MapService
 from app.services.mcp_tokens import McpTokenService
 from app.services.media_tags import MediaTags
 from app.services.media_uses import MediaUses
@@ -315,6 +317,19 @@ class StoreRegistry:
     def locations(self) -> LocationService:
         """The campaign's places, ``{@place}`` (ADVENTURES.md §4)."""
         return LocationService(self.gamestate, self.adventures)
+
+    @cached_property
+    def map_tiles(self) -> MapTiles:
+        """Large maps' tiles and their cutting in the background (MAPS.md §4)."""
+        return MapTiles(self.settings.map_cache, self.settings.map_max_pixels)
+
+    @cached_property
+    def world_maps(self) -> MapService:
+        """The gamemaster's maps of worlds and adventures (MAPS.md); ``maps`` are the
+        books' own."""
+        return MapService(
+            self.gamestate, self.adventures, self.map_tiles, self.settings.map_max_pixels
+        )
 
     @cached_property
     def instructions(self) -> WorldInstructionService:
@@ -2597,6 +2612,8 @@ class StoreRegistry:
                 self.treasure.delete(record_id)
             elif kind == "encounter":
                 self.encounters.delete(record_id)
+            elif kind == "map":
+                self.world_maps.delete(record_id)
 
         return WorldCopy(self.gamestate, self.tokens.folder, delete)
 
@@ -2680,7 +2697,11 @@ class StoreRegistry:
         Used by :meth:`assert_reference_readonly`. Keep this in step with the stores:
         a new writable location belongs here so the guard keeps covering it.
         """
-        roots = [self.settings.library_dir, self.settings.reference_cache_dir]
+        roots = [
+            self.settings.library_dir,
+            self.settings.reference_cache_dir,
+            self.settings.map_cache,
+        ]
         if self.settings.backup_configured:
             roots.append(self.settings.backup_dir)
         return roots

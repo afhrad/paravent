@@ -1,8 +1,9 @@
 """The current world's lists at addresses of their own (documentation/CURRENT-WORLD.md §5).
 
-``/gm/adventures``, ``/gm/npcs``, ``/gm/places``, ``/gm/treasure`` and ``/gm/sessions`` show
-the table's world, so the top bar links there whatever world is chosen. Each draws the page
-the world's own address draws; a table with no world yet is asked to make one.
+``/gm/adventures``, ``/gm/npcs``, ``/gm/places``, ``/gm/maps``, ``/gm/treasure`` and
+``/gm/sessions`` show the table's world, so the top bar links there whatever world is
+chosen. Each draws the page the world's own address draws; a table with no world yet is
+asked to make one.
 """
 
 from __future__ import annotations
@@ -12,7 +13,7 @@ from fastapi.responses import HTMLResponse
 from htpy import a, div, span
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
-from app.routes import adventures, cast, locations, session_notes
+from app.routes import adventures, cast, locations, maps, session_notes
 from app.routes.auth import html
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
@@ -81,6 +82,17 @@ async def current_places(
     if world_id is None:
         return _no_world(page)
     return locations._locations(page, registry, world_id, selected=place, new=bool(new))
+
+
+@router.get("/gm/maps", response_class=HTMLResponse)
+async def current_maps(
+    _gm: GamemasterDep, page: PageDep, registry: RegistryDep, new: str = ""
+) -> HTMLResponse:
+    """The current world's maps (documentation/MAPS.md §3)."""
+    world_id = _world(registry)
+    if world_id is None:
+        return _no_world(page)
+    return maps._list(page, registry, world_id, new=bool(new))
 
 
 @router.get("/gm/treasure", response_class=HTMLResponse)

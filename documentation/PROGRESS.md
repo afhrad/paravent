@@ -1262,6 +1262,21 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       and renown** (2026-11-16): `create_quest` writes a quest for a draft (hidden until
       shown, gone with the draft), `update_quest` changes one, `world_overview` lists
       the quests, `party` each character's followers, renown, quests and contacts
+- [x] **Maps, step 1** (2026-11-27, MAPS.md §10; `app/services/maps.py`,
+      `app/services/map_tiles.py`, `app/routes/maps.py`, `app/ui/map_pages.py`,
+      `static/js/map.js`): the gamemaster's own maps of a world (*Maps*, `/gm/maps`, in More)
+      and of an adventure (on its page), `library/maps.json` (`WorldMap`). The original is
+      streamed into the scope's `media/maps/` as sent (JPEG, PNG, WebP; 200 MB, and
+      `PARAVENT_MAP_MAX_PIXELS`, default 250 MP, read from its header before anything
+      decodes). Up to 4,096 px it shows whole; larger, a background job cuts a 256 px WebP
+      pyramid and a thumbnail into `PARAVENT_MAP_CACHE_DIR` (default `map-cache` beside the
+      library, outside the backups; a write root), the page showing its progress. Leaflet
+      1.9.4 (vendored, `L.CRS.Simple`) zooms and drags; each user's view is kept in
+      `places.json`. The scale (a line drawn over the scale bar or a hex, or the width; mi,
+      km, ft, m by Paravent's factors) is stored as feet per pixel; the ruler sums any path
+      in the reader's units and says the days at each pace. An adventure's maps stick to
+      it: deleted, copied, moved and restored with it, never moved up; a world's map copies
+      or moves to another world alone; the trash forgets a map's picture with it
 - [x] Wizard state when going back a step — checked 2026-11-02 (CHARGEN-WIZARD.md §6): answers
       live in the draft's file, a step is a GET of them, and a changed answer marks later
       steps for review without dropping them. Typed text followed by a footer click now

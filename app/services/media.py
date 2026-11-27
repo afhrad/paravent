@@ -122,6 +122,9 @@ def world_images(store: ProseStore, record_id: str) -> list[WorldImage]:
             or path.suffix.lower() not in IMAGE_TYPES
             or any(part.startswith(".") for part in parts)
             or "tokens" in parts
+            # A map's original belongs to its map (documentation/MAPS.md), and may be
+            # far too large for a browser's thumbnail.
+            or (relative.parent.name == "maps" and relative.parent.parent.name == MEDIA_DIR)
         ):
             continue
         folder = relative.parent

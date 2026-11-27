@@ -57,6 +57,7 @@ from app.routes import journal as journal_routes
 from app.routes import levelup as levelup_routes
 from app.routes import library_preview as library_preview_routes
 from app.routes import locations as location_routes
+from app.routes import maps as map_routes
 from app.routes import mcp_tokens as mcp_routes
 from app.routes import media as media_routes
 from app.routes import menus as menu_routes
@@ -387,6 +388,7 @@ def create_app() -> FastAPI:
     app.include_router(adventure_routes.router)
     app.include_router(cast_routes.router)
     app.include_router(location_routes.router)
+    app.include_router(map_routes.router)
     app.include_router(library_preview_routes.router)
     app.include_router(token_routes.router)
     app.include_router(safety_routes.router)

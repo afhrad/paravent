@@ -35,6 +35,8 @@ data/library/i18n/ui/*
 # Derived from the corpus and rebuilt on demand.
 data/reference-cache/*
 !data/reference-cache/.gitkeep
+# Map tiles, cut again from the originals when missing (documentation/MAPS.md §4).
+data/map-cache/
 
 # A 5eTools corpus placed here (PARAVENT_REFERENCE_DIR=data/reference) is the user's
 # data and never committed.

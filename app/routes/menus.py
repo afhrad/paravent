@@ -69,6 +69,7 @@ from app.ui.library_links import (
     treasure_url,
     world_url,
 )
+from app.ui.map_pages import MAPS_URL, map_url
 from app.ui.names import name_text
 from app.ui.naming_pages import NAMING_URL, style_url
 from app.ui.protocol_pages import LOG_URL
@@ -86,7 +87,7 @@ _ADDRESS = re.compile(
     "|(?P<character>/characters)"
     f"|(?P<note>{SESSIONS_URL})|(?P<creature>{CREATURES_URL})|(?P<style>{NAMING_URL})"
     f"|(?P<item_design>{ITEMS_URL})|(?P<spell_design>{SPELLS_URL})"
-    f"|(?P<background_design>{BACKGROUNDS_URL})"
+    f"|(?P<background_design>{BACKGROUNDS_URL})|(?P<map>{MAPS_URL})"
     ")/(?P<id>[A-Za-z0-9_-]+)$"
 )
 # The kinds a copy can be made of, and the collection each lives in.
@@ -241,6 +242,48 @@ def _adventure_menu(
             MenuGroup(_to_world(page, registry, "adventure", adventure_id)),
             MenuGroup(
                 [MenuItem(t("menu.delete_ask"), "trash-2", dialog=f"{url}/delete", danger=True)]
+            ),
+        ],
+    )
+
+
+def _map_menu(page: Page, registry: StoreRegistry, map_id: str, next_page: str) -> HTMLResponse:
+    """A map (documentation/MAPS.md): open, edit, copy to another world, delete."""
+    t = page.t
+    found = registry.gamestate.maps.find(map_id)
+    if found is None:
+        raise HTTPException(status_code=404)
+    url = map_url(map_id)
+    where = _where(page, registry, found.scope)
+    return _menu(
+        page,
+        found.name,
+        " · ".join(x for x in (t("menu.kind.map"), where) if x),
+        [
+            MenuGroup(
+                [
+                    MenuItem(t("menu.open"), "arrow-right", href=url),
+                    MenuItem(t("menu.open_tab"), "arrow-up", href=url, new_tab=True),
+                    MenuItem(t("menu.edit"), "pencil", href=f"{url}/edit"),
+                ]
+            ),
+            # An adventure's map goes to another world only with its adventure.
+            *(
+                [MenuGroup(_to_world(page, registry, "map", map_id))]
+                if found.scope.adventure_id is None and _to_world(page, registry, "map", map_id)
+                else []
+            ),
+            MenuGroup(
+                [
+                    MenuItem(
+                        t("menu.delete"),
+                        "trash-2",
+                        post=f"{url}/delete",
+                        fields={"next": next_page},
+                        danger=True,
+                        hint=t("menu.undo_hint"),
+                    )
+                ]
             ),
         ],
     )
@@ -525,6 +568,8 @@ async def link_menu(
         return _design_menu(page, registry, kind, record_id)
     if kind == "style":
         return _style_menu(page, registry, record_id)
+    if kind == "map":
+        return _map_menu(page, registry, record_id, next_page)
     pc = registry.gamestate.characters.find(record_id)
     if pc is None:
         raise HTTPException(status_code=404)

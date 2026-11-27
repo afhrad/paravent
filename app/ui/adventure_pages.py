@@ -810,9 +810,10 @@ def adventure_page(
     error: str | None = None,
     review: Node = None,
     maps: Node = None,
+    own_maps: Node = None,
 ) -> Element:
-    """An adventure: cover, summary, text, its chapters in order, the maps of the book
-    it was started from, and what it holds."""
+    """An adventure: cover, summary, text, its chapters in order, its own maps, the maps
+    of the book it was started from, and what it holds."""
     t = page.t
     adv, world = view.adventure, view.world
     chapters = view.chapters
@@ -906,6 +907,7 @@ def adventure_page(
                     ),
                 ),
             ],
+            own_maps,
             maps,
             holdings,
         ],
@@ -1056,18 +1058,21 @@ def contents_choice(page: Page, counts: Mapping[str, int], keep: str) -> Node:
 
 
 def adventure_delete_page(
-    page: Page, view: AdventureView, counts: Mapping[str, int] | None = None
+    page: Page, view: AdventureView, counts: Mapping[str, int] | None = None, maps: int = 0
 ) -> Element:
-    """Confirm, saying the chapters and images go with it — to the trash — and asking
-    what happens to what is placed in it."""
+    """Confirm, saying the chapters, images and maps go with it — to the trash — and
+    asking what happens to what is placed in it."""
     t = page.t
     adv = view.adventure
     url = adventure_url(adv.id)
+    lede = t.plural("adventures.delete_lede", len(view.chapters))
+    if maps:
+        lede = f"{lede} {t.plural('atlas.delete_with', maps)}"
     return confirm_page(
         page,
         title=t("adventures.delete"),
         heading=t("adventures.delete_heading", name=adv.name),
-        lede=t.plural("adventures.delete_lede", len(view.chapters)),
+        lede=lede,
         action=f"{url}/delete",
         back=url,
         submit=t("adventures.delete"),

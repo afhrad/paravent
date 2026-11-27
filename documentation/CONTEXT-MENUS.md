@@ -39,6 +39,7 @@ only what the reader's role may do, and the routes check it again.
 | **Sheet item** | equip / unequip, attune, use a charge, cast from it, sell, give to …, drop | player (own) and gamemaster; identify / curse for the gamemaster |
 | **Sheet spell** | cast at a level, prepare / unprepare, open the full entry | player (own) and gamemaster |
 | **List row** (adventures, chapters, NPCs, places, treasure, encounters, quests, factions, session notes, sounds, creatures) | open, edit, duplicate, new … here (adventure, chapter), move, delete | gamemaster |
+| **Map** (a row of *Maps* or an adventure's, the ⋯ on its page; MAPS.md) | open, open in a new tab, edit, copy or move to another world (a world's map only), delete with Undo | gamemaster |
 | **Picture in a chapter** | share with players, frame and effects, open the original, where it is used | gamemaster |
 | **Log entry** | reveal to players, only this character, only this fight | gamemaster (filters for players too) |
 

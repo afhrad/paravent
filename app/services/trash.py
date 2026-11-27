@@ -1,10 +1,12 @@
-"""Deleted NPCs, places, treasure, encounters, chapters and adventures, kept a while to
-restore.
+"""Deleted NPCs, places, treasure, encounters, maps, chapters and adventures, kept a while
+to restore.
 
 The objects of a world are records, so a deleted one is kept here as it was
 (``library/trash.json``), with its world and when it went, for ``KEEP_DAYS``. Restoring
 puts it back where it was — in its chapter or adventure while that is still there, else in
-its world — under its old id. Chapters and adventures are files, moved to
+its world — under its old id; an adventure's map comes back only with its adventure, and
+the picture a map was made of is erased when the trash forgets the map. Chapters and
+adventures are files, moved to
 ``library/.trash/`` (a world's folder goes there too, but has no world to be listed in);
 their entry here names that file and the adventure or world it came from, and restoring
 moves it back, with whatever was deleted together with it. One whose world is gone cannot
@@ -25,8 +27,9 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from app.models.gamestate import Record, Scope, TrashedObject
+from app.models.gamestate import Record, Scope, TrashedObject, WorldMap
 from app.services.i18n import Translatable
+from app.services.map_tiles import remove_original
 from app.store.gamestate import Collection, GameStateStore
 
 KEEP_DAYS = 30
@@ -44,6 +47,7 @@ COLLECTIONS: dict[str, str] = {
     "encounter": "encounters",
     "quest": "quests",
     "faction": "factions",
+    "map": "maps",
 }
 # The kinds kept as files: their collection, and the field naming their parent.
 FILES: dict[str, tuple[str, str]] = {
@@ -159,6 +163,12 @@ class Trash:
                 )
             )
             data["adventure_id"], data["chapter_id"] = place.adventure_id, place.chapter_id
+        elif trashed.kind == "map":
+            # An adventure's map sticks to it (documentation/MAPS.md §3): it comes back
+            # with the adventure or not at all.
+            where = Scope.model_validate(data.get("scope", {}))
+            if where.adventure_id and self._store.adventures.find(where.adventure_id) is None:
+                raise TrashError("trash.error.adventure")
         elif isinstance(data.get("scope"), dict):
             place = self._still_there(Scope.model_validate(data["scope"]))
             data["scope"] = place.model_dump(mode="json")
@@ -243,17 +253,30 @@ class Trash:
 
     def empty(self, world_id: str) -> int:
         """Forget everything the world's trash holds; how many."""
-        gone = [t.id for t in self.of_world(world_id)]
-        for trashed_id in gone:
-            self._store.trash.delete(trashed_id)
+        gone = self.of_world(world_id)
+        for trashed in gone:
+            self._forget(trashed)
         return len(gone)
+
+    def _forget(self, trashed: TrashedObject) -> None:
+        """Drop an entry for good; a map's picture goes with it, which nothing else
+        shows (documentation/MAPS.md §3)."""
+        self._store.trash.delete(trashed.id)
+        if trashed.kind != "map":
+            return
+        try:
+            found = WorldMap.model_validate(trashed.record)
+        except ValidationError:
+            return
+        if self._store.maps.find(found.id) is None:
+            remove_original(self._store, found)
 
     def clear_old(self, now: datetime | None = None) -> int:
         """Forget what was deleted more than ``KEEP_DAYS`` ago, and erase the trash
         folder's files of that age; how many files went."""
         limit = (now or datetime.now(UTC)) - timedelta(days=KEEP_DAYS)
         for trashed in self._store.trash.list(lambda t: t.deleted_at < limit):
-            self._store.trash.delete(trashed.id)
+            self._forget(trashed)
         return self._erase_files(limit)
 
     def _erase_files(self, limit: datetime) -> int:

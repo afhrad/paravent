@@ -78,6 +78,7 @@ from app.ui.library_links import (
     chapter_url,
     world_url,
 )
+from app.ui.map_pages import adventure_maps_section
 from app.ui.maps import maps_panel
 from app.ui.markdown import MarkdownContext, Rendered
 from app.ui.prose_check import Checks, Problem, check
@@ -264,6 +265,7 @@ def _adventure(
     *,
     notice_text: str | None = None,
     error: str | None = None,
+    map_error: str | None = None,
     status_code: int = 200,
 ) -> HTMLResponse:
     view = registry.adventures.view(adventure_id)
@@ -294,6 +296,12 @@ def _adventure(
             error=error,
             review=review,
             maps=_maps(page, registry, view),
+            own_maps=adventure_maps_section(
+                page,
+                view.adventure,
+                registry.world_maps.of_adventure(adventure_id),
+                error=map_error,
+            ),
         ),
         status_code=status_code,
     )
@@ -552,7 +560,8 @@ async def confirm_delete_adventure(
     service = registry.adventures
     view = service.view(adventure_id)
     here = Scope(world_id=view.world.id, adventure_id=adventure_id)
-    return html(adventure_delete_page(page, view, service.contents(here)))
+    maps = len(registry.world_maps.of_adventure(adventure_id))
+    return html(adventure_delete_page(page, view, service.contents(here), maps))
 
 
 @router.post(f"{ADVENTURES_URL}/{{adventure_id}}/delete")

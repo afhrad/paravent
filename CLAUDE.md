@@ -20,6 +20,7 @@ loaded automatically.
 - Read documentation/NAMES.md before touching names: naming styles, the name generator
 - Read documentation/MCP.md before touching the MCP server (`app/mcp/`) or its keys
 - Read documentation/PLAYER-VIEW.md before touching what players may read: player books, hidden kinds
+- Read documentation/MAPS.md before touching maps: tiles, the scale, pins, roads
 - Read documentation/JOURNAL.md before touching handouts: sharing boxes and pictures, the players' journal
 - Read documentation/TOKENS.md before touching tokens: the round token of every element
 - Read documentation/DESIGN.md for UI/UX elements

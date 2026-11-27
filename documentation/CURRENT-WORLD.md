@@ -13,7 +13,7 @@ the pages, characters and players do with it. **Status:** planned and built 2026
 | --- | --- |
 | Who the selected world applies to | **The whole table.** One current world, chosen by the gamemaster; players follow it (their books, party, fights, journal, log). |
 | The "Worlds" menu item | **Gone.** The gamemaster has a world menu: select, create, delete a whole world, and a **settings dialog** for its parameters. |
-| The top bar | The current world's links: **Adventures, NPCs, Places, Treasure, Encounters, Combat, Quests, Factions, Journal, Sessions** (plus Table, Characters, Books). |
+| The top bar | The current world's links: **Adventures, NPCs, Places, Maps, Treasure, Encounters, Combat, Quests, Factions, Journal, Sessions** (plus Table, Characters, Books). |
 | Characters | **Belong to no world.** Every character of an active player is in the current world's party. |
 | A page of another world (an old link, a search result) | **Opens with a banner** naming its world and a button to switch; nothing switches by itself. |
 
@@ -78,7 +78,7 @@ Players: unchanged (Characters, Books, Journal), all of it the current world's.
 ## 5. Pages
 
 - **New addresses for the current world's lists:** `/gm/adventures`, `/gm/npcs`, `/gm/places`,
-  `/gm/treasure` (beside `/gm/encounters`, `/gm/combat`, `/gm/quests`, `/gm/factions`,
+  `/gm/maps` (since 2026-11-27, MAPS.md), `/gm/treasure` (beside `/gm/encounters`, `/gm/combat`, `/gm/quests`, `/gm/factions`,
   `/journal`, `/gm/sessions`). The old `/gm/worlds/<id>/…` addresses redirect to them when `<id>`
   is the current world, and otherwise show the page with the banner (§1).
 - **World filters go:** the party view, encounters, quests, factions, the session page, the
@@ -114,8 +114,9 @@ Players: unchanged (Characters, Books, Journal), all of it the current world's.
    bar shows by width: below 761 px Table, Adventures, Encounters, Combat and More, the world
    menu on a line of its own above them; 761–1279 px those and Characters as icons; 1280–1599 px
    also NPCs, places and treasure as icons; 1600–1799 px the first five in words; from 1800 px
-   NPCs, places and treasure in words too. More holds exactly the rest. The short addresses
-   `/gm/adventures`, `/gm/npcs`, `/gm/places`, `/gm/treasure`, `/gm/sessions` draw the current
+   NPCs, places and treasure in words too. More holds exactly the rest (Maps among it, rank 3,
+   since 2026-11-27). The short addresses
+   `/gm/adventures`, `/gm/npcs`, `/gm/places`, `/gm/maps`, `/gm/treasure`, `/gm/sessions` draw the current
    world's page (`app/routes/current_world.py`), or ask for a world when there is none.
    **Per-world memory** is simpler than planned: choosing another world forgets where the
    world's sections were left (`PlaceService.forget_sections`), and choosing it on a page of

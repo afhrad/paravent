@@ -56,6 +56,7 @@ from app.ui.library_links import (
     treasure_url,
     world_url,
 )
+from app.ui.map_pages import map_url
 from app.ui.prose_check import Problem
 from app.ui.quest_pages import quests_url
 from app.ui.session_pages import SESSIONS_URL, day_text
@@ -660,6 +661,7 @@ async def restore_trashed(
         "encounter": encounter_url,
         "chapter": chapter_url,
         "adventure": adventure_url,
+        "map": map_url,
     }
     if kind == "world":
         if registry.table.world_id() is None:  # a table with no world plays in it again

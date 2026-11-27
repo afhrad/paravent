@@ -147,6 +147,11 @@
         "text": "Schreibt Kapitel so, wie ihr Notizen schreibt. Obsidian funktioniert. NSC, Orte, Kämpfe und Schätze stehen als Karten im Text, die ihr mitten im Spiel aufklappt. Ihr könnt auch mit einem veröffentlichten Abenteuer anfangen und eigene Ideen dazuschreiben."
       },
       {
+        "title": "Karten eurer Welt",
+        "icon": "map-pinned",
+        "text": "Ladet eure eigenen Karten der Welt und jedes Abenteuers hoch, so groß sie auch sind: Eine große Karte wird einmal in Kacheln geschnitten und zoomt wie eine Online-Karte, und sie öffnet sich dort, wo ihr sie verlassen habt. Gebt ihr den Maßstab mit einer Linie über die Maßstabsleiste, dann messt jeden Weg auf ihr und seht, wie viele Tage die Gruppe in jedem Tempo braucht."
+      },
+      {
         "title": "Handouts",
         "icon": "send",
         "text": "Gebt einen Brief, eine Karte oder eine Beschreibung an die Figuren, die sie gefunden haben. Sie bekommen eine eigene Kopie aufs Handy, eure Geheimnisse bleiben draußen, und ihr seht, wer schon gelesen hat."

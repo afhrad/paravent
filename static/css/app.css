@@ -3547,3 +3547,31 @@ dialog.ctx-dialog .panel{ margin:0; }
 .tr-themes .field-hint{ flex-basis:100%; }
 .ib-wide{ grid-column:1 / -1; }
 .ib-item{ grid-template-columns:minmax(0, 1fr) minmax(0, 1fr) 4.5em; }
+
+/* -- maps (documentation/MAPS.md) ------------------------------------------------- */
+.map-main{ max-width:none; padding:16px 16px 32px; }
+.map-page{ display:flex; flex-direction:column; gap:10px; }
+.map-head{ display:flex; align-items:flex-end; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.map-head-main{ display:flex; flex-direction:column; gap:4px; min-width:0; }
+.map-head-main h1{ margin:0; }
+.map-head-actions{ display:flex; gap:6px; align-items:center; }
+.map-scale-badge{ align-self:flex-start; display:inline-flex; align-items:center; gap:4px; }
+.map-toolbar{ display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.map-toolbar [aria-pressed="true"]{ background:var(--accent-weak); border-color:var(--accent); color:var(--accent-text); }
+.map-readout{ font-size:13px; min-height:1.4em; }
+.map-stage{ height:calc(100dvh - 230px); min-height:360px; border:1px solid var(--border); border-radius:var(--r); background:var(--bg-sunken); overflow:hidden; }
+.map-stage.leaflet-container{ background:var(--bg-sunken); font-family:var(--font-ui); }
+.map-stage.map-drawing, .map-stage.map-drawing .leaflet-interactive{ cursor:crosshair; }
+.map-stage .leaflet-control-zoom a{ background:var(--surface); color:var(--text); border-color:var(--border); }
+.map-ruler-line{ stroke:var(--accent); stroke-width:3; fill:none; }
+.map-ruler-trail{ stroke:var(--accent); stroke-width:2; stroke-dasharray:6 6; fill:none; }
+.map-ruler-point{ stroke:var(--on-accent); stroke-width:2; fill:var(--accent); fill-opacity:1; }
+.map-tiling{ display:flex; flex-direction:column; gap:8px; }
+.map-progress{ display:flex; align-items:center; gap:10px; }
+.map-progress progress{ flex:1; max-width:420px; }
+.map-thumb{ background:var(--bg-sunken); }
+.map-notes summary{ cursor:pointer; font-weight:600; }
+.map-scale-line{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+.map-scale-amount .inline-fields{ display:flex; gap:8px; }
+.map-scale-amount .inline-fields input{ max-width:10em; }
+.map-scale-form:has(input[name=way][value=width]:checked) [data-scale-line]{ display:none; }

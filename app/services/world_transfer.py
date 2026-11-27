@@ -66,6 +66,7 @@ _FRONT_ID = re.compile(r"^id:\s*['\"]?([0-9a-f]{12})", re.MULTILINE)
 CAMPAIGN: dict[str, str] = {
     "npcs": "scope",
     "locations": "scope",
+    "maps": "scope",
     "treasures": "scope",
     "encounters": "world",
     "instructions": "world",

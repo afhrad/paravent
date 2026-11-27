@@ -22,8 +22,8 @@ spells, items and the rulebooks are all there.
 The world menu at the left of the top bar → **New world**. A world is your campaign: its
 name, its language, and above all **the books in play**. The table plays in one world at
 a time — the one in that menu, chosen there — and everything in Paravent plays in it: the
-top bar's adventures, NPCs, places, treasure and encounters, every character and every
-player. Its settings (books, language, the rest) are under **World settings** in the same
+top bar's adventures, NPCs, places, maps, treasure and encounters, every character and
+every player. Its settings (books, language, the rest) are under **World settings** in the same
 menu. **Export world** there saves the whole campaign as one file, **Import world** brings
 one back (here or at another table) and **Duplicate world** copies it for a second group.
 

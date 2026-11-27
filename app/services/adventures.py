@@ -327,6 +327,7 @@ class AdventureService:
         NPCs, places, treasure and encounters placed in it move up to the world, so
         deleting the text never deletes the things the text placed — unless
         ``contents``, which deletes them with it (cleaning up a generated adventure).
+        Its maps always go with it.
         Fights already run stay as history; session notes lose the adventure's name.
         Listed under *Recently deleted* to restore, its contents with it, unless not
         ``keep`` (a revision's copy, written back onto its original).
@@ -339,8 +340,14 @@ class AdventureService:
             self._remove(adventure_id=adventure_id, part_of=part_of, keep=keep)
         else:
             moved = self._promote(adventure_id=adventure_id)
-            if keep:  # a restore puts back what moved up, where it still is
-                trash.keep_file("adventure", adventure, kept, lifted=moved)
+            # A restore puts back what moved up, where it still is.
+            part_of = trash.keep_file("adventure", adventure, kept, lifted=moved) if keep else None
+        # Its maps stick to it (documentation/MAPS.md §3): never moved up to the world,
+        # they go with it and come back with it. Their pictures went with its folder.
+        for found in self._store.maps.list(lambda m: m.scope.adventure_id == adventure_id):
+            if keep:
+                trash.keep("map", found, part_of)
+            self._store.maps.delete(found.id)
         for note in self._store.session_notes.list(lambda n: n.adventure_id == adventure_id):
             self._store.session_notes.update(note.id, adventure_id=None)
 

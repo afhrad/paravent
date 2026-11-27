@@ -182,7 +182,8 @@ written in another chapter still links.
 **Deleting an adventure or a chapter** (2026-10-29) asks what happens to what is placed
 in it, with the counts: *keep* (the default — NPCs, places, encounters and treasure move
 up to the world, or a chapter's to its adventure) or *delete them too*, which cleans up
-generated content. Fights already run stay as history; a session note that named the
+generated content. An adventure's own maps always go with it and come back with it
+(MAPS.md §3). Fights already run stay as history; a session note that named the
 adventure keeps its text and loses the name. Claude deleting its own draft always takes
 the contents with it, so nothing generated is left in the world.
 
