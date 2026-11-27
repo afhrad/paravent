@@ -10,6 +10,7 @@
     python -m app.cli corpus check                      # is the 5eTools corpus readable?
     python -m app.cli backup run                        # back the library up now
     python -m app.cli backup list                       # the backups kept
+    python -m app.cli maps tiles                        # cut large maps' missing tiles
 
 Passwords are prompted for, never taken as an argument — an argument ends up in shell
 history and in the process list. Writes go to ``library/users.json`` through the same
@@ -25,6 +26,8 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
+
+from PIL import Image
 
 from app.config import PROJECT_ROOT, get_settings
 from app.models.gamestate import Role
@@ -327,6 +330,52 @@ def _sound_import(args: argparse.Namespace) -> int:
     return 0
 
 
+def _maps_tiles(args: argparse.Namespace) -> int:
+    """Cut the tiles of every large map that has none, one map after another, as after
+    a move to a new server or with the map cache deleted (documentation/MAPS.md §4).
+    Small maps are shown whole and need none. Safe beside a running server."""
+    from app.services import media
+    from app.services.map_tiles import MapTiles, needs_tiles, tile_count
+
+    settings = get_settings()
+    store = GameStateStore(settings.library_dir)
+    tiles = MapTiles(settings.map_cache, settings.map_max_pixels)
+    large = sorted(
+        (m for m in store.maps.list() if needs_tiles(m.width, m.height)),
+        key=lambda m: m.name.casefold(),
+    )
+    cut = kept = failed = 0
+    for found in large:
+        label = f"{found.name} ({found.width} × {found.height} px)"
+        if tiles.ready(found.id, found.digest) and not args.force:
+            kept += 1
+            continue
+        source = media.resolve(store.prose, found.scope.record_id, found.image)
+        if source is None:
+            print(f"{label}: its picture is missing ({found.image})", file=sys.stderr)
+            failed += 1
+            continue
+        if args.dry_run:
+            print(f"{label}: {tile_count(found.width, found.height):,} tiles to cut")
+            cut += 1
+            continue
+
+        def progress(done: int, total: int, label: str = label) -> None:
+            print(f"\r{label}: {done:,} / {total:,} tiles", end="", flush=True)
+
+        try:
+            tiles.cut(found.id, found.digest, source, progress)
+        except (OSError, ValueError, Image.DecompressionBombError) as exc:
+            print(f"\n{label}: failed: {exc or type(exc).__name__}", file=sys.stderr)
+            failed += 1
+            continue
+        print(f"\r{label}: done{' ' * 20}")
+        cut += 1
+    verb = "to cut" if args.dry_run else "cut"
+    print(f"{len(large)} large maps: {cut} {verb}, {kept} already there, {failed} failed")
+    return 1 if failed else 0
+
+
 def _backup_list(_args: argparse.Namespace) -> int:
     """The backups kept, newest first."""
     service = _backup_service()
@@ -406,6 +455,18 @@ def build_parser() -> argparse.ArgumentParser:
         "--no-save", action="store_true", help="do not keep it as the report to compare with"
     )
     check.set_defaults(handler=_corpus_check)
+
+    maps = groups.add_parser("maps", help="the gamemaster's maps").add_subparsers(
+        dest="command", required=True
+    )
+    map_tiles = maps.add_parser("tiles", help="cut the tiles of large maps that have none")
+    map_tiles.add_argument(
+        "--force", action="store_true", help="cut every large map again, tiles or not"
+    )
+    map_tiles.add_argument(
+        "--dry-run", action="store_true", help="say which maps would be cut, cut nothing"
+    )
+    map_tiles.set_defaults(handler=_maps_tiles)
 
     sound = groups.add_parser("sound", help="the sound desk's library").add_subparsers(
         dest="action", required=True

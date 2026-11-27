@@ -55,6 +55,10 @@ the entries renderer, in the world's books. A book picture is copied from the im
 from a book each share from the chapter that shows them — the player version where the
 book prints one (the map without its secrets), else the map.
 
+**A map as a picture** (2026-11-27, MAPS.md §9b): a gamemaster's map drawn with the pins,
+names and roads of the layers chosen, shared from the map's *Picture* dialog to the ticked
+characters (`share_picture`); it belongs to no chapter.
+
 **The toast**: sharing writes one log entry per character (`EntryKind.HANDOUT`, private,
 the character as subject, the title as note), which the log's own rules pop up on that
 player's screen and file in their log (PROTOCOL.md §6). A tap on that toast, or on the

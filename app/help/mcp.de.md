@@ -141,6 +141,10 @@ mit seinen NSC, Kämpfen (jeden angepasst, bis seine Schwierigkeit passt) und Sc
 schreibt die Kapitel; prüft jedes Kapitel auf Verweise, die ins Leere führen, und bessert
 sie aus; und schließt mit einem kurzen Bericht.
 
+**Karten:** Lade die Karten des Abenteuers auf seiner Seite hoch und schreib die Namen der
+Orte darauf (*Name*); Claude liest diese Namen und setzt die Orte des Entwurfs dorthin. Das
+Bild selbst sieht es nicht, und eine Karte außerhalb seines Entwurfs ändert es nie.
+
 **Sprache:** Claude schreibt in der **Sprache der Welt** — einzustellen auf der Seite der
 Welt (*Bearbeiten*). Namen von Kreaturen, Zaubern und Gegenständen bleiben in den Tags
 englisch; Paravent zeigt sie übersetzt, wo das Glossar einen Namen hat.

@@ -68,3 +68,9 @@ check what a player sees.
 
 Built in `app/services/player_view.py` (`Reader`), handed to each page as `Page.readable`, and
 through `RenderContext.readable` to the tag renderer.
+
+## 3. Maps
+
+The gamemaster's maps reach players only as shown to them (2026-11-27, MAPS.md §9): a map
+the gamemaster shows, with what lies on the layers marked for the players, in the table's
+world; or as a picture handed out (MAPS.md §9b). Held on the server like the rest.

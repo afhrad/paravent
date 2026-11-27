@@ -96,7 +96,7 @@ class TestPicture:
         seen: list[tuple[int, int]] = []
         build(source, target, 10**6, lambda done, total: seen.append((done, total)))
         assert seen[-1] == (tile_count(600, 300), tile_count(600, 300))
-        assert not (tmp_path / "tiles.part").exists()
+        assert not list(tmp_path.glob("tiles.part*"))
         assert sorted(p.name for p in target.iterdir()) == ["0", "1", "2", "thumb.webp"]
         # Level 2 is the original: 3 × 2 tiles, the last column and row padded out.
         assert len(list((target / "2").rglob("*.webp"))) == 6
@@ -830,3 +830,392 @@ class TestRoutePages:
         assert "error=atlas.error.route_same" in refused.headers["location"]
         gone = await raw.post(f"/gm/maps/{coast.id}/routes/{route.id}/delete")
         assert gone.status_code == 204
+
+
+class TestGrid:
+    def test_a_hex_grid_from_the_scale(self, table: Table) -> None:  # noqa: F811
+        _raw, facts = table
+        registry = _registry(facts)
+        service = registry.world_maps
+        coast = _map(registry, facts["world"].id, "Coast", (1200, 600))
+        with pytest.raises(MapError) as refused:
+            service.set_grid(coast.id, amount=6, unit="mi")
+        assert refused.value.key == "atlas.error.grid_scale"
+        service.set_scale(coast.id, way="width", amount=120, unit="mi")  # 10 px a mile
+        service.set_grid(coast.id, amount=6, unit="mi", orientation="pointy", x=30, y=40)
+        found = service.get(coast.id)
+        assert found.grid is not None and found.grid.orientation == "pointy"
+        assert service.hex_px(found) == pytest.approx(60)
+        # Changing the size keeps where it was lined up.
+        service.set_grid(coast.id, amount=9, unit="km")
+        found = service.get(coast.id)
+        assert (found.grid.x, found.grid.y) == (30, 40) and service.hex_px(found) == pytest.approx(
+            60
+        )
+        for amount in (0.5, 500):  # 5 px, 5000 px
+            with pytest.raises(MapError) as refused:
+                service.set_grid(coast.id, amount=amount, unit="mi")
+            assert refused.value.key == "atlas.error.grid_size"
+        # A sharper picture moves the grid's hex with everything else.
+        service.replace_image(coast.id, "coast.png", io.BytesIO(picture(2400, 1200)))
+        found = service.get(coast.id)
+        assert (found.grid.x, found.grid.y) == (60, 80) and service.hex_px(found) == pytest.approx(
+            120
+        )
+        service.clear_grid(coast.id)
+        assert service.get(coast.id).grid is None
+
+    async def test_the_page_draws_it_and_the_user_hides_it(self, table: Table) -> None:  # noqa: F811
+        raw, facts = table
+        registry = _registry(facts)
+        coast = _map(registry, facts["world"].id, "Coast", (1200, 600))
+        await _login(raw)
+        page = html.unescape((await raw.get(f"/gm/maps/{coast.id}")).text)
+        assert 'id="tool-grid"' not in page  # no scale, no grid
+        registry.world_maps.set_scale(coast.id, way="width", amount=120, unit="mi")
+        saved = await raw.post(
+            f"/gm/maps/{coast.id}/grid",
+            data={"amount": "6", "unit": "mi", "orientation": "flat", "x": "", "y": ""},
+        )
+        assert saved.headers["location"].endswith("?saved=1")
+        page = html.unescape((await raw.get(f"/gm/maps/{coast.id}")).text)
+        assert 'id="tool-grid"' in page and '"across": 60.0' in page and '"shown": true' in page
+        assert 'data-layer-eye="grid"' in page
+        hidden_ = await raw.post(f"/gm/maps/{coast.id}/layers/grid/shown", data={"shown": "0"})
+        assert hidden_.status_code == 204
+        page = html.unescape((await raw.get(f"/gm/maps/{coast.id}")).text)
+        assert '"across": 60.0' in page and '"shown": false' in page
+        refused = await raw.post(f"/gm/maps/{coast.id}/grid", data={"amount": "x", "unit": "mi"})
+        assert "error=atlas.error.amount" in refused.headers["location"]
+        cleared = await raw.post(f"/gm/maps/{coast.id}/grid/clear")
+        assert cleared.status_code == 303 and registry.world_maps.get(coast.id).grid is None
+
+
+async def _player(facts: dict[str, Any], name: str = "alice") -> httpx.AsyncClient:
+    """A player's own client, logged in."""
+    from app.models.gamestate import Role
+
+    registry = _registry(facts)
+    registry.auth.create_user(name, PASSWORD, Role.PLAYER)
+    client = httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=facts["app"]), base_url="http://test"
+    )
+    await client.post("/login", data={"username": name, "password": PASSWORD})
+    return client
+
+
+class TestPlayerView:
+    async def test_players_see_what_is_shown_to_them(self, table: Table) -> None:  # noqa: F811
+        raw, facts = table
+        registry = _registry(facts)
+        service = registry.world_maps
+        world_id = facts["world"].id
+        registry.table.select(world_id)
+        coast = service.with_layers(_map(registry, world_id, "Coast").id)
+        places, names, roads, notes = (layer.id for layer in coast.layers)
+        assert [layer.players for layer in coast.layers] == [False, True, True, False]
+        town = registry.locations.create("Grey Reed", f"w:{world_id}", world_id)
+        registry.locations.update(
+            town.id, name="Grey Reed", scope_value=f"w:{world_id}", tags=[], notes="The mayor lies."
+        )
+        service.add_pin(coast.id, x=100, y=100, kind="place", target=town.id)
+        service.add_pin(coast.id, x=200, y=100, kind="note", label="Lookout", note="Bandits watch")
+        service.add_label(coast.id, x=300, y=100, text="Grey Sea", style="water", size=12)
+        service.add_route(
+            coast.id,
+            name="Old Road",
+            kind="road",
+            points=[[10, 10], [400, 10]],
+            terrains=["Forest"],
+        )
+        service.update(coast.id, name="Coast", notes="Secret: the dragon sleeps here.")
+        player = await _player(facts)
+        try:
+            listed = await player.get("/maps")
+            assert listed.status_code == 200 and "Coast" not in listed.text
+            assert (await player.get(f"/maps/{coast.id}")).status_code == 404
+            assert (await player.get(f"/maps/{coast.id}/image")).status_code == 404
+            assert (await player.get(f"/gm/maps/{coast.id}")).status_code == 403
+            await _login(raw)
+            shown = await raw.post(f"/gm/maps/{coast.id}/players", data={"shown": "1"})
+            assert shown.headers["location"].endswith("?shared=1")
+            assert service.get(coast.id).players
+            listed = await player.get("/maps")
+            assert f'href="/maps/{coast.id}"' in listed.text
+            page = html.unescape((await player.get(f"/maps/{coast.id}")).text)
+            assert 'data-player="1"' in page and f'data-base="/maps/{coast.id}"' in page
+            # Names and roads, not the places or the notes, nor the gamemaster's notes.
+            assert "Grey Sea" in page and "Old Road" in page
+            for secret in ("Grey Reed", "Lookout", "Bandits watch", "dragon", "mayor"):
+                assert secret not in page, secret
+            assert 'id="tool-pin"' not in page and "/gm/maps/" not in page
+            image = await player.get(f"/maps/{coast.id}/image")
+            assert image.status_code == 200 and image.content.startswith(b"\x89PNG")
+            # The gamemaster ticks the places' layer and the notes' for them.
+            for layer_id, name in ((places, "Places"), (notes, "Notes")):
+                await raw.post(
+                    f"/gm/maps/{coast.id}/layers/{layer_id}",
+                    data={"name": name, "visible": "1", "players": "1"},
+                )
+            page = html.unescape((await player.get(f"/maps/{coast.id}")).text)
+            assert "Grey Reed" in page and "Bandits watch" in page and "mayor" not in page
+            # A player shows and hides only the layers they see.
+            hid = await player.post(f"/maps/{coast.id}/layers/{names}/shown", data={"shown": "0"})
+            assert hid.status_code == 204
+            assert (
+                service.shown(registry.auth.find_user("alice").id, service.get(coast.id))[names]
+                is False
+            )
+            await raw.post(
+                f"/gm/maps/{coast.id}/layers/{roads}",
+                data={"name": "Roads", "visible": "1", "players": ""},
+            )
+            refused = await player.post(
+                f"/maps/{coast.id}/layers/{roads}/shown", data={"shown": "0"}
+            )
+            assert refused.status_code == 404
+            # Hidden again, or of another world than the table's, it is gone for them.
+            other = registry.gamestate.worlds.create(World(name="Elsewhere"))
+            registry.table.select(other.id)
+            assert (await player.get(f"/maps/{coast.id}")).status_code == 404
+            registry.table.select(world_id)
+            await raw.post(f"/gm/maps/{coast.id}/players", data={"shown": ""})
+            assert (await player.get(f"/maps/{coast.id}")).status_code == 404
+        finally:
+            await player.aclose()
+
+    async def test_maps_within_maps_and_pins_to_maps(self, table: Table) -> None:  # noqa: F811
+        _raw, facts = table
+        registry = _registry(facts)
+        service = registry.world_maps
+        world_id = facts["world"].id
+        registry.table.select(world_id)
+        world = service.with_layers(_map(registry, world_id, "Realm", (2000, 1000)).id)
+        city = service.with_layers(_map(registry, world_id, "City").id)
+        service.set_frame(city.id, world.id, [100, 100, 300, 200])
+        places = world.layers[0]
+        service.edit_layer(
+            world.id, places.id, name=places.name, visible=True, locked=False, players=True
+        )
+        service.add_pin(world.id, x=500, y=500, kind="map", target=city.id)
+        service.set_players(world.id, True)
+        player = await _player(facts)
+        try:
+            page = html.unescape((await player.get(f"/maps/{world.id}")).text)
+            # The city is not shown to them: no frame, no pin to it.
+            assert "City" not in page
+            service.set_players(city.id, True)
+            page = html.unescape((await player.get(f"/maps/{world.id}")).text)
+            assert f'"map_url": "/maps/{city.id}"' in page and f'"url": "/maps/{city.id}"' in page
+            page = html.unescape((await player.get(f"/maps/{city.id}")).text)
+            assert f'href="/maps/{world.id}"' in page  # the path above it
+        finally:
+            await player.aclose()
+
+
+class TestMapPicture:
+    def test_drawn_with_what_lies_on_it(self, tmp_path: Path) -> None:
+        from app.models.gamestate import MapLabel, MapRoute, RouteStretch
+        from app.services.map_picture import Hexes, Mark, area_of, render
+
+        source = tmp_path / "coast.png"
+        source.write_bytes(picture(4000, 2000))
+        assert area_of(4000, 2000, None) == (0, 0, 4000, 2000)
+        assert area_of(4000, 2000, [-50, 100, 1050, 400.5]) == (0, 100, 1000, 501)
+        assert area_of(4000, 2000, [10, 10, 5, 5]) == (0, 0, 4000, 2000)  # too small: all
+        plain = render(source, 10**8, area=(0, 0, 4000, 2000))
+        image = Image.open(io.BytesIO(plain))
+        assert image.size == (2400, 1200)  # at most 2400 on the long side
+        drawn = render(
+            source,
+            10**8,
+            area=(0, 0, 1000, 500),
+            marks=[Mark(500, 250, "Grey Reed", "place")],
+            labels=[MapLabel(x=200, y=100, text="Grey Sea", style="water", size=40, angle=20)],
+            routes=[MapRoute(points=[[0, 400], [900, 400]], stretches=[RouteStretch(start=0)])],
+            hexes=Hexes(across=100, orientation="flat", x=0, y=0),
+        )
+        image = Image.open(io.BytesIO(drawn)).convert("RGB")
+        assert image.size == (1000, 500)
+        assert image.getpixel((500, 250)) == (69, 96, 220)  # the place's pin
+        assert image.getpixel((700, 400)) == (120, 72, 30)  # the road
+
+    async def test_downloaded_and_handed_out(self, table: Table) -> None:  # noqa: F811
+        from app.models.pc import DraftStatus, PlayerCharacter
+
+        raw, facts = table
+        registry = _registry(facts)
+        service = registry.world_maps
+        world_id = facts["world"].id
+        registry.table.select(world_id)
+        coast = service.with_layers(_map(registry, world_id, "Old Coast").id)
+        places, names = coast.layers[0].id, coast.layers[1].id
+        service.add_pin(coast.id, x=500, y=250, kind="note", label="Camp")
+        await _login(raw)
+        page = html.unescape((await raw.get(f"/gm/maps/{coast.id}")).text)
+        assert 'id="tool-picture"' in page and 'name="area"' in page
+        got = await raw.post(
+            f"/gm/maps/{coast.id}/picture",
+            data={"area": ["0", "0", "1000", "500"], "layers": [places], "grid": ""},
+        )
+        assert got.status_code == 200 and got.headers["content-type"] == "image/png"
+        assert 'filename="old-coast.png"' in got.headers["content-disposition"]
+        nobody = await raw.post(f"/gm/maps/{coast.id}/handout", data={"whole": "1"})
+        assert "error=journal.error.nobody" in nobody.headers["location"]
+        player = await _player(facts)
+        try:
+            pc = registry.gamestate.characters.create(
+                PlayerCharacter(
+                    name="Torvald", player="alice", world_id=world_id, status=DraftStatus.READY
+                )
+            )
+            shared = await raw.post(
+                f"/gm/maps/{coast.id}/handout",
+                data={"whole": "1", "layers": [names], "title": "", "characters": [pc.id]},
+            )
+            assert "?shared=1" in shared.headers["location"]
+            handout_id = shared.headers["location"].split("/journal/")[1].split("?")[0]
+            handout = registry.gamestate.handouts.find(handout_id)
+            assert handout.title == "Old Coast" and handout.image == "old-coast.png"
+            assert handout.chapter_id is None
+            read = await player.get(f"/journal/{handout_id}")
+            assert read.status_code == 200 and "old-coast.png" in read.text
+            img = await player.get(f"/journal/{handout_id}/img/old-coast.png")
+            assert img.status_code == 200 and img.content.startswith(b"\x89PNG")
+        finally:
+            await player.aclose()
+
+
+class TestClaudePins:
+    async def test_pins_on_the_maps_of_its_draft(self, table: Table) -> None:  # noqa: F811
+        from tests.test_mcp import call, refused, session
+
+        _raw, facts = table
+        registry = _registry(facts)
+        service = registry.world_maps
+        world_id = facts["world"].id
+        realm = _map(registry, world_id, "Realm")
+        service.add_label(realm.id, x=10, y=10, text="Grey Sea", style="water", size=12)
+        async with session(table) as mcp:
+            draft = await call(
+                mcp,
+                "create_adventure",
+                world_id=world_id,
+                name="Fog on the River",
+                summary="",
+                character_ids=[],
+            )
+            fens = _map(registry, world_id, "Fens", adventure=draft["id"])
+            service.add_label(fens.id, x=300, y=200, text="Mirewick", style="settlement", size=14)
+            await call(mcp, "create_place", adventure_id=draft["id"], name="Mirewick", notes="")
+            listed = await call(mcp, "list_maps", adventure_id=draft["id"])
+            assert [m["name"] for m in listed] == ["Fens"] and listed[0]["writable"]
+            assert listed[0]["labels"][0]["text"] == "Mirewick"
+            pin = await call(
+                mcp,
+                "pin_on_map",
+                map_id=fens.id,
+                kind="place",
+                name="mirewick",
+                at_label="Mirewick",
+            )
+            assert (pin["x"], pin["y"], pin["name"]) == (300, 200, "Mirewick")
+            note = await call(
+                mcp, "pin_on_map", map_id=fens.id, kind="note", name="Ferry", x=50, y=60,
+                note="The ferryman is the hag's.",
+            )  # fmt: skip
+            found = service.get(fens.id)
+            assert [p.kind for p in found.pins] == ["place", "note"]
+            assert found.pins[1].note.startswith("The ferryman")
+            assert "No place called" in await refused(
+                mcp, "pin_on_map", map_id=fens.id, kind="place", name="Nowhere", x=1, y=1
+            )
+            assert "No name" in await refused(
+                mcp, "pin_on_map", map_id=fens.id, kind="note", name="X", at_label="Atlantis"
+            )
+            assert "Say where" in await refused(
+                mcp, "pin_on_map", map_id=fens.id, kind="note", name="X"
+            )
+            # The world's maps are read, never changed.
+            world_maps = await call(mcp, "list_maps", world_id=world_id)
+            assert [m["name"] for m in world_maps] == ["Realm"] and not world_maps[0]["writable"]
+            assert "can be read, not changed" in await refused(
+                mcp, "pin_on_map", map_id=realm.id, kind="note", name="X", at_label="Grey Sea"
+            )
+            assert await call(mcp, "remove_map_pin", map_id=fens.id, pin_id=note["id"])
+            assert len(service.get(fens.id).pins) == 1
+
+
+class TestCacheGone:
+    def test_the_command_cuts_what_is_missing(
+        self,
+        table: Table,  # noqa: F811
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str],
+    ) -> None:
+        from app import cli
+
+        _raw, facts = table
+        registry = _registry(facts)
+        world_id = facts["world"].id
+        big = _map(registry, world_id, "Realm", (5000, 300))
+        _map(registry, world_id, "Town", (800, 400))  # shown whole, no tiles
+        gone = _map(registry, world_id, "Lost", (4200, 300))
+        registry.world_maps.source(gone).unlink()
+        monkeypatch.setattr(cli, "get_settings", lambda: registry.settings)
+        tiles = registry.world_maps.tiles
+
+        def run(*extra: str) -> int:
+            args = cli.build_parser().parse_args(["maps", "tiles", *extra])
+            return args.handler(args)
+
+        assert run("--dry-run") == 1  # the missing picture fails
+        out = capsys.readouterr()
+        assert "Realm (5000 × 300 px):" in out.out and "tiles to cut" in out.out
+        assert "Lost (4200 × 300 px): its picture is missing" in out.err
+        assert not tiles.ready(big.id, big.digest)
+        run()
+        assert tiles.ready(big.id, big.digest) and tiles.thumb(big.id, big.digest)
+        assert "2 large maps: 1 cut, 0 already there, 1 failed" in capsys.readouterr().out
+        run()
+        assert "0 cut, 1 already there" in capsys.readouterr().out
+        run("--force")
+        assert "1 cut, 0 already there" in capsys.readouterr().out
+        assert tiles.ready(big.id, big.digest)
+
+    async def test_a_list_sets_the_cutting_going(self, table: Table) -> None:  # noqa: F811
+        import shutil
+
+        raw, facts = table
+        registry = _registry(facts)
+        big = _map(registry, facts["world"].id, "Realm", (5000, 300))
+        tiles = registry.world_maps.tiles
+        await _login(raw)
+        assert (await raw.get(f"/gm/maps/{big.id}/thumb")).status_code == 404
+        job = tiles.job(big.id)
+        assert job is not None
+        for _ in range(100):
+            if job.finished:
+                break
+            await asyncio.sleep(0.05)
+        assert job.finished and not job.error and tiles.ready(big.id, big.digest)
+        assert (await raw.get(f"/gm/maps/{big.id}/thumb")).status_code == 200
+        # The cache gone again: a tile asked for starts it too.
+        shutil.rmtree(tiles.folder(big.id, big.digest))
+        tile = await raw.get(f"/gm/maps/{big.id}/tiles/0/0/0.webp")
+        assert tile.status_code == 404 and tiles.job(big.id) is not job
+
+    async def test_a_failed_cutting_is_retried_only_by_opening(self, table: Table) -> None:  # noqa: F811
+        from app.services.map_tiles import TileJob
+
+        raw, facts = table
+        registry = _registry(facts)
+        big = _map(registry, facts["world"].id, "Realm", (5000, 300))
+        tiles = registry.world_maps.tiles
+        failed = TileJob(big.id, big.digest, 10, error="broken", finished=True)
+        tiles._jobs[big.id] = failed
+        await _login(raw)
+        assert (await raw.get(f"/gm/maps/{big.id}/thumb")).status_code == 404
+        assert tiles.job(big.id) is failed  # not tried again
+        page = await raw.get(f"/gm/maps/{big.id}")
+        assert page.status_code == 200 and tiles.job(big.id) is not failed

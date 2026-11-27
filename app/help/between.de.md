@@ -32,6 +32,21 @@ Der Knopf **Sitzung** in der Gruppenansicht öffnet die Sitzungsseite.
 - **An die Spieler senden** legt die Notiz, wie sie gerade lautet, ins Journal jeder
   Figur, fertig als „Was bisher geschah“ für nächste Woche.
 
+## 1b. Karten
+
+*Karten* in der oberen Leiste hält deine Karten der Welt; die Karten eines Abenteuers
+stehen auf seiner Seite.
+
+- **Den Spielern zeigen** neben dem Namen einer Karte lässt die Spieler dieser Welt sie
+  unter *Karten* öffnen. Sie sehen nur die Ebenen mit *Spieler sehen sie* (im ⋯ einer
+  Ebene): Eine neue Karte zeigt ihnen ihre Namen und Wege, nicht ihre Orte und Notizen.
+  Deine Notizen, und wohin eine Nadel führt, bleiben bei dir.
+- **Bild** zeichnet den sichtbaren Ausschnitt oder die ganze Karte mit den angehakten
+  Ebenen: zum Herunterladen, oder als Handout ins Journal der Charaktere.
+- **Hexfelder** (sobald die Karte einen Maßstab hat) legt Hexfelder der eingegebenen Größe
+  über die Karte; *An einem Hexfeld ausrichten* passt sie an ein Raster an, das auf dem
+  Bild gedruckt ist. Das Lineal zählt die Hexfelder.
+
 ## 2. Uhr und Kalender
 
 Die Uhr in der Gruppenansicht hält Tag und Uhrzeit der Welt. Lass Zeit vergehen, lass die

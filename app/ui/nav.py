@@ -106,6 +106,7 @@ NAV: dict[Role, tuple[NavItem, ...]] = {
         ),
         NavItem("nav.books", "/books", "book-open", ("/screen",)),
         NavItem("nav.journal", "/journal", "scroll"),
+        NavItem("nav.maps", "/maps", "map-pinned"),
     ),
 }
 

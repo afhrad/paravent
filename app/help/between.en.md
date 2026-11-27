@@ -28,6 +28,19 @@ The **Session** button on the party view opens the session page.
 - **Send to the players** puts the note, as it reads, into every character's journal,
   ready as next week's "previously on".
 
+## 1b. Maps
+
+*Maps* in the top bar holds your maps of the world; an adventure's maps are on its page.
+
+- **Show to players** beside a map's name lets the players of this world open it under
+  *Maps*. They see only the layers marked *Players see it* (under a layer's ⋯): a new map
+  shows them its names and roads, not its places and notes. Your notes, and where a pin
+  leads, stay yours.
+- **Picture** draws the part in view, or the whole map, with the layers you tick: download
+  it, or share it with characters as a handout in their journal.
+- **Hex grid** (once the map has a scale) lays hexes of the size you type over the map;
+  *Line it up on a hex* matches a grid printed on the picture. The ruler counts hexes.
+
 ## 2. The clock and the calendar
 
 The clock panel on the party view keeps the world's day and time. Move it on, rest the

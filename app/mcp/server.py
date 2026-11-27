@@ -31,6 +31,7 @@ from app.mcp.creatures import register_creatures
 from app.mcp.drafts import register_drafts
 from app.mcp.history import register_history
 from app.mcp.items import register_items
+from app.mcp.maps import register_maps
 from app.mcp.models import (
     AdventureSummary,
     AfflictionInfo,
@@ -186,7 +187,9 @@ Work in this order:
 9. Call `check_adventure`, which also reads every note and catches names that did not
    exist yet when you wrote them. Mend what it reports. For a revision, also call
    `check_world`: a rename in the draft can leave other texts of the world pointing at the
-   old name. Report what is outside your draft; do not change it.
+   old name. Report what is outside your draft; do not change it. If the gamemaster
+   gave the draft maps (`list_maps` with its id), pin its places, and where the story
+   happens, with `pin_on_map`, on the names written on the map where they match.
 10. Finish with a short report: the premise in two sentences, the chapters, the NPCs, the
    fights with their difficulty, and anything you could not resolve.
 
@@ -1398,6 +1401,7 @@ def build_server(stores: Callable[[], StoreRegistry]) -> MCPServer:
     register_items(server, stores)
     register_spells(server, stores)
     register_backgrounds(server, stores)
+    register_maps(server, stores)
     return server
 
 

@@ -116,6 +116,7 @@ plain text. Names and ids are what Claude passes back; ids are Paravent's record
 | `campaign_history(world_id, sessions?)` | What happened so far: each adventure with its chapters' status and party; per day of play, newest first, the gamemaster's **session notes** (ADVENTURES.md §4b), the fights run (encounter, adventure and chapter, rounds, the defeated, XP, who took part, who went down, the biggest hit — the recap read from the log) and the experience and levels gained. The prompt has Claude read it first, so a new adventure follows on from the table |
 | `markdown_guide()` | The dialect (ADVENTURES.md §5) as Claude needs it: tags, embeds alone on a line, callouts, heading links, images; also a resource, `paravent://guide/markdown` |
 | `read_adventure(adventure_id)` | An adventure Claude may read — any — with its chapters' text, NPCs, encounters (rated) and treasure |
+| `list_maps(world_id?, adventure_id?)` | The gamemaster's maps of a world or of one adventure (2026-11-27, MAPS.md §9c): size in pixels, scale, layers, the names written on each with where, its pins and roads, and whether Claude may pin on it |
 
 ### Writing — into a draft only
 
@@ -145,6 +146,7 @@ plain text. Names and ids are what Claude passes back; ids are Paravent's record
 | `list_trash(world_id)` | What was deleted in a world lately (NPCs, places, treasure, encounters, chapters, adventures), newest first, kept 30 days for the gamemaster to restore, each with its `id`, how many texts still name it — a broken link `check_world` reports may name one — and the draft of Claude's it was deleted from (`draft`). Reading only (2026-11-20) |
 | `restore(id)` | Brings back an NPC, place, treasure, encounter or chapter **deleted from a draft of Claude's** that is still there, into the draft; a chapter with what was deleted with it. The world's own things and whole adventures are the gamemaster's, under Check links (2026-11-20) |
 | `list_sounds()` | The sound desk's scenes and sounds, for `{@sound Name}` (SOUND.md) |
+| `pin_on_map(map_id, kind, name?, target_id?, at_label?, x?, y?, note?)` / `remove_map_pin(map_id, pin_id)` | A pin on a map of a draft (2026-11-27, MAPS.md §9c): a place, NPC, encounter, treasure, chapter or map by its name, or a note, on a name written on the map or at pixels; refused with the names it may show, or the names written |
 | `check_chapter(chapter_id)` | The chapter check (ADVENTURES.md §5.7): references that lead nowhere with the nearest names, missing NPCs/encounters/treasure, empty encounters, unknown callouts, missing headings and images |
 
 ### A prompt

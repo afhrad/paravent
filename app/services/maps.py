@@ -17,6 +17,7 @@ from typing import BinaryIO
 
 from app.models.gamestate import (
     MapFrame,
+    MapGrid,
     MapLabel,
     MapLayer,
     MapPin,
@@ -55,6 +56,13 @@ ROUTE_KINDS: tuple[str, ...] = ("road", "trail", "river", "sea", "")
 FEET_PER_MILE = 5280.0
 # What a pin may point at (documentation/MAPS.md §6).
 PIN_KINDS = ("place", "npc", "encounter", "treasure", "adventure", "chapter", "map", "note")
+# The layers players see once a map is shown to them, unless the gamemaster chooses
+# (documentation/MAPS.md §9): the names and the roads, never the notes.
+PLAYER_ROLES = frozenset({"names", "roads"})
+# What the hex grid is called among a user's shown and hidden layers.
+GRID = "grid"
+# The smallest hex the grid draws, in the original's pixels.
+MIN_HEX_PX = 8.0
 
 
 class MapError(Translatable):
@@ -98,7 +106,11 @@ def default_layers(names: Mapping[str, str] | None = None) -> list[MapLayer]:
     """The four layers a new map starts with, named in ``names`` by role."""
     given = names or {}
     return [
-        MapLayer(name=(given.get(role) or LAYER_NAMES[role])[:60], role=role)
+        MapLayer(
+            name=(given.get(role) or LAYER_NAMES[role])[:60],
+            role=role,
+            players=role in PLAYER_ROLES,
+        )
         for role in LAYER_ROLES
     ]
 
@@ -232,6 +244,9 @@ class MapService:
             r.model_copy(update={"points": [[x * rx, y * ry] for x, y in r.points]})
             for r in before.routes
         ]
+        grid = before.grid
+        if grid is not None:
+            grid = grid.model_copy(update={"x": grid.x * rx, "y": grid.y * ry})
         saved = self._store.maps.update(
             map_id,
             image=stored.path,
@@ -242,6 +257,7 @@ class MapService:
             pins=pins,
             labels=labels,
             routes=routes,
+            grid=grid,
         )
         if (rx, ry) != (1, 1):
             for child in self.framed_on(map_id):
@@ -280,6 +296,85 @@ class MapService:
         """Take the map's scale away."""
         self.get(map_id)
         return self._store.maps.update(map_id, scale=None)
+
+    # -- the hex grid (documentation/MAPS.md §8b) -------------------------------------
+
+    @staticmethod
+    def hex_px(found: WorldMap) -> float | None:
+        """How far a hex of the map's grid is across, flat side to flat side, in the
+        original's pixels; None without a grid or a scale."""
+        if found.grid is None or found.scale is None:
+            return None
+        return found.grid.amount * FEET_PER[found.grid.unit] / found.scale.feet_per_px
+
+    def set_grid(
+        self,
+        map_id: str,
+        *,
+        amount: float,
+        unit: str,
+        orientation: str = "flat",
+        x: float | None = None,
+        y: float | None = None,
+    ) -> WorldMap:
+        """Lay a hex grid over the map: ``amount`` ``unit`` across a hex, the hexes
+        standing on a flat side or a corner, one centred at ``x``, ``y`` (kept as they
+        were when not given). The map needs its scale first."""
+        found = self.get(map_id)
+        if found.scale is None:
+            raise MapError("atlas.error.grid_scale")
+        if unit not in FEET_PER:
+            raise MapError("atlas.error.unit")
+        if not math.isfinite(amount) or amount <= 0:
+            raise MapError("atlas.error.amount")
+        across = amount * FEET_PER[unit] / found.scale.feet_per_px
+        if across < MIN_HEX_PX or across > max(found.width, found.height):
+            raise MapError("atlas.error.grid_size")
+        before = found.grid
+        cx = x if x is not None and math.isfinite(x) else (before.x if before else 0.0)
+        cy = y if y is not None and math.isfinite(y) else (before.y if before else 0.0)
+        grid = MapGrid(
+            amount=amount,
+            unit=unit,  # checked above
+            orientation="pointy" if orientation == "pointy" else "flat",
+            x=round(min(max(cx, 0.0), float(found.width)), 1),
+            y=round(min(max(cy, 0.0), float(found.height)), 1),
+        )
+        return self._store.maps.update(map_id, grid=grid)
+
+    def clear_grid(self, map_id: str) -> WorldMap:
+        """Take the hex grid away."""
+        self.get(map_id)
+        return self._store.maps.update(map_id, grid=None)
+
+    # -- the players (documentation/MAPS.md §9) ---------------------------------------
+
+    def set_players(self, map_id: str, shown: bool) -> WorldMap:
+        """Show the map to the players of its world, or hide it from them again."""
+        self.get(map_id)
+        return self._store.maps.update(map_id, players=shown)
+
+    def for_players(self, world_id: str | None) -> list[WorldMap]:
+        """The maps of a world shown to its players, the world's own first, by name."""
+        if not world_id:
+            return []
+        found = self._store.maps.list(lambda m: m.scope.world_id == world_id and m.players)
+        return sorted(found, key=lambda m: (m.scope.adventure_id is not None, m.name.casefold()))
+
+    @staticmethod
+    def player_layers(found: WorldMap) -> set[str]:
+        """The ids of the layers players see on a map."""
+        return {layer.id for layer in found.layers if layer.players}
+
+    def players_see(self, found: WorldMap, kind: str, target: str) -> bool:
+        """Whether a pin's target means something to players: a note always, a map only
+        when it is shown to them too, anything else while it exists."""
+        if kind == "note":
+            return True
+        if kind == "map":
+            other = self._store.maps.find(target)
+            return other is not None and other.players and self.shows(found, kind, target)
+        return self.shows(found, kind, target)
 
     # -- pins (documentation/MAPS.md §6) ---------------------------------------------
 
@@ -502,15 +597,30 @@ class MapService:
         return layer
 
     def edit_layer(
-        self, map_id: str, layer_id: str, *, name: str, visible: bool, locked: bool
+        self,
+        map_id: str,
+        layer_id: str,
+        *,
+        name: str,
+        visible: bool,
+        locked: bool,
+        players: bool | None = None,
     ) -> MapLayer:
-        """A layer's name, whether a newcomer sees it, and whether it is locked."""
+        """A layer's name, whether a newcomer sees it, whether it is locked, and whether
+        the players see it (kept as it was when not given)."""
         found = self.with_layers(map_id)
         layer = self._layer(found, layer_id)
         title = " ".join(name.split())[:60]
         if not title:
             raise MapError("atlas.error.layer_name")
-        edited = layer.model_copy(update={"name": title, "visible": visible, "locked": locked})
+        edited = layer.model_copy(
+            update={
+                "name": title,
+                "visible": visible,
+                "locked": locked,
+                "players": layer.players if players is None else players,
+            }
+        )
         self._layers(map_id, [edited if x.id == layer_id else x for x in found.layers])
         return edited
 
@@ -575,15 +685,19 @@ class MapService:
         self._store.maps.update(map_id, layers=layers, pins=pins, labels=labels, routes=routes)
 
     def shown(self, user_id: str, found: WorldMap) -> dict[str, bool]:
-        """Whether the user sees each layer: as they chose, else the layer's default."""
+        """Whether the user sees each layer: as they chose, else the layer's default;
+        and the hex grid, under ``GRID``, shown unless they hid it."""
         place = self._store.places.find(user_id)
         chosen = place.map_layers.get(found.id, {}) if place is not None else {}
-        return {layer.id: chosen.get(layer.id, layer.visible) for layer in found.layers}
+        out = {layer.id: chosen.get(layer.id, layer.visible) for layer in found.layers}
+        out[GRID] = chosen.get(GRID, True)
+        return out
 
     def set_shown(self, user_id: str, map_id: str, layer_id: str, shown: bool) -> None:
-        """Remember that the user showed or hid a layer of the map."""
+        """Remember that the user showed or hid a layer of the map, or its grid."""
         found = self.with_layers(map_id)
-        self._layer(found, layer_id)
+        if layer_id != GRID:
+            self._layer(found, layer_id)
         place = self._store.places.find(user_id) or Place(id=user_id)
         mine = {**place.map_layers.get(map_id, {}), layer_id: shown}
         self._store.places.upsert(
@@ -1002,6 +1116,8 @@ class MapService:
 
 __all__ = [
     "FEET_PER",
+    "GRID",
+    "PLAYER_ROLES",
     "LONG_UNITS",
     "UNITS",
     "LABEL_STYLES",

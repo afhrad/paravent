@@ -9,6 +9,13 @@
 #                                 this one (--delete). Backed up on the server first; what
 #                                 changes is listed before it is sent, files newer on the
 #                                 server marked. The server's signing key and logins stay.
+#   ./sync-server.sh --translations
+#                                 only the translations: the library's i18n folder (glossary,
+#                                 translated texts, suggestions, UI overrides), for a server
+#                                 without a translation key. No code, no rebuild, no restart:
+#                                 the server reads changed translation files by itself. Its
+#                                 own are backed up first; nothing only there is deleted;
+#                                 files newer there are listed, then overwritten.
 #   ./sync-server.sh --dry-run    show what would be sent, change nothing
 #   ./sync-server.sh --no-build   send files, restart without rebuilding the image
 #
@@ -27,6 +34,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")"
 
 CORPUS=0
 LIBRARY=0
+TRANSLATIONS=0
 DRY=0
 BUILD=1
 
@@ -34,14 +42,20 @@ while [[ $# -gt 0 ]]; do
   case "$1" in
     --corpus)   CORPUS=1; shift ;;
     --library)  LIBRARY=1; shift ;;
+    --translations) TRANSLATIONS=1; shift ;;
     --dry-run)  DRY=1; shift ;;
     --no-build) BUILD=0; shift ;;
     -h|--help)
-      sed -n '3,23p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+      sed -n '3,30p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
       exit 0 ;;
     *) echo "Unknown option: $1 (see --help)" >&2; exit 2 ;;
   esac
 done
+
+if [[ $TRANSLATIONS -eq 1 && $((CORPUS + LIBRARY)) -gt 0 ]]; then
+  echo "--translations sends the translations alone; --library already holds them." >&2
+  exit 2
+fi
 
 # --- where to -------------------------------------------------------------------
 if [[ -f sync.env ]]; then
@@ -92,7 +106,7 @@ remote "test -f '$DIR/docker-compose.yaml'" || {
   exit 1
 }
 
-if [[ -n "$(git status --porcelain 2>/dev/null)" ]]; then
+if [[ $TRANSLATIONS -eq 0 && -n "$(git status --porcelain 2>/dev/null)" ]]; then
   echo "Note: uncommitted changes are sent as they are in the working tree."
 fi
 
@@ -101,6 +115,60 @@ fi
 mount_of() {
   remote "docker inspect paravent --format '{{range .Mounts}}{{if eq .Destination \"$1\"}}{{.Source}}{{end}}{{end}}' 2>/dev/null" || true
 }
+
+# --- the translations alone (optional) ----------------------------------------------
+# Made here, where the translation key is; the server has none. Sent into the server's
+# library as they are here, without touching anything else of it, and read there as soon
+# as they change: the glossary and the translated texts follow their files' times.
+if [[ $TRANSLATIONS -eq 1 ]]; then
+  LOCAL_LIBRARY="$(local_setting PARAVENT_LIBRARY_DIR)"
+  LOCAL_LIBRARY="${LOCAL_LIBRARY:-data/library}"
+  if [[ ! -d "$LOCAL_LIBRARY/i18n" ]]; then
+    echo "No translations in $LOCAL_LIBRARY/i18n." >&2
+    exit 1
+  fi
+  step "Sending the translations"
+  library="$(mount_of /data/library)"
+  library="${library:-$DIR/data/library}"
+  target="$library/i18n"
+  echo "    from $LOCAL_LIBRARY/i18n to $target"
+  # Never --delete: a translation made on the server stays. The glossary's own backups
+  # (*.bak-*) stay here.
+  I18N_RSYNC=(rsync -az --exclude '.DS_Store' --exclude '*.bak-*' --exclude '.*')
+  changes="$("${I18N_RSYNC[@]}" -n -i "$LOCAL_LIBRARY/i18n/" "$HOST:$target/" 2>/dev/null \
+    | grep -E '^<f' | sed -E 's/^[^ ]+ +//' || true)"
+  keep_newer="$("${I18N_RSYNC[@]}" -n -i -u "$LOCAL_LIBRARY/i18n/" "$HOST:$target/" 2>/dev/null \
+    | grep -E '^<f' | sed -E 's/^[^ ]+ +//' || true)"
+  newer="$(comm -23 <(sort <<<"$changes" | sed '/^$/d') <(sort <<<"$keep_newer" | sed '/^$/d'))"
+  count() { sed '/^$/d' <<<"$1" | wc -l | tr -d ' '; }
+  echo "    $(count "$changes") to send, $(count "$newer") of them newer on the server"
+  if [[ -n "$newer" ]]; then
+    echo "    Newer on the server, overwritten (kept in the backup):"
+    sed 's/^/      /' <<<"$newer"
+  fi
+  if [[ $DRY -eq 1 ]]; then
+    [[ -n "$changes" ]] && { echo "    Sent:"; sed 's/^/      /' <<<"$changes"; }
+    step "Dry run: nothing was changed"
+    exit 0
+  fi
+  if [[ -z "$changes" ]]; then
+    step "The server's translations are already these"
+    exit 0
+  fi
+  stamp="$(date +%Y%m%d-%H%M%S)"
+  remote "mkdir -p '$target' '$DIR/backups' \
+    && tar -czf '$DIR/backups/translations-$stamp.tar.gz' -C '$target' . \
+    && echo '    backup: $DIR/backups/translations-$stamp.tar.gz'"
+  "${I18N_RSYNC[@]}" "$LOCAL_LIBRARY/i18n/" "$HOST:$target/"
+  # The container writes as PUID:PGID; files sent as another user must belong to it.
+  remote "cd '$DIR' && set -a && { [ -f .env ] && . ./.env || true; } && set +a \
+    && owner=\"\${PUID:-1000}:\${PGID:-1000}\" \
+    && if [ \"\$(id -u):\$(id -g)\" = \"\$owner\" ]; then :; \
+       elif sudo -n true 2>/dev/null; then sudo chown -R \"\$owner\" '$target'; \
+       else echo \"    Note: run  sudo chown -R \$owner $target  so the app can write.\"; fi"
+  step "Translations sent; the server reads them without a restart"
+  exit 0
+fi
 
 # --- the code ---------------------------------------------------------------------
 # Exactly what the image is built from (see .dockerignore), plus the compose file.

@@ -158,6 +158,36 @@ class HandoutService:
         handout.image = self._copy(source, handout.id)
         return self._publish(view, handout, by)
 
+    def share_picture(
+        self,
+        world_id: str,
+        data: bytes,
+        filename: str,
+        title: str,
+        character_ids: Sequence[str],
+        by: Identity,
+    ) -> Handout:
+        """Hand a picture made for the purpose (a map drawn with its pins, MAPS.md §9b)
+        to the world's characters, as ``filename`` in the handout's folder."""
+        allowed = {pc_id for pc_id, _ in self.recipients(world_id)}
+        chosen = [c for c in dict.fromkeys(character_ids) if c in allowed]
+        if not chosen:
+            raise HandoutError("journal.error.nobody")
+        handout = Handout(
+            world_id=world_id,
+            kind="image",
+            title=title.strip()[:200],
+            characters=chosen,
+            shared_by=by.user.username,
+        )
+        folder = self.root / handout.id
+        folder.mkdir(parents=True, exist_ok=True)
+        (folder / filename).write_bytes(data)
+        handout.image = filename
+        self.gamestate.handouts.create(handout)
+        self._announce(handout, Scope(world=world_id), by)
+        return handout
+
     def share_note(
         self,
         world_id: str,
@@ -184,22 +214,7 @@ class HandoutService:
             shared_by=by.user.username,
         )
         self.gamestate.handouts.create(handout)
-        names = dict(self.recipients(world_id))
-        self.protocol.append(
-            ProtocolEntry(
-                kind=EntryKind.HANDOUT,
-                actor=by.user.username,
-                actor_name=by.user.display_name or by.user.username,
-                subject=f"character:{character}",
-                subject_name=names.get(character, character),
-                what=handout.id,
-                note=handout.title,
-                visibility=Visibility.PRIVATE,
-                scope=Scope(world=world_id),
-                origin="table",
-            )
-            for character in handout.characters
-        )
+        self._announce(handout, Scope(world=world_id), by)
         return handout
 
     def _new(
@@ -250,8 +265,13 @@ class HandoutService:
 
     def _publish(self, view: ChapterView, handout: Handout, by: Identity) -> Handout:
         self.gamestate.handouts.create(handout)
-        names = dict(self.recipients(view.world.id))
         scope = Scope(world=view.world.id, adventure=view.adventure.id, chapter=view.chapter.id)
+        self._announce(handout, scope, by)
+        return handout
+
+    def _announce(self, handout: Handout, scope: Scope, by: Identity) -> None:
+        """One private log entry per character it went to: the toast and the log."""
+        names = dict(self.recipients(handout.world_id))
         self.protocol.append(
             ProtocolEntry(
                 kind=EntryKind.HANDOUT,
@@ -267,7 +287,6 @@ class HandoutService:
             )
             for character in handout.characters
         )
-        return handout
 
     # -- reading --------------------------------------------------------------------
 

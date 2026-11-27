@@ -56,6 +56,7 @@ services:
       PARAVENT_BACKUP_DIR: /data/backups
       PARAVENT_BACKUP_AT: "${PARAVENT_BACKUP_AT:-}"
       PARAVENT_BACKUP_KEEP: "${PARAVENT_BACKUP_KEEP:-14}"
+      PARAVENT_MAP_MAX_PIXELS: 700000000
       TZ: "${TZ:-Europe/Berlin}"
 
 volumes:

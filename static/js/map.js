@@ -16,7 +16,11 @@
   var long = !!el.dataset.long, metric = !!el.dataset.metric;
   var lang = el.dataset.lang || 'en';
   var mapId = el.dataset.map;
+  // The gamemaster's map, or the same map as the players see it: nothing to change.
+  var base = el.dataset.base || '/gm/maps/' + mapId;
+  var player = !!el.dataset.player;
   var readout = document.querySelector('[data-map-readout]');
+  var grid = el.dataset.grid ? JSON.parse(el.dataset.grid) : null;
 
   var map = L.map(el, {
     crs: L.CRS.Simple,
@@ -63,7 +67,7 @@
     data.append('x', centre[0].toFixed(1));
     data.append('y', centre[1].toFixed(1));
     data.append('zoom', map.getZoom().toFixed(2));
-    var url = '/gm/maps/' + mapId + '/view';
+    var url = base + '/view';
     if (beacon && navigator.sendBeacon) navigator.sendBeacon(url, data);
     else fetch(url, { method: 'POST', body: data, credentials: 'same-origin' });
   }
@@ -162,6 +166,10 @@
     if (all.length < 2) { say(words.start || ''); return; }
     var feet = pathFeet(all);
     var text = fill(words.total, { distance: distance(feet) });
+    if (grid) {
+      var hexes = Math.round(feet / feetPerPx / grid.across);
+      text += ' · ' + fill(hexes === 1 ? words.hexes.one : words.hexes.other, { n: hexes });
+    }
     if (long) text += ' · ' + travel(feet);
     say(text);
   }
@@ -298,12 +306,20 @@
   }
 
   function pinCard(pin, marker) {
-    var base = '/gm/maps/' + mapId + '/pins/' + pin.id;
+    var url = base + '/pins/' + pin.id;
     var kind = (words.kinds || {})[pin.kind] || pin.kind;
     var links = node('p', { 'class': 'map-card-links' }, [
       pin.url ? node('a', { href: pin.url, 'class': 'btn btn-sm', text: words.open }) : null,
       pin.map_url ? node('a', { href: pin.map_url, 'class': 'btn btn-sm', text: words.go_to_map }) : null
     ]);
+    if (player) {
+      return node('div', { 'class': 'map-card' }, [
+        node('span', { 'class': 'eyebrow', text: kind }),
+        node('b', { 'class': 'map-card-title', text: shownName(pin) }),
+        pin.note ? node('p', { 'class': 'map-card-text', text: pin.note }) : null,
+        pin.map_url ? links : null
+      ]);
+    }
     var labelInput = node('input', { type: 'text', name: 'label', value: pin.label || '',
       maxlength: '120', 'aria-label': words.label, placeholder: pin.name || words.label });
     var noteInput = pin.kind === 'note'
@@ -320,7 +336,7 @@
       e.preventDefault();
       var fields = { label: labelInput.value, note: noteInput ? noteInput.value : '' };
       if (layerInput) fields.layer = layerInput.value;
-      post(base, fields).then(function (r) {
+      post(url, fields).then(function (r) {
         if (!r.ok) return;
         pin.label = labelInput.value.trim();
         if (noteInput) { pin.note = noteInput.value; pin.excerpt = noteInput.value.split('\n')[0]; }
@@ -331,7 +347,7 @@
       });
     });
     remove.addEventListener('click', function () {
-      post(base + '/delete').then(function (r) {
+      post(url + '/delete').then(function (r) {
         if (r.ok) { holder(pin.layer).removeLayer(marker); delete markers[pin.id]; }
       });
     });
@@ -357,7 +373,8 @@
 
   function addPin(pin) {
     var marker = L.marker(toLatLng(pin.x, pin.y), {
-      icon: pinIcon(pin), draggable: !isLocked(pin.layer), keyboard: true, title: shownName(pin),
+      icon: pinIcon(pin), draggable: !player && !isLocked(pin.layer), keyboard: true,
+      title: shownName(pin),
       riseOnHover: true, pane: paneOf(pin.layer)
     });
     marker.options.layerId = groupOf(pin.layer);
@@ -366,7 +383,7 @@
     marker.on('dragend', function () {
       var at = toPixels(marker.getLatLng());
       pin.x = at[0]; pin.y = at[1];
-      post('/gm/maps/' + mapId + '/pins/' + pin.id + '/move', { x: at[0].toFixed(1), y: at[1].toFixed(1) });
+      post(base + '/pins/' + pin.id + '/move', { x: at[0].toFixed(1), y: at[1].toFixed(1) });
     });
     marker.addTo(holder(pin.layer));
     markers[pin.id] = marker;
@@ -385,7 +402,7 @@
   }
 
   function labelCard(label, marker) {
-    var base = '/gm/maps/' + mapId + '/labels/' + label.id;
+    var url = base + '/labels/' + label.id;
     var text = node('input', { type: 'text', name: 'text', value: label.text, maxlength: '80',
       'aria-label': words.text, required: '' });
     var style = node('select', { name: 'style', 'aria-label': words.style });
@@ -414,7 +431,7 @@
       e.preventDefault();
       var fields = { text: text.value, style: style.value, size: size.value, angle: angle.value };
       if (layerInput) fields.layer = layerInput.value;
-      post(base, fields).then(function (r) {
+      post(url, fields).then(function (r) {
         if (!r.ok) return;
         marker.closePopup();
         holder(label.layer).removeLayer(marker);
@@ -426,7 +443,7 @@
       });
     });
     remove.addEventListener('click', function () {
-      post(base + '/delete').then(function (r) { if (r.ok) holder(label.layer).removeLayer(marker); });
+      post(url + '/delete').then(function (r) { if (r.ok) holder(label.layer).removeLayer(marker); });
     });
     return node('div', { 'class': 'map-card' }, [
       node('span', { 'class': 'eyebrow', text: (words.styles || {})[label.style] || '' }), form
@@ -435,16 +452,16 @@
 
   function addLabel(label) {
     var marker = L.marker(toLatLng(label.x, label.y), {
-      icon: labelIcon(label), draggable: !isLocked(label.layer), keyboard: true,
-      title: label.text, pane: paneOf(label.layer)
+      icon: labelIcon(label), draggable: !player && !isLocked(label.layer), keyboard: !player,
+      title: label.text, pane: paneOf(label.layer), interactive: !player
     });
     marker.options.layerId = groupOf(label.layer);
-    marker.bindPopup(function () { return labelCard(label, marker); }, { minWidth: 240 });
+    if (!player) marker.bindPopup(function () { return labelCard(label, marker); }, { minWidth: 240 });
     passTaps(marker);
     marker.on('dragend', function () {
       var at = toPixels(marker.getLatLng());
       label.x = at[0]; label.y = at[1];
-      post('/gm/maps/' + mapId + '/labels/' + label.id + '/move',
+      post(base + '/labels/' + label.id + '/move',
         { x: at[0].toFixed(1), y: at[1].toFixed(1) });
     });
     marker.addTo(holder(label.layer));
@@ -468,7 +485,7 @@
     ).addTo(map);
     rect.bindTooltip(f.name, { permanent: true, direction: 'center', className: 'map-frame-name' });
     var open = node('a', { href: f.url, 'class': 'btn btn-sm btn-primary', text: words.go_to_map });
-    var unframe = node('form', { method: 'post', action: '/gm/maps/' + f.id + '/frame/clear' }, [
+    var unframe = player ? null : node('form', { method: 'post', action: '/gm/maps/' + f.id + '/frame/clear' }, [
       node('input', { type: 'hidden', name: 'next', value: location.pathname }),
       node('button', { type: 'submit', 'class': 'btn btn-sm btn-ghost btn-danger', text: words.unframe })
     ]);
@@ -492,6 +509,125 @@
   showLayers();
   scaleLabels();
 
+  // -- the hex grid (documentation/MAPS.md §8b): drawn on a canvas over the picture ----
+
+  var gridPane = map.createPane('grid');
+  gridPane.style.zIndex = '450';  // above the picture, beneath every layer
+  gridPane.style.pointerEvents = 'none';
+  var gridCanvas = null;
+
+  // The hexes in view, as one path: each hex's centre from the grid's own, its columns
+  // (flat side up) or rows (corner up) shifted by half a hex every other one.
+  function drawGrid() {
+    if (!gridCanvas) return;
+    var size = map.getSize();
+    var ratio = window.devicePixelRatio || 1;
+    var pad = { x: size.x / 2, y: size.y / 2 };
+    var w = size.x + 2 * pad.x, h = size.y + 2 * pad.y;
+    gridCanvas.width = Math.round(w * ratio);
+    gridCanvas.height = Math.round(h * ratio);
+    gridCanvas.style.width = w + 'px';
+    gridCanvas.style.height = h + 'px';
+    L.DomUtil.setPosition(gridCanvas, map.containerPointToLayerPoint([-pad.x, -pad.y]));
+    var ctx = gridCanvas.getContext('2d');
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    var k = Math.pow(2, map.getZoom() - Z);
+    var d = grid.across, r = d / Math.sqrt(3);
+    if (d * k < 10) return;  // too small to read
+    var o = map.latLngToContainerPoint(toLatLng(0, 0));
+    function sx(x) { return o.x + x * k + pad.x; }
+    function sy(y) { return o.y + y * k + pad.y; }
+    // The view in the original's pixels.
+    var x0 = (-pad.x - o.x) / k, x1 = (size.x + pad.x - o.x) / k;
+    var y0 = (-pad.y - o.y) / k, y1 = (size.y + pad.y - o.y) / k;
+    // Only over the picture itself, not the margin around it.
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(sx(0), sy(0), W * k, H * k);
+    ctx.clip();
+    var flat = grid.orientation !== 'pointy';
+    var stepA = flat ? 1.5 * r : d, stepB = flat ? d : 1.5 * r;
+    var a0 = Math.floor(((flat ? x0 : y0) - (flat ? grid.x : grid.y)) / stepA) - 1;
+    var a1 = Math.ceil(((flat ? x1 : y1) - (flat ? grid.x : grid.y)) / stepA) + 1;
+    ctx.beginPath();
+    for (var a = a0; a <= a1; a++) {
+      var shift = ((a % 2) + 2) % 2 ? stepB / 2 : 0;
+      var lo = flat ? y0 - grid.y : x0 - grid.x, hi = flat ? y1 - grid.y : x1 - grid.x;
+      var b0 = Math.floor((lo - shift) / stepB) - 1, b1 = Math.ceil((hi - shift) / stepB) + 1;
+      for (var b = b0; b <= b1; b++) {
+        var cx = flat ? grid.x + a * stepA : grid.x + b * stepB + shift;
+        var cy = flat ? grid.y + b * stepB + shift : grid.y + a * stepA;
+        for (var i = 0; i <= 6; i++) {
+          var angle = Math.PI / 3 * i + (flat ? 0 : Math.PI / 6);
+          var px = sx(cx + r * Math.cos(angle)), py = sy(cy + r * Math.sin(angle));
+          if (i === 0) ctx.moveTo(px, py); else ctx.lineTo(px, py);
+        }
+      }
+    }
+    var style = getComputedStyle(el);
+    ctx.strokeStyle = style.getPropertyValue('--map-grid').trim() || 'rgba(20, 20, 20, 0.45)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function showGrid() {
+    var on = grid && grid.shown;
+    if (on && !gridCanvas) {
+      gridCanvas = L.DomUtil.create('canvas', 'map-grid', gridPane);
+      drawGrid();
+    } else if (!on && gridCanvas) {
+      gridCanvas.remove();
+      gridCanvas = null;
+    }
+  }
+  map.on('moveend resize', drawGrid);
+  map.on('zoomstart', function () { if (gridCanvas) gridCanvas.style.visibility = 'hidden'; });
+  map.on('zoomend', function () {
+    if (gridCanvas) { gridCanvas.style.visibility = ''; drawGrid(); }
+  });
+  showGrid();
+
+  // Lining the grid up: a tap on a hex's centre, then back to the dialog with it.
+  var gridDialog = document.getElementById('tool-grid');
+  if (gridDialog) {
+    gridDialog.addEventListener('click', function (e) {
+      var place = e.target.closest ? e.target.closest('[data-map-grid-place]') : null;
+      if (!place) return;
+      e.preventDefault();
+      gridDialog.close();
+      clearDrawing();
+      setMode('grid');
+      say(words.grid_place || '');
+    });
+  }
+  function gridPlaced(latlng) {
+    var form = gridDialog && gridDialog.querySelector('.map-grid-form');
+    if (!form) return;
+    var at = toPixels(latlng);
+    form.elements.x.value = at[0].toFixed(1);
+    form.elements.y.value = at[1].toFixed(1);
+    var state = form.querySelector('[data-grid-state]');
+    if (state) state.textContent = words.grid_placed || '';
+    if (gridDialog.showModal) gridDialog.showModal(); else gridDialog.setAttribute('open', '');
+  }
+
+  // -- the map as a picture (documentation/MAPS.md §9b): the part in view, sent along ---
+
+  var pictureOpen = document.querySelector('[data-picture-open]');
+  var pictureDialog = document.getElementById('tool-picture');
+  if (pictureOpen && pictureDialog) {
+    pictureOpen.addEventListener('click', function () {
+      var view = map.getBounds();
+      var a = toPixels(view.getNorthWest()), b = toPixels(view.getSouthEast());
+      var fields = pictureDialog.querySelectorAll('input[name="area"]');
+      [a[0], a[1], b[0] - a[0], b[1] - a[1]].forEach(function (v, i) {
+        if (fields[i]) fields[i].value = v.toFixed(1);
+      });
+    }, true);
+  }
+
   // -- roads (documentation/MAPS.md §8) ------------------------------------------------
 
   var routes = JSON.parse(el.dataset.routes || '[]');
@@ -509,7 +645,7 @@
   function miles(m) { return distance(m * 5280); }
 
   function routeCard(route) {
-    var base = '/gm/maps/' + mapId + '/routes/' + route.id;
+    var url = base + '/routes/' + route.id;
     var name = node('input', { type: 'text', name: 'name', value: route.name, maxlength: '80',
       'aria-label': words.route_name, placeholder: words.route_name });
     var kind = node('select', { name: 'kind', 'aria-label': words.route_name });
@@ -542,20 +678,20 @@
     ]);
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      post(base, Object.fromEntries(new FormData(form).entries())).then(function (r) {
+      post(url, Object.fromEntries(new FormData(form).entries())).then(function (r) {
         if (r.ok) location.reload();
       });
     });
     var travel = canTravel && route.miles
       ? node('button', { type: 'button', 'class': 'btn btn-sm btn-primary', text: words.travel }) : null;
     if (travel) travel.addEventListener('click', function () { map.closePopup(); openTravel(route); });
-    var points = isLocked(route.layer) ? null
+    var points = player || isLocked(route.layer) ? null
       : node('button', { type: 'button', 'class': 'btn btn-sm', text: words.edit_points });
     if (points) points.addEventListener('click', function () { map.closePopup(); editPoints(route); });
     var remove = node('button', { type: 'button', 'class': 'btn btn-sm btn-ghost btn-danger',
       text: words.remove_route });
     remove.addEventListener('click', function () {
-      post(base + '/delete').then(function (r) { if (r.ok) location.reload(); });
+      post(url + '/delete').then(function (r) { if (r.ok) location.reload(); });
     });
     var head = (words.route_kinds || {})[route.kind] || '';
     if (route.miles !== null) head += ' · ' + miles(route.miles);
@@ -563,6 +699,13 @@
       return ((words.terrains || {})[st.terrain] || words.no_terrain) +
         (st.difficult ? ' (' + words.difficult + ')' : '');
     }).filter(function (v, i, all) { return all.indexOf(v) === i; }).join(', ');
+    if (player) {
+      return node('div', { 'class': 'map-card map-route-card' }, [
+        node('span', { 'class': 'eyebrow', text: head }),
+        route.name ? node('b', { 'class': 'map-card-title', text: route.name }) : null,
+        node('span', { 'class': 'map-card-text', text: terrains })
+      ]);
+    }
     var more = node('details', { 'class': 'map-route-more' }, [
       node('summary', { text: words.edit }), form, node('p', { 'class': 'map-card-links' }, [remove])
     ]);
@@ -605,7 +748,7 @@
   function editPoints(route) {
     pointLayer.clearLayers();
     editing = route;
-    var base = '/gm/maps/' + mapId + '/routes/' + route.id + '/points/';
+    var pointsUrl = base + '/routes/' + route.id + '/points/';
     var starts = route.stretches.map(function (st) { return st.start; });
     route.points.forEach(function (p, i) {
       var handle = L.marker(toLatLng(p[0], p[1]), {
@@ -616,7 +759,7 @@
       }).addTo(pointLayer);
       handle.on('dragend', function () {
         var at = toPixels(handle.getLatLng());
-        post(base + i + '/move', { x: at[0].toFixed(1), y: at[1].toFixed(1) }).then(function (r) {
+        post(pointsUrl + i + '/move', { x: at[0].toFixed(1), y: at[1].toFixed(1) }).then(function (r) {
           if (r.ok) location.reload();
         });
       });
@@ -624,7 +767,7 @@
       if (i > 0 && i < route.points.length - 1 && starts.indexOf(i) < 0) {
         var split = node('button', { type: 'button', 'class': 'btn btn-sm', text: words.split });
         split.addEventListener('click', function () {
-          post(base + i + '/split').then(function (r) { if (r.ok) location.reload(); });
+          post(pointsUrl + i + '/split').then(function (r) { if (r.ok) location.reload(); });
         });
         actions.push(split);
       }
@@ -632,7 +775,7 @@
         var drop = node('button', { type: 'button', 'class': 'btn btn-sm btn-ghost btn-danger',
           text: words.remove_point });
         drop.addEventListener('click', function () {
-          post(base + i + '/delete').then(function (r) { if (r.ok) location.reload(); });
+          post(pointsUrl + i + '/delete').then(function (r) { if (r.ok) location.reload(); });
         });
         actions.push(drop);
       }
@@ -744,11 +887,12 @@
       var lock = e.target.closest ? e.target.closest('[data-layer-lock]') : null;
       var here = e.target.closest ? e.target.closest('[data-layer-zoom-here]') : null;
       if (eye) {
-        var layer = byId[eye.dataset.layerEye];
+        var layer = eye.dataset.layerEye === 'grid' ? grid : byId[eye.dataset.layerEye];
         layer.shown = !layer.shown;
         eye.setAttribute('aria-pressed', layer.shown ? 'true' : 'false');
         eye.closest('.map-layer').classList.toggle('is-hidden', !layer.shown);
-        post('/gm/maps/' + mapId + '/layers/' + layer.id + '/shown', { shown: layer.shown ? '1' : '0' });
+        post(base + '/layers/' + eye.dataset.layerEye + '/shown', { shown: layer.shown ? '1' : '0' });
+        if (layer === grid) showGrid();
         showLayers();
         scaleLabels();
       } else if (lock) {
@@ -758,7 +902,7 @@
         var row = lock.closest('.map-layer');
         var current = row.querySelector('input[name="current-layer"]');
         if (current) { current.disabled = locked.locked; if (locked.locked) current.checked = false; }
-        post('/gm/maps/' + mapId + '/layers/' + locked.id + '/lock', { locked: locked.locked ? '1' : '' });
+        post(base + '/layers/' + locked.id + '/lock', { locked: locked.locked ? '1' : '' });
         groups[locked.id].eachLayer(function (m) {
           if (!m.dragging) return;
           if (locked.locked) m.dragging.disable(); else m.dragging.enable();
@@ -898,6 +1042,10 @@
       placeLabel(latlng);
     } else if (mode === 'route') {
       routePoint(latlng);
+    } else if (mode === 'grid') {
+      setMode('');
+      say('');
+      gridPlaced(latlng);
     }
   }
   map.on('click', function (e) { if (!DRAWING[mode]) tap(e.latlng); });

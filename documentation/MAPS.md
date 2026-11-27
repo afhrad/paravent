@@ -6,7 +6,8 @@ on them, the pins that tie a map to the world's places, people and stories, the 
 names and notes laid over the picture, and the roads whose length becomes travel time.
 
 **Date:** 2026-11-27 · **Status:** built, all four steps, 2026-11-27 (the maps; pins and
-maps within maps; layers and names; roads and travel). Later ideas in §11.
+maps within maps; layers and names; roads and travel); the four later ideas built the same
+day (the hex grid §8b, the players' view §9, a map as a picture §9b, Claude's pins §9c).
 
 > **One sentence:** a map is a picture with a scale; everything on it — pins, names, notes,
 > roads, the ruler — is stored in the picture's own pixels, so it holds at every zoom and survives
@@ -18,14 +19,14 @@ maps within maps; layers and names; roads and travel). Later ideas in §11.
 
 | Question | Decided (2026-11-27, the user) |
 | --- | --- |
-| Who sees maps | **The gamemaster only, for now.** Routes refuse players; no player view, no reveal. A later player view (§11) is not ruled out |
+| Who sees maps | **The gamemaster, and the players what is shown to them** (2026-11-27, the user asked for the later ideas built): a map the gamemaster shows the players, the layers marked for them (§9) |
 | What maps belong to | **A world or an adventure** (a `Scope` without a chapter). A world's maps are its atlas; an adventure's are its dungeon levels, towns and wilderness |
 | An adventure's maps | **Stick to the adventure, never to the world** (the user, 2026-11-27): listed with it, copied, exported, moved and deleted with it, never moved up to the world (§3) |
 | Layers | **Yes** (the user, 2026-11-27): everything laid over the picture sits on a layer — places, town names, notes, roads — shown or hidden a layer at a time (§7) |
 | Large maps | **Sliced into tiles and loaded as viewed**, as online maps do (§4) |
 | Scale | **Required for measuring.** A map without one can be viewed and pinned; the ruler and roads ask for the scale first (§5) |
 | Measuring | A **ruler** that is not kept, and **roads** that are, with terrain, whose length feeds the existing travel (§8) |
-| Battle maps, grids, tokens, fog of war | **No.** Paravent is not a VTT (the user, 2026-11-12). A map here is for working out the world |
+| Battle maps, tokens, fog of war | **No.** Paravent is not a VTT (the user, 2026-11-12). A map here is for working out the world; a hex grid for a hex crawl is (§8b) |
 
 ---
 
@@ -42,6 +43,8 @@ maps within maps; layers and names; roads and travel). Later ideas in §11.
 | `digest` | the original's content hash; names its tiles (§4) |
 | `scale` | `MapScale` or none (§5) |
 | `parent` | the id of the map this one lies on, or none, and `frame`: its rectangle there (§6) |
+| `grid` | `MapGrid` or none: the hex grid (§8b) |
+| `players` | whether the players of its world see it (§9) |
 | `layers` | `MapLayer` list, in drawing order (§7) |
 | `pins` | `MapPin` list (§6) |
 | `labels` | `MapLabel` list: names written on the map (§7) |
@@ -119,9 +122,18 @@ before it is needed.
 and outside the backups: `PARAVENT_MAP_CACHE_DIR` (default `map-cache/` beside the library
 folder, a write root the reference guard covers), `<map id>/<digest>/{z}/{x}/{y}.webp`, with
 `thumb.webp`, the whole map in 256 px, for the lists. A tile's address carries the digest, so
-browsers keep tiles for good. A new digest is a new folder and the old one goes; a
-missing folder (a restored backup, a new server) is tiled again on first view. Thousands of
-small files would otherwise swell every backup.
+browsers keep tiles for good. A new digest is a new folder and the old one goes. Thousands
+of small files would otherwise swell every backup.
+
+**A cache gone** (a restored backup, a new server, the folder deleted) is cut again by
+itself (2026-11-27): opening the map starts it, and so does a list asking for its
+thumbnail or the viewer asking for a tile, so the *Maps* lists fill in as they are shown.
+A cutting that failed is tried again only by opening the map, which says why it failed,
+never by every list view. **All at once:** `python -m app.cli maps tiles` cuts every large
+map without tiles, one after another, with its progress (`--dry-run` names them,
+`--force` cuts every one again); under Docker
+`docker compose exec paravent python -m app.cli maps tiles`. It may run beside the
+server: each cutting writes a part of its own and puts it in place whole.
 
 **The view is remembered per user and map**: centre and zoom, in the user's `Place` record
 (`library/places.json`, which already keeps where a user left off), saved a moment after
@@ -303,12 +315,101 @@ party position per world, the clock's; nothing else on the map moves by itself.
 
 ---
 
-## 9. What stays out
+## 8b. The hex grid
 
-- **No grid, no battle map, no tokens of combatants, no fog of war** (§1).
+Built 2026-11-27. **A hex grid over the whole map, sized by its scale**, for a hex crawl:
+`MapGrid` keeps how far one hex is across, **flat side to flat side** as the books measure a
+hex ("6 miles", "5 feet"), in the unit typed (`amount`, `unit`, Paravent's factors, §5);
+whether the hexes stand on a flat side (columns) or a corner (rows); and one hex's centre
+(`x`, `y`, the original's pixels), so it lines up with a grid printed on the picture. Its
+size in pixels follows the scale (`MapService.hex_px`): a new scale resizes the grid, a
+sharper picture moves its centre with everything else. A map needs its scale first; a hex
+smaller than 8 px or larger than the map is refused.
+
+*Hex grid* in the toolbar (once there is a scale): the size, which way the hexes stand,
+*Line it up on a hex* (the dialog closes for a tap on a printed hex's centre and opens again
+with it), *Take the grid away*. **Drawn on a canvas** above the picture and beneath every
+layer, clipped to the picture, only the hexes in view and only while a hex is at least ten
+screen pixels across; it hides during a zoom and is drawn again after it. It is shown or
+hidden **per user like a layer** (the layer panel's last row, kept as `grid` among the user's
+layers in `Place.map_layers`), and players see it too. **The ruler counts hexes** with the
+distance: "113 mi · 19 hexes · normal pace 4.7 days".
+
+---
+
+## 9. The players' view
+
+Built 2026-11-27. **The gamemaster shows a map to the players**: *Show to players* beside the
+map's name (`WorldMap.players`), and the players of the table's world find it under **Maps**
+in their navigation (`/maps`, `app/routes/player_maps.py`), the world's own maps first, then
+the adventures'. *Players see it* hides it again. The gamemaster's list marks shown maps
+with *Players*.
+
+**What players see is chosen by layer.** Each layer has *Players see it* (`MapLayer.players`,
+under its ⋯; a figure beside its name in the panel). A new map starts with *Names* and
+*Roads* for the players and *Places* and *Notes* not, as decided ("the players see *Names*
+and *Roads*, never *Notes*"); the gamemaster ticks a layer when its pins may be seen. On a
+layer the players see:
+
+- **pins** as their kind's disc (never a portrait, whose picture is the gamemaster's) and the
+  name of what they point at; their card names it and nothing more. A note shows its title
+  and text. A pin to another map leads there only when that map is shown to them; a pin
+  whose target is gone is left out. **Never** the target's own notes or a link to it.
+- **names** written on the map, as the gamemaster sees them, not to be opened;
+- **roads** with their kind, length and terrains; no *Travel*, no stops (a stop is named by a
+  pin that may lie on a layer they do not see).
+
+The gamemaster's notes of the map are not shown. **Maps within maps**: a frame shows only
+when the map lying there is shown to them, and the path above a map stops at the first map
+not shown. **The party's position** on a road is shown, as on the gamemaster's map. The
+players have **the ruler** (with the scale), the hex grid, and their own shown and hidden
+layers and view (as the gamemaster's, §4, §7), nothing to change.
+
+**Held on the server**: a player reads a map only while it is shown and of the table's world
+(CURRENT-WORLD.md: characters play in the table's world); anything else, its tiles and its
+picture included, is "not found". The page is built from what they may see, so nothing on a
+hidden layer reaches the browser. The gamemaster may open `/maps/<id>` to see a map as the
+players do. **Not built:** a trail of where the party went, a toast when a map is shown.
+
+---
+
+## 9b. A map as a picture
+
+Built 2026-11-27. *Picture* in the toolbar draws the map as **one PNG**, from the original
+(`app/services/map_picture.py`, Pillow): **the part in view** (sent by the viewer in the
+original's pixels) or **the whole map**, at most 2,400 px on its long side, with what lies on
+the layers ticked (to begin with those the players see) and, if ticked, the hex grid. Roads
+in their kind's colour, names in their style, size and turn, pins as a disc of their kind's
+colour with the name beside it; marks and roads drawn larger on a larger picture, so they
+read the same. **Download** saves it; **Share with the characters** makes it a handout
+(JOURNAL.md): a frozen picture in the ticked characters' journals, the toast and the log
+as for every handout (`HandoutService.share_picture`), titled with the map's name unless
+another is typed. A handout made from a map belongs to no chapter.
+
+---
+
+## 9c. Claude's pins
+
+Built 2026-11-27 (MCP.md §4, `app/mcp/maps.py`). Claude cannot see a picture; it reads what
+words say of a map. **`list_maps(world_id | adventure_id)`**: each map's size in pixels, its
+scale (miles a pixel), its layers, the names written on it with where, its pins and its
+roads, and whether Claude may pin on it. **`pin_on_map(map_id, kind, name | target_id,
+at_label | x, y, note)`**: on a map of **a draft Claude wrote** only, as every writing tool;
+what to pin by its name (a place, NPC, encounter or treasure the map may show, a chapter,
+another map; refused with the names it may show) and where, **on a name the gamemaster
+wrote on the map** ("Mirewick", refused with the names written) or at pixels. A note takes a
+title and text. **`remove_map_pin`** takes one off again. The gamemaster uploads the map to
+the draft and writes its names; the procedure Claude is given ends by pinning the draft's
+places on its maps. The world's maps are read, never changed.
+
+---
+
+## 10. What stays out
+
+- **No battle map, no tokens of combatants, no fog of war** (§1); the hex grid is for
+  travel (§8b).
 - **No drawing tools** beyond pins, names and roads: regions, borders and coastlines belong
   in the picture, made in a drawing program.
-- **No player view yet** (§11).
 - **No projection maths** (§5).
 - **No map from the corpus**: the books' maps stay where they are (ADVENTURES.md, *Maps*);
   a gamemaster who wants to pin one uploads a copy of it as their own.
@@ -318,7 +419,7 @@ Paravent ships none.
 
 ---
 
-## 10. Build order
+## 11. Build order
 
 1. ~~**Maps (L).**~~ Built 2026-11-27. The record, upload into the scope's `media/maps/`, tiling in the background
    with the pixel limit, the viewer (one picture or tiles), the scale form with both ways,
@@ -334,13 +435,12 @@ Paravent ships none.
 
 Each step is usable without the next.
 
+5. ~~**The later ideas.**~~ Built 2026-11-27, at the user's word: the hex grid (§8b), the
+   players' view (§9), a map as a picture (§9b), Claude's pins (§9c).
+
 ---
 
-## 11. Later, not decided
+## 12. Later, not decided
 
-- **A player view**: maps and pins the gamemaster reveals, per world, as creature knowledge
-  is revealed — a layer is the natural thing to reveal ("the players see *Names* and
-  *Roads*, never *Notes*"); perhaps a "travelled" trail of where the party went.
-- **Claude placing pins** on the maps of its draft adventures (MCP.md), by place name.
-- **Exporting a map with its pins** as a picture for a handout (JOURNAL.md).
-- **A hex grid drawn over a map** from its scale, for hex crawls.
+- **A trail of where the party went**, on the gamemaster's and the players' map.
+- **A toast** to the players when a map is shown to them.

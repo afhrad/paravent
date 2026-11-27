@@ -163,6 +163,9 @@ see your own total; the gamemaster decides what it means.
   session notes, and **Party notes** the whole group writes together. On a phone the
   sheet has a letter button at the top for it, with a number while something sent to
   you is unopened; tapping the pop-up of a new handout opens it straight away.
+- **Maps** in the top bar (the bottom bar on a phone) holds the maps the gamemaster shows
+  you, with the names and roads they mark for you, a ruler, and the hex grid where there
+  is one. The eye beside a layer hides it for you.
 
 <!-- feature: safety -->
 ## 9. Safety

@@ -180,6 +180,9 @@ es bedeutet, entscheidet die Spielleitung.
   schreibt. Auf dem Handy hat der Bogen dafür oben einen Brief-Knopf, mit einer Zahl,
   solange etwas Geschicktes ungeöffnet ist; ein Tipp auf die Einblendung eines neuen
   Handouts öffnet es sofort.
+- **Karten** in der oberen Leiste (auf dem Handy unten) hält die Karten, die dir die
+  Spielleitung zeigt, mit den Namen und Wegen, die sie für dich markiert, einem Lineal und
+  den Hexfeldern, wo es welche gibt. Das Auge neben einer Ebene blendet sie für dich aus.
 
 <!-- feature: safety -->
 ## 9. Sicherheit

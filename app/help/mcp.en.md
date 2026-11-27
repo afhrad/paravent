@@ -134,6 +134,10 @@ draft with its NPCs, fights (adjusting each until its difficulty fits) and treas
 writes the chapters; checks every chapter for references that lead nowhere and mends
 them; and finishes with a short report.
 
+**Maps:** upload the adventure's maps on its page and write the towns' names on them
+(*Name*); Claude reads those names and pins the draft's places there. It cannot see the
+picture itself, and never changes a map outside its draft.
+
 **Language:** Claude writes in the **world's language** — set it on the world's page
 (*Edit*). Names of creatures, spells and items stay English inside the tags; Paravent
 shows them translated where the glossary has a name.

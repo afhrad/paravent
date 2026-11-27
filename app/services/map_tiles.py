@@ -17,6 +17,7 @@ import asyncio
 import hashlib
 import logging
 import math
+import os
 import re
 import shutil
 from collections.abc import Callable
@@ -185,9 +186,10 @@ def build(
     """Cut ``source`` into the tile pyramid ``target/{z}/{x}/{y}.webp``, written beside
     it first and put in place whole, so a folder that exists is complete. The deepest
     level is cut from the original, each above it from the one below halved, so the
-    peak is about one and a quarter the decoded picture."""
+    peak is about one and a quarter the decoded picture. The part written is this
+    process's own, so the server and the command line may cut the same map at once."""
     _allow(max_pixels)
-    partial = target.with_name(f"{target.name}.part")
+    partial = target.with_name(f"{target.name}.part-{os.getpid()}")
     shutil.rmtree(partial, ignore_errors=True)
     opened = Image.open(source)
     try:
@@ -228,7 +230,13 @@ def build(
         else:  # the whole map in one tile's room, unpadded: the lists' thumbnail
             level.save(partial / THUMB, "WEBP", quality=80, method=4)
     shutil.rmtree(target, ignore_errors=True)
-    partial.replace(target)
+    try:
+        partial.replace(target)
+    except OSError:
+        # Another cutting of the same picture got there first: its tiles are these.
+        if not target.is_dir():
+            raise
+        shutil.rmtree(partial, ignore_errors=True)
 
 
 @dataclass
@@ -277,11 +285,12 @@ class MapTiles:
         return self._jobs.get(map_id)
 
     def ensure(self, map_id: str, digest: str, source: Path, width: int, height: int) -> None:
-        """Start cutting the map's tiles unless they exist or are being cut."""
+        """Start cutting the map's tiles unless they exist or are being cut. A cutting
+        that finished counts for nothing once its tiles are gone (the cache deleted)."""
         if self.ready(map_id, digest):
             return
         current = self._jobs.get(map_id)
-        if current is not None and current.digest == digest and not current.error:
+        if current is not None and current.digest == digest and not current.finished:
             return
         job = TileJob(map_id, digest, tile_count(width, height))
         self._jobs[map_id] = job
@@ -309,12 +318,26 @@ class MapTiles:
         self._tasks.add(task)
         task.add_done_callback(self._tasks.discard)
 
+    def cut(
+        self,
+        map_id: str,
+        digest: str,
+        source: Path,
+        progress: Callable[[int, int], None] | None = None,
+    ) -> None:
+        """Cut the map's tiles now, in this thread, and drop those of its earlier
+        pictures: for the command line, which waits for each map
+        (``python -m app.cli maps tiles``)."""
+        build(source, self.folder(map_id, digest), self._max_pixels, progress)
+        self._drop_others(map_id, digest)
+
     def _drop_others(self, map_id: str, digest: str) -> None:
         """Remove the tiles of the map's earlier pictures."""
         keep = digest[:16]
         folder = self._cache / map_id
         for path in folder.iterdir() if folder.is_dir() else ():
-            if path.is_dir() and path.name != keep:
+            # A part of this picture still being written (``<digest>.part-<pid>``) stays.
+            if path.is_dir() and not path.name.startswith(keep):
                 shutil.rmtree(path, ignore_errors=True)
 
     def forget(self, map_id: str) -> None:

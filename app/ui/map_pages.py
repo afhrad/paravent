@@ -61,6 +61,8 @@ from app.ui.library_links import (
 from app.ui.tool_dialog import create_form, new_button, tool_dialog
 
 MAPS_URL = "/gm/maps"
+# The players' maps (documentation/MAPS.md §9).
+PLAYER_MAPS_URL = "/maps"
 # The scripts of a map's page: Leaflet first, then Paravent's part.
 MAP_SCRIPTS = ("/static/js/leaflet/leaflet.js", "/static/js/map.js")
 
@@ -68,6 +70,11 @@ MAP_SCRIPTS = ("/static/js/leaflet/leaflet.js", "/static/js/map.js")
 def map_url(map_id: str) -> str:
     """One map's page."""
     return f"{MAPS_URL}/{map_id}"
+
+
+def player_map_url(map_id: str) -> str:
+    """One map as the players see it."""
+    return f"{PLAYER_MAPS_URL}/{map_id}"
 
 
 def world_maps_url(world_id: str) -> str:
@@ -111,28 +118,74 @@ def scale_badge(page: Page, found: WorldMap) -> Element:
     ]
 
 
-def _thumb(found: WorldMap) -> Markup:
+def _thumb(found: WorldMap, player: bool = False) -> Markup:
+    url = player_map_url(found.id) if player else map_url(found.id)
     return Markup(
-        f'<img class="title-thumb map-thumb" src="{map_url(found.id)}/thumb" alt="" '
+        f'<img class="title-thumb map-thumb" src="{url}/thumb" alt="" '
         'loading="lazy" decoding="async">'
     )
 
 
 def map_rows(page: Page, maps: Sequence[WorldMap]) -> Element:
-    """Maps as list rows: a thumbnail, the name, the scale."""
+    """Maps as list rows: a thumbnail, the name, the scale, whether players see it."""
+    t = page.t
     return ul(class_="list")[
         [
             li(class_="list-row")[
                 _thumb(found),
                 div(class_="list-main")[
                     a(href=map_url(found.id), class_="list-title list-link")[found.name],
-                    span(class_="list-meta")[scale_badge(page, found)],
+                    span(class_="list-meta")[
+                        scale_badge(page, found),
+                        span(class_="pill neutral")[icon("users", "xs"), t("atlas.players.badge")]
+                        if found.players
+                        else None,
+                    ],
                 ],
                 row_menu(page, map_url(found.id), found.name),
             ]
             for found in maps
         ]
     ]
+
+
+def player_maps_page(
+    page: Page,
+    world: World | None,
+    maps: Sequence[WorldMap],
+    adventures: Mapping[str, str],
+) -> Element:
+    """The maps the gamemaster has shown the players of the table's world."""
+    t = page.t
+    rows = [
+        li(class_="list-row")[
+            _thumb(found, player=True),
+            div(class_="list-main")[
+                a(href=player_map_url(found.id), class_="list-title list-link")[found.name],
+                span(class_="list-meta")[
+                    span(class_="muted")[
+                        adventures.get(found.scope.adventure_id or "", "") or t("atlas.world_map")
+                    ],
+                    scale_badge(page, found) if found.scale is not None else None,
+                ],
+            ],
+        ]
+        for found in maps
+    ]
+    return app_shell(
+        page,
+        t("nav.maps"),
+        div(class_="prose-page")[
+            page_head(
+                world.name if world is not None else "", t("nav.maps"), t("atlas.players.lede")
+            ),
+            ul(class_="list")[rows]
+            if rows
+            else empty_state(
+                "map", t("atlas.players.empty_heading"), t("atlas.players.empty_text")
+            ),
+        ],
+    )
 
 
 def new_map_dialog(
@@ -309,18 +362,22 @@ def _words(page: Page) -> str:
             "party": t("atlas.route.party"),
             "route_name": t("atlas.route.name"),
             "edit": t("players.edit"),
+            "grid_place": t("atlas.grid.tap"),
+            "grid_placed": t("atlas.grid.placed"),
+            "hexes": {"one": t("atlas.grid.hexes.one"), "other": t("atlas.grid.hexes.other")},
         },
         ensure_ascii=False,
     )
 
 
-def _path(page: Page, path: Sequence[WorldMap]) -> Node:
+def _path(page: Page, path: Sequence[WorldMap], *, player: bool = False) -> Node:
     """The maps this one lies in, the widest first, each a link."""
     if not path:
         return None
     parts: list[Node] = []
     for found in path:
-        parts += [a(href=map_url(found.id))[found.name], " › "]
+        href = player_map_url(found.id) if player else map_url(found.id)
+        parts += [a(href=href)[found.name], " › "]
     return nav(class_="map-path", aria_label=page.t("atlas.frame.path"))[parts[:-1]]
 
 
@@ -341,7 +398,9 @@ def _disagree(page: Page, found: WorldMap, disagree: tuple[float, float] | None)
     ]
 
 
-def tiling_panel(page: Page, found: WorldMap, job: TileJob | None) -> Element:
+def tiling_panel(
+    page: Page, found: WorldMap, job: TileJob | None, *, player: bool = False
+) -> Element:
     """While a large map's tiles are cut: how far it got, asked again every second; once
     they are there, the answer reloads the page. A failure says so."""
     t = page.t
@@ -353,7 +412,7 @@ def tiling_panel(page: Page, found: WorldMap, job: TileJob | None) -> Element:
     return div(
         class_="panel map-tiling",
         id="map-tiling",
-        hx_get=f"{map_url(found.id)}/status",
+        hx_get=f"{player_map_url(found.id) if player else map_url(found.id)}/status",
         hx_trigger="every 1s",
         hx_swap="outerHTML",
     )[
@@ -448,6 +507,85 @@ def _scale_dialog(page: Page, found: WorldMap) -> Element:
     )
 
 
+def _grid_dialog(page: Page, found: WorldMap) -> Element:
+    """The hex grid: how far a hex is across, which way the hexes stand, and a tap on
+    a hex's centre to line it up with a grid printed on the picture."""
+    t = page.t
+    grid = found.grid
+    unit = grid.unit if grid is not None else (found.scale.unit if found.scale else "mi")
+    url = map_url(found.id)
+    orientation = grid.orientation if grid is not None else "flat"
+    return tool_dialog(
+        page,
+        "grid",
+        t("atlas.grid.title"),
+        div[
+            form(method="post", action=f"{url}/grid", class_="stack-form map-grid-form")[
+                p(class_="field-hint")[t("atlas.grid.lede")],
+                div(class_="field")[
+                    label(for_="f-grid-amount")[t("atlas.grid.amount")],
+                    div(class_="inline-fields")[
+                        input_el(
+                            id="f-grid-amount",
+                            name="amount",
+                            type="text",
+                            inputmode="decimal",
+                            value=page.u.number(grid.amount) if grid is not None else "",
+                            required=True,
+                            autocomplete="off",
+                        ),
+                        select(name="unit", aria_label=t("atlas.scale.unit"))[
+                            [
+                                option(value=u, selected=u == unit)[t(f"atlas.unit.{u}")]
+                                for u in UNITS
+                            ]
+                        ],
+                    ],
+                    p(class_="field-hint")[t("atlas.grid.amount_hint")],
+                ],
+                fieldset(class_="delete-choice")[
+                    legend(class_="field-label")[t("atlas.grid.orientation")],
+                    [
+                        label[
+                            input_el(
+                                type="radio",
+                                name="orientation",
+                                value=way,
+                                checked=orientation == way,
+                            ),
+                            span[t(f"atlas.grid.orientation.{way}")],
+                        ]
+                        for way in ("flat", "pointy")
+                    ],
+                ],
+                div(class_="map-scale-line")[
+                    button(type="button", class_="btn btn-sm", data_map_grid_place="")[
+                        icon("target", "sm"), span[t("atlas.grid.place")]
+                    ],
+                    span(class_="muted", data_grid_state="")[
+                        t("atlas.grid.placed") if grid is not None else ""
+                    ],
+                    hidden("x", f"{grid.x:.1f}" if grid is not None else ""),
+                    hidden("y", f"{grid.y:.1f}" if grid is not None else ""),
+                ],
+                div(class_="form-actions")[
+                    button(type="submit", class_="btn btn-primary")[
+                        icon("check"), span[t("worlds.save")]
+                    ],
+                ],
+            ],
+            form(method="post", action=f"{url}/grid/clear", class_="form-actions")[
+                button(type="submit", class_="btn btn-sm btn-ghost btn-danger")[
+                    icon("x", "sm"), span[t("atlas.grid.clear")]
+                ]
+            ]
+            if grid is not None
+            else None,
+        ],
+        keep_open=True,
+    )
+
+
 @dataclass(frozen=True)
 class PinView:
     """A pin as the viewer draws it: where, what it is called, where it leads, its
@@ -494,6 +632,7 @@ class LayerView:
     locked: bool
     from_zoom: float | None
     count: int
+    players: bool = False
 
 
 @dataclass(frozen=True)
@@ -556,6 +695,8 @@ class MapContext:
     # Whether the party may travel along the map's roads: the world plays with the road,
     # and the map has a scale.
     travel: bool = False
+    # The hex grid as the viewer draws it: across (px), orientation, x, y, shown.
+    grid: dict[str, Any] | None = None
 
 
 # The kinds in the pin dialog's list, in its order.
@@ -722,10 +863,64 @@ def _label_dialog(page: Page, found: WorldMap) -> Element:
     )
 
 
-def _layer_panel(page: Page, found: WorldMap, layers: Sequence[LayerView]) -> Element:
+def _grid_row(page: Page, grid: Mapping[str, Any] | None, *, player: bool = False) -> Node:
+    """The hex grid in the layer panel: shown or hidden for this user."""
+    if grid is None:
+        return None
+    t = page.t
+    return li(class_="map-layer" + ("" if grid["shown"] else " is-hidden"), data_layer="grid")[
+        div(class_="map-layer-row")[
+            None if player else span(class_="map-layer-current"),
+            button(
+                type="button",
+                class_="btn btn-sm btn-ghost map-layer-eye",
+                data_layer_eye="grid",
+                aria_pressed="true" if grid["shown"] else "false",
+                aria_label=t("atlas.layer.shown_of", name=t("atlas.grid.layer")),
+                title=t("atlas.layer.shown"),
+            )[icon("eye", "sm")],
+            span(class_="map-layer-name")[icon("hexagon", "xs"), " ", t("atlas.grid.layer")],
+        ]
+    ]
+
+
+def _player_layer_panel(
+    page: Page, layers: Sequence[LayerView], grid: Mapping[str, Any] | None
+) -> Element:
+    """The layers a player sees, the top one first, each to show or hide for them."""
+    t = page.t
+    rows = [
+        li(class_="map-layer" + (" is-hidden" if not layer.shown else ""), data_layer=layer.id)[
+            div(class_="map-layer-row")[
+                button(
+                    type="button",
+                    class_="btn btn-sm btn-ghost map-layer-eye",
+                    data_layer_eye=layer.id,
+                    aria_pressed="true" if layer.shown else "false",
+                    aria_label=t("atlas.layer.shown_of", name=layer.name),
+                    title=t("atlas.layer.shown"),
+                )[icon("eye", "sm")],
+                span(class_="map-layer-name")[layer.name],
+            ]
+        ]
+        for layer in reversed(layers)
+    ]
+    return details(class_="map-layers panel", id="layers", open=True)[
+        summary(class_="map-layers-head")[icon("map", "sm"), span[t("atlas.layer.heading")]],
+        ul(class_="map-layer-list")[rows, _grid_row(page, grid, player=True)],
+    ]
+
+
+def _layer_panel(
+    page: Page,
+    found: WorldMap,
+    layers: Sequence[LayerView],
+    grid: Mapping[str, Any] | None = None,
+) -> Element:
     """The map's layers, the top one first: show or hide each (for this user), choose the
     one the tools add to, lock it, and under its ⋯ rename it, say whether a newcomer
-    sees it, show it only from the current zoom in, move it, delete it."""
+    sees it and whether the players do, show it only from the current zoom in, move it,
+    delete it. The hex grid last, to show or hide."""
     t = page.t
     url = map_url(found.id)
     rows = []
@@ -757,6 +952,11 @@ def _layer_panel(page: Page, found: WorldMap, layers: Sequence[LayerView]) -> El
                         title=t("atlas.layer.shown"),
                     )[icon("eye", "sm")],
                     span(class_="map-layer-name")[layer.name],
+                    span(class_="muted map-layer-players", title=t("atlas.layer.players"))[
+                        icon("users", "xs")
+                    ]
+                    if layer.players
+                    else None,
                     span(class_="map-layer-count muted")[str(layer.count)],
                     span(class_="muted map-layer-zoom", title=t("atlas.layer.from_zoom_hint"))[
                         icon("scaling", "xs")
@@ -789,6 +989,12 @@ def _layer_panel(page: Page, found: WorldMap, layers: Sequence[LayerView]) -> El
                                 type="checkbox", name="locked", value="1", checked=layer.locked
                             ),
                             span[t("atlas.layer.locked")],
+                        ],
+                        label(class_="check-inline")[
+                            input_el(
+                                type="checkbox", name="players", value="1", checked=layer.players
+                            ),
+                            span[t("atlas.layer.players")],
                         ],
                         button(type="submit", class_="btn btn-sm")[t("worlds.save")],
                     ],
@@ -851,7 +1057,7 @@ def _layer_panel(page: Page, found: WorldMap, layers: Sequence[LayerView]) -> El
         )
     return details(class_="map-layers panel", id="layers", open=True)[
         summary(class_="map-layers-head")[icon("map", "sm"), span[t("atlas.layer.heading")]],
-        ul(class_="map-layer-list")[rows],
+        ul(class_="map-layer-list")[rows, _grid_row(page, grid)],
         form(method="post", action=f"{url}/layers", class_="map-layer-new inline-form")[
             input_el(
                 type="text",
@@ -967,6 +1173,87 @@ def _travel_dialog(page: Page, found: WorldMap, choices: Mapping[str, Any]) -> E
     )
 
 
+def _picture_dialog(
+    page: Page,
+    found: WorldMap,
+    layers: Sequence[LayerView],
+    grid: Mapping[str, Any] | None,
+    recipients: Sequence[tuple[str, str]],
+) -> Element:
+    """The map as one picture: the part in view or the whole, the layers drawn on it
+    (those the players see, to begin with), then downloaded or handed to characters."""
+    t = page.t
+    url = map_url(found.id)
+    return tool_dialog(
+        page,
+        "picture",
+        t("atlas.picture.title"),
+        form(method="post", action=f"{url}/handout", class_="stack-form map-picture-form")[
+            p(class_="field-hint")[t("atlas.picture.lede")],
+            [hidden("area", "") for _ in range(4)],
+            fieldset(class_="delete-choice")[
+                legend(class_="field-label")[t("atlas.picture.what")],
+                label[
+                    input_el(type="radio", name="whole", value="", checked=True),
+                    span[t("atlas.picture.view")],
+                ],
+                label[
+                    input_el(type="radio", name="whole", value="1"),
+                    span[t("atlas.picture.whole")],
+                ],
+            ],
+            fieldset(class_="delete-choice")[
+                legend(class_="field-label")[t("atlas.picture.layers")],
+                [
+                    label[
+                        input_el(type="checkbox", name="layers", value=x.id, checked=x.players),
+                        span[x.name],
+                    ]
+                    for x in reversed(layers)
+                ],
+                label[
+                    input_el(type="checkbox", name="grid", value="1"),
+                    span[t("atlas.grid.layer")],
+                ]
+                if grid is not None
+                else None,
+            ],
+            div(class_="form-actions")[
+                button(
+                    type="submit",
+                    class_="btn",
+                    formaction=f"{url}/picture",
+                    data_picture_download="",
+                )[icon("download", "sm"), span[t("atlas.picture.download")]],
+            ],
+            text_field(
+                "title",
+                t("journal.title_label"),
+                value=found.name,
+                autocomplete="off",
+                required=False,
+            ),
+            fieldset(class_="delete-choice")[
+                legend(class_="field-label")[t("atlas.picture.share")],
+                [
+                    label[
+                        input_el(type="checkbox", name="characters", value=ident, checked=True),
+                        span[name],
+                    ]
+                    for ident, name in recipients
+                ],
+                p(class_="field-hint")[t("atlas.picture.nobody")] if not recipients else None,
+            ],
+            div(class_="form-actions")[
+                button(type="submit", class_="btn btn-primary", disabled=not recipients)[
+                    icon("send", "sm"), span[t("atlas.picture.send")]
+                ],
+            ],
+        ],
+        keep_open=True,
+    )
+
+
 def _pins_json(pins: Sequence[PinView]) -> str:
     return json.dumps([vars(p) for p in pins], ensure_ascii=False)
 
@@ -989,14 +1276,18 @@ def map_page(
     travel_choices: Mapping[str, Any] | None = None,
     notice_text: str | None = None,
     error: str | None = None,
+    player: bool = False,
+    recipients: Sequence[tuple[str, str]] = (),
 ) -> Element:
     """One map in its viewer: zoom and drag, the ruler, the scale, its pins and the maps
-    lying on it."""
+    lying on it. As a ``player`` sees it: what lies on the layers they see, the ruler,
+    nothing to change."""
     around = around or MapContext()
     t = page.t
-    url = map_url(found.id)
+    url = player_map_url(found.id) if player else map_url(found.id)
     tiled = needs_tiles(found.width, found.height)
     scale = found.scale
+    image = f"{url}/image" if player else media_url(found.scope.record_id, found.image)
     stage = div(
         id="map-stage",
         class_="map-stage",
@@ -1006,7 +1297,9 @@ def map_page(
         data_zoom=str(max_zoom(found.width, found.height)),
         data_tiles=f"{url}/tiles" if tiled else None,
         data_digest=found.digest[:16],
-        data_image=None if tiled else media_url(found.scope.record_id, found.image),
+        data_image=None if tiled else image,
+        data_base=url,
+        data_player="1" if player else None,
         data_feet=f"{scale.feet_per_px:.8g}" if scale is not None else "",
         data_long="1" if is_long(found) else "",
         data_metric="1" if page.u.metric else "",
@@ -1021,9 +1314,48 @@ def map_page(
         data_party=json.dumps(around.party) if around.party else None,
         data_travel="1" if around.travel and travel_choices is not None else None,
         data_focus=around.focus or None,
+        data_grid=json.dumps(around.grid) if around.grid else None,
         role="application",
         aria_label=t("atlas.viewer", name=found.name),
     )
+    if player:
+        return app_shell(
+            page,
+            found.name,
+            div(class_="map-page")[
+                link(rel="stylesheet", href=asset("/static/js/leaflet/leaflet.css")),
+                crumbs(page, (t("nav.maps"), PLAYER_MAPS_URL), (found.name, None)),
+                div(class_="map-head")[
+                    div(class_="map-head-main")[
+                        span(class_="eyebrow")[
+                            adventure.name if adventure is not None else t("atlas.world_map")
+                        ],
+                        _path(page, around.path, player=True),
+                        h1[found.name],
+                        scale_badge(page, found),
+                    ],
+                ],
+                div(class_="map-toolbar", role="toolbar", aria_label=t("atlas.tools"))[
+                    button(
+                        type="button",
+                        class_="btn btn-sm",
+                        data_map_tool="ruler",
+                        aria_pressed="false",
+                    )[icon("ruler", "sm"), span[t("atlas.ruler.button")]]
+                    if scale is not None
+                    else None,
+                    span(class_="map-readout muted", aria_live="polite", data_map_readout=""),
+                ],
+                div(class_="map-body")[
+                    stage if ready else tiling_panel(page, found, job, player=True),
+                    _player_layer_panel(page, around.layers, around.grid)
+                    if ready and (around.layers or around.grid)
+                    else None,
+                ],
+            ],
+            main_class="shell-main map-main",
+            extra_scripts=(*MAP_SCRIPTS, "/static/js/htmx.min.js"),
+        )
     return app_shell(
         page,
         found.name,
@@ -1043,6 +1375,24 @@ def map_page(
                     _disagree(page, found, around.disagree),
                 ],
                 div(class_="map-head-actions")[
+                    form(method="post", action=f"{url}/players", class_="inline-form")[
+                        hidden("shown", "" if found.players else "1"),
+                        button(
+                            type="submit",
+                            class_="btn btn-ghost map-players-switch",
+                            aria_pressed="true" if found.players else "false",
+                            title=t("atlas.players.hide_hint")
+                            if found.players
+                            else t("atlas.players.show_hint"),
+                        )[
+                            icon("users" if found.players else "eye-off", "sm"),
+                            span[
+                                t("atlas.players.shown")
+                                if found.players
+                                else t("atlas.players.show")
+                            ],
+                        ],
+                    ],
                     a(href=f"{url}/edit", class_="btn btn-ghost")[
                         icon("pencil", "sm"), span[t("players.edit")]
                     ],
@@ -1075,6 +1425,19 @@ def map_page(
                 a(href="?tool=scale", class_="btn btn-sm btn-ghost", data_dialog="tool-scale")[
                     icon("scaling", "sm"), span[t("atlas.scale.button")]
                 ],
+                a(
+                    href="?tool=picture",
+                    class_="btn btn-sm btn-ghost",
+                    data_dialog="tool-picture",
+                    data_picture_open="",
+                )[icon("image", "sm"), span[t("atlas.picture.button")]]
+                if ready
+                else None,
+                a(href="?tool=grid", class_="btn btn-sm btn-ghost", data_dialog="tool-grid")[
+                    icon("hexagon", "sm"), span[t("atlas.grid.button")]
+                ]
+                if scale is not None
+                else None,
                 span(class_="map-readout muted", aria_live="polite", data_map_readout="")[
                     t("atlas.ruler.needs_scale") if scale is None else None
                 ],
@@ -1082,12 +1445,16 @@ def map_page(
             _route_bar(page),
             div(class_="map-body")[
                 stage if ready else tiling_panel(page, found, job),
-                _layer_panel(page, found, around.layers) if ready and around.layers else None,
+                _layer_panel(page, found, around.layers, around.grid)
+                if ready and around.layers
+                else None,
             ],
             details(class_="map-notes")[summary[t("atlas.notes")], div(class_="md-body")[notes]]
             if notes is not None and notes.strip()
             else None,
             _scale_dialog(page, found),
+            _grid_dialog(page, found) if scale is not None else None,
+            _picture_dialog(page, found, around.layers, around.grid, recipients) if ready else None,
             _pin_dialog(page, found, around.candidates),
             _label_dialog(page, found),
             _route_dialog(page, found),

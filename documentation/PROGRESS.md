@@ -1262,7 +1262,7 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       and renown** (2026-11-16): `create_quest` writes a quest for a draft (hidden until
       shown, gone with the draft), `update_quest` changes one, `world_overview` lists
       the quests, `party` each character's followers, renown, quests and contacts
-- [x] **Maps, step 1** (2026-11-27, MAPS.md §10; `app/services/maps.py`,
+- [x] **Maps, step 1** (2026-11-27, MAPS.md §11; `app/services/maps.py`,
       `app/services/map_tiles.py`, `app/routes/maps.py`, `app/ui/map_pages.py`,
       `static/js/map.js`): the gamemaster's own maps of a world (*Maps*, `/gm/maps`, in More)
       and of an adventure (on its page), `library/maps.json` (`WorldMap`). The original is
@@ -1309,6 +1309,26 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       kept as one with the party's place on the road (`Journey.route_at`), which the map
       marks. Drawing tools read the pointer before anything on the map, so a drag draws
       over roads, pins and names too
+- [x] **Maps: a cache gone is cut again** (2026-11-27, MAPS.md §4): a missing thumbnail
+      or tile starts the cutting as opening the map does (a failed one only by opening);
+      `python -m app.cli maps tiles` cuts every large map's missing tiles at once. Found
+      on the way: a map whose cache went while the server ran was never cut again
+- [x] **Maps: the hex grid** (2026-11-27, MAPS.md §8b): a hex grid over a map sized by its
+      scale (`MapGrid`: across flat to flat, on a side or a corner, lined up with a tap on a
+      printed hex), drawn on a canvas beneath the layers, shown or hidden per user as a
+      layer; the ruler counts hexes
+- [x] **Maps: the players' view** (2026-11-27, MAPS.md §9; `app/routes/player_maps.py`):
+      *Show to players* on a map, *Players see it* on a layer (new maps: names and roads);
+      players find the table's world's shown maps under **Maps**, with only what lies on
+      their layers (pins as their kind's disc and name, a note's text, no target notes or
+      links), frames and paths of shown maps, the party, the ruler and the grid; held on
+      the server, tiles and picture included
+- [x] **Maps: a map as a picture** (2026-11-27, MAPS.md §9b; `app/services/map_picture.py`):
+      the part in view or the whole map drawn by Pillow with the layers ticked and the grid,
+      downloaded or shared as a handout (`HandoutService.share_picture`)
+- [x] **Maps: Claude's pins** (2026-11-27, MAPS.md §9c; `app/mcp/maps.py`): `list_maps`,
+      `pin_on_map` (by name, on a name written on the map or at pixels) and
+      `remove_map_pin` on the maps of Claude's own drafts
 - [x] Wizard state when going back a step — checked 2026-11-02 (CHARGEN-WIZARD.md §6): answers
       live in the draft's file, a step is a GET of them, and a changed answer marks later
       steps for review without dropping them. Typed text followed by a footer click now
@@ -1318,6 +1338,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 
 ## Translation (TRANSLATION.md)
 
+- [x] **Translations sent alone to the server** (2026-11-27, README *Updating the server*):
+      `./sync-server.sh --translations` sends only the library's `i18n/` folder, for a
+      server without a translation key; no code, no rebuild, no restart (the stores follow
+      their files' times), the server's translations backed up first, nothing there
+      deleted, files newer there listed
 - [x] **UI string catalogue** — shipped `app/i18n/en.json` + `de.json`, overridable and
       extensible from `library/i18n/ui/<lang>.json` (TRANSLATION.md §5 note). Per-key English
       fallback, plurals, translatable errors. A language selector on every page, logged in or

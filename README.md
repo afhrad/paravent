@@ -299,6 +299,10 @@ money per passage. Translating by hand in the editor works without it. Design an
 3. Restart with `docker compose up -d`. Keep the key in the server's `.env` only; it is
    never part of the image or the repository.
 
+**Or translate on your own machine** and keep the key off a server others can reach: set
+the key in the local `.env`, translate there, and send the results with
+`./sync-server.sh --translations` (*Updating the server from this machine*, below).
+
 **Use it**
 
 - *One record*: on a reference page, rulebook chapter or adventure section, "Translate the
@@ -371,12 +375,27 @@ PARAVENT_SYNC_DIR=/srv/paravent     # the folder holding docker-compose.yaml the
 ./sync-server.sh                    # code only — the usual update
 ./sync-server.sh --corpus           # also the corpus and images your .env points at
 ./sync-server.sh --library          # also data/library, see below
+./sync-server.sh --translations     # only the translations, see below
 ```
 
 The server's own `.env` is never sent. `--library` stops the container, writes a backup
 to `backups/library-<time>.tar.gz` on the server, then sends only files that are newer
 here: a character played on the server since is kept, and nothing there is deleted. The
 corpus and library folders are taken from the running container's mounts.
+
+`--translations` sends **only the translations**: the library's `i18n/` folder (the
+glossary, translated texts and drafts, name suggestions, UI overrides), for a server that
+has no `PARAVENT_TRANSLATE_API_KEY` while the machine translation runs here. No code, no
+rebuild, no restart, and nothing else of the server's library is touched: the server reads
+changed translation files by itself. Its translations are backed up first to
+`backups/translations-<time>.tar.gz`; a file that is only on the server stays, and files
+newer on the server (a draft confirmed there, say) are listed before they are overwritten.
+`--dry-run` shows the same list and sends nothing.
+
+**Map tiles** are not sent and not backed up: they are made from the maps' pictures in the
+library. On a new server, or with the map cache gone, each large map is cut again when it
+is first shown; to cut them all at once:
+`docker compose exec paravent python -m app.cli maps tiles`.
 
 ## Licence and notices
 

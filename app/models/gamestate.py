@@ -493,6 +493,8 @@ class MapLayer(GameStateModel):
     visible: bool = True
     locked: bool = False
     from_zoom: float | None = None
+    # Whether the players see it, once the map is shown to them (documentation/MAPS.md §9).
+    players: bool = False
 
 
 class MapLabel(GameStateModel):
@@ -545,6 +547,19 @@ class MapFrame(GameStateModel):
     height: float = Field(gt=0)
 
 
+class MapGrid(GameStateModel):
+    """A hex grid laid over a map from its scale, for hex crawls (documentation/MAPS.md
+    §8b): how far one hex is across, flat side to flat side, in the unit typed; which way
+    the hexes stand; and one hex's centre in the original's pixels, where it lines up
+    with a grid printed on the picture."""
+
+    amount: float = Field(gt=0)
+    unit: MapUnit = "mi"
+    orientation: Literal["flat", "pointy"] = "flat"
+    x: float = 0
+    y: float = 0
+
+
 class WorldMap(Record):
     """A map of a world or of one adventure (documentation/MAPS.md §2): a picture of the
     gamemaster's with a scale. Called WorldMap so it does not shadow ``map``. An
@@ -569,6 +584,9 @@ class WorldMap(Record):
     # The map this one lies on, and where (documentation/MAPS.md §6).
     parent: str | None = None
     frame: MapFrame | None = None
+    grid: MapGrid | None = None
+    # Shown to the players of its world, the layers they see (documentation/MAPS.md §9).
+    players: bool = False
 
 
 SoundKind = Literal["effect", "ambience", "music"]

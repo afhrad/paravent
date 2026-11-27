@@ -29,13 +29,15 @@ from app.routes.auth import back_with_undo, html, redirect, safe_next
 from app.routes.gm import travel_abundance, travel_choices, travel_plan
 from app.routes.paravent_markdown import paravent_markdown
 from app.services.i18n import Translatable
+from app.services.map_picture import Hexes, Mark, area_of, render
 from app.services.map_tiles import needs_tiles
-from app.services.maps import LAYER_ROLES, MapError
+from app.services.maps import GRID, LAYER_ROLES, MapError
 from app.services.tokens import Token
 from app.services.travel import Leg
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
 from app.ui.encounter_pages import encounter_url
+from app.ui.journal_pages import handout_url
 from app.ui.library_links import (
     WORLDS_URL,
     adventure_url,
@@ -150,13 +152,18 @@ def _number(text: str) -> float | None:
         return None
 
 
-def _start_tiles(registry: StoreRegistry, found: WorldMap) -> bool:
-    """Whether the map can be shown now; a large one's missing tiles start being cut."""
+def _start_tiles(registry: StoreRegistry, found: WorldMap, *, retry: bool = True) -> bool:
+    """Whether the map can be shown now; a large one's missing tiles start being cut.
+    ``retry=False`` (a thumbnail, a tile) leaves a cutting that failed alone: only
+    opening the map tries again, and says why it failed."""
     if not needs_tiles(found.width, found.height):
         return True
     tiles = registry.world_maps.tiles
     if tiles.ready(found.id, found.digest):
         return True
+    job = tiles.job(found.id)
+    if not retry and job is not None and job.digest == found.digest and job.error:
+        return False
     source = registry.world_maps.source(found)
     if source is not None:
         tiles.ensure(found.id, found.digest, source, found.width, found.height)
@@ -268,9 +275,12 @@ def _candidates(page: Page, registry: StoreRegistry, found: WorldMap) -> list[Ca
     return out
 
 
-def _route_view(registry: StoreRegistry, found: WorldMap, route: MapRoute) -> RouteView:
+def _route_view(
+    registry: StoreRegistry, found: WorldMap, route: MapRoute, *, stops: bool = True
+) -> RouteView:
     """A route as the viewer draws it: its points, its stretches with their lengths, and
-    the stops a journey along it may start or end at."""
+    the stops a journey along it may start or end at (none asked for, for players: a
+    stop is named by a pin that may lie on a layer they do not see)."""
     service = registry.world_maps
     lengths = service.stretch_miles(found, route)
     return RouteView(
@@ -289,7 +299,9 @@ def _route_view(registry: StoreRegistry, found: WorldMap, route: MapRoute) -> Ro
             for i, st in enumerate(route.stretches)
         ],
         miles=round(sum(lengths), 3) if lengths is not None else None,
-        stops=[{"at": x.at, "index": x.index, "name": x.name} for x in service.stops(found, route)],
+        stops=[{"at": x.at, "index": x.index, "name": x.name} for x in service.stops(found, route)]
+        if stops
+        else [],
     )
 
 
@@ -321,6 +333,7 @@ def _context(
             locked=layer.locked,
             from_zoom=layer.from_zoom,
             count=counts.get(layer.id, 0),
+            players=layer.players,
         )
         for layer in found.layers
     ]
@@ -365,7 +378,25 @@ def _context(
         focus=focus if any(p.id == focus for p in found.pins) else "",
         layers=layers,
         labels=labels,
+        grid=grid_view(registry, found, shown),
     )
+
+
+def grid_view(
+    registry: StoreRegistry, found: WorldMap, shown: dict[str, bool]
+) -> dict[str, Any] | None:
+    """The hex grid as the viewer draws it: how far a hex is across in the original's
+    pixels, which way it stands, a hex's centre, and whether this user shows it."""
+    across = registry.world_maps.hex_px(found)
+    if across is None or found.grid is None:
+        return None
+    return {
+        "across": round(across, 3),
+        "orientation": found.grid.orientation,
+        "x": found.grid.x,
+        "y": found.grid.y,
+        "shown": shown.get(GRID, True),
+    }
 
 
 @router.get(f"{MAPS_URL}/{{map_id}}", response_class=HTMLResponse)
@@ -378,6 +409,8 @@ async def show_map(
     error: str = "",
     pin: str = "",
     travelled: str = "",
+    shared: str = "",
+    hidden: str = "",
 ) -> HTMLResponse:
     """The map in its viewer, where the user left it, or at ``pin``; after a journey
     along one of its roads, how it went."""
@@ -389,9 +422,13 @@ async def show_map(
         if found.notes.strip()
         else None
     )
-    known = ("atlas.error.", "travel.error.", "clock.error.")
+    known = ("atlas.error.", "travel.error.", "clock.error.", "journal.error.")
     message = page.t(error) if error.startswith(known) else None
     notice_text = page.t("atlas.saved") if saved else None
+    if shared:
+        notice_text = page.t("atlas.players.shared")
+    elif hidden:
+        notice_text = page.t("atlas.players.hidden")
     journey = registry.clock.of(world.id).journey if travelled else None
     if journey is not None and journey.map_id == found.id:
         notice_text = page.t(
@@ -417,6 +454,7 @@ async def show_map(
             if registry.feature(world.id, "travel")
             else None,
             error=message,
+            recipients=registry.handouts.recipients(world.id),
         )
     )
 
@@ -444,6 +482,7 @@ async def map_tile(
     found = _map(registry, map_id)
     path = registry.world_maps.tiles.tile(found.id, found.digest, z, x, y)
     if path is None:
+        _start_tiles(registry, found, retry=False)  # a cache gone since the page was made
         raise HTTPException(status_code=404)
     return FileResponse(path, media_type="image/webp", headers=_TILE_HEADERS)
 
@@ -456,6 +495,8 @@ async def map_thumb(_gm: GamemasterDep, registry: RegistryDep, map_id: str) -> R
     if needs_tiles(found.width, found.height):
         path = registry.world_maps.tiles.thumb(found.id, found.digest)
         if path is None:
+            # A list shown with the cache gone sets the cutting going, as opening would.
+            _start_tiles(registry, found, retry=False)
             raise HTTPException(status_code=404)
         return FileResponse(path, media_type="image/webp")
     source = registry.world_maps.source(found)
@@ -499,6 +540,173 @@ async def clear_scale(_gm: GamemasterDep, registry: RegistryDep, map_id: str) ->
     found = _map(registry, map_id)
     registry.world_maps.clear_scale(found.id)
     return redirect(map_url(found.id))
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/grid")
+async def set_grid(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    map_id: str,
+    amount: Annotated[str, Form()] = "",
+    unit: Annotated[str, Form()] = "mi",
+    orientation: Annotated[str, Form()] = "flat",
+    x: Annotated[str, Form()] = "",
+    y: Annotated[str, Form()] = "",
+) -> Response:
+    """Lay a hex grid over the map, or change it; refused, back to the map saying why."""
+    found = _map(registry, map_id)
+    try:
+        value = _number(amount)
+        if value is None:
+            raise MapError("atlas.error.amount")
+        registry.world_maps.set_grid(
+            found.id,
+            amount=value,
+            unit=unit,
+            orientation=orientation,
+            x=_number(x),
+            y=_number(y),
+        )
+    except Translatable as exc:
+        return redirect(f"{map_url(found.id)}?{urlencode({'error': exc.key})}")
+    return redirect(f"{map_url(found.id)}?saved=1")
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/grid/clear")
+async def clear_grid(_gm: GamemasterDep, registry: RegistryDep, map_id: str) -> Response:
+    """Take the hex grid away."""
+    found = _map(registry, map_id)
+    registry.world_maps.clear_grid(found.id)
+    return redirect(map_url(found.id))
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/players")
+async def show_to_players(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    map_id: str,
+    shown: Annotated[str, Form()] = "",
+) -> Response:
+    """Show the map to the players of its world, or hide it from them."""
+    found = _map(registry, map_id)
+    registry.world_maps.set_players(found.id, shown == "1")
+    return redirect(f"{map_url(found.id)}?{'shared' if shown == '1' else 'hidden'}=1")
+
+
+def _picture(
+    page: Page,
+    registry: StoreRegistry,
+    found: WorldMap,
+    *,
+    area: list[str],
+    whole: str,
+    layers: list[str],
+    grid: str,
+) -> bytes:
+    """The map drawn as one picture (documentation/MAPS.md §9b): the part in view, or
+    the whole; the roads, names and pins of the layers chosen; the grid if asked."""
+    source = registry.world_maps.source(found)
+    if source is None:
+        raise HTTPException(status_code=404)
+    numbers = [_number(v) for v in area]
+    box = None if whole or None in numbers else [v for v in numbers if v is not None]
+    chosen = set(layers)
+    marks = [
+        Mark(pin.x, pin.y, pin.label or pin.name, pin.kind)
+        for pin in _pins(page, registry, found)
+        if pin.layer in chosen and not pin.gone
+    ]
+    across = registry.world_maps.hex_px(found)
+    hexes = (
+        Hexes(across, found.grid.orientation, found.grid.x, found.grid.y)
+        if grid and across is not None and found.grid is not None
+        else None
+    )
+    return render(
+        source,
+        registry.settings.map_max_pixels,
+        area=area_of(found.width, found.height, box),
+        marks=marks,
+        labels=[x for x in found.labels if x.layer in chosen],
+        routes=[r for r in found.routes if r.layer in chosen],
+        hexes=hexes,
+    )
+
+
+def _picture_name(found: WorldMap) -> str:
+    """The file a map's picture is called by: its name in plain letters."""
+    stem = re.sub(r"[^A-Za-z0-9]+", "-", found.name).strip("-").lower() or "map"
+    return f"{stem}.png"
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/picture")
+async def map_picture(
+    _gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    map_id: str,
+    area: Annotated[list[str] | None, Form()] = None,
+    whole: Annotated[str, Form()] = "",
+    layers: Annotated[list[str] | None, Form()] = None,
+    grid: Annotated[str, Form()] = "",
+) -> Response:
+    """The map drawn as one picture with what lies on the layers chosen, to download."""
+    found = registry.world_maps.with_layers(_map(registry, map_id).id)
+    data = await asyncio.to_thread(
+        _picture,
+        page,
+        registry,
+        found,
+        area=area or [],
+        whole=whole,
+        layers=layers or [],
+        grid=grid,
+    )
+    return Response(
+        data,
+        media_type="image/png",
+        headers={"Content-Disposition": f'attachment; filename="{_picture_name(found)}"'},
+    )
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/handout")
+async def map_handout(
+    gm: GamemasterDep,
+    page: PageDep,
+    registry: RegistryDep,
+    map_id: str,
+    area: Annotated[list[str] | None, Form()] = None,
+    whole: Annotated[str, Form()] = "",
+    layers: Annotated[list[str] | None, Form()] = None,
+    grid: Annotated[str, Form()] = "",
+    title: Annotated[str, Form()] = "",
+    characters: Annotated[list[str] | None, Form()] = None,
+) -> Response:
+    """The map drawn as one picture, handed to the characters ticked: a handout in their
+    journal (documentation/JOURNAL.md), then the handout."""
+    found = registry.world_maps.with_layers(_map(registry, map_id).id)
+    data = await asyncio.to_thread(
+        _picture,
+        page,
+        registry,
+        found,
+        area=area or [],
+        whole=whole,
+        layers=layers or [],
+        grid=grid,
+    )
+    try:
+        made = registry.handouts.share_picture(
+            found.scope.world_id,
+            data,
+            _picture_name(found),
+            title.strip() or found.name,
+            characters or [],
+            gm,
+        )
+    except Translatable as exc:
+        return redirect(f"{map_url(found.id)}?{urlencode({'error': exc.key})}")
+    return redirect(f"{handout_url(made.id)}?shared=1")
 
 
 @router.post(f"{MAPS_URL}/{{map_id}}/view", status_code=204)
@@ -774,12 +982,19 @@ async def edit_layer(
     name: Annotated[str, Form()] = "",
     visible: Annotated[str, Form()] = "",
     locked: Annotated[str, Form()] = "",
+    players: Annotated[str, Form()] = "",
 ) -> Response:
-    """A layer's name, whether a newcomer sees it, whether it is locked."""
+    """A layer's name, whether a newcomer sees it, whether it is locked, whether the
+    players see it."""
     found = _map(registry, map_id)
     try:
         registry.world_maps.edit_layer(
-            found.id, layer_id, name=name, visible=bool(visible), locked=bool(locked)
+            found.id,
+            layer_id,
+            name=name,
+            visible=bool(visible),
+            locked=bool(locked),
+            players=bool(players),
         )
     except Translatable as exc:
         return _back(found, exc)

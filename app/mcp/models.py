@@ -962,3 +962,48 @@ class CreatureDraft(BaseModel):
     picture: str | None = Field(
         default=None, description="Where the gamemaster sees its picture, if it has one"
     )
+
+
+class MapPinInfo(BaseModel):
+    """A pin on a map: where (the picture's pixels, x right, y down) and what it names."""
+
+    id: str
+    kind: str = Field(
+        description="place, npc, encounter, treasure, adventure, chapter, map or note"
+    )
+    name: str = Field(description="What it points at, or a note's title")
+    target_id: str = ""
+    x: float
+    y: float
+    layer: str
+
+
+class MapLabelInfo(BaseModel):
+    """A name written on a map by the gamemaster: a town's, a river's, a region's."""
+
+    text: str
+    style: str
+    x: float
+    y: float
+
+
+class MapInfo(BaseModel):
+    """A map of a world or an adventure, as far as words can say: its size in pixels,
+    its scale, the names written on it and its pins. Claude cannot see the picture; the
+    names written on it are where things are."""
+
+    id: str
+    name: str
+    adventure_id: str | None
+    width: int
+    height: int
+    miles_per_px: float | None = Field(
+        None, description="How far one pixel is; none while the map has no scale"
+    )
+    writable: bool = Field(
+        description="Whether you may pin on it: a map of a draft you wrote through MCP"
+    )
+    layers: list[str]
+    labels: list[MapLabelInfo]
+    pins: list[MapPinInfo]
+    roads: list[str] = Field(description="The roads, trails and rivers drawn on it, by name")

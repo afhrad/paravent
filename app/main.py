@@ -65,6 +65,7 @@ from app.routes import naming as naming_routes
 from app.routes import npc_gen as npc_gen_routes
 from app.routes import play_combat as play_combat_routes
 from app.routes import play_session as play_session_routes
+from app.routes import player_maps as player_map_routes
 from app.routes import players as players_routes
 from app.routes import prepare as prepare_routes
 from app.routes import protocol as protocol_routes
@@ -389,6 +390,7 @@ def create_app() -> FastAPI:
     app.include_router(cast_routes.router)
     app.include_router(location_routes.router)
     app.include_router(map_routes.router)
+    app.include_router(player_map_routes.router)
     app.include_router(library_preview_routes.router)
     app.include_router(token_routes.router)
     app.include_router(safety_routes.router)
