@@ -43,6 +43,11 @@ PRICES: dict[str, tuple[float, float, float]] = {
     "claude-haiku-4-5": (1.0, 5.0, 0.10),
 }
 CACHE_WRITE = 1.25
+# What a run says when it stopped because the month's budget was spent (shown in the
+# reader's language by the pages).
+BUDGET_SPENT = "budget-spent"
+# The share of the budget from which the pages warn.
+BUDGET_WARN = 0.8
 
 
 def price_of(model: str) -> tuple[float, float, float] | None:
@@ -145,9 +150,28 @@ def month_key(when: datetime | None = None) -> str:
 class ApiCosts:
     """The months' sums in a file, and the runs counting their own share."""
 
-    def __init__(self, path: Path) -> None:
+    def __init__(self, path: Path, budget: float = 0.0) -> None:
+        """Keep the months' sums in ``path``; ``budget`` is what a month may cost, in US
+        dollars (0: no limit)."""
         self._path = path
+        self._budget = max(0.0, budget)
         self._lock = threading.Lock()
+
+    @property
+    def budget(self) -> float:
+        """What a month may cost, in US dollars; 0 for no limit."""
+        return self._budget
+
+    def left(self) -> float | None:
+        """What this month's budget still allows, never below 0; None without one."""
+        if not self._budget:
+            return None
+        return max(0.0, self._budget - self.month().usd)
+
+    def spent(self) -> bool:
+        """True when this month's budget is used up: no further request is sent."""
+        left = self.left()
+        return left is not None and left <= 0
 
     @property
     def path(self) -> Path:
@@ -211,6 +235,8 @@ def tally(spend: Spend | None = None) -> Iterator[Spend]:
 
 
 __all__ = [
+    "BUDGET_SPENT",
+    "BUDGET_WARN",
     "CACHE_WRITE",
     "PRICES",
     "ApiCosts",

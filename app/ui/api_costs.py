@@ -8,7 +8,7 @@ from collections.abc import Mapping
 
 from htpy import Element, b, div, h3, li, p, span, ul
 
-from app.services.api_costs import Spend
+from app.services.api_costs import BUDGET_SPENT, BUDGET_WARN, Spend, month_key
 from app.ui.context import Page
 
 
@@ -51,19 +51,38 @@ def spend_text(page: Page, spend: Spend) -> str:
     return text
 
 
+def _budget_line(page: Page, used: float, budget: float) -> Element:
+    """This month against its budget: what is left, a warning from 80 %, spent at 100 %."""
+    t = page.t
+    left = max(0.0, budget - used)
+    if left <= 0:
+        return p(class_="tr-budget is-spent")[t("costs.budget_spent", budget=usd(page, budget))]
+    tone = " is-near" if used >= budget * BUDGET_WARN else ""
+    return p(class_=f"tr-budget{tone}")[
+        t("costs.budget_left", budget=usd(page, budget), left=usd(page, left))
+    ]
+
+
+def budget_message(page: Page, error: str) -> str:
+    """A run's error as the reader reads it: the spent budget in words, else as it is."""
+    return page.t("costs.budget_stopped") if error == BUDGET_SPENT else error
+
+
 def run_cost(page: Page, spend: Spend) -> str:
     """What a run cost, for its progress and its toast; empty when it asked nothing."""
     return spend_text(page, spend) if spend.requests else ""
 
 
-def costs_box(page: Page, months: Mapping[str, Spend]) -> Element | None:
-    """The months' sums, newest first (at most three), and that the bill decides."""
-    if not months:
+def costs_box(page: Page, months: Mapping[str, Spend], budget: float = 0.0) -> Element | None:
+    """The months' sums, newest first (at most three), and that the bill decides; with a
+    ``budget`` (US dollars a month), what this month still allows, warned near its end."""
+    if not months and not budget:
         return None
     t = page.t
     shown = list(months.items())[:3]
     return div(class_="tr-costs")[
         h3[t("costs.heading")],
+        _budget_line(page, months.get(month_key(), Spend()).usd, budget) if budget else None,
         ul(class_="tr-costs-list")[
             [li[b[key], " ", span(class_="muted")[spend_text(page, spend)]] for key, spend in shown]
         ],

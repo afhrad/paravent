@@ -40,11 +40,14 @@ The **Session** button on the party view opens the session page.
 - **Show to players** beside a map's name lets the players of this world open it under
   *Maps*. They see only the layers marked *Players see it* (under a layer's ⋯): a new map
   shows them its names and roads, not its places and notes. Your notes, and where a pin
-  leads, stay yours.
+  leads, stay yours. They get a toast that opens the map.
 - **Picture** draws the part in view, or the whole map, with the layers you tick: download
   it, or share it with characters as a handout in their journal.
 - **Hex grid** (once the map has a scale) lays hexes of the size you type over the map;
   *Line it up on a hex* matches a grid printed on the picture. The ruler counts hexes.
+- **Party's trail**: each journey along a road leaves a dotted line of where the party
+  went, with when and how far. Under its ⋯ in the layers you show it to the players or
+  clear it.
 
 ## 2. The clock and the calendar
 

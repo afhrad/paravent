@@ -66,6 +66,9 @@ class EntryKind(StrEnum):
     # The gamemaster handed something to a character (documentation/JOURNAL.md):
     # ``what`` is the handout's id, ``note`` its title.
     HANDOUT = "handout"
+    # The gamemaster showed a map to the players (documentation/MAPS.md §9): ``what``
+    # is the map's id, ``note`` its name. Public; a toast to every player, even "mine".
+    MAP = "map"
     # Bookkeeping over earlier entries (§3): never rolled, always ``refers_to`` one.
     REVEAL = "reveal"
     CLEAR = "clear"

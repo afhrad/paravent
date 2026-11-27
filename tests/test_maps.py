@@ -837,8 +837,16 @@ class TestRoutePages:
             data={"route": route.id, "from": "10", "to": "10", "pace": "normal"},
         )
         assert "error=atlas.error.route_same" in refused.headers["location"]
+        # The journey left its trail: the road's line as walked, corner and all.
+        (leg,) = registry.world_maps.get(coast.id).trail
+        assert leg.miles == pytest.approx(60) and leg.points[0] == [0, 0]
+        assert [300, 0] in leg.points and leg.points[-1] == [300, 300]
+        assert (leg.started, leg.ended) == (journey.started, journey.ended)
+        assert '"legs": [{"points": [[0' in page
         gone = await raw.post(f"/gm/maps/{coast.id}/routes/{route.id}/delete")
         assert gone.status_code == 204
+        # It outlives its road.
+        assert len(registry.world_maps.get(coast.id).trail) == 1
 
 
 class TestGrid:
@@ -1365,3 +1373,80 @@ class TestOnTheMap:
         assert 'data-pin-for-name="Find the Bell"' in opened
         refused = (await raw.get(f"/gm/maps/{theirs.id}?pin_for=npc:{npc.id}")).text
         assert "data-pin-for" not in refused
+
+
+class TestShownToast:
+    async def test_players_hear_of_a_map_shown_to_them(self, table: Table) -> None:  # noqa: F811
+        raw, facts = table
+        registry = _registry(facts)
+        world_id = facts["world"].id
+        registry.table.select(world_id)
+        coast = _map(registry, world_id, "Coast")
+        since = {"since": "2000-01-01T00:00:00+00:00"}
+        await _login(raw)
+        await raw.post(f"/gm/maps/{coast.id}/players", data={"shown": "1"})
+        # Shown again, or hidden and nothing more: one entry only.
+        await raw.post(f"/gm/maps/{coast.id}/players", data={"shown": "1"})
+        await raw.post(f"/gm/maps/{coast.id}/players", data={"shown": ""})
+        player = await _player(facts)
+        try:
+            # Even a player whose toasts are only their own hears of it.
+            await player.post("/log/toasts", data={"toasts": "mine"})
+            toasts = html.unescape((await player.get("/log/toasts", params=since)).text)
+            assert f'data-href="/maps/{coast.id}"' in toasts
+            assert "Shows you a map: Coast" in toasts
+            assert toasts.count("data-entry=") == 1
+            panel = html.unescape((await player.get("/log/panel")).text)
+            assert f'href="/maps/{coast.id}"' in panel
+            await player.post("/log/toasts", data={"toasts": "off"})
+            assert "data-entry" not in (await player.get("/log/toasts", params=since)).text
+        finally:
+            await player.aclose()
+
+
+class TestTrail:
+    async def test_the_partys_trail(self, table: Table) -> None:  # noqa: F811
+        raw, facts = table
+        registry = _registry(facts)
+        service = registry.world_maps
+        world_id = facts["world"].id
+        registry.table.select(world_id)
+        coast = _map(registry, world_id, "Coast")
+        service.set_scale(coast.id, way="width", amount=100, unit="mi")  # 10 px a mile
+        route = service.add_route(
+            coast.id, name="Road", kind="road", points=[[0, 0], [400, 0]], terrains=["Hill"]
+        )
+        # Walked back the other way, the line runs as walked; nowhere is no journey.
+        service.add_trail(coast.id, route.id, 30, 10, started=60, ended=600)
+        service.add_trail(coast.id, route.id, 5, 5, started=600, ended=600)
+        (leg,) = service.get(coast.id).trail
+        assert leg.points == [[300, 0], [100, 0]] and leg.miles == 20
+        # A new picture twice as wide stretches it with the rest.
+        service.replace_image(coast.id, "wide.png", io.BytesIO(picture(2000, 1000)))
+        assert service.get(coast.id).trail[0].points == [[600, 0], [200, 0]]
+
+        await _login(raw)
+        page = html.unescape((await raw.get(f"/gm/maps/{coast.id}")).text)
+        assert 'data-layer="trail"' in page and "Party's trail" in page
+        hidden = await raw.post(f"/gm/maps/{coast.id}/layers/trail/shown", data={"shown": "0"})
+        assert hidden.status_code == 204
+        assert '"shown": false' in html.unescape((await raw.get(f"/gm/maps/{coast.id}")).text)
+
+        service.set_players(coast.id, True)
+        player = await _player(facts)
+        try:
+            seen = html.unescape((await player.get(f"/maps/{coast.id}")).text)
+            assert "data-trail" not in seen  # the gamemaster's until shown
+            refused = await player.post(f"/maps/{coast.id}/layers/trail/shown", data={"shown": "0"})
+            assert refused.status_code == 404
+            await raw.post(f"/gm/maps/{coast.id}/trail/players", data={"shown": "1"})
+            seen = html.unescape((await player.get(f"/maps/{coast.id}")).text)
+            assert "data-trail" in seen and 'data-layer="trail"' in seen
+            assert "Clear the trail" not in seen
+            mine = await player.post(f"/maps/{coast.id}/layers/trail/shown", data={"shown": "0"})
+            assert mine.status_code == 204
+        finally:
+            await player.aclose()
+        await raw.post(f"/gm/maps/{coast.id}/trail/clear")
+        assert service.get(coast.id).trail == []
+        assert "data-trail" not in (await raw.get(f"/gm/maps/{coast.id}")).text

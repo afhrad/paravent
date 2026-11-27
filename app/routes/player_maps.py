@@ -33,10 +33,11 @@ from app.routes.maps import (
     _start_tiles,
     grid_view,
     layer_names,
+    trail_view,
 )
 from app.services.auth import Identity
 from app.services.map_tiles import needs_tiles
-from app.services.maps import GRID, MapError
+from app.services.maps import GRID, TRAIL, MapError
 from app.services.tokens import Token
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
@@ -154,6 +155,7 @@ def player_context(
         routes=routes,
         party=_party(registry, found),
         grid=grid_view(registry, found, shown),
+        trail=trail_view(page, found, shown) if found.trail_players else None,
     )
 
 
@@ -268,7 +270,8 @@ async def player_show_layer(
 ) -> Response:
     """The reader showed or hid a layer they see, or the grid; remembered for them."""
     found = _map(identity, registry, map_id)
-    if layer_id != GRID and layer_id not in registry.world_maps.player_layers(found):
+    seen = registry.world_maps.player_layers(found)
+    if not (layer_id == GRID or (layer_id == TRAIL and found.trail_players) or layer_id in seen):
         raise HTTPException(status_code=404)
     try:
         registry.world_maps.set_shown(identity.user.id, found.id, layer_id, shown == "1")

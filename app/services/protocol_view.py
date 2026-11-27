@@ -255,6 +255,8 @@ def _concerns(entry: ProtocolEntry, viewer: Viewer) -> bool:
     every roll made for a character."""
     if viewer.gamemaster:
         return entry.subject.startswith("character:") and entry.roll is not None
+    if entry.kind is EntryKind.MAP:
+        return True  # shown to every player of the world
     return (
         viewer.owns(entry.subject)
         or viewer.owns(entry.target)

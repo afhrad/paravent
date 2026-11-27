@@ -35,6 +35,8 @@ from app.ui.rules_text import dice as dice_words
 
 # A handout in the journal (app/ui/journal_pages.py), which imports from here.
 HANDOUT_URL = "/journal"
+# Where a shown map's entry leads: the players' own view of it.
+PLAYER_MAPS_URL = "/maps"
 
 LOG_URL = "/log"
 SESSION_GAP = timedelta(hours=3)
@@ -117,8 +119,15 @@ def _toast_cue(page: Page, entry: ProtocolEntry) -> str | None:
 
 
 def _handout_url(entry: ProtocolEntry) -> str | None:
-    """Where a handout's entry leads: the handout itself, in the journal."""
-    return f"{HANDOUT_URL}/{entry.what}" if entry.kind is EntryKind.HANDOUT and entry.what else None
+    """Where a handout's entry leads: the handout itself, in the journal; a shown map's,
+    the map as the players see it."""
+    if not entry.what:
+        return None
+    if entry.kind is EntryKind.HANDOUT:
+        return f"{HANDOUT_URL}/{entry.what}"
+    if entry.kind is EntryKind.MAP:
+        return f"{PLAYER_MAPS_URL}/{entry.what}"
+    return None
 
 
 def toast_cards(page: Page, shown: Sequence[Shown]) -> Element:
@@ -441,6 +450,8 @@ def headline(page: Page, entry: ProtocolEntry) -> str:
         return what if text == key else text
     if kind is EntryKind.HANDOUT:
         return t("protocol.handout", title=entry.note, name=entry.subject_name)
+    if kind is EntryKind.MAP:
+        return t("protocol.map_shown", name=entry.note)
     if kind is EntryKind.EXPERIENCE:
         text = t("protocol.experience", amount=entry.amount or 0)
         return f"{text} · {entry.note}" if entry.note else text

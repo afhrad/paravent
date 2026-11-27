@@ -19,7 +19,7 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Self
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Where the code's own assets live. Not configuration: these ship with the code and
@@ -110,6 +110,9 @@ class Settings(BaseSettings):
     translate_model: str = "claude-opus-5-5"
     # Translating needs little reasoning; "low" keeps the cost per passage down.
     translate_effort: str = "low"
+    # What the Claude API may cost a month, in US dollars (machine drafts and name
+    # suggestions together); once spent, no further request is sent. 0: no limit.
+    translate_budget: float = Field(default=0.0, ge=0)
 
     # --- Recordings (website/film) -----------------------------------------------
     # Seeds every roll from one generator, so a scripted recording rolls the same on

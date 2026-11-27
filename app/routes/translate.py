@@ -448,6 +448,7 @@ async def overview(
             corpus_import=registry.corpus_imports.latest(chosen),
             machine=registry.translation_jobs.available,
             costs=registry.api_costs.months(),
+            budget=registry.api_costs.budget,
             message=page.t(done) if done.startswith("translations.") else None,
             error=page.t(error, entry=entry) if error.startswith("translations.") else None,
             entry=entry,

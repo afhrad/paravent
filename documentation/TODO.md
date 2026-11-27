@@ -14,14 +14,18 @@ Nothing agreed is waiting; see the proposals below.
 
 Paused 2026-11-22 while the user playtests; their findings come first.
 
-Proposed 2026-11-27, after pins to every kind:
+Proposed 2026-11-27, after the trail:
 
-1. **A toast to the players when a map is shown to them (S)** (MAPS.md §12): "The
-   gamemaster shows you *Azeroth*", opening `/maps/<id>`, like a shared handout.
-2. **The party's trail (M)** (MAPS.md §12): each move of the party's position kept with
-   its date, drawn as a dotted line on the gamemaster's map and, if wanted, the players'.
-3. **A monthly budget for the Claude API (S)**: `PARAVENT_TRANSLATE_BUDGET` in dollars;
-   the translations page warns as a month nears it and a run stops once it is spent.
+1. **Move the party anywhere on a map (S–M).** The party's marker and the trail follow
+   only journeys along a drawn road. *Party here* (a tap) would place it off-road, for
+   wilderness or a ship at sea, and a move between two spots would add a straight leg.
+2. **Find on the map (S).** A search field over the map's pins, names and roads that
+   centres on the one chosen, for a large world map.
+3. **The journeys in the session note (S).** *End the session* would list the legs of
+   the trail walked since the session started, with where they went.
+4. **Explored hexes (M).** On a map with a hex grid, mark hexes as explored (by hand, or
+   along the trail) and show the players only those as clear. It touches "not a VTT", so
+   it needs the user's word first.
 
 ## Known compromises
 

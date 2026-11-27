@@ -21,6 +21,7 @@
   var player = !!el.dataset.player;
   var readout = document.querySelector('[data-map-readout]');
   var grid = el.dataset.grid ? JSON.parse(el.dataset.grid) : null;
+  var partyTrail = el.dataset.trail ? JSON.parse(el.dataset.trail) : null;
 
   var map = L.map(el, {
     crs: L.CRS.Simple,
@@ -813,11 +814,34 @@
     if (travelDialog.showModal) travelDialog.showModal(); else travelDialog.setAttribute('open', '');
   }
 
+  // The party's trail (documentation/MAPS.md §8c): each journey a dotted line, saying
+  // when and how far; beneath the party's marker.
+  // Its own pane above every layer's roads, beneath tooltips; only the dots take the
+  // pointer, so a pin on the road is still reached between them.
+  var trailPane = map.createPane('trail');
+  trailPane.style.zIndex = '640';
+  var partyPane = map.createPane('party');
+  partyPane.style.zIndex = '645';
+  var trailGroup = L.layerGroup();
+  if (partyTrail) {
+    partyTrail.legs.forEach(function (leg) {
+      if (leg.points.length < 2) return;
+      L.polyline(leg.points.map(function (p) { return toLatLng(p[0], p[1]); }), {
+        pane: 'trail', className: 'map-trail', interactive: true
+      }).bindTooltip(leg.text, { sticky: true }).addTo(trailGroup);
+    });
+  }
+  function showTrail() {
+    if (partyTrail && partyTrail.shown) trailGroup.addTo(map); else trailGroup.remove();
+  }
+  showTrail();
+
   if (party) {
     L.marker(toLatLng(party.x, party.y), {
       icon: L.divIcon({ className: 'map-party', html: '<span></span>', iconSize: [22, 22],
         iconAnchor: [11, 11] }),
-      title: words.party, keyboard: false, zIndexOffset: 1000, interactive: false
+      title: words.party, keyboard: false, zIndexOffset: 1000, interactive: false,
+      pane: 'party'
     }).addTo(map);
   }
 
@@ -887,12 +911,14 @@
       var lock = e.target.closest ? e.target.closest('[data-layer-lock]') : null;
       var here = e.target.closest ? e.target.closest('[data-layer-zoom-here]') : null;
       if (eye) {
-        var layer = eye.dataset.layerEye === 'grid' ? grid : byId[eye.dataset.layerEye];
+        var which = eye.dataset.layerEye;
+        var layer = which === 'grid' ? grid : which === 'trail' ? partyTrail : byId[which];
         layer.shown = !layer.shown;
         eye.setAttribute('aria-pressed', layer.shown ? 'true' : 'false');
         eye.closest('.map-layer').classList.toggle('is-hidden', !layer.shown);
         post(base + '/layers/' + eye.dataset.layerEye + '/shown', { shown: layer.shown ? '1' : '0' });
         if (layer === grid) showGrid();
+        if (layer === partyTrail) showTrail();
         showLayers();
         scaleLabels();
       } else if (lock) {

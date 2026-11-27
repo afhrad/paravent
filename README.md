@@ -295,6 +295,8 @@ money per passage. Translating by hand in the editor works without it. Design an
    PARAVENT_TRANSLATE_API_KEY=sk-ant-...
    # optional, see the table below:
    PARAVENT_TRANSLATE_MODEL=claude-opus-5-5
+   # optional: what a month may cost, in US dollars (0 or unset: no limit)
+   PARAVENT_TRANSLATE_BUDGET=20
    ```
 
 3. Restart with `docker compose up -d`. Keep the key in the server's `.env` only; it is
@@ -348,6 +350,12 @@ A rough guide, not a measurement: one spell costs well under a cent; a book the 
 Player's Handbook in the order of $10 with Opus, about half that with Sonnet. German runs
 longer than English, so output tokens dominate. Start with the 25 most-linked entries and
 check the usage in the Anthropic console before translating whole books.
+
+**A monthly budget** (`PARAVENT_TRANSLATE_BUDGET`, US dollars): Paravent prices every answer
+itself, and once the month's sum reaches the budget it sends nothing more until the next
+month. A running job stops and says why, the editor's button says so, and the
+*Translations* page shows what is left, warning from 80 %. It counts Paravent's own
+estimate; set a spending limit in the Anthropic console as well for a hard stop.
 
 ### A translated corpus (optional)
 

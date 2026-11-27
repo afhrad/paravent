@@ -54,6 +54,8 @@ services:
       PARAVENT_TRANSLATE_API_KEY: "${PARAVENT_TRANSLATE_API_KEY:-}"
       PARAVENT_TRANSLATE_MODEL: "${PARAVENT_TRANSLATE_MODEL:-claude-opus-5-5}"
       PARAVENT_TRANSLATE_EFFORT: "${PARAVENT_TRANSLATE_EFFORT:-low}"
+      # What the Claude API may cost a month, in US dollars; 0: no limit.
+      PARAVENT_TRANSLATE_BUDGET: "${PARAVENT_TRANSLATE_BUDGET:-0}"
       # Backups of the library into the folder mounted above: daily at these local
       # times ("03:00" or "03:00,15:00"; empty: only `python -m app.cli backup run`),
       # keeping the newest PARAVENT_BACKUP_KEEP. TZ makes "03:00" the NAS's 03:00.

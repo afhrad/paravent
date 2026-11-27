@@ -3656,6 +3656,8 @@ dialog.ctx-dialog .panel{ margin:0; }
 .map-route{ fill:none; stroke-linecap:round; stroke-linejoin:round; opacity:.9; cursor:pointer; }
 .map-route-road{ stroke:var(--cond-text); }
 .map-route-trail{ stroke:var(--cond); stroke-dasharray:10 7; }
+/* The party's trail (documentation/MAPS.md §8c): dots where it went, under its marker. */
+.map-trail{ fill:none; stroke:var(--accent, #4560DC); stroke-width:4; stroke-dasharray:1 9; stroke-linecap:round; opacity:.85; }
 .map-route-river{ stroke:var(--accent); }
 .map-route-sea{ stroke:var(--accent-text); stroke-dasharray:14 8; }
 .map-route-country{ stroke:var(--text-2); stroke-dasharray:2 9; }
@@ -3678,3 +3680,8 @@ dialog.ctx-dialog .panel{ margin:0; }
 /* Where something lies on the maps, on its own page (documentation/MAPS.md §6). */
 .on-maps-pin, .on-maps-line{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--sp-2, 8px); margin:var(--sp-2, 8px) 0 0; }
 .on-maps-line .ref{ display:inline-flex; align-items:center; gap:4px; }
+
+/* This month against the API budget (TRANSLATION.md §7). */
+.tr-budget{ margin:0 0 var(--sp-2, 8px); }
+.tr-budget.is-near{ color:var(--warn-text, #8a5a00); }
+.tr-budget.is-spent{ color:var(--danger-text, #a12a2a); font-weight:600; }

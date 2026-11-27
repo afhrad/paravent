@@ -284,7 +284,9 @@ the stream itself can leak nothing.
    `POST /log/roll`; `static/js/protocol.js` opens the panel, pages, follows the stream
    and keeps the badge (what arrived since the panel was last opened, per device).
    **What reading already enforces**, since the panel would leak otherwise: a player
-   reads their characters' worlds and the global log, public entries and private ones
+   reads their characters' worlds, the table's world (2026-11-27: characters are
+   world-free, so without it a player read no world's log at all) and the global log,
+   public entries and private ones
    that are theirs, a monster's results without its dice, bonus or the roll before the
    verdict, never the fight's bookkeeping, never a DC or AC. The panel opens on the
    page's fight (tracker, players' fight view) or the sheet's character. On the sheet

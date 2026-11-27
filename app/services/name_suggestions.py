@@ -25,7 +25,7 @@ from typing import Any, cast
 import anthropic
 from anthropic.types.beta import BetaMessageParam, BetaOutputConfigParam, BetaTextBlockParam
 
-from app.services.api_costs import ApiCosts, Spend, spend_of, tally
+from app.services.api_costs import BUDGET_SPENT, ApiCosts, Spend, spend_of, tally
 from app.services.glossary import MAX_TERM, Glossary, is_name
 from app.store.jsonfile import read_json, write_json
 
@@ -99,7 +99,10 @@ class ApiRunner:
     async def __call__(
         self, system: str, prompt: str, schema: Mapping[str, Any]
     ) -> Mapping[str, Any] | None:
-        """One request; service errors become :class:`SuggestError`."""
+        """One request; service errors become :class:`SuggestError`, and so does a
+        month whose budget is spent (nothing is sent then)."""
+        if self._costs is not None and self._costs.spent():
+            raise SuggestError(BUDGET_SPENT)
         output_config: BetaOutputConfigParam = {
             "effort": cast(Any, self._effort),
             "format": {"type": "json_schema", "schema": dict(schema)},

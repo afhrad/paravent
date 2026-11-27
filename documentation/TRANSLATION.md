@@ -472,6 +472,13 @@ Translation is a **first-class feature of the tool**, not an offline import step
 > with `sync-server.sh --translations`, and the overview shows the last three, with or
 > without a key. Always "about": the bill decides, and the API cannot say how much credit
 > is left (the Admin API's cost report would need an admin key and lags minutes).
+> **A monthly budget** (2026-11-27, `PARAVENT_TRANSLATE_BUDGET`, US dollars, 0 none):
+> `ApiCosts.spent()` is asked before every request; once this month's sum reaches it,
+> nothing more is sent. A background run stops before its next record (`BUDGET_SPENT`,
+> "Stopped: this month's budget is spent"), a batch already queued sends nothing, the
+> editor's "Machine-translate the rest" answers `translate.error.budget`, and name
+> suggestions fail their batches the same way. The overview's costs box says what is left,
+> warns from 80 % and says when it is spent.
 >
 > **Drafts to review** (2026-11-03, `/gm/translations/drafts`, linked from the overview while
 > any wait): every record holding drafts nobody has confirmed, by category, with how many

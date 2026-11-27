@@ -577,6 +577,17 @@ class MapGrid(GameStateModel):
     y: float = 0
 
 
+class TrailLeg(GameStateModel):
+    """One journey of the party along a road of the map (documentation/MAPS.md §8c):
+    the way it went, in the picture's pixels as walked, when it set out and stopped by
+    the world's clock, and how far it came. Kept as drawn, so it outlives its road."""
+
+    points: list[list[float]] = Field(default_factory=list)
+    started: int = 0
+    ended: int = 0
+    miles: float = Field(default=0, ge=0)
+
+
 class WorldMap(Record):
     """A map of a world or of one adventure (documentation/MAPS.md §2): a picture of the
     gamemaster's with a scale. Called WorldMap so it does not shadow ``map``. An
@@ -604,6 +615,10 @@ class WorldMap(Record):
     grid: MapGrid | None = None
     # Shown to the players of its world, the layers they see (documentation/MAPS.md §9).
     players: bool = False
+    # Where the party went along its roads, oldest first, and whether the players see
+    # it too (documentation/MAPS.md §8c).
+    trail: list[TrailLeg] = Field(default_factory=list)
+    trail_players: bool = False
 
 
 SoundKind = Literal["effect", "ambience", "music"]

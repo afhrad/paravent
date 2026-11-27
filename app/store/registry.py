@@ -334,6 +334,7 @@ class StoreRegistry:
             self.map_tiles,
             self.settings.map_max_pixels,
             entry_name=self._entry_name,
+            log=self.protocol.append,
         )
 
     def _entry_name(self, ident: str) -> str | None:
@@ -555,7 +556,9 @@ class StoreRegistry:
     def api_costs(self) -> ApiCosts:
         """What the Claude API cost, per month (app/services/api_costs.py), kept beside
         the translations it paid for."""
-        return ApiCosts(self.settings.i18n_dir / "_api_costs.json")
+        return ApiCosts(
+            self.settings.i18n_dir / "_api_costs.json", budget=self.settings.translate_budget
+        )
 
     @cached_property
     def translations(self) -> TranslationStore:
@@ -715,16 +718,20 @@ class StoreRegistry:
         )
 
     def viewer(self, identity: Identity) -> Viewer:
-        """Who reads the log: the gamemaster, or a player with their characters' worlds."""
+        """Who reads the log: the gamemaster, or a player with their characters' worlds
+        and the table's, which players follow (documentation/CURRENT-WORLD.md)."""
         user = identity.user
         if identity.is_gamemaster:
             return Viewer(user.username, gamemaster=True)
         mine = self.characters.for_player(identity)
+        table = self.table.world_id()
         return Viewer(
             user.username,
             gamemaster=False,
             characters=frozenset(pc.id for pc in mine),
-            worlds=frozenset(pc.world_id for pc in mine if pc.world_id),
+            worlds=frozenset(
+                {*(pc.world_id for pc in mine if pc.world_id), *([table] if table else [])}
+            ),
         )
 
     @cached_property

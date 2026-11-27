@@ -15,7 +15,7 @@ from htpy import input as input_el
 
 from app.services.glossary import Term, Wanted
 from app.services.name_suggestions import Progress
-from app.ui.api_costs import run_cost
+from app.ui.api_costs import budget_message, run_cost
 from app.ui.context import Page
 from app.ui.home_pages import page_head
 from app.ui.layout import app_shell
@@ -142,7 +142,7 @@ def suggest_status(
         else [
             span[t("glossary.suggest.finished", suggested=run.suggested, failed=run.failed)],
             span(class_="muted")[f" · {run_cost(page, run.spend)}"] if run.spend.requests else None,
-            span(class_="muted")[f" — {run.error}"] if run.error else None,
+            span(class_="muted")[f" — {budget_message(page, run.error)}"] if run.error else None,
             " ",
             a(href=here)[t("glossary.suggest.reload")],
         ]

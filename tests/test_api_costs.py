@@ -146,3 +146,46 @@ class TestPages:
         assert "data-paravent-toast=" in fragment and "Tokens hinein" in fragment
         page = (await ac.get("/gm/translations?lang=de")).text
         assert "Was die Claude-API gekostet hat" in page and "etwa" in page
+
+
+class TestBudget:
+    def test_what_is_left(self, tmp_path: Path) -> None:
+        free = ApiCosts(tmp_path / "a.json")
+        assert free.left() is None and not free.spent()
+        costs = ApiCosts(tmp_path / "b.json", budget=5)
+        assert costs.left() == 5
+        costs.record(spend_of(answer("claude-opus-5-5", input_tokens=1_000_000)))  # $4
+        assert costs.left() == pytest.approx(1) and not costs.spent()
+        costs.record(spend_of(answer("claude-opus-5-5", input_tokens=1_000_000)))
+        assert costs.left() == 0 and costs.spent()
+
+    async def test_a_spent_budget_sends_nothing(
+        self,
+        client: tuple[AsyncClient, StoreRegistry],  # noqa: F811
+    ) -> None:
+        ac, registry = client
+        machine, fake = tt.TestMachineDrafts()._machine(registry.translations, tt._german)
+        costs = ApiCosts(registry.api_costs.path, budget=4)
+        costs.record(spend_of(answer("claude-opus-5-5", input_tokens=1_000_000)))
+        machine._costs = costs
+        registry.__dict__["api_costs"] = costs
+        registry.__dict__["machine_translator"] = machine
+        registry.__dict__.pop("translation_jobs", None)
+        # The editor's run says why it sent nothing.
+        done = await ac.post(
+            "/gm/translate/ref/spell/PHB/Fireball?lang=de", data={"action": "machine"}
+        )
+        assert "error=translate.error.budget" in done.headers["location"]
+        assert "aufgebraucht" in (await ac.get(done.headers["location"])).text
+        # A background run stops at once, saying so.
+        await ac.post("/gm/translations/jobs", data={"lang": "de", "scope": "top:25"})
+        job = registry.translation_jobs.jobs("de")[0]
+        for _ in range(200):
+            if job.finished:
+                break
+            await asyncio.sleep(0.05)
+        assert job.finished and job.done == 0 and not fake.messages.requests
+        fragment = (await ac.get("/gm/translations/jobs?lang=de")).text
+        assert "Angehalten: Das Budget dieses Monats ist aufgebraucht." in fragment
+        page = (await ac.get("/gm/translations?lang=de")).text
+        assert "tr-budget is-spent" in page

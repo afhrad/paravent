@@ -55,7 +55,7 @@ from app.services.translation_coverage import (
     WantedEntry,
 )
 from app.store.fluff import FLUFF_SUFFIX
-from app.ui.api_costs import costs_box, run_cost
+from app.ui.api_costs import budget_message, costs_box, run_cost
 from app.ui.context import Page
 from app.ui.forms import alert, hidden, notice, text_field
 from app.ui.home_pages import page_head
@@ -124,7 +124,9 @@ def _jobs(page: Page, jobs: Sequence[Job], lang: str) -> Element:
                     span(class_="pill heal")[t("translations.job_done")]
                     if j.finished
                     else span(class_="pill accent")[t("translations.job_running")],
-                    small(class_="tr-job-error")[j.error] if j.error else None,
+                    small(class_="tr-job-error")[budget_message(page, j.error)]
+                    if j.error
+                    else None,
                 ]
                 for j in jobs
             ]
@@ -284,13 +286,14 @@ def _machine(
     books: Sequence[BookCount],
     jobs: Sequence[Job],
     costs: Mapping[str, Spend],
+    budget: float = 0.0,
 ) -> Element:
     t = page.t
     if not available:
         return section(class_="panel")[
             h2[t("translations.machine")],
             p(class_="muted")[t("translations.machine_off")],
-            costs_box(page, costs),
+            costs_box(page, costs, budget),
         ]
     rulebooks = [x for x in books if x.kind == "book"]
     adventures = [x for x in books if x.kind == "adventure"]
@@ -323,7 +326,7 @@ def _machine(
             ],
         ],
         _jobs(page, jobs, lang),
-        costs_box(page, costs),
+        costs_box(page, costs, budget),
     ]
 
 
@@ -791,6 +794,7 @@ def translations_page(
     taken: str = "",
     entry: str = "",
     costs: Mapping[str, Spend] | None = None,
+    budget: float = 0.0,
 ) -> Element:
     """The language's coverage, what to do next, and machine drafts in bulk, with what
     the drafts cost by month."""
@@ -822,7 +826,7 @@ def translations_page(
             ],
             alert(error),
             notice(message),
-            _machine(page, lang, machine, books, jobs, costs or {}),
+            _machine(page, lang, machine, books, jobs, costs or {}, budget),
             _corpus_import(page, lang, corpus_import),
             _lost(page, lost, lang, taken, entry),
             _drafts_link(page, drafts, lang),

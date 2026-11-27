@@ -1321,6 +1321,15 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       the pins to them and offer *Pin on a map*, which opens the map ready to pin it. Under
       Docker the tiles have a volume of their own (`paravent-maps`), so a rebuilt container
       (`sync-server.sh`) no longer loses them
+- [x] **Maps: the players hear of a shown map** (2026-11-27, MAPS.md §9): a public log
+      entry whose toast reaches every player and opens the map. Players now read the
+      table's world's log too (characters are world-free, so they read none before)
+- [x] **Maps: the party's trail** (2026-11-27, MAPS.md §8c): each journey along a road
+      kept as a dotted line with when and how far, shown per user, to players at the
+      gamemaster's word, cleared under its ⋯
+- [x] **A monthly budget for the Claude API** (2026-11-27, TRANSLATION.md §7 note):
+      `PARAVENT_TRANSLATE_BUDGET`; nothing is sent once the month's estimate reaches it,
+      runs stop saying why, the overview shows what is left
 - [x] **Maps: a cache gone is cut again** (2026-11-27, MAPS.md §4): a missing thumbnail
       or tile starts the cutting as opening the map does (a failed one only by opening);
       `python -m app.cli maps tiles` cuts every large map's missing tiles at once. Found

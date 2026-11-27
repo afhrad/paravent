@@ -31,10 +31,11 @@ from app.routes.paravent_markdown import paravent_markdown
 from app.services.i18n import Translatable
 from app.services.map_picture import Hexes, Mark, area_of, render
 from app.services.map_tiles import needs_tiles
-from app.services.maps import GRID, LAYER_ROLES, MapError
+from app.services.maps import GRID, LAYER_ROLES, TRAIL, MapError
 from app.services.tokens import Token
 from app.services.travel import Leg
 from app.store.registry import StoreRegistry
+from app.ui.clock_pages import clock_label
 from app.ui.context import Page
 from app.ui.encounter_pages import encounter_url
 from app.ui.faction_pages import FACTIONS_URL
@@ -465,7 +466,30 @@ def _context(
         layers=layers,
         labels=labels,
         grid=grid_view(registry, found, shown),
+        trail=trail_view(page, found, shown),
     )
+
+
+def trail_view(page: Page, found: WorldMap, shown: dict[str, bool]) -> dict[str, Any] | None:
+    """The party's trail as the viewer draws it: each journey's line and what it says
+    (when, how far), and whether this user shows it; None while the party went nowhere
+    on this map."""
+    if not found.trail:
+        return None
+    world_id = found.scope.world_id
+    legs = [
+        {
+            "points": leg.points,
+            "text": page.t(
+                "atlas.trail.leg",
+                start=clock_label(page, leg.started, world_id),
+                end=clock_label(page, leg.ended, world_id),
+                distance=page.u.miles(leg.miles),
+            ),
+        }
+        for leg in found.trail
+    ]
+    return {"legs": legs, "shown": shown.get(TRAIL, True), "players": found.trail_players}
 
 
 def grid_view(
@@ -670,14 +694,17 @@ async def clear_grid(_gm: GamemasterDep, registry: RegistryDep, map_id: str) -> 
 
 @router.post(f"{MAPS_URL}/{{map_id}}/players")
 async def show_to_players(
-    _gm: GamemasterDep,
+    gm: GamemasterDep,
     registry: RegistryDep,
     map_id: str,
     shown: Annotated[str, Form()] = "",
 ) -> Response:
     """Show the map to the players of its world, or hide it from them."""
     found = _map(registry, map_id)
-    registry.world_maps.set_players(found.id, shown == "1")
+    user = gm.user
+    registry.world_maps.set_players(
+        found.id, shown == "1", by=user.username, by_name=user.display_name or user.username
+    )
     return redirect(f"{map_url(found.id)}?{'shared' if shown == '1' else 'hidden'}=1")
 
 
@@ -1446,7 +1473,31 @@ async def travel_route(
                 "route_to": end}
     )  # fmt: skip
     registry.clock.keep(world_id, kept)
+    registry.world_maps.add_trail(
+        found.id, route.id, start, at, started=journey.started, ended=journey.ended
+    )
     return redirect(f"{map_url(found.id)}?travelled=1")
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/trail/clear")
+async def clear_trail(_gm: GamemasterDep, registry: RegistryDep, map_id: str) -> Response:
+    """Forget where the party went on the map."""
+    found = _map(registry, map_id)
+    registry.world_maps.clear_trail(found.id)
+    return redirect(map_url(found.id))
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/trail/players")
+async def trail_players(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    map_id: str,
+    shown: Annotated[str, Form()] = "",
+) -> Response:
+    """Show the party's trail to the players too, or keep it the gamemaster's."""
+    found = _map(registry, map_id)
+    registry.world_maps.set_trail_players(found.id, shown == "1")
+    return redirect(map_url(found.id))
 
 
 __all__ = ["router"]

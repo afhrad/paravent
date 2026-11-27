@@ -22,7 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
-from app.services.api_costs import Spend, tally
+from app.services.api_costs import BUDGET_SPENT, Spend, tally
 from app.services.glossary import LinkCounts
 from app.services.i18n import Translatable
 from app.services.machine_translation import MachineTranslator
@@ -637,6 +637,9 @@ class TranslationJobs:
 
         async def each() -> None:
             for target in job.targets:
+                if machine.budget_spent():
+                    job.error = BUDGET_SPENT  # the rest stays English
+                    break
                 try:
                     result = await machine.draft_record(lang, target, by=by)
                 except OSError as exc:

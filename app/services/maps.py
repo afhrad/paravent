@@ -10,7 +10,7 @@ its pixels, by the scale's feet per pixel.
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO
@@ -28,8 +28,11 @@ from app.models.gamestate import (
     Place,
     RouteStretch,
     Scope,
+    TrailLeg,
     WorldMap,
 )
+from app.models.protocol import EntryKind, ProtocolEntry, Visibility
+from app.models.protocol import Scope as LogScope
 from app.services import media
 from app.services.adventures import AdventureService, clean_name
 from app.services.i18n import Translatable
@@ -79,6 +82,10 @@ UNPLACED_KINDS = frozenset({"character", "reference"})
 PLAYER_ROLES = frozenset({"names", "roads"})
 # What the hex grid is called among a user's shown and hidden layers.
 GRID = "grid"
+# The party's trail, under this key in what a user shows (documentation/MAPS.md §8c).
+TRAIL = "trail"
+# The journeys a map keeps, the oldest going first.
+TRAIL_LEGS = 500
 # The smallest hex the grid draws, in the original's pixels.
 MIN_HEX_PX = 8.0
 
@@ -164,15 +171,18 @@ class MapService:
         tiles: MapTiles,
         max_pixels: int,
         entry_name: Callable[[str], str | None] | None = None,
+        log: Callable[[Iterable[ProtocolEntry]], None] | None = None,
     ) -> None:
         """Bind to the library, the adventures (for scopes), the tile cache, and the
         largest picture taken; ``entry_name`` names an entry of the books from its
-        ``category|name|source``, or None when there is none."""
+        ``category|name|source``, or None when there is none; ``log`` appends to the
+        world's log (documentation/PROTOCOL.md)."""
         self._store = store
         self._adventures = adventures
         self._tiles = tiles
         self._max_pixels = max_pixels
         self._entry_name = entry_name
+        self._log = log
 
     @property
     def tiles(self) -> MapTiles:
@@ -268,6 +278,10 @@ class MapService:
         grid = before.grid
         if grid is not None:
             grid = grid.model_copy(update={"x": grid.x * rx, "y": grid.y * ry})
+        trail = [
+            leg.model_copy(update={"points": [[x * rx, y * ry] for x, y in leg.points]})
+            for leg in before.trail
+        ]
         saved = self._store.maps.update(
             map_id,
             image=stored.path,
@@ -279,6 +293,7 @@ class MapService:
             labels=labels,
             routes=routes,
             grid=grid,
+            trail=trail,
         )
         if (rx, ry) != (1, 1):
             for child in self.framed_on(map_id):
@@ -370,10 +385,30 @@ class MapService:
 
     # -- the players (documentation/MAPS.md §9) ---------------------------------------
 
-    def set_players(self, map_id: str, shown: bool) -> WorldMap:
-        """Show the map to the players of its world, or hide it from them again."""
-        self.get(map_id)
-        return self._store.maps.update(map_id, players=shown)
+    def set_players(self, map_id: str, shown: bool, *, by: str = "", by_name: str = "") -> WorldMap:
+        """Show the map to the players of its world, or hide it from them again. Shown
+        when it was not, it is announced in the world's log (by ``by``), which the
+        players' toast says."""
+        before = self.get(map_id)
+        found = self._store.maps.update(map_id, players=shown)
+        if shown and not before.players and self._log is not None:
+            self._log(
+                [
+                    ProtocolEntry(
+                        kind=EntryKind.MAP,
+                        actor=by,
+                        actor_name=by_name or by,
+                        subject=f"map:{found.id}",
+                        subject_name=found.name,
+                        what=found.id,
+                        note=found.name,
+                        visibility=Visibility.PUBLIC,
+                        scope=LogScope(world=found.scope.world_id),
+                        origin="table",
+                    )
+                ]
+            )
+        return found
 
     def for_players(self, world_id: str | None) -> list[WorldMap]:
         """The maps of a world shown to its players, the world's own first, by name."""
@@ -741,17 +776,20 @@ class MapService:
 
     def shown(self, user_id: str, found: WorldMap) -> dict[str, bool]:
         """Whether the user sees each layer: as they chose, else the layer's default;
-        and the hex grid, under ``GRID``, shown unless they hid it."""
+        and the hex grid and the party's trail, under ``GRID`` and ``TRAIL``, shown
+        unless they hid them."""
         place = self._store.places.find(user_id)
         chosen = place.map_layers.get(found.id, {}) if place is not None else {}
         out = {layer.id: chosen.get(layer.id, layer.visible) for layer in found.layers}
         out[GRID] = chosen.get(GRID, True)
+        out[TRAIL] = chosen.get(TRAIL, True)
         return out
 
     def set_shown(self, user_id: str, map_id: str, layer_id: str, shown: bool) -> None:
-        """Remember that the user showed or hid a layer of the map, or its grid."""
+        """Remember that the user showed or hid a layer of the map, its grid or the
+        party's trail."""
         found = self.with_layers(map_id)
-        if layer_id != GRID:
+        if layer_id not in (GRID, TRAIL):
             self._layer(found, layer_id)
         place = self._store.places.find(user_id) or Place(id=user_id)
         mine = {**place.map_layers.get(map_id, {}), layer_id: shown}
@@ -1054,6 +1092,58 @@ class MapService:
         x, y = route.points[-1]
         return (x, y)
 
+    def way(self, found: WorldMap, route: MapRoute, start: float, end: float) -> list[list[float]]:
+        """The route's line from ``start`` to ``end`` miles along it, in the picture's
+        pixels, in the order walked (either way round)."""
+        segments = self.segment_miles(found, route) or []
+        a, b = sorted((start, end))
+        points = [list(self.position(found, route, a))]
+        walked = 0.0
+        for index, miles in enumerate(segments):
+            walked += miles
+            if a < walked < b:
+                points.append([float(v) for v in route.points[index + 1]])
+        points.append(list(self.position(found, route, b)))
+        if end < start:
+            points.reverse()
+        return [[round(x, 1), round(y, 1)] for x, y in points]
+
+    # -- the party's trail (documentation/MAPS.md §8c) --------------------------------
+
+    def add_trail(
+        self,
+        map_id: str,
+        route_id: str,
+        start: float,
+        end: float,
+        *,
+        started: int,
+        ended: int,
+    ) -> WorldMap:
+        """Keep a journey of the party along a road of the map: from ``start`` to
+        ``end`` miles along it, between two moments of the world's clock."""
+        found = self.get(map_id)
+        route = next((r for r in found.routes if r.id == route_id), None)
+        if route is None or abs(end - start) < 1e-6:
+            return found
+        leg = TrailLeg(
+            points=self.way(found, route, start, end),
+            started=started,
+            ended=ended,
+            miles=round(abs(end - start), 3),
+        )
+        return self._store.maps.update(map_id, trail=[*found.trail, leg][-TRAIL_LEGS:])
+
+    def clear_trail(self, map_id: str) -> WorldMap:
+        """Forget where the party went on the map."""
+        self.get(map_id)
+        return self._store.maps.update(map_id, trail=[])
+
+    def set_trail_players(self, map_id: str, shown: bool) -> WorldMap:
+        """Show the party's trail to the players too, or keep it the gamemaster's."""
+        self.get(map_id)
+        return self._store.maps.update(map_id, trail_players=shown)
+
     # -- maps within maps -------------------------------------------------------------
 
     def parent_of(self, found: WorldMap) -> WorldMap | None:
@@ -1172,6 +1262,7 @@ class MapService:
 __all__ = [
     "FEET_PER",
     "GRID",
+    "TRAIL",
     "PLAYER_ROLES",
     "LONG_UNITS",
     "UNITS",

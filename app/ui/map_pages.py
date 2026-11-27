@@ -701,6 +701,8 @@ class MapContext:
     travel: bool = False
     # The hex grid as the viewer draws it: across (px), orientation, x, y, shown.
     grid: dict[str, Any] | None = None
+    # The party's trail: its legs (points, text), shown, and whether players see it.
+    trail: dict[str, Any] | None = None
 
 
 # The kinds in the pin dialog's list, in its order; entries of the books are searched.
@@ -941,8 +943,65 @@ def _grid_row(page: Page, grid: Mapping[str, Any] | None, *, player: bool = Fals
     ]
 
 
+def _trail_row(
+    page: Page, url: str, trail: Mapping[str, Any] | None, *, player: bool = False
+) -> Node:
+    """The party's trail in the layer panel: shown or hidden for this user; for the
+    gamemaster under its ⋯ whether the players see it, and clearing it."""
+    if trail is None:
+        return None
+    t = page.t
+    name = t("atlas.trail.layer")
+    return li(class_="map-layer" + ("" if trail["shown"] else " is-hidden"), data_layer="trail")[
+        div(class_="map-layer-row")[
+            None if player else span(class_="map-layer-current"),
+            button(
+                type="button",
+                class_="btn btn-sm btn-ghost map-layer-eye",
+                data_layer_eye="trail",
+                aria_pressed="true" if trail["shown"] else "false",
+                aria_label=t("atlas.layer.shown_of", name=name),
+                title=t("atlas.layer.shown"),
+            )[icon("eye", "sm")],
+            span(class_="map-layer-name")[icon("footprints", "xs"), " ", name],
+            span(class_="muted map-layer-players", title=t("atlas.layer.players"))[
+                icon("users", "xs")
+            ]
+            if trail["players"] and not player
+            else None,
+            span(class_="map-layer-count muted")[str(len(trail["legs"]))] if not player else None,
+        ],
+        None
+        if player
+        else details(class_="map-layer-more")[
+            summary(aria_label=t("menu.more", name=name))[icon("ellipsis", "sm")],
+            form(method="post", action=f"{url}/trail/players", class_="stack-form")[
+                hidden("shown", "" if trail["players"] else "1"),
+                button(type="submit", class_="btn btn-sm")[
+                    icon("users", "sm"),
+                    span[
+                        t(
+                            "atlas.trail.hide_players"
+                            if trail["players"]
+                            else "atlas.trail.show_players"
+                        )
+                    ],
+                ],
+            ],
+            form(method="post", action=f"{url}/trail/clear", class_="stack-form")[
+                button(type="submit", class_="btn btn-sm btn-ghost btn-danger")[
+                    icon("trash-2", "sm"), span[t("atlas.trail.clear")]
+                ],
+            ],
+        ],
+    ]
+
+
 def _player_layer_panel(
-    page: Page, layers: Sequence[LayerView], grid: Mapping[str, Any] | None
+    page: Page,
+    layers: Sequence[LayerView],
+    grid: Mapping[str, Any] | None,
+    trail: Mapping[str, Any] | None = None,
 ) -> Element:
     """The layers a player sees, the top one first, each to show or hide for them."""
     t = page.t
@@ -964,7 +1023,9 @@ def _player_layer_panel(
     ]
     return details(class_="map-layers panel", id="layers", open=True)[
         summary(class_="map-layers-head")[icon("map", "sm"), span[t("atlas.layer.heading")]],
-        ul(class_="map-layer-list")[rows, _grid_row(page, grid, player=True)],
+        ul(class_="map-layer-list")[
+            rows, _grid_row(page, grid, player=True), _trail_row(page, "", trail, player=True)
+        ],
     ]
 
 
@@ -973,6 +1034,7 @@ def _layer_panel(
     found: WorldMap,
     layers: Sequence[LayerView],
     grid: Mapping[str, Any] | None = None,
+    trail: Mapping[str, Any] | None = None,
 ) -> Element:
     """The map's layers, the top one first: show or hide each (for this user), choose the
     one the tools add to, lock it, and under its ⋯ rename it, say whether a newcomer
@@ -1114,7 +1176,9 @@ def _layer_panel(
         )
     return details(class_="map-layers panel", id="layers", open=True)[
         summary(class_="map-layers-head")[icon("map", "sm"), span[t("atlas.layer.heading")]],
-        ul(class_="map-layer-list")[rows, _grid_row(page, grid)],
+        ul(class_="map-layer-list")[
+            rows, _grid_row(page, grid), _trail_row(page, map_url(found.id), trail)
+        ],
         form(method="post", action=f"{url}/layers", class_="map-layer-new inline-form")[
             input_el(
                 type="text",
@@ -1374,6 +1438,7 @@ def map_page(
         data_pin_for=f"{around.pin_for.kind}:{around.pin_for.id}" if around.pin_for else None,
         data_pin_for_name=around.pin_for.name if around.pin_for else None,
         data_grid=json.dumps(around.grid) if around.grid else None,
+        data_trail=json.dumps(around.trail, ensure_ascii=False) if around.trail else None,
         role="application",
         aria_label=t("atlas.viewer", name=found.name),
     )
@@ -1407,7 +1472,7 @@ def map_page(
                 ],
                 div(class_="map-body")[
                     stage if ready else tiling_panel(page, found, job, player=True),
-                    _player_layer_panel(page, around.layers, around.grid)
+                    _player_layer_panel(page, around.layers, around.grid, around.trail)
                     if ready and (around.layers or around.grid)
                     else None,
                 ],
@@ -1504,7 +1569,7 @@ def map_page(
             _route_bar(page),
             div(class_="map-body")[
                 stage if ready else tiling_panel(page, found, job),
-                _layer_panel(page, found, around.layers, around.grid)
+                _layer_panel(page, found, around.layers, around.grid, around.trail)
                 if ready and around.layers
                 else None,
             ],

@@ -358,13 +358,32 @@ distance: "113 mi · 19 hexes · normal pace 4.7 days".
 
 ---
 
+## 8c. The party's trail
+
+Built 2026-11-27, at the user's word. Every journey along a road of the map (*Travel*, §8)
+leaves a leg of the **trail** (`WorldMap.trail`, `TrailLeg`): the road's line from where the
+party set out to where it stopped, in the picture's pixels as walked (`MapService.way`),
+when it set out and stopped by the world's clock, and how far it came. The line is kept as
+drawn, so a road changed or deleted later leaves the trail where the party went; a new
+picture stretches it with the rest. The newest 500 legs are kept.
+
+The viewer draws it as a dotted line under the party's marker, each leg saying when and how
+far on hover ("Day 3, 08:00 – Day 4, 14:00 · 60 mi."). In the layer panel it is a row of its
+own, *Party's trail*, shown or hidden per user like the grid (`TRAIL` in `Place.map_layers`);
+under its ⋯ the gamemaster shows it to the players too (`WorldMap.trail_players`, off at
+first) or clears it. Players see it only once shown, on a map shown to them, and only hide
+or show it for themselves.
+
 ## 9. The players' view
 
 Built 2026-11-27. **The gamemaster shows a map to the players**: *Show to players* beside the
 map's name (`WorldMap.players`), and the players of the table's world find it under **Maps**
 in their navigation (`/maps`, `app/routes/player_maps.py`), the world's own maps first, then
 the adventures'. *Players see it* hides it again. The gamemaster's list marks shown maps
-with *Players*.
+with *Players*. **Showing it tells them** (2026-11-27): the world's log gets a public entry
+(`EntryKind.MAP`, "Shows you a map: Azeroth") whose toast reaches every player, even one
+whose toasts are only their own, and opens `/maps/<id>`; showing a map already shown, or
+hiding it, writes nothing.
 
 **What players see is chosen by layer.** Each layer has *Players see it* (`MapLayer.players`,
 under its ⋯; a figure beside its name in the panel). A new map starts with *Names* and
@@ -466,5 +485,4 @@ Each step is usable without the next.
 
 ## 12. Later, not decided
 
-- **A trail of where the party went**, on the gamemaster's and the players' map.
-- **A toast** to the players when a map is shown to them.
+Nothing is waiting: the trail (§8c) and the players' toast (§9) were built 2026-11-27.

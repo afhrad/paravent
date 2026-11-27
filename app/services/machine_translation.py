@@ -128,8 +128,11 @@ class MachineTranslator:
     async def draft(self, lang: str, target: Target, *, by: str) -> int:
         """Draft every untranslated passage of one record. Returns how many were stored.
 
-        Raises :class:`Translatable` when the service failed for every batch.
+        Raises :class:`Translatable` when the month's budget is spent, or the service
+        failed for every batch.
         """
+        if self.budget_spent():
+            raise Translatable("translate.error.budget")
         result = await self.draft_record(lang, target, by=by)
         if result.failed and not result.translated:
             raise Translatable("translate.error.service")
@@ -156,6 +159,10 @@ class MachineTranslator:
             )
         return DraftResult(len(translated), rejected, failed)
 
+    def budget_spent(self) -> bool:
+        """True when this month's budget is used up (app/services/api_costs.py)."""
+        return self._costs is not None and self._costs.spent()
+
     # -- the API -----------------------------------------------------------------------
 
     async def _translate(
@@ -180,7 +187,10 @@ class MachineTranslator:
     async def _batch(
         self, lang: str, batch: list[tuple[str, str]], glossary: Mapping[str, str]
     ) -> tuple[dict[str, str], int, int]:
-        """Translate one batch: (path → text accepted, rejected count, failed count)."""
+        """Translate one batch: (path → text accepted, rejected count, failed count).
+        Nothing is sent once the month's budget is spent."""
+        if self.budget_spent():
+            return {}, 0, len(batch)
         text = " ".join(english for _, english in batch).lower()
         terms = {en: local for en, local in glossary.items() if en.lower() in text}
         request = {

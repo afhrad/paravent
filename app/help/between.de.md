@@ -45,12 +45,16 @@ stehen auf seiner Seite.
 - **Den Spielern zeigen** neben dem Namen einer Karte lässt die Spieler dieser Welt sie
   unter *Karten* öffnen. Sie sehen nur die Ebenen mit *Spieler sehen sie* (im ⋯ einer
   Ebene): Eine neue Karte zeigt ihnen ihre Namen und Wege, nicht ihre Orte und Notizen.
-  Deine Notizen, und wohin eine Nadel führt, bleiben bei dir.
+  Deine Notizen, und wohin eine Nadel führt, bleiben bei dir. Sie bekommen einen Toast,
+  der die Karte öffnet.
 - **Bild** zeichnet den sichtbaren Ausschnitt oder die ganze Karte mit den angehakten
   Ebenen: zum Herunterladen, oder als Handout ins Journal der Charaktere.
 - **Hexfelder** (sobald die Karte einen Maßstab hat) legt Hexfelder der eingegebenen Größe
   über die Karte; *An einem Hexfeld ausrichten* passt sie an ein Raster an, das auf dem
   Bild gedruckt ist. Das Lineal zählt die Hexfelder.
+- **Spur der Gruppe**: Jede Reise auf einem Weg hinterlässt eine gepunktete Linie, wo die
+  Gruppe ging, mit wann und wie weit. In ihrem ⋯ bei den Ebenen zeigst du sie den Spielern
+  oder löschst sie.
 
 ## 2. Uhr und Kalender
 
