@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-27T13:26:00+01:00",
+  "en": "Show a map to your players with only the layers you choose, hand it out as a picture in their journal, lay a hex grid over it for a hex crawl, and let Claude pin the places of the adventures it writes on their maps.",
+  "de": "Zeig deinen Spielern eine Karte mit nur den Ebenen, die du wählst, gib sie als Bild in ihr Journal, leg ein Hexfeld-Raster für eine Hexcrawl-Reise darüber, und lass Claude die Orte seiner Abenteuer auf ihre Karten setzen."
+ },
+ {
   "at": "2026-11-27T12:41:44+01:00",
   "en": "Draw roads on your maps, mark their terrain, and send the party along one: the clock counts the miles, terrain and pace, and the map shows where they are.",
   "de": "Zeichne Straßen auf deine Karten, gib ihnen Gelände, und schick die Gruppe darauf los: die Uhr zählt Meilen, Gelände und Tempo, und die Karte zeigt, wo sie stehen."
@@ -293,10 +298,5 @@
   "at": "2026-11-20T11:41:38+01:00",
   "en": "The editor's check can rename an object to the name the text uses, and unused objects can be deleted together.",
   "de": "Die Prüfung im Editor kann ein Objekt auf den Namen im Text umbenennen, und unbenutzte Objekte lassen sich gemeinsam löschen."
- },
- {
-  "at": "2026-11-20T11:26:05+01:00",
-  "en": "Check links also lists the NPCs, places, treasure and encounters nothing uses, to open or delete.",
-  "de": "Links prüfen listet auch die NSC, Orte, Schätze und Begegnungen, die nichts verwendet, zum Öffnen oder Löschen."
  }
 ]
