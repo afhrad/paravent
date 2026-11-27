@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-27T23:01:03+01:00",
+  "en": "Every place, NPC, encounter, treasure, character, handout, quest and faction shows where it is pinned on your maps, with a button to pin it on another in two taps.",
+  "de": "Jeder Ort, NSC, jede Begegnung, jeder Schatz, Charakter, jedes Handout, jede Quest und Fraktion zeigt, wo er auf euren Karten angeheftet ist, mit einem Knopf, ihn mit zwei Tippern auf einer weiteren anzuheften."
+ },
+ {
   "at": "2026-11-27T19:45:39+01:00",
   "en": "Map pins can point at anything in Paravent: characters, quests, factions, handouts, session notes and entries of your books, and a world map now offers the places, NPCs, encounters and treasure of every adventure.",
   "de": "Kartennadeln können auf alles in Paravent zeigen: Charaktere, Quests, Fraktionen, Handouts, Sitzungsnotizen und Einträge eurer Bücher, und eine Weltkarte bietet jetzt die Orte, NSC, Begegnungen und Schätze aller Abenteuer an."
@@ -293,10 +298,5 @@
   "at": "2026-11-20T11:59:33+01:00",
   "en": "The session page names the world's broken links before play, and the world menu counts unused objects.",
   "de": "Die Sitzungsseite nennt vor dem Spiel die kaputten Links der Welt, und das Weltmenü zählt unbenutzte Objekte."
- },
- {
-  "at": "2026-11-20T11:59:29+01:00",
-  "en": "Deleted NPCs, places, treasure and encounters wait 30 days under Recently deleted on Check links, to restore.",
-  "de": "Gelöschte NSC, Orte, Schätze und Begegnungen warten 30 Tage unter Kürzlich gelöscht bei Links prüfen, zum Wiederherstellen."
  }
 ]
