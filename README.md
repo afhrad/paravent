@@ -144,7 +144,7 @@ missing, so they live outside the library:
 
 ```bash
 PARAVENT_MAP_CACHE_DIR=data/map-cache          # empty: map-cache beside the library folder
-PARAVENT_MAP_MAX_PIXELS=250000000              # the largest map taken, width × height
+PARAVENT_MAP_MAX_PIXELS=250000000              # the largest map taken, width × height (700 MP under docker-compose.yaml)
 ```
 
 Cutting a map holds it decoded in memory, three to four bytes a pixel: 250 MP needs about
@@ -298,6 +298,11 @@ money per passage. Translating by hand in the editor works without it. Design an
 
 3. Restart with `docker compose up -d`. Keep the key in the server's `.env` only; it is
    never part of the image or the repository.
+
+**What it cost:** each run says what it cost as it ends (a toast, and its line on
+*Translations*), and *Translations* shows the last months' sums, counted from the tokens
+of each answer at the model's list price. The API cannot report how much prepaid credit
+is left; compare the month with what you topped up in the Claude Console.
 
 **Or translate on your own machine** and keep the key off a server others can reach: set
 the key in the local `.env`, translate there, and send the results with

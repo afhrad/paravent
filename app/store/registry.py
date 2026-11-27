@@ -41,6 +41,7 @@ from app.services import features, homebrew, media, polymorph
 from app.services.activities import Activities, Offered, rarity_of
 from app.services.adventures import AdventureService
 from app.services.afflictions import AfflictionService
+from app.services.api_costs import ApiCosts
 from app.services.auth import AuthService, Identity
 from app.services.background_builder import BackgroundBuilder
 from app.services.backlinks import BacklinkIndex
@@ -328,8 +329,25 @@ class StoreRegistry:
         """The gamemaster's maps of worlds and adventures (MAPS.md); ``maps`` are the
         books' own."""
         return MapService(
-            self.gamestate, self.adventures, self.map_tiles, self.settings.map_max_pixels
+            self.gamestate,
+            self.adventures,
+            self.map_tiles,
+            self.settings.map_max_pixels,
+            entry_name=self._entry_name,
         )
+
+    def _entry_name(self, ident: str) -> str | None:
+        """An entry of the books (or the table's homebrew) by ``category|name|source``,
+        as a map's pin names it; None when the corpus has none."""
+        category, _, rest = ident.partition("|")
+        name, _, source = rest.partition("|")
+        if not category or not name:
+            return None
+        try:
+            entry = self.compendium.find(category, name, source or None)
+        except EntryNotFound:
+            return None
+        return str(getattr(entry, "name", name)) if entry is not None else None
 
     @cached_property
     def instructions(self) -> WorldInstructionService:
@@ -508,6 +526,7 @@ class StoreRegistry:
                 api_key=settings.translate_api_key,
                 model=settings.translate_model,
                 effort=settings.translate_effort,
+                costs=self.api_costs,
             )
             if settings.translate_api_key
             else None
@@ -533,6 +552,12 @@ class StoreRegistry:
         )
 
     @cached_property
+    def api_costs(self) -> ApiCosts:
+        """What the Claude API cost, per month (app/services/api_costs.py), kept beside
+        the translations it paid for."""
+        return ApiCosts(self.settings.i18n_dir / "_api_costs.json")
+
+    @cached_property
     def translations(self) -> TranslationStore:
         """Translated corpus text, per language, over the English (TRANSLATION.md §5)."""
         return TranslationStore(self.settings.i18n_dir)
@@ -550,6 +575,7 @@ class StoreRegistry:
             api_key=self.settings.translate_api_key,
             model=self.settings.translate_model,
             effort=self.settings.translate_effort,
+            costs=self.api_costs,
         )
 
     def _glossary_terms(self, lang: str) -> dict[str, str]:

@@ -37,17 +37,20 @@ from app.services.travel import Leg
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
 from app.ui.encounter_pages import encounter_url
+from app.ui.faction_pages import FACTIONS_URL
 from app.ui.journal_pages import handout_url
 from app.ui.library_links import (
     WORLDS_URL,
     adventure_url,
     chapter_url,
+    character_url,
     location_url,
     npc_url,
     treasure_url,
 )
 from app.ui.map_pages import (
     MAPS_URL,
+    PIN_SEARCH_LIMIT,
     Candidate,
     FrameView,
     LabelView,
@@ -60,9 +63,13 @@ from app.ui.map_pages import (
     map_page,
     map_url,
     maps_page,
+    pin_entries,
     tiling_panel,
     world_maps_url,
 )
+from app.ui.quest_pages import QUESTS_URL
+from app.ui.session_pages import day_text, note_url
+from app.ui.tags import ref_url
 from app.ui.tokens import token
 
 router = APIRouter(tags=["maps"])
@@ -200,7 +207,47 @@ def _pin_target(registry: StoreRegistry, kind: str, target: str) -> tuple[Any, s
         return store.chapters.find(target), chapter_url(target)
     if kind == "map":
         return store.maps.find(target), map_url(target)
+    if kind == "character":
+        return store.characters.find(target), character_url(target)
+    if kind == "quest":
+        quest = store.quests.find(target)
+        url = (
+            f"{QUESTS_URL}?{urlencode({'world': quest.world_id})}#quest-{target}" if quest else None
+        )
+        return quest, url
+    if kind == "faction":
+        faction = store.factions.find(target)
+        url = (
+            f"{FACTIONS_URL}?{urlencode({'world': faction.world_id})}#faction-{target}"
+            if faction
+            else None
+        )
+        return faction, url
+    if kind == "handout":
+        return store.handouts.find(target), handout_url(target)
+    if kind == "session":
+        return store.session_notes.find(target), note_url(target)
+    if kind == "reference":
+        category, _, rest = target.partition("|")
+        name, _, source = rest.partition("|")
+        return None, ref_url(category, name, source)
     return None, None
+
+
+def _reference_parts(target: str) -> tuple[str, str, str]:
+    """An entry pin's ``category|name|source``, split."""
+    category, _, rest = target.partition("|")
+    name, _, source = rest.partition("|")
+    return category, name, source
+
+
+def _record_text(record: Any) -> str:
+    """What a pin's card quotes a line of: the notes, summary, text or note it has."""
+    for field in ("notes", "summary", "text", "note"):
+        value = getattr(record, field, None)
+        if isinstance(value, str) and value.strip():
+            return value
+    return ""
 
 
 def layer_names(page: Page) -> dict[str, str]:
@@ -218,13 +265,14 @@ def _pins(page: Page, registry: StoreRegistry, found: WorldMap) -> list[PinView]
         gone = pin.kind != "note" and not registry.world_maps.shows(found, pin.kind, pin.target)
         if gone:
             record, url = None, None
-        name = (
-            str(getattr(record, "name", None) or getattr(record, "title", "") or pin.name)
-            if record is not None
-            else pin.name
-        )
-        notes = str(getattr(record, "notes", "") or getattr(record, "summary", "") or "")
-        if pin.kind in ("npc", "place", "encounter", "treasure") and not gone:
+        hit = registry.world_maps.target(pin.kind, pin.target) if not gone else None
+        name = hit[0] if hit else pin.name
+        if pin.kind == "session" and record is not None:
+            name = day_text(page, record.day)
+        notes = _record_text(record)
+        if pin.kind == "reference" and url is not None:
+            url = ref_url(*_reference_parts(pin.target), world_id)
+        if pin.kind in ("npc", "place", "encounter", "treasure", "character") and not gone:
             tok = page.token_of(pin.kind, world_id, pin.target)
         else:
             tok = Token(pin.kind)
@@ -258,21 +306,52 @@ def _candidates(page: Page, registry: StoreRegistry, found: WorldMap) -> list[Ca
         if service.shows(found, kind, ident):
             out.append(Candidate(kind, ident, name, where))
 
+    adventures = registry.adventures.adventures(world_id)
+    names = {a.id: a.name for a in adventures}
+
+    def placed(kind: str, record: Any) -> None:
+        # On a world map, one placed in an adventure says which.
+        where = record.scope.adventure_id if record.scope else None
+        add(kind, record.id, record.name, names.get(where, "") if where else "")
+
     for place in registry.locations.list(world_id):
-        add("place", place.id, place.name)
+        placed("place", place)
     for npc in registry.npcs.list(world_id):
-        add("npc", npc.id, npc.name)
+        placed("npc", npc)
     for encounter in registry.encounters.list(world_id):
-        add("encounter", encounter.id, encounter.name)
+        placed("encounter", encounter)
     for treasure in registry.treasure.list(world_id):
-        add("treasure", treasure.id, treasure.name)
-    for adventure in registry.adventures.adventures(world_id):
+        placed("treasure", treasure)
+    for adventure in adventures:
         add("adventure", adventure.id, adventure.name)
         for chapter in registry.adventures.chapters(adventure.id):
             add("chapter", chapter.id, chapter.title, adventure.name)
     for other in registry.gamestate.maps.list(lambda m: m.scope.world_id == world_id):
         add("map", other.id, other.name)
+    store = registry.gamestate
+    for pc in sorted(store.characters.list(), key=lambda c: (c.name or c.id).casefold()):
+        add("character", pc.id, pc.name or pc.id)
+    for quest in sorted(store.quests.list(lambda q: q.world_id == world_id), key=_by_name):
+        add("quest", quest.id, quest.name)
+    for faction in sorted(store.factions.list(lambda f: f.world_id == world_id), key=_by_name):
+        add("faction", faction.id, faction.name)
+    for handout in sorted(
+        store.handouts.list(lambda h: h.world_id == world_id),
+        key=lambda h: h.created_at,
+        reverse=True,
+    ):
+        add("handout", handout.id, handout.title or page.t("atlas.pin.kind.handout"))
+    for note in sorted(
+        store.session_notes.list(lambda n: n.world_id == world_id),
+        key=lambda n: n.day,
+        reverse=True,
+    ):
+        add("session", note.id, day_text(page, note.day))
     return out
+
+
+def _by_name(record: Any) -> str:
+    return str(record.name).casefold()
 
 
 def _route_view(
@@ -861,6 +940,25 @@ async def add_pin(
     except Translatable as exc:
         return redirect(f"{map_url(found.id)}?{urlencode({'error': exc.key})}")
     return redirect(f"{map_url(found.id)}?{urlencode({'pin': made.id})}")
+
+
+@router.get(f"{MAPS_URL}/{{map_id}}/pin-search", response_class=HTMLResponse)
+async def pin_search(
+    _gm: GamemasterDep, page: PageDep, registry: RegistryDep, map_id: str, q: str = ""
+) -> HTMLResponse:
+    """Entries of the world's books (and the table's homebrew) a pin may point at, for
+    the pin dialog: a creature's lair, where an item lies, a deity's temple."""
+    found = _map(registry, map_id)
+    world = registry.adventures.world(found.scope.world_id)
+    result = registry.search.search(q, world.source_set, term=page.t.terms())
+    hits = [
+        hit
+        for group in result.groups
+        for hit in group.hits
+        if hit.row.url is None and not hit.row.adventure  # entries, not headings or maps
+    ]
+    hits.sort(key=lambda h: h.rank)
+    return html(pin_entries(page, hits[:PIN_SEARCH_LIMIT], q))
 
 
 @router.post(f"{MAPS_URL}/{{map_id}}/pins/{{pin_id}}/move", status_code=204)

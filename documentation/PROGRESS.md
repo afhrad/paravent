@@ -1309,6 +1309,13 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       kept as one with the party's place on the road (`Journey.route_at`), which the map
       marks. Drawing tools read the pointer before anything on the map, so a drag draws
       over roads, pins and names too
+- [x] **Maps: pins to every object** (2026-11-27, MAPS.md §6): characters, quests,
+      factions, handouts, session notes and entries of the world's books (searched in the
+      pin dialog, homebrew included) besides the first seven kinds; players never see pins
+      to handouts, session notes or hidden quests. The ⌘K search's five unnamed kinds
+      (item groups, weapon masteries, table groups, recipes, crochet patterns) got names.
+      A world map now takes the places, NPCs, encounters and treasure of every adventure,
+      named with their adventure; an adventure's map keeps to the world's and its own
 - [x] **Maps: a cache gone is cut again** (2026-11-27, MAPS.md §4): a missing thumbnail
       or tile starts the cutting as opening the map does (a failed one only by opening);
       `python -m app.cli maps tiles` cuts every large map's missing tiles at once. Found
@@ -1338,6 +1345,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
 
 ## Translation (TRANSLATION.md)
 
+- [x] **What the Claude API cost** (2026-11-27, TRANSLATION.md §7 note;
+      `app/services/api_costs.py`): each answer of the machine drafts and name suggestions
+      priced by its tokens and model; a run's cost in its progress and in a toast as it
+      ends; the months' sums beside the translations, on the overview. The API exposes no
+      credit balance, so the month is to compare with what was topped up
 - [x] **Translations sent alone to the server** (2026-11-27, README *Updating the server*):
       `./sync-server.sh --translations` sends only the library's `i18n/` folder, for a
       server without a translation key; no code, no rebuild, no restart (the stores follow

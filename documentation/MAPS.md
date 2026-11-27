@@ -111,7 +111,8 @@ time, so the peak is about one and a third the decoded original.
 
 **Memory is the limit, not the file size.** A decoded picture takes three to four bytes per
 pixel: 200 MP is 600–800 MB. Pillow refuses large pictures by default as a safeguard; the
-limit becomes `PARAVENT_MAP_MAX_PIXELS` (default 250 MP, about 16,000 × 16,000), and an upload
+limit becomes `PARAVENT_MAP_MAX_PIXELS` (default 250 MP, about 16,000 × 16,000; the
+shipped `docker-compose.yaml` sets 700 MP, about 26,000 × 26,000, 2–3 GB to cut), and an upload
 past it is refused with its size and the limit. The file itself may be up to 200 MB, a world
 package's largest file, so every map a table holds can be exported; the upload is streamed
 to disk, never held in memory. If real maps need more, libvips (`pyvips`,
@@ -176,7 +177,19 @@ optional `label` (shown instead of the target's name; a note's title) and a note
 | `npc`, `encounter`, `treasure` | those objects |
 | `adventure`, `chapter` | where a story happens |
 | `map` | another map: the city on the world map opens the city's map |
+| `character` | a player character (they play in the table's world, so on any map) |
+| `quest`, `faction` | the world's quests and factions; the pin opens their list there |
+| `handout`, `session` | a handout given out, a session note: where it was found, what happened here |
+| `reference` | an entry of the world's books or the table's homebrew, `category\|name\|source`: a creature's lair, where an item lies, a deity's temple |
 | `note` | nothing: the label and a line of Markdown, for what deserves no record |
+
+**Every kind of object** (2026-11-27, at the user's word): characters, quests, factions,
+handouts, session notes and entries of the books joined the first seven. The dialog lists
+the world's own by kind, filtered as before, and **searches the world's books** below them
+(*Or from the books*, the ⌘K search over the declared books, homebrew included, twenty
+at most). An entry's pin shows the entry's name and opens its reference page; it is grey
+once the corpus has it no more. Sounds, combats and the shop are not pinned: they have no
+place in the world.
 
 **No shop pins** (decided while building): a world has one shop, opened from the clock, with
 no place of its own; a place's notes say where it stands.
@@ -189,14 +202,15 @@ names what it pointed at, and comes back to life when the target is restored.
 kind's disc otherwise; small at a distance, the name beside it when zoomed in. A tap opens a
 card: the name, a line of the target's notes, *Open*, and for a `map` pin *Go to map*;
 there its label (and a note's text) is changed and the pin removed. Names show from three
-zoom levels short of the original's resolution. A world map shows an adventure's place, NPC,
-encounter or treasure only through a pin on the adventure's own map; adventures, chapters
-and maps of the world it may show all. Opened at a pin (`?pin=`), the map centres on it and
+zoom levels short of the original's resolution. A world map may point at everything of its world,
+the places, NPCs, encounters and treasure of every adventure included (the user,
+2026-11-27: most places live in an adventure), named in the pin dialog with their
+adventure; an adventure's map only at the world's own and that adventure's, as it travels
+with the adventure (§3). Opened at a pin (`?pin=`), the map centres on it and
 opens its card.
 
 **Placing a pin**: *Pin* in the map's toolbar, then a tap on the map, then the target from a
-search over the scope's objects (the world's and, on an adventure's map, the adventure's
-too), or *New place here*, which creates the place (in the map's world, or its adventure)
+search over what it may point at (above), or *New place here*, which creates the place (in the map's world, or its adventure)
 and pins it in one go, or a note. Dragging moves a pin;
 its card removes it.
 
@@ -354,7 +368,9 @@ layer the players see:
 - **pins** as their kind's disc (never a portrait, whose picture is the gamemaster's) and the
   name of what they point at; their card names it and nothing more. A note shows its title
   and text. A pin to another map leads there only when that map is shown to them; a pin
-  whose target is gone is left out. **Never** the target's own notes or a link to it.
+  whose target is gone is left out. **Never** the target's own notes or a link to it, nor
+  a pin to a handout or a session note (whom a handout went to, what the gamemaster noted
+  of a day), nor to a quest hidden from them.
 - **names** written on the map, as the gamemaster sees them, not to be opened;
 - **roads** with their kind, length and terrains; no *Travel*, no stops (a stop is named by a
   pin that may lie on a layer they do not see).
@@ -396,7 +412,8 @@ scale (miles a pixel), its layers, the names written on it with where, its pins 
 roads, and whether Claude may pin on it. **`pin_on_map(map_id, kind, name | target_id,
 at_label | x, y, note)`**: on a map of **a draft Claude wrote** only, as every writing tool;
 what to pin by its name (a place, NPC, encounter or treasure the map may show, a chapter,
-another map; refused with the names it may show) and where, **on a name the gamemaster
+another map, a character, a quest, a faction; refused with the names it may show; a
+handout, session note or entry of the books by its `target_id`) and where, **on a name the gamemaster
 wrote on the map** ("Mirewick", refused with the names written) or at pixels. A note takes a
 title and text. **`remove_map_pin`** takes one off again. The gamemaster uploads the map to
 the draft and writes its names; the procedure Claude is given ends by pinning the draft's

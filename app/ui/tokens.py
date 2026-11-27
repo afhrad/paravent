@@ -36,6 +36,11 @@ KIND_ICONS = {
     "chapter": "scroll",
     "map": "map-pinned",
     "note": "notebook-pen",
+    "quest": "compass",
+    "faction": "flag",
+    "handout": "send",
+    "session": "notebook-pen",
+    "reference": "book-open",
 }
 SIZES = frozenset({"sm", "md", "lg", "xl", "xxl"})
 

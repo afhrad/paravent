@@ -155,7 +155,7 @@ def _quest(
     reward = reward_text(page, quest, milestone)
     is_open = quest.status == "open"
     found = (quest.world_id, quest.cover) if quest.cover else None
-    return section(class_=f"panel quest-panel is-{quest.status}")[
+    return section(class_=f"panel quest-panel is-{quest.status}", id=f"quest-{quest.id}")[
         title_image(found, quest.name),
         div(class_="quest-head")[
             h2[quest.name],

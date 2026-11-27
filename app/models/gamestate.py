@@ -452,8 +452,25 @@ class MapScale(GameStateModel):
     line: list[float] = Field(default_factory=list)
 
 
-# What a pin on a map points at (documentation/MAPS.md §6); a note points at nothing.
-PinKind = Literal["place", "npc", "encounter", "treasure", "adventure", "chapter", "map", "note"]
+# What a pin on a map points at (documentation/MAPS.md §6); a note points at nothing. A
+# ``reference`` is an entry of the books (or the table's homebrew), its target
+# ``category|name|source``; a ``session`` is a session note.
+PinKind = Literal[
+    "place",
+    "npc",
+    "encounter",
+    "treasure",
+    "adventure",
+    "chapter",
+    "map",
+    "character",
+    "quest",
+    "faction",
+    "handout",
+    "session",
+    "reference",
+    "note",
+]
 
 
 class MapPin(GameStateModel):

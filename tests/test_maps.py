@@ -7,6 +7,7 @@ from __future__ import annotations
 import asyncio
 import html
 import io
+import re
 from pathlib import Path
 from typing import Any
 
@@ -343,10 +344,15 @@ class TestPins:
         own = _map(registry, world_id, "ferry-map", adventure=adventure.id)
         pin = service.add_pin(coast.id, x=-5, y=9999, kind="place", target=town.id)
         assert (pin.x, pin.y, pin.name) == (0, 500, "Grey Reed")  # held inside the picture
-        # An adventure's place: on its own map, not on the world's.
-        with pytest.raises(MapError):
-            service.add_pin(coast.id, x=1, y=1, kind="place", target=ferry.id)
+        # An adventure's place: on its own map and on the world's, not on another
+        # adventure's.
+        service.add_pin(coast.id, x=1, y=1, kind="place", target=ferry.id)
         service.add_pin(own.id, x=1, y=1, kind="place", target=ferry.id)
+        other = registry.adventures.create(world_id, "Ash and Ember")
+        theirs = _map(registry, world_id, "ember-map", adventure=other.id)
+        with pytest.raises(MapError):
+            service.add_pin(theirs.id, x=1, y=1, kind="place", target=ferry.id)
+        service.add_pin(theirs.id, x=1, y=1, kind="place", target=town.id)
         service.add_pin(coast.id, x=2, y=2, kind="adventure", target=adventure.id)
         service.add_pin(coast.id, x=3, y=3, kind="map", target=own.id)
         with pytest.raises(MapError):
@@ -358,7 +364,10 @@ class TestPins:
         service.edit_pin(coast.id, note.id, label="The bridge", note="Out since spring.")
         saved = {p.id: p for p in service.get(coast.id).pins}
         assert (saved[note.id].x, saved[note.id].label) == (40, "The bridge")
-        assert [m.name for m, _ in service.pins_to("place", town.id)] == ["coast"]
+        assert [m.name for m, _ in service.pins_to("place", town.id)] == [
+            "coast",
+            "ember-map",
+        ]
         service.remove_pin(coast.id, note.id)
         assert note.id not in {p.id for p in service.get(coast.id).pins}
 
@@ -1219,3 +1228,87 @@ class TestCacheGone:
         assert tiles.job(big.id) is failed  # not tried again
         page = await raw.get(f"/gm/maps/{big.id}")
         assert page.status_code == 200 and tiles.job(big.id) is not failed
+
+
+class TestEveryKind:
+    async def test_pins_to_every_object(self, table: Table) -> None:  # noqa: F811
+        import datetime
+
+        from app.models.gamestate import Faction, Handout, Quest, SessionNote
+
+        raw, facts = table
+        registry = _registry(facts)
+        service = registry.world_maps
+        world_id = facts["world"].id
+        registry.table.select(world_id)
+        realm = service.with_layers(_map(registry, world_id, "Realm").id)
+        store = registry.gamestate
+        quest = store.quests.create(Quest(world_id=world_id, name="Find the Bell", shown=False))
+        faction = store.factions.create(Faction(world_id=world_id, name="Harpers"))
+        handout = store.handouts.create(Handout(world_id=world_id, kind="box", title="A Letter"))
+        note = store.session_notes.create(
+            SessionNote(world_id=world_id, day=datetime.date(2026, 11, 20), text="The bridge.")
+        )
+        adventure = registry.adventures.create(world_id, "Fog on the River")
+        ferry = registry.locations.create("Ferry", f"a:{adventure.id}", world_id)
+        lyra = facts["ids"][0]
+        made = {
+            "character": lyra,
+            "quest": quest.id,
+            "faction": faction.id,
+            "handout": handout.id,
+            "session": note.id,
+            "reference": "spell|Fireball|PHB",
+        }
+        for i, (kind, target) in enumerate(made.items()):
+            service.add_pin(realm.id, x=10 + i, y=10, kind=kind, target=target)
+        names = {p.kind: p.name for p in service.get(realm.id).pins}
+        assert names["reference"] == "Fireball" and names["quest"] == "Find the Bell"
+        assert names["faction"] == "Harpers" and names["handout"] == "A Letter"
+        assert names["character"] == store.characters.find(lyra).name
+        for kind, target in (("reference", "spell|Nothing|PHB"), ("quest", "nope")):
+            with pytest.raises(MapError):
+                service.add_pin(realm.id, x=1, y=1, kind=kind, target=target)
+        other = store.worlds.create(World(name="Elsewhere"))
+        stranger = store.quests.create(Quest(world_id=other.id, name="Not Here"))
+        with pytest.raises(MapError):  # another world's quest
+            service.add_pin(realm.id, x=1, y=1, kind="quest", target=stranger.id)
+
+        await _login(raw)
+        page = html.unescape((await raw.get(f"/gm/maps/{realm.id}")).text)
+        assert f"/gm/quests?world={world_id}#quest-{quest.id}" in page
+        assert f"/gm/factions?world={world_id}#faction-{faction.id}" in page
+        assert f"/journal/{handout.id}" in page and f"/gm/sessions/{note.id}" in page
+        assert "/ref/spell/PHB/Fireball" in page and '"excerpt": "The bridge."' in page
+        # The dialog offers them all, and searches the world's books.
+        assert 'value="quest:' + quest.id in page and 'value="faction:' + faction.id in page
+        assert 'value="session:' + note.id in page and 'value="character:' + lyra in page
+        # An adventure's place too, with its adventure named.
+        assert re.search(rf'value="place:{ferry.id}".*?Ferry.*?Fog on the River', page, re.S)
+        found = await raw.get(f"/gm/maps/{realm.id}/pin-search", params={"q": "fireb"})
+        assert 'value="reference:spell|Fireball|PHB"' in html.unescape(found.text)
+        pinned = await raw.post(
+            f"/gm/maps/{realm.id}/pins",
+            data={"x": "5", "y": "5", "choice": "reference:spell|Fireball|PHB"},
+        )
+        assert "pin=" in pinned.headers["location"]
+        # Gone with its quest; a handout, a session note and a hidden quest never reach
+        # the players.
+        places = realm.layers[0]
+        service.edit_layer(
+            realm.id, places.id, name=places.name, visible=True, locked=False, players=True
+        )
+        service.set_players(realm.id, True)
+        player = await _player(facts)
+        try:
+            seen = html.unescape((await player.get(f"/maps/{realm.id}")).text)
+            assert "Harpers" in seen and "Fireball" in seen
+            for secret in ("A Letter", "Find the Bell", "The bridge"):
+                assert secret not in seen, secret
+            store.quests.update(quest.id, shown=True)
+            assert "Find the Bell" in html.unescape((await player.get(f"/maps/{realm.id}")).text)
+        finally:
+            await player.aclose()
+        store.quests.delete(quest.id)
+        gone = html.unescape((await raw.get(f"/gm/maps/{realm.id}")).text)
+        assert '"name": "Find the Bell", "label": "", "url": null' in gone

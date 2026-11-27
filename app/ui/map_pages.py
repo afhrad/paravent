@@ -38,9 +38,10 @@ from htpy import (
 from htpy import input as input_el
 from markupsafe import Markup
 
-from app.models.gamestate import Adventure, MapView, World, WorldMap
+from app.models.gamestate import Adventure, MapView, World, WorldMap, shown_source
 from app.services.map_tiles import MAX_BYTES, TileJob, max_zoom, needs_tiles
 from app.services.maps import LONG_UNITS, UNITS
+from app.services.search import SearchHit
 from app.services.travel import TERRAINS
 from app.ui.clock_pages import route_travel_form
 from app.ui.context import Page
@@ -336,7 +337,7 @@ def _words(page: Page) -> str:
             "remove": t("atlas.pin.remove"),
             "gone": t("atlas.pin.gone"),
             "unframe": t("atlas.frame.remove"),
-            "kinds": {k: t(f"atlas.pin.kind.{k}") for k in (*_PIN_ORDER, "note")},
+            "kinds": {k: t(f"atlas.pin.kind.{k}") for k in (*_PIN_ORDER, "reference", "note")},
             "label_place": t("atlas.label.tap"),
             "layer": t("atlas.layer.one"),
             "text": t("atlas.label.text"),
@@ -699,8 +700,46 @@ class MapContext:
     grid: dict[str, Any] | None = None
 
 
-# The kinds in the pin dialog's list, in its order.
-_PIN_ORDER = ("place", "npc", "encounter", "treasure", "adventure", "chapter", "map")
+# The kinds in the pin dialog's list, in its order; entries of the books are searched.
+_PIN_ORDER = (
+    "place",
+    "npc",
+    "encounter",
+    "treasure",
+    "adventure",
+    "chapter",
+    "map",
+    "character",
+    "quest",
+    "faction",
+    "handout",
+    "session",
+)
+# How many entries of the books the pin dialog's search offers.
+PIN_SEARCH_LIMIT = 20
+
+
+def pin_entries(page: Page, hits: Sequence[SearchHit], query: str) -> Element:
+    """Entries of the books a pin may point at, found by the dialog's search, each a
+    choice like the world's own objects."""
+    t = page.t
+    rows = [
+        label(class_="map-pin-choice")[
+            input_el(
+                type="radio",
+                name="choice",
+                value=f"reference:{h.row.category}|{h.row.name}|{h.row.source}",
+                required=True,
+            ),
+            span(class_="map-pin-choice-kind muted")[t(f"search.kind.{h.row.category}")],
+            span[h.label or h.row.name],
+            span(class_="muted")[shown_source(h.row.source)],
+        ]
+        for h in hits
+    ]
+    return div(class_="map-pin-list map-pin-books", id="map-pin-books")[
+        rows if rows else p(class_="field-hint")[t("atlas.pin.books_none") if query.strip() else ""]
+    ]
 
 
 def _pin_dialog(page: Page, found: WorldMap, candidates: Sequence[Candidate]) -> Element:
@@ -752,6 +791,21 @@ def _pin_dialog(page: Page, found: WorldMap, candidates: Sequence[Candidate]) ->
             if rows
             else None,
             div(class_="map-pin-list")[rows] if rows else None,
+            div(class_="field map-pin-books-field")[
+                label(for_="f-pin-books")[t("atlas.pin.books")],
+                input_el(
+                    id="f-pin-books",
+                    type="search",
+                    name="q",
+                    placeholder=t("atlas.pin.books_hint"),
+                    autocomplete="off",
+                    hx_get=f"{map_url(found.id)}/pin-search",
+                    hx_trigger="input changed delay:250ms, search",
+                    hx_target="#map-pin-books",
+                    hx_swap="outerHTML",
+                ),
+                div(class_="map-pin-list map-pin-books", id="map-pin-books"),
+            ],
             text_field(
                 "label",
                 t("atlas.pin.label"),

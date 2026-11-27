@@ -10,7 +10,7 @@ its pixels, by the scale's feet per pixel.
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import BinaryIO
@@ -55,7 +55,25 @@ LABEL_STYLES: tuple[str, ...] = ("settlement", "region", "water", "feature")
 ROUTE_KINDS: tuple[str, ...] = ("road", "trail", "river", "sea", "")
 FEET_PER_MILE = 5280.0
 # What a pin may point at (documentation/MAPS.md §6).
-PIN_KINDS = ("place", "npc", "encounter", "treasure", "adventure", "chapter", "map", "note")
+PIN_KINDS = (
+    "place",
+    "npc",
+    "encounter",
+    "treasure",
+    "adventure",
+    "chapter",
+    "map",
+    "character",
+    "quest",
+    "faction",
+    "handout",
+    "session",
+    "reference",
+    "note",
+)
+# What a pin may point at that belongs to no world: a character plays in the table's
+# world, an entry of the books is in every world that declares them.
+UNPLACED_KINDS = frozenset({"character", "reference"})
 # The layers players see once a map is shown to them, unless the gamemaster chooses
 # (documentation/MAPS.md §9): the names and the roads, never the notes.
 PLAYER_ROLES = frozenset({"names", "roads"})
@@ -145,13 +163,16 @@ class MapService:
         adventures: AdventureService,
         tiles: MapTiles,
         max_pixels: int,
+        entry_name: Callable[[str], str | None] | None = None,
     ) -> None:
         """Bind to the library, the adventures (for scopes), the tile cache, and the
-        largest picture taken."""
+        largest picture taken; ``entry_name`` names an entry of the books from its
+        ``category|name|source``, or None when there is none."""
         self._store = store
         self._adventures = adventures
         self._tiles = tiles
         self._max_pixels = max_pixels
+        self._entry_name = entry_name
 
     @property
     def tiles(self) -> MapTiles:
@@ -374,6 +395,13 @@ class MapService:
         if kind == "map":
             other = self._store.maps.find(target)
             return other is not None and other.players and self.shows(found, kind, target)
+        if kind in ("handout", "session"):
+            # Whom a handout went to, what the gamemaster noted of a day: theirs alone.
+            return False
+        if kind == "quest":
+            quest = self._store.quests.find(target)
+            if quest is None or not quest.shown:
+                return False
         return self.shows(found, kind, target)
 
     # -- pins (documentation/MAPS.md §6) ---------------------------------------------
@@ -404,22 +432,42 @@ class MapService:
         if kind == "map":
             other = store.maps.find(target)
             return (other.name, Scope(world_id=other.scope.world_id)) if other else None
+        if kind == "character":
+            pc = store.characters.find(target)
+            return (pc.name or pc.id, None) if pc else None
+        if kind == "quest":
+            quest = store.quests.find(target)
+            return (quest.name, Scope(world_id=quest.world_id)) if quest else None
+        if kind == "faction":
+            faction = store.factions.find(target)
+            return (faction.name, Scope(world_id=faction.world_id)) if faction else None
+        if kind == "handout":
+            handout = store.handouts.find(target)
+            return (handout.title, Scope(world_id=handout.world_id)) if handout else None
+        if kind == "session":
+            note = store.session_notes.find(target)
+            return (note.day.isoformat(), Scope(world_id=note.world_id)) if note else None
+        if kind == "reference" and self._entry_name is not None:
+            name = self._entry_name(target)
+            return (name, None) if name else None
         return None
 
     def shows(self, found: WorldMap, kind: str, target: str) -> bool:
-        """Whether ``found`` may point at that: something of its world, and of an NPC,
-        place, encounter or treasure one placed in the world itself or, on an adventure's
-        map, in that adventure."""
+        """Whether ``found`` may point at that: something of its world; on an adventure's
+        map, an NPC, place, encounter or treasure only of the world itself or of that
+        adventure (it travels with the adventure), on a world map one of any adventure."""
         if kind == "note":
             return True
         if kind == "map" and target == found.id:
             return False
+        if kind in UNPLACED_KINDS:
+            return self.target(kind, target) is not None
         hit = self.target(kind, target)
         if hit is None or hit[1] is None or hit[1].world_id != found.scope.world_id:
             return False
         where = hit[1]
-        if kind in ("place", "npc", "encounter", "treasure"):
-            return where.adventure_id is None or where.adventure_id == found.scope.adventure_id
+        if kind in ("place", "npc", "encounter", "treasure") and found.scope.adventure_id:
+            return where.adventure_id in (None, found.scope.adventure_id)
         return True
 
     def _clamped(self, found: WorldMap, x: float, y: float) -> tuple[float, float]:

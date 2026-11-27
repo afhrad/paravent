@@ -969,7 +969,8 @@ class MapPinInfo(BaseModel):
 
     id: str
     kind: str = Field(
-        description="place, npc, encounter, treasure, adventure, chapter, map or note"
+        description="place, npc, encounter, treasure, adventure, chapter, map, character, "
+        "quest, faction, handout, session, reference (an entry of the books) or note"
     )
     name: str = Field(description="What it points at, or a note's title")
     target_id: str = ""

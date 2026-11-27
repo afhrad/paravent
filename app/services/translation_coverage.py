@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
 
+from app.services.api_costs import Spend, tally
 from app.services.glossary import LinkCounts
 from app.services.i18n import Translatable
 from app.services.machine_translation import MachineTranslator
@@ -556,6 +557,8 @@ class Job:
     failed: int = 0
     finished: bool = False
     error: str = ""
+    # What its answers cost, growing as they come (app/services/api_costs.py).
+    spend: Spend = field(default_factory=Spend)
     targets: list[Target] = field(default_factory=list, repr=False)
 
 
@@ -627,20 +630,24 @@ class TranslationJobs:
             # The translator turns service errors into counts; what is left is the
             # library's own disk. Whatever happens, the job ends as finished.
             try:
-                for target in job.targets:
-                    try:
-                        result = await machine.draft_record(lang, target, by=by)
-                    except OSError as exc:
-                        logger.exception("Could not store machine drafts of %s", target.key)
-                        job.error = str(exc)
-                        job.failed += 1
-                    else:
-                        job.passages += result.translated
-                        job.rejected += result.rejected
-                        job.failed += result.failed
-                    job.done += 1
+                with tally(job.spend):
+                    await each()
             finally:
                 job.finished = True
+
+        async def each() -> None:
+            for target in job.targets:
+                try:
+                    result = await machine.draft_record(lang, target, by=by)
+                except OSError as exc:
+                    logger.exception("Could not store machine drafts of %s", target.key)
+                    job.error = str(exc)
+                    job.failed += 1
+                else:
+                    job.passages += result.translated
+                    job.rejected += result.rejected
+                    job.failed += result.failed
+                job.done += 1
 
         task = asyncio.get_running_loop().create_task(run())
         self._tasks.add(task)

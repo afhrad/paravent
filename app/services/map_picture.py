@@ -36,6 +36,12 @@ PIN_COLOURS = {
     "adventure": (40, 130, 110),
     "chapter": (40, 130, 110),
     "map": (60, 60, 60),
+    "character": (30, 120, 60),
+    "quest": (200, 110, 30),
+    "faction": (110, 60, 40),
+    "handout": (90, 90, 150),
+    "session": (120, 110, 90),
+    "reference": (80, 80, 80),
     "note": (120, 110, 90),
 }
 ROUTE_COLOURS = {

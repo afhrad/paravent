@@ -155,7 +155,7 @@
       var card = e.target.closest('.log-toast');
       if (!card) return;
       dismiss(card);
-      if (e.target.closest('[data-toast-close]')) return;
+      if (e.target.closest('[data-toast-close]') || card.classList.contains('page-toast')) return;
       // A handout's toast opens the handout; any other the panel.
       if (card.dataset.href) { window.location.href = card.dataset.href; return; }
       panel.showModal(); load();
@@ -165,6 +165,45 @@
       if (card && e.key === 'Escape') dismiss(card);
     });
   }
+
+  // A page's own news, not the log's: an element carrying data-paravent-toast that an
+  // htmx swap brings in (a background run that just ended, with what it cost) pops up
+  // once. Those already on the page when it loads are old news.
+  function pageToast(text) {
+    if (!layer || layer.dataset.mode === 'off' || !text) return;
+    var card = document.createElement('div');
+    card.className = 'log-toast page-toast';
+    card.tabIndex = 0;
+    var body = document.createElement('div');
+    body.className = 'log-body';
+    var what = document.createElement('div');
+    what.className = 'log-what';
+    what.textContent = text;
+    body.appendChild(what);
+    var close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'btn btn-ghost log-toast-close';
+    close.setAttribute('data-toast-close', '');
+    close.setAttribute('aria-label', layer.dataset.closeLabel || '×');
+    close.textContent = '×';
+    card.appendChild(body);
+    card.appendChild(close);
+    layer.insertBefore(card, layer.firstChild);
+    keep(card);
+    while (layer.children.length > MOST) dismiss(layer.lastElementChild);
+  }
+  function markSeen() {
+    document.querySelectorAll('[data-paravent-toast]').forEach(function (el) {
+      el.dataset.toasted = '1';
+    });
+  }
+  markSeen();
+  document.body.addEventListener('htmx:afterSettle', function () {
+    document.querySelectorAll('[data-paravent-toast]:not([data-toasted])').forEach(function (el) {
+      el.dataset.toasted = '1';
+      pageToast(el.dataset.paraventToast);
+    });
+  });
 
   if (window.EventSource) {
     var source = new EventSource('/log/events');

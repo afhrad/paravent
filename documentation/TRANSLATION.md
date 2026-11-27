@@ -462,6 +462,17 @@ Translation is a **first-class feature of the tool**, not an offline import step
 > Setting up the key, choosing a model, and what it costs: README.md, *Machine
 > translation (optional)*.
 >
+> **What it cost** (2026-11-27, `app/services/api_costs.py`): every answer of the machine
+> drafts and the name suggestions is priced by its tokens (input, cache reads and writes,
+> output) at its model's list price, a fallback model's part at its own; unknown models are
+> counted, not priced. A run counts its own share (`tally`, a context the run's tasks
+> inherit), shown in its progress and, as it ends, in a toast ("Top 25 finished: 1.3M
+> tokens in, 210k out · about $9.40"); the editor's "Machine-translate the rest" says it in
+> its notice. The months' sums are kept in `library/i18n/_api_costs.json`, so they travel
+> with `sync-server.sh --translations`, and the overview shows the last three, with or
+> without a key. Always "about": the bill decides, and the API cannot say how much credit
+> is left (the Admin API's cost report would need an admin key and lags minutes).
+>
 > **Drafts to review** (2026-11-03, `/gm/translations/drafts`, linked from the overview while
 > any wait): every record holding drafts nobody has confirmed, by category, with how many
 > and who drafted them when. Each opens its editor at the passages still to read and returns

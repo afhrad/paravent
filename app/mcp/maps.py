@@ -108,13 +108,18 @@ def register_maps(server: MCPServer, stores: Callable[[], StoreRegistry]) -> Non
         map_id: str,
         kind: Annotated[
             str,
-            Field(description="place, npc, encounter, treasure, adventure, chapter, map or note"),
+            Field(
+                description="place, npc, encounter, treasure, adventure, chapter, map, "
+                "character, quest, faction, handout, session, reference (an entry of the "
+                "world's books, its target_id `category|name|source`) or note"
+            ),
         ],
         name: Annotated[
             str,
             Field(
                 description="What to pin, by its name: a place, NPC, encounter or treasure "
-                "of the draft or the world, a chapter, another map. For a note, its title"
+                "of the draft or the world, a chapter, another map, a character, a quest, "
+                "a faction. For a note, its title"
             ),
         ] = "",
         target_id: Annotated[str, Field(description="Or what to pin, by its id")] = "",
@@ -180,11 +185,29 @@ def register_maps(server: MCPServer, stores: Callable[[], StoreRegistry]) -> Non
         elif kind == "chapter":
             ident = found.scope.adventure_id or ""
             candidates = [(x.id, x.title) for x in registry.adventures.chapters(ident)]
-        else:
+        elif kind == "map":
             candidates = [
                 (m.id, m.name)
                 for m in registry.gamestate.maps.list(lambda m: m.scope.world_id == world_id)
             ]
+        elif kind == "character":
+            candidates = [(c.id, c.name) for c in registry.gamestate.characters.list() if c.name]
+        elif kind == "quest":
+            candidates = [
+                (q.id, q.name)
+                for q in registry.gamestate.quests.list(lambda q: q.world_id == world_id)
+            ]
+        elif kind == "faction":
+            candidates = [
+                (f.id, f.name)
+                for f in registry.gamestate.factions.list(lambda f: f.world_id == world_id)
+            ]
+        else:
+            raise ToolError(
+                f"A {kind} is pinned by its `target_id`"
+                + (" (category|name|source of a book's entry)" if kind == "reference" else "")
+                + "."
+            )
         allowed = [(i, n) for i, n in candidates if registry.world_maps.shows(found, kind, i)]
         hit = next((i for i, n in allowed if n.casefold() == wanted), None)
         if hit is None:

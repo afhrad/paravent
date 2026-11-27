@@ -25,6 +25,7 @@ from typing import Any, cast
 import anthropic
 from anthropic.types.beta import BetaMessageParam, BetaOutputConfigParam, BetaTextBlockParam
 
+from app.services.api_costs import ApiCosts, Spend, spend_of, tally
 from app.services.glossary import MAX_TERM, Glossary, is_name
 from app.store.jsonfile import read_json, write_json
 
@@ -86,11 +87,14 @@ class ApiRunner:
         model: str,
         effort: str = "low",
         client: anthropic.AsyncAnthropic | None = None,
+        costs: ApiCosts | None = None,
     ) -> None:
-        """Bind to the API with the key and model the passage drafts use."""
+        """Bind to the API with the key and model the passage drafts use; ``costs``
+        counts what each answer cost."""
         self._model = model
         self._effort = effort
         self._client = client or anthropic.AsyncAnthropic(api_key=api_key)
+        self._costs = costs
 
     async def __call__(
         self, system: str, prompt: str, schema: Mapping[str, Any]
@@ -118,6 +122,8 @@ class ApiRunner:
                 messages=messages,
             ) as stream:
                 response = await stream.get_final_message()
+            if self._costs is not None:
+                self._costs.record(spend_of(response))
         except anthropic.APIStatusError as exc:
             raise SuggestError(f"the service answered {exc.status_code}") from exc
         except anthropic.APIConnectionError as exc:
@@ -143,6 +149,8 @@ class Progress:
     failed: int = 0
     finished: bool = False
     error: str = ""
+    # What its answers cost, growing as they come (app/services/api_costs.py).
+    spend: Spend = field(default_factory=Spend)
     _task: asyncio.Task[None] | None = field(default=None, repr=False)
 
 
@@ -277,7 +285,8 @@ class NameSuggestions:
 
         async def all_batches() -> None:
             try:
-                await asyncio.gather(*(one(category, names) for category, names in batches))
+                with tally(run.spend):
+                    await asyncio.gather(*(one(category, names) for category, names in batches))
             finally:
                 run.finished = True
 

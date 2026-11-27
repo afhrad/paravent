@@ -8,7 +8,7 @@ progress.
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 
 from htpy import (
     Element,
@@ -40,6 +40,7 @@ from htpy import (
 )
 from htpy import input as input_el
 
+from app.services.api_costs import Spend
 from app.services.corpus_import import ImportRun
 from app.services.i18n import Language
 from app.services.translation_coverage import (
@@ -54,6 +55,7 @@ from app.services.translation_coverage import (
     WantedEntry,
 )
 from app.store.fluff import FLUFF_SUFFIX
+from app.ui.api_costs import costs_box, run_cost
 from app.ui.context import Page
 from app.ui.forms import alert, hidden, notice, text_field
 from app.ui.home_pages import page_head
@@ -81,6 +83,10 @@ def _kind(page: Page, category: str) -> str:
     return page.t(key) if key else category
 
 
+def _job_label(page: Page, job: Job) -> str:
+    return page.t(JOB_LABELS[job.label]) if job.label in JOB_LABELS else job.label
+
+
 def _jobs(page: Page, jobs: Sequence[Job], lang: str) -> Element:
     """The machine runs, refreshing themselves while one is still going."""
     t = page.t
@@ -94,8 +100,16 @@ def _jobs(page: Page, jobs: Sequence[Job], lang: str) -> Element:
     )[
         ul(class_="tr-job-list")[
             [
-                li(class_="tr-job" + (" is-done" if j.finished else ""))[
-                    b[t(JOB_LABELS[j.label]) if j.label in JOB_LABELS else j.label],
+                li(
+                    class_="tr-job" + (" is-done" if j.finished else ""),
+                    # Pops up once as the run ends, while the page polls it.
+                    data_paravent_toast=t(
+                        "costs.toast_job", label=_job_label(page, j), cost=run_cost(page, j.spend)
+                    )
+                    if j.finished and j.spend.requests
+                    else None,
+                )[
+                    b[_job_label(page, j)],
                     span(class_="mono")[f" {j.done}/{j.total}"],
                     span(class_="muted")[
                         " · ",
@@ -105,6 +119,7 @@ def _jobs(page: Page, jobs: Sequence[Job], lang: str) -> Element:
                             rejected=j.rejected,
                             failed=j.failed,
                         ),
+                        f" · {run_cost(page, j.spend)}" if j.spend.requests else None,
                     ],
                     span(class_="pill heal")[t("translations.job_done")]
                     if j.finished
@@ -268,12 +283,14 @@ def _machine(
     available: bool,
     books: Sequence[BookCount],
     jobs: Sequence[Job],
+    costs: Mapping[str, Spend],
 ) -> Element:
     t = page.t
     if not available:
         return section(class_="panel")[
             h2[t("translations.machine")],
             p(class_="muted")[t("translations.machine_off")],
+            costs_box(page, costs),
         ]
     rulebooks = [x for x in books if x.kind == "book"]
     adventures = [x for x in books if x.kind == "adventure"]
@@ -306,6 +323,7 @@ def _machine(
             ],
         ],
         _jobs(page, jobs, lang),
+        costs_box(page, costs),
     ]
 
 
@@ -772,8 +790,10 @@ def translations_page(
     error: str | None = None,
     taken: str = "",
     entry: str = "",
+    costs: Mapping[str, Spend] | None = None,
 ) -> Element:
-    """The language's coverage, what to do next, and machine drafts in bulk."""
+    """The language's coverage, what to do next, and machine drafts in bulk, with what
+    the drafts cost by month."""
     t = page.t
     language = next((x.name for x in languages if x.code == lang), lang)
     return app_shell(
@@ -802,7 +822,7 @@ def translations_page(
             ],
             alert(error),
             notice(message),
-            _machine(page, lang, machine, books, jobs),
+            _machine(page, lang, machine, books, jobs, costs or {}),
             _corpus_import(page, lang, corpus_import),
             _lost(page, lost, lang, taken, entry),
             _drafts_link(page, drafts, lang),

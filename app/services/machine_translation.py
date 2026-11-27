@@ -32,6 +32,7 @@ from typing import Any, cast
 import anthropic
 from anthropic.types.beta import BetaMessageParam, BetaOutputConfigParam, BetaTextBlockParam
 
+from app.services.api_costs import ApiCosts, spend_of
 from app.services.i18n import Translatable
 from app.services.translation_targets import Target
 from app.services.translations import TranslationStore, comparable_marks, passages
@@ -111,15 +112,18 @@ class MachineTranslator:
         model: str,
         effort: str = "low",
         client: anthropic.AsyncAnthropic | None = None,
+        costs: ApiCosts | None = None,
     ) -> None:
         """``terms(lang)`` is the glossary as English → localized name; ``language_name``
-        names a language code in English ("German")."""
+        names a language code in English ("German"); ``costs`` counts what each answer
+        cost."""
         self._store = store
         self._terms = terms
         self._language_name = language_name
         self._model = model
         self._effort = effort
         self._client = client or anthropic.AsyncAnthropic(api_key=api_key)
+        self._costs = costs
 
     async def draft(self, lang: str, target: Target, *, by: str) -> int:
         """Draft every untranslated passage of one record. Returns how many were stored.
@@ -209,6 +213,9 @@ class MachineTranslator:
                 messages=messages,
             ) as stream:
                 response = await stream.get_final_message()
+            # Billed whatever the answer says, a refusal or a cut-off one too.
+            if self._costs is not None:
+                self._costs.record(spend_of(response))
         except anthropic.RateLimitError as exc:
             logger.warning("Machine translation rate-limited: %s", exc)
             return {}, 0, len(batch)

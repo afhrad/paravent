@@ -104,7 +104,7 @@ def _faction(
     t = page.t
     source = faction.table.partition("|")
     found = (faction.world_id, faction.cover) if faction.cover else None
-    return section(class_="panel faction-panel")[
+    return section(class_="panel faction-panel", id=f"faction-{faction.id}")[
         title_image(found, faction.name),
         div(class_="faction-head")[
             h2[faction.name],

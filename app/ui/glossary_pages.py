@@ -15,6 +15,7 @@ from htpy import input as input_el
 
 from app.services.glossary import Term, Wanted
 from app.services.name_suggestions import Progress
+from app.ui.api_costs import run_cost
 from app.ui.context import Page
 from app.ui.home_pages import page_head
 from app.ui.layout import app_shell
@@ -129,6 +130,10 @@ def suggest_status(
         hx_get=f"{OPEN_URL}/progress?{urlencode(polled)}" if running else None,
         hx_trigger="every 3s" if running else None,
         hx_swap="outerHTML" if running else None,
+        # Pops up once as the run ends, while the page polls it.
+        data_paravent_toast=t("costs.toast_names", cost=run_cost(page, run.spend))
+        if run is not None and run.finished and run.spend.requests
+        else None,
     )[
         None
         if run is None
@@ -136,6 +141,7 @@ def suggest_status(
         if running
         else [
             span[t("glossary.suggest.finished", suggested=run.suggested, failed=run.failed)],
+            span(class_="muted")[f" · {run_cost(page, run.spend)}"] if run.spend.requests else None,
             span(class_="muted")[f" — {run.error}"] if run.error else None,
             " ",
             a(href=here)[t("glossary.suggest.reload")],

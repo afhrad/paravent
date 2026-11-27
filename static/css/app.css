@@ -2294,6 +2294,8 @@ dialog.logpanel::backdrop{ background:rgba(10,12,16,.35); }
 .log-toast.crit .log-result{ border-color:var(--heal); color:var(--heal-text); background:var(--heal-weak); }
 .log-toast.fumble .log-result{ border-color:var(--dmg); color:var(--dmg-text); background:var(--dmg-weak); }
 .log-toast-close{ min-height:44px; min-width:44px; justify-content:center; }
+/* A page's own news (a run that ended, what it cost): no result column. */
+.log-toast.page-toast{ grid-template-columns:1fr auto; }
 @keyframes toast-in{ from{ transform:translateY(12px); opacity:0; } to{ transform:none; opacity:1; } }
 @media (max-width: 640px){
   /* Above the bottom bar (the player's sections, the sheet's views). */

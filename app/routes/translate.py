@@ -28,11 +28,13 @@ from fastapi.responses import HTMLResponse, Response
 
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.routes.auth import html, redirect, safe_next
+from app.services.api_costs import Spend, tally
 from app.services.corpus_import import CorpusImportError
 from app.services.i18n import FALLBACK, Translatable
 from app.services.translation_coverage import MoveTaken
 from app.services.translation_targets import Target, TargetNotFound
 from app.store.registry import StoreRegistry
+from app.ui.api_costs import run_cost
 from app.ui.context import Page
 from app.ui.ref_pages import reference_missing_page
 from app.ui.tags import localized_context
@@ -144,6 +146,9 @@ async def _editor(
         return await _popup(request, gm, page, registry, target, lang)
     if request.method == "GET":
         message = page.t(query["done"]) if query.get("done", "").startswith("translate.") else None
+        spent = _spent(query.get("cost", ""))
+        if message is not None and spent is not None:
+            message += f" · {run_cost(page, spent)}"
         error = page.t(query["error"]) if query.get("error", "").startswith("translate.") else None
         return _show(
             page,
@@ -162,7 +167,7 @@ async def _editor(
     texts = {k[2:]: v for k, v in form.items() if k.startswith("p:")}
     confirmed = {k[2:] for k, v in form.items() if k.startswith("c:") and v}
     action = form.get("action", "save")
-    done, error = "translate.saved", ""
+    done, error, cost = "translate.saved", "", ""
     store.save(lang, target.category, target.key, target.data, texts, by=by, fields=target.fields)
     if confirmed:
         store.confirm(lang, target.category, target.key, by=by, paths=confirmed)
@@ -175,11 +180,14 @@ async def _editor(
             error = "translate.error.no_machine"
         else:
             try:
-                count = await machine.draft(lang, target, by=by)
+                with tally() as spent:
+                    count = await machine.draft(lang, target, by=by)
             except Translatable as exc:
                 error = exc.key
             else:
                 done = "translate.machine_done" if count else "translate.machine_none"
+                if spent.requests:
+                    cost = f"{spent.usd:.4f}:{spent.tokens_in}:{spent.output}"
     back = safe_next(form.get("back", ""))
     if action in ("return", "confirm_all"):  # confirming all is the review done: leave
         leave = return_url(target, back)
@@ -194,6 +202,7 @@ async def _editor(
             show=form.get("show", ""),
             back=back,
             **({"error": error} if error else {"done": done}),
+            **({"cost": cost} if cost and not error else {}),
         )
     )
 
@@ -235,13 +244,16 @@ async def _popup(
                 error = page.t("translate.error.no_machine")
             else:
                 try:
-                    count = await machine.draft(lang, target, by=by)
+                    with tally() as spent:
+                        count = await machine.draft(lang, target, by=by)
                 except Translatable as exc:
                     error = page.t.error(exc)
                 else:
                     message = page.t(
                         "translate.machine_done" if count else "translate.machine_none"
                     )
+                    if spent.requests:
+                        message += f" · {run_cost(page, spent)}"
     if action in ("save", "confirm_all"):
         response = Response(status_code=200)
         response.headers["HX-Trigger"] = json.dumps({"paravent-translated": {"close": True}})
@@ -272,6 +284,17 @@ async def _popup(
     if action:  # drafts or confirmations: the entry beneath shows them already
         response.headers["HX-Trigger"] = json.dumps({"paravent-translated": {"close": False}})
     return response
+
+
+def _spent(text: str) -> Spend | None:
+    """What a draft just made cost, as the editor's address carries it back
+    (``usd:tokens in:tokens out``); None when there is none or it does not read."""
+    parts = text.split(":")
+    try:
+        usd, tokens_in, output = float(parts[0]), int(parts[1]), int(parts[2])
+    except (ValueError, IndexError):
+        return None
+    return Spend(input=tokens_in, output=output, usd=usd, requests=1)
 
 
 @router.api_route(f"{TRANSLATE_URL}/ref/{{category}}/{{source}}/{{name}}", methods=["GET", "POST"])
@@ -424,6 +447,7 @@ async def overview(
             jobs=registry.translation_jobs.jobs(chosen),
             corpus_import=registry.corpus_imports.latest(chosen),
             machine=registry.translation_jobs.available,
+            costs=registry.api_costs.months(),
             message=page.t(done) if done.startswith("translations.") else None,
             error=page.t(error, entry=entry) if error.startswith("translations.") else None,
             entry=entry,

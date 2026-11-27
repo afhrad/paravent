@@ -102,6 +102,7 @@ def toast_layer(page: Page) -> Element:
         aria_live="polite",
         data_since=datetime.now(UTC).isoformat(),
         data_mode=mode,
+        data_close_label=page.t("protocol.toast_close"),
     )
 
 
