@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-27T10:47:51+01:00",
+  "en": "Map layers and names: write the names of towns, rivers and mountain ranges on your maps, and keep places, names, roads and notes on layers you show or hide. Measuring and drawing the scale now work by dragging, without moving the map.",
+  "de": "Kartenebenen und Namen: Schreibt die Namen von Städten, Flüssen und Gebirgen auf eure Karten, und legt Orte, Namen, Wege und Notizen auf Ebenen, die ihr zeigt oder ausblendet. Messen und das Zeichnen des Maßstabs gehen jetzt durch Ziehen, ohne dass sich die Karte verschiebt."
+ },
+ {
   "at": "2026-11-27T10:11:27+01:00",
   "en": "Maps take pins: pin places, NPCs, encounters, adventures and notes where they belong, drag them about, and open them from the map. Lay a city's map on the world's, and its outline takes you there.",
   "de": "Karten nehmen Pins: Heftet Orte, NSC, Begegnungen, Abenteuer und Notizen dorthin, wo sie hingehören, verschiebt sie und öffnet sie von der Karte aus. Legt die Karte einer Stadt auf die der Welt, und ihr Umriss bringt euch dorthin."
@@ -293,10 +298,5 @@
   "at": "2026-11-20T11:16:38+01:00",
   "en": "Check links can rename an NPC, place, treasure or encounter to the name the text uses, and Claude can check a whole world.",
   "de": "Links prüfen kann einen NSC, Ort, Schatz oder eine Begegnung auf den Namen im Text umbenennen, und Claude kann eine ganze Welt prüfen."
- },
- {
-  "at": "2026-11-20T11:04:58+01:00",
-  "en": "After an import the new world says what came along, and the world menu counts the world's broken links.",
-  "de": "Nach einem Import sagt die neue Welt, was mitkam, und das Weltmenü zählt die kaputten Links der Welt."
  }
 ]
