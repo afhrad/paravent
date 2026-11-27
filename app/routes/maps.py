@@ -28,7 +28,7 @@ from app.routes.auth import back_with_undo, html, redirect, safe_next
 from app.routes.paravent_markdown import paravent_markdown
 from app.services.i18n import Translatable
 from app.services.map_tiles import needs_tiles
-from app.services.maps import MapError
+from app.services.maps import LAYER_ROLES, MapError
 from app.services.tokens import Token
 from app.store.registry import StoreRegistry
 from app.ui.context import Page
@@ -45,6 +45,8 @@ from app.ui.map_pages import (
     MAPS_URL,
     Candidate,
     FrameView,
+    LabelView,
+    LayerView,
     MapContext,
     PinView,
     map_delete_page,
@@ -125,6 +127,7 @@ async def create_map(
             picture.filename or "",
             picture.file,
             adventure or None,
+            layer_names(page),
         )
     except Translatable as exc:
         if adventure and registry.gamestate.adventures.find(adventure) is not None:
@@ -189,6 +192,11 @@ def _pin_target(registry: StoreRegistry, kind: str, target: str) -> tuple[Any, s
     return None, None
 
 
+def layer_names(page: Page) -> dict[str, str]:
+    """The four layers a new map starts with, named in the reader's language."""
+    return {role: page.t(f"atlas.layer.role.{role}") for role in LAYER_ROLES}
+
+
 def _pins(page: Page, registry: StoreRegistry, found: WorldMap) -> list[PinView]:
     """The map's pins as the viewer draws them; one whose target is gone, or no longer
     of this world, grey with the name it had."""
@@ -212,6 +220,7 @@ def _pins(page: Page, registry: StoreRegistry, found: WorldMap) -> list[PinView]
         out.append(
             PinView(
                 id=pin.id,
+                layer=pin.layer,
                 x=pin.x,
                 y=pin.y,
                 kind=pin.kind,
@@ -255,8 +264,38 @@ def _candidates(page: Page, registry: StoreRegistry, found: WorldMap) -> list[Ca
     return out
 
 
-def _context(page: Page, registry: StoreRegistry, found: WorldMap, focus: str = "") -> MapContext:
+def _context(
+    page: Page, registry: StoreRegistry, found: WorldMap, user_id: str, focus: str = ""
+) -> MapContext:
     service = registry.world_maps
+    shown = service.shown(user_id, found)
+    counts = service.counts(found)
+    layers = [
+        LayerView(
+            id=layer.id,
+            name=layer.name,
+            role=layer.role,
+            visible=layer.visible,
+            shown=shown.get(layer.id, layer.visible),
+            locked=layer.locked,
+            from_zoom=layer.from_zoom,
+            count=counts.get(layer.id, 0),
+        )
+        for layer in found.layers
+    ]
+    labels = [
+        LabelView(
+            id=x.id,
+            layer=x.layer,
+            x=x.x,
+            y=x.y,
+            text=x.text,
+            style=x.style,
+            size=x.size,
+            angle=x.angle,
+        )
+        for x in found.labels
+    ]
     frames = [
         FrameView(
             child.id,
@@ -278,6 +317,8 @@ def _context(page: Page, registry: StoreRegistry, found: WorldMap, focus: str = 
         framable=service.frame_candidates(found),
         disagree=service.scales_disagree(found),
         focus=focus if any(p.id == focus for p in found.pins) else "",
+        layers=layers,
+        labels=labels,
     )
 
 
@@ -292,7 +333,7 @@ async def show_map(
     pin: str = "",
 ) -> HTMLResponse:
     """The map in its viewer, where the user left it, or at ``pin``."""
-    found = _map(registry, map_id)
+    found = registry.world_maps.with_layers(_map(registry, map_id).id, layer_names(page))
     world = registry.adventures.world(found.scope.world_id)
     ready = _start_tiles(registry, found)
     notes = (
@@ -310,7 +351,7 @@ async def show_map(
             ready=ready,
             job=registry.world_maps.tiles.job(found.id),
             view=registry.world_maps.view(gm.user.id, found.id),
-            around=_context(page, registry, found, pin),
+            around=_context(page, registry, found, gm.user.id, pin),
             notes=notes,
             notice_text=page.t("atlas.saved") if saved else None,
             error=message,
@@ -526,6 +567,7 @@ async def add_pin(
     label: Annotated[str, Form()] = "",
     note: Annotated[str, Form()] = "",
     place_name: Annotated[str, Form()] = "",
+    layer: Annotated[str, Form()] = "",
 ) -> Response:
     """A pin where the map was tapped: to something of the world (``kind:id``), to a new
     place made here (``new``), or a note; then the map, at it."""
@@ -544,7 +586,7 @@ async def add_pin(
         else:
             kind, _, target = choice.partition(":")
         made = registry.world_maps.add_pin(
-            found.id, x=px, y=py, kind=kind, target=target, label=label, note=note
+            found.id, x=px, y=py, kind=kind, target=target, label=label, note=note, layer=layer
         )
     except Translatable as exc:
         return redirect(f"{map_url(found.id)}?{urlencode({'error': exc.key})}")
@@ -576,10 +618,13 @@ async def edit_pin(
     pin_id: str,
     label: Annotated[str, Form()] = "",
     note: Annotated[str, Form()] = "",
+    layer: Annotated[str, Form()] = "",
 ) -> Response:
-    """A pin's own name, and a note's text."""
+    """A pin's own name, a note's text, its layer."""
     try:
-        registry.world_maps.edit_pin(_map(registry, map_id).id, pin_id, label=label, note=note)
+        registry.world_maps.edit_pin(
+            _map(registry, map_id).id, pin_id, label=label, note=note, layer=layer
+        )
     except MapError as exc:
         raise HTTPException(status_code=422) from exc
     return Response(status_code=204)
@@ -634,6 +679,223 @@ async def clear_frame(
     found = _map(registry, map_id)
     registry.world_maps.clear_frame(found.id)
     return redirect(safe_next(next) or map_url(found.id))
+
+
+# -- layers and names (documentation/MAPS.md §7) -------------------------------------
+
+
+def _back(found: WorldMap, error: Translatable | None = None) -> Response:
+    if error is not None:
+        return redirect(f"{map_url(found.id)}?{urlencode({'error': error.key})}#layers")
+    return redirect(f"{map_url(found.id)}#layers")
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/layers")
+async def add_layer(
+    _gm: GamemasterDep, registry: RegistryDep, map_id: str, name: Annotated[str, Form()] = ""
+) -> Response:
+    """A new layer on top."""
+    found = _map(registry, map_id)
+    try:
+        registry.world_maps.add_layer(found.id, name)
+    except Translatable as exc:
+        return _back(found, exc)
+    return _back(found)
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/layers/{{layer_id}}")
+async def edit_layer(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    map_id: str,
+    layer_id: str,
+    name: Annotated[str, Form()] = "",
+    visible: Annotated[str, Form()] = "",
+    locked: Annotated[str, Form()] = "",
+) -> Response:
+    """A layer's name, whether a newcomer sees it, whether it is locked."""
+    found = _map(registry, map_id)
+    try:
+        registry.world_maps.edit_layer(
+            found.id, layer_id, name=name, visible=bool(visible), locked=bool(locked)
+        )
+    except Translatable as exc:
+        return _back(found, exc)
+    return _back(found)
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/layers/{{layer_id}}/lock", status_code=204)
+async def lock_layer(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    map_id: str,
+    layer_id: str,
+    locked: Annotated[str, Form()] = "",
+) -> Response:
+    """Lock a layer or unlock it, from the panel."""
+    try:
+        registry.world_maps.lock_layer(_map(registry, map_id).id, layer_id, locked == "1")
+    except MapError as exc:
+        raise HTTPException(status_code=422) from exc
+    return Response(status_code=204)
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/layers/{{layer_id}}/zoom")
+async def layer_zoom(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    map_id: str,
+    layer_id: str,
+    zoom: Annotated[str, Form()] = "",
+) -> Response:
+    """Show a layer only from a zoom in (``zoom``), or always (empty)."""
+    found = _map(registry, map_id)
+    try:
+        registry.world_maps.set_layer_zoom(found.id, layer_id, _number(zoom))
+    except Translatable as exc:
+        return _back(found, exc)
+    return _back(found)
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/layers/{{layer_id}}/move")
+async def move_layer(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    map_id: str,
+    layer_id: str,
+    step: Annotated[int, Form()] = 1,
+) -> Response:
+    """A layer one up or down."""
+    found = _map(registry, map_id)
+    try:
+        registry.world_maps.move_layer(found.id, layer_id, step)
+    except Translatable as exc:
+        return _back(found, exc)
+    return _back(found)
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/layers/{{layer_id}}/delete")
+async def delete_layer(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    map_id: str,
+    layer_id: str,
+    contents: Annotated[str, Form()] = "",
+) -> Response:
+    """Delete a layer; what is on it moves to the layer ``contents`` names, or goes."""
+    found = _map(registry, map_id)
+    try:
+        registry.world_maps.delete_layer(found.id, layer_id, contents)
+    except Translatable as exc:
+        return _back(found, exc)
+    return _back(found)
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/layers/{{layer_id}}/shown", status_code=204)
+async def show_layer(
+    gm: GamemasterDep,
+    registry: RegistryDep,
+    map_id: str,
+    layer_id: str,
+    shown: Annotated[str, Form()] = "",
+) -> Response:
+    """The user showed or hid a layer; remembered for them alone."""
+    try:
+        registry.world_maps.set_shown(gm.user.id, _map(registry, map_id).id, layer_id, shown == "1")
+    except MapError as exc:
+        raise HTTPException(status_code=422) from exc
+    return Response(status_code=204)
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/labels")
+async def add_label(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    map_id: str,
+    x: Annotated[str, Form()] = "",
+    y: Annotated[str, Form()] = "",
+    text: Annotated[str, Form()] = "",
+    style: Annotated[str, Form()] = "settlement",
+    size: Annotated[str, Form()] = "",
+    angle: Annotated[str, Form()] = "0",
+    layer: Annotated[str, Form()] = "",
+) -> Response:
+    """A name written where the map was tapped."""
+    found = _map(registry, map_id)
+    px, py, big = _number(x), _number(y), _number(size)
+    try:
+        if px is None or py is None:
+            raise MapError("atlas.error.view")
+        registry.world_maps.add_label(
+            found.id,
+            x=px,
+            y=py,
+            text=text,
+            style=style,
+            size=big or max(found.width, found.height) / 100,
+            angle=_number(angle) or 0,
+            layer=layer,
+        )
+    except Translatable as exc:
+        return redirect(f"{map_url(found.id)}?{urlencode({'error': exc.key})}")
+    return redirect(map_url(found.id))
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/labels/{{label_id}}", status_code=204)
+async def edit_label(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    map_id: str,
+    label_id: str,
+    text: Annotated[str, Form()] = "",
+    style: Annotated[str, Form()] = "settlement",
+    size: Annotated[float, Form()] = 1,
+    angle: Annotated[float, Form()] = 0,
+    layer: Annotated[str, Form()] = "",
+) -> Response:
+    """A name's words, look, size, turn or layer, from its card."""
+    try:
+        registry.world_maps.edit_label(
+            _map(registry, map_id).id,
+            label_id,
+            text=text,
+            style=style,
+            size=size,
+            angle=angle,
+            layer=layer,
+        )
+    except MapError as exc:
+        raise HTTPException(status_code=422) from exc
+    return Response(status_code=204)
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/labels/{{label_id}}/move", status_code=204)
+async def move_label(
+    _gm: GamemasterDep,
+    registry: RegistryDep,
+    map_id: str,
+    label_id: str,
+    x: Annotated[float, Form()],
+    y: Annotated[float, Form()],
+) -> Response:
+    """A name dragged to another spot."""
+    try:
+        registry.world_maps.move_label(_map(registry, map_id).id, label_id, x, y)
+    except MapError as exc:
+        raise HTTPException(status_code=422) from exc
+    return Response(status_code=204)
+
+
+@router.post(f"{MAPS_URL}/{{map_id}}/labels/{{label_id}}/delete", status_code=204)
+async def remove_label(
+    _gm: GamemasterDep, registry: RegistryDep, map_id: str, label_id: str
+) -> Response:
+    """A name taken off the map."""
+    try:
+        registry.world_maps.remove_label(_map(registry, map_id).id, label_id)
+    except MapError as exc:
+        raise HTTPException(status_code=404) from exc
+    return Response(status_code=204)
 
 
 __all__ = ["router"]

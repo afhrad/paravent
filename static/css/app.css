@@ -3609,3 +3609,44 @@ dialog.ctx-dialog .panel{ margin:0; }
 .map-pin-new input[type=text]{ flex:1; min-width:0; }
 .map-pin-filter{ width:100%; }
 .map-pin-form:not(:has(input[name=choice][value=note]:checked)) .map-pin-note{ display:none; }
+/* Layers and names on a map */
+.map-body{ display:grid; grid-template-columns:minmax(0, 1fr); gap:10px; align-items:start; }
+@media (min-width: 1100px){ .map-body{ grid-template-columns:minmax(0, 1fr) 270px; } }
+.map-layers{ padding:10px 12px; }
+.map-layers-head{ display:flex; align-items:center; gap:6px; font-weight:600; cursor:pointer; }
+.map-layer-list{ list-style:none; margin:8px 0; padding:0; display:flex; flex-direction:column; gap:2px; }
+.map-layer{ border-radius:var(--r-sm); position:relative; }
+.map-layer-row{ display:flex; align-items:center; gap:4px; min-height:32px; padding-right:28px; }
+.map-layer-name{ flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:14px; }
+.map-layer.is-hidden .map-layer-name{ color:var(--text-3); text-decoration:line-through; }
+.map-layer-count{ font-size:12px; }
+.map-layer-current input{ width:16px; height:16px; margin:0 4px; accent-color:var(--accent-solid); }
+.map-layer-eye[aria-pressed="false"], .map-layer-lock[aria-pressed="false"]{ opacity:.45; }
+.map-layer-lock[aria-pressed="true"]{ color:var(--cond-text); }
+.map-layer-more > summary{ list-style:none; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; width:26px; height:32px; color:var(--text-2); position:absolute; top:0; right:0; }
+.map-layer-more > summary::-webkit-details-marker{ display:none; }
+.map-layer-more[open]{ padding:6px 0 10px; border-bottom:1px solid var(--border); }
+.map-layer-more{ margin-left:28px; }
+.map-layer-more:not([open]){ height:0; }
+.map-layer-actions{ display:flex; gap:4px; flex-wrap:wrap; margin:6px 0; }
+.map-layer-form, .map-layer-delete{ gap:6px; }
+.map-layer-new{ display:flex; gap:6px; }
+.map-layer-new input{ flex:1; min-width:0; }
+.map-label-anchor{ overflow:visible; background:none; border:0; }
+.map-label{
+  position:absolute; left:0; top:0; white-space:nowrap; line-height:1; cursor:grab;
+  transform:translate(-50%, -50%) rotate(var(--a, 0deg));
+  font-size:calc(var(--s) * var(--k, 1) * 1px); font-family:var(--font-body); color:var(--text);
+  text-shadow:0 0 3px var(--surface), 0 0 6px var(--surface);
+}
+.map-label.is-tiny{ display:none; }
+.map-label-settlement{ font-weight:700; }
+.map-label-region{ font-weight:600; text-transform:uppercase; letter-spacing:.3em; color:var(--text-2); }
+.map-label-water{ font-style:italic; color:var(--accent-text); }
+.map-label-feature{ font-style:italic; color:var(--text-2); }
+.map-card-row{ display:flex; gap:6px; align-items:center; }
+.map-card-row input[type=number]{ width:6em; }
+.map-label-numbers{ display:flex; gap:12px; }
+.map-label-numbers input{ max-width:8em; }
+/* While a tool draws, a finger draws too: the page must not scroll or the map pan. */
+.map-stage.map-drawing{ touch-action:none; }

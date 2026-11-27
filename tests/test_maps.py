@@ -14,7 +14,7 @@ import httpx
 import pytest
 from PIL import Image
 
-from app.models.gamestate import Scope, World
+from app.models.gamestate import MapPin, Scope, World
 from app.services.map_tiles import (
     MapImageError,
     build,
@@ -483,3 +483,164 @@ class TestPinPages:
         )
         assert cleared.headers["location"] == f"/gm/maps/{world.id}"
         assert registry.world_maps.get(coast.id).parent is None
+
+
+class TestLayers:
+    def test_a_new_map_and_one_from_before(self, table: Table) -> None:  # noqa: F811
+        _raw, facts = table
+        registry = _registry(facts)
+        world_id = facts["world"].id
+        service = registry.world_maps
+        made = registry.world_maps.create(
+            world_id,
+            "Coast",
+            "coast.png",
+            io.BytesIO(picture(1000, 500)),
+            layer_names={"places": "Orte", "names": "Namen", "roads": "Wege", "notes": "Notizen"},
+        )
+        assert [(x.name, x.role) for x in made.layers] == [
+            ("Orte", "places"),
+            ("Namen", "names"),
+            ("Wege", "roads"),
+            ("Notizen", "notes"),
+        ]
+        # A map from before layers: its pins go onto the layer of their kind.
+        town = registry.locations.create("Grey Reed", f"w:{world_id}", world_id)
+        old = _map(registry, world_id, "old")
+        registry.gamestate.maps.update(
+            old.id,
+            layers=[],
+            pins=[
+                MapPin(x=1, y=1, kind="place", target=town.id, name="Grey Reed"),
+                MapPin(x=2, y=2, kind="note", label="Bridge"),
+            ],
+        )
+        fixed = service.with_layers(old.id)
+        roles = {x.id: x.role for x in fixed.layers}
+        assert [roles[p.layer] for p in fixed.pins] == ["places", "notes"]
+        assert service.with_layers(old.id) == fixed  # once is enough
+
+    def test_change_order_delete_and_show(self, table: Table) -> None:  # noqa: F811
+        _raw, facts = table
+        registry = _registry(facts)
+        world_id = facts["world"].id
+        service = registry.world_maps
+        coast = _map(registry, world_id, "coast")
+        places, names, roads, notes = (x.id for x in coast.layers)
+        bandits = service.add_layer(coast.id, "  Bandits  ")
+        assert bandits.name == "Bandits" and service.get(coast.id).layers[-1].id == bandits.id
+        service.move_layer(coast.id, bandits.id, -1)
+        assert service.get(coast.id).layers[-2].id == bandits.id
+        service.add_pin(coast.id, x=1, y=1, kind="note", label="Camp", layer=bandits.id)
+        label = service.add_label(coast.id, x=500, y=250, text="Grey Sea", style="water", size=40)
+        assert label.layer == names
+        assert service.counts(service.get(coast.id))[bandits.id] == 1
+        # Locked: nothing on it moves, nothing new goes on it.
+        service.lock_layer(coast.id, names, True)
+        with pytest.raises(MapError):
+            service.move_label(coast.id, label.id, 10, 10)
+        with pytest.raises(MapError):
+            service.add_label(coast.id, x=1, y=1, text="X", size=5, layer=names)
+        service.lock_layer(coast.id, names, False)
+        service.set_layer_zoom(coast.id, notes, 2.5)
+        assert service.get(coast.id).layers[-1].from_zoom == 2.5
+        # Shown or hidden per user, the layer's own setting for whoever has not chosen.
+        gm = registry.gamestate.users.list()[0]
+        service.edit_layer(coast.id, roads, name="Roads", visible=False, locked=False)
+        assert service.shown(gm.id, service.get(coast.id))[roads] is False
+        service.set_shown(gm.id, coast.id, roads, True)
+        assert service.shown(gm.id, service.get(coast.id))[roads] is True
+        # Deleted, its contents moved, or deleted with it.
+        service.delete_layer(coast.id, bandits.id, move_to=notes)
+        assert [p.layer for p in service.get(coast.id).pins] == [notes]
+        service.delete_layer(coast.id, names)
+        assert service.get(coast.id).labels == []
+        for layer in (places, roads):
+            service.delete_layer(coast.id, layer)
+        with pytest.raises(MapError):
+            service.delete_layer(coast.id, notes)  # the last stays
+
+    def test_names_on_the_map(self, table: Table) -> None:  # noqa: F811
+        _raw, facts = table
+        registry = _registry(facts)
+        world_id = facts["world"].id
+        service = registry.world_maps
+        coast = _map(registry, world_id, "coast")
+        made = service.add_label(
+            coast.id, x=100, y=50, text="  The   Dragonspine ", style="region", size=60, angle=200
+        )
+        assert (made.text, made.angle) == ("The Dragonspine", -160)
+        with pytest.raises(MapError):
+            service.add_label(coast.id, x=1, y=1, text="X", style="gothic", size=5)
+        edited = service.edit_label(
+            coast.id, made.id, text="Dragonspine", style="feature", size=30, angle=15
+        )
+        assert (edited.style, edited.size) == ("feature", 30)
+        service.move_label(coast.id, made.id, 300, 100)
+        service.replace_image(coast.id, "coast.png", io.BytesIO(picture(2000, 1000)))
+        stretched = service.get(coast.id).labels[0]
+        assert (stretched.x, stretched.size) == (600, 60)
+        service.remove_label(coast.id, made.id)
+        assert service.get(coast.id).labels == []
+
+
+class TestLayerPages:
+    async def test_panel_and_names(self, table: Table) -> None:  # noqa: F811
+        raw, facts = table
+        registry = _registry(facts)
+        world_id = facts["world"].id
+        await _login(raw)
+        made = await raw.post(
+            f"/gm/worlds/{world_id}/maps",
+            files={"picture": ("coast.png", picture(1000, 500), "image/png")},
+        )
+        coast = registry.world_maps.get(made.headers["location"].rsplit("/", 1)[1])
+        # Named in the gamemaster's language (the table's user reads German here or not).
+        page = html.unescape((await raw.get(f"/gm/maps/{coast.id}")).text)
+        assert 'id="layers"' in page and "data-layers=" in page and 'id="tool-label"' in page
+        places, names = coast.layers[0].id, coast.layers[1].id
+        written = await raw.post(
+            f"/gm/maps/{coast.id}/labels",
+            data={"x": "10", "y": "10", "text": "Grey Sea", "style": "water", "size": "",
+                  "angle": "5"},
+        )  # fmt: skip
+        assert written.status_code == 303
+        (label,) = registry.world_maps.get(coast.id).labels
+        assert (label.layer, label.size) == (names, 10)  # 1000 px / 100
+        edited = await raw.post(
+            f"/gm/maps/{coast.id}/labels/{label.id}",
+            data={"text": "Grey Sea", "style": "water", "size": "20", "angle": "0",
+                  "layer": places},
+        )  # fmt: skip
+        assert edited.status_code == 204
+        assert registry.world_maps.get(coast.id).labels[0].layer == places
+        added = await raw.post(f"/gm/maps/{coast.id}/layers", data={"name": "Bandits"})
+        assert added.headers["location"].endswith("#layers")
+        bandits = registry.world_maps.get(coast.id).layers[-1]
+        hidden_ = await raw.post(
+            f"/gm/maps/{coast.id}/layers/{bandits.id}/shown", data={"shown": "0"}
+        )
+        assert hidden_.status_code == 204
+        locked = await raw.post(
+            f"/gm/maps/{coast.id}/layers/{bandits.id}/lock", data={"locked": "1"}
+        )
+        assert locked.status_code == 204 and registry.world_maps.get(coast.id).layers[-1].locked
+        refused = await raw.post(
+            f"/gm/maps/{coast.id}/pins",
+            data={"x": "5", "y": "5", "choice": "note", "label": "Camp", "layer": bandits.id},
+        )
+        assert "error=atlas.error.locked" in refused.headers["location"]
+        page = html.unescape((await raw.get(f"/gm/maps/{coast.id}")).text)
+        assert f'"id": "{bandits.id}", "name": "Bandits"' in page and '"shown": false' in page
+        zoomed = await raw.post(
+            f"/gm/maps/{coast.id}/layers/{bandits.id}/zoom", data={"zoom": "1.5"}
+        )
+        assert zoomed.status_code == 303
+        assert registry.world_maps.get(coast.id).layers[-1].from_zoom == 1.5
+        gone = await raw.post(
+            f"/gm/maps/{coast.id}/layers/{places}/delete", data={"contents": names}
+        )
+        assert gone.status_code == 303
+        assert registry.world_maps.get(coast.id).labels[0].layer == names
+        removed = await raw.post(f"/gm/maps/{coast.id}/labels/{label.id}/delete")
+        assert removed.status_code == 204

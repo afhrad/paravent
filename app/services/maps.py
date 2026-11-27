@@ -10,12 +10,14 @@ its pixels, by the scale's feet per pixel.
 from __future__ import annotations
 
 import math
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import BinaryIO
 
 from app.models.gamestate import (
     MapFrame,
+    MapLabel,
+    MapLayer,
     MapPin,
     MapScale,
     MapUnit,
@@ -38,12 +40,26 @@ UNITS: tuple[MapUnit, ...] = ("mi", "km", "ft", "m")
 # The units that measure a land rather than a town: a ruler on such a map says miles or
 # km, and travel times.
 LONG_UNITS = frozenset({"mi", "km"})
+# The layers a new map starts with, by role, in drawing order (documentation/MAPS.md §7),
+# and their names where the gamemaster's language gives none.
+LAYER_ROLES: tuple[str, ...] = ("places", "names", "roads", "notes")
+LAYER_NAMES = {"places": "Places", "names": "Names", "roads": "Roads", "notes": "Notes"}
+LABEL_STYLES: tuple[str, ...] = ("settlement", "region", "water", "feature")
 # What a pin may point at (documentation/MAPS.md §6).
 PIN_KINDS = ("place", "npc", "encounter", "treasure", "adventure", "chapter", "map", "note")
 
 
 class MapError(Translatable):
     """A map, or a change to one, that cannot be made."""
+
+
+def default_layers(names: Mapping[str, str] | None = None) -> list[MapLayer]:
+    """The four layers a new map starts with, named in ``names`` by role."""
+    given = names or {}
+    return [
+        MapLayer(name=(given.get(role) or LAYER_NAMES[role])[:60], role=role)
+        for role in LAYER_ROLES
+    ]
 
 
 def feet_per_px(
@@ -119,9 +135,11 @@ class MapService:
         filename: str,
         picture: BinaryIO,
         adventure_id: str | None = None,
+        layer_names: Mapping[str, str] | None = None,
     ) -> WorldMap:
         """A new map of a world, or of one of its adventures, from an uploaded picture;
-        named after the file when no name is given."""
+        named after the file when no name is given; its four layers named in
+        ``layer_names`` (the gamemaster's language), by role."""
         if adventure_id is not None and self._adventures.get(adventure_id).world_id != world_id:
             raise MapError("atlas.error.gone")
         self._adventures.world(world_id)  # a world that exists
@@ -138,6 +156,7 @@ class MapService:
                 width=stored.width,
                 height=stored.height,
                 digest=stored.digest,
+                layers=default_layers(layer_names),
             )
         )
 
@@ -164,6 +183,10 @@ class MapService:
                 }
             )
         pins = [p.model_copy(update={"x": p.x * rx, "y": p.y * ry}) for p in before.pins]
+        labels = [
+            lab.model_copy(update={"x": lab.x * rx, "y": lab.y * ry, "size": lab.size * rx})
+            for lab in before.labels
+        ]
         saved = self._store.maps.update(
             map_id,
             image=stored.path,
@@ -172,6 +195,7 @@ class MapService:
             digest=stored.digest,
             scale=scale,
             pins=pins,
+            labels=labels,
         )
         if (rx, ry) != (1, 1):
             for child in self.framed_on(map_id):
@@ -275,9 +299,11 @@ class MapService:
         target: str = "",
         label: str = "",
         note: str = "",
+        layer: str = "",
     ) -> MapPin:
-        """Pin something of the map's world to a spot on it, or a note."""
-        found = self.get(map_id)
+        """Pin something of the map's world to a spot on it, or a note, on ``layer``
+        (else the layer of its kind: *Notes* for a note, *Places* for the rest)."""
+        found = self.with_layers(map_id)
         if kind not in PIN_KINDS:
             raise MapError("atlas.error.pin")
         if kind != "note" and not self.shows(found, kind, target):
@@ -287,7 +313,9 @@ class MapService:
         if kind == "note" and not label:
             raise MapError("atlas.error.note")
         px, py = self._clamped(found, x, y)
+        on = self._open_layer(found, layer, "notes" if kind == "note" else "places")
         pin = MapPin(
+            layer=on.id,
             x=px,
             y=py,
             kind=kind,  # checked against PIN_KINDS
@@ -307,22 +335,30 @@ class MapService:
 
     def move_pin(self, map_id: str, pin_id: str, x: float, y: float) -> MapPin:
         """Move a pin to another spot."""
-        found = self.get(map_id)
+        found = self.with_layers(map_id)
         pin = self._pin(found, pin_id)
+        self._unlocked(found, pin.layer)
         px, py = self._clamped(found, x, y)
         moved = pin.model_copy(update={"x": px, "y": py})
         self._store.maps.update(map_id, pins=[moved if p.id == pin_id else p for p in found.pins])
         return moved
 
-    def edit_pin(self, map_id: str, pin_id: str, *, label: str, note: str = "") -> MapPin:
-        """Change what a pin is called, and a note's text."""
-        found = self.get(map_id)
+    def edit_pin(
+        self, map_id: str, pin_id: str, *, label: str, note: str = "", layer: str = ""
+    ) -> MapPin:
+        """Change what a pin is called, a note's text, and the layer it sits on."""
+        found = self.with_layers(map_id)
         pin = self._pin(found, pin_id)
         label = " ".join(label.split())[:120]
         if pin.kind == "note" and not label:
             raise MapError("atlas.error.note")
+        on = self._layer(found, layer).id if layer else pin.layer
         edited = pin.model_copy(
-            update={"label": label, "note": note.strip()[:4000] if pin.kind == "note" else ""}
+            update={
+                "label": label,
+                "note": note.strip()[:4000] if pin.kind == "note" else "",
+                "layer": on,
+            }
         )
         self._store.maps.update(map_id, pins=[edited if p.id == pin_id else p for p in found.pins])
         return edited
@@ -339,6 +375,245 @@ class MapService:
         for found in sorted(self._store.maps.list(), key=lambda m: m.name.casefold()):
             out += [(found, p) for p in found.pins if p.kind == kind and p.target == target]
         return out
+
+    # -- layers and names (documentation/MAPS.md §7) -------------------------------
+
+    def with_layers(self, map_id: str, names: Mapping[str, str] | None = None) -> WorldMap:
+        """The map with its layers: a map from before them gets the four it would start
+        with, and whatever sits on no layer of it (a pin from before) goes onto the
+        layer of its kind. Writes only when something changed."""
+        found = self.get(map_id)
+        layers = found.layers or default_layers(names)
+        ids = {layer.id for layer in layers}
+        by_role: dict[str, str] = {layer.role: layer.id for layer in layers if layer.role}
+        first = layers[0].id
+
+        def home(role: str) -> str:
+            return by_role.get(role, first)
+
+        pins = [
+            p
+            if p.layer in ids
+            else p.model_copy(update={"layer": home("notes" if p.kind == "note" else "places")})
+            for p in found.pins
+        ]
+        labels = [
+            lab if lab.layer in ids else lab.model_copy(update={"layer": home("names")})
+            for lab in found.labels
+        ]
+        if layers == found.layers and pins == found.pins and labels == found.labels:
+            return found
+        return self._store.maps.update(map_id, layers=layers, pins=pins, labels=labels)
+
+    def _layer(self, found: WorldMap, layer_id: str) -> MapLayer:
+        layer = next((x for x in found.layers if x.id == layer_id), None)
+        if layer is None:
+            raise MapError("atlas.error.layer")
+        return layer
+
+    def _unlocked(self, found: WorldMap, layer_id: str) -> None:
+        layer = next((x for x in found.layers if x.id == layer_id), None)
+        if layer is not None and layer.locked:
+            raise MapError("atlas.error.locked")
+
+    def _open_layer(self, found: WorldMap, layer_id: str, role: str) -> MapLayer:
+        """The layer something new goes on: the one chosen, else the one of its role,
+        else the first; never a locked one."""
+        if layer_id:
+            layer = self._layer(found, layer_id)
+        else:
+            layer = next((x for x in found.layers if x.role == role), found.layers[0])
+        if layer.locked:
+            raise MapError("atlas.error.locked")
+        return layer
+
+    def counts(self, found: WorldMap) -> dict[str, int]:
+        """How many things sit on each layer."""
+        counted = {layer.id: 0 for layer in found.layers}
+        for layer_id in [*(p.layer for p in found.pins), *(x.layer for x in found.labels)]:
+            if layer_id in counted:
+                counted[layer_id] += 1
+        return counted
+
+    def _layers(self, map_id: str, layers: list[MapLayer]) -> None:
+        self._store.maps.update(map_id, layers=layers)
+
+    def add_layer(self, map_id: str, name: str) -> MapLayer:
+        """A new layer on top."""
+        found = self.with_layers(map_id)
+        title = " ".join(name.split())[:60]
+        if not title:
+            raise MapError("atlas.error.layer_name")
+        layer = MapLayer(name=title)
+        self._layers(map_id, [*found.layers, layer])
+        return layer
+
+    def edit_layer(
+        self, map_id: str, layer_id: str, *, name: str, visible: bool, locked: bool
+    ) -> MapLayer:
+        """A layer's name, whether a newcomer sees it, and whether it is locked."""
+        found = self.with_layers(map_id)
+        layer = self._layer(found, layer_id)
+        title = " ".join(name.split())[:60]
+        if not title:
+            raise MapError("atlas.error.layer_name")
+        edited = layer.model_copy(update={"name": title, "visible": visible, "locked": locked})
+        self._layers(map_id, [edited if x.id == layer_id else x for x in found.layers])
+        return edited
+
+    def lock_layer(self, map_id: str, layer_id: str, locked: bool) -> MapLayer:
+        """Lock a layer against moving what is on it, or unlock it."""
+        found = self.with_layers(map_id)
+        layer = self._layer(found, layer_id)
+        return self.edit_layer(
+            map_id, layer_id, name=layer.name, visible=layer.visible, locked=locked
+        )
+
+    def set_layer_zoom(self, map_id: str, layer_id: str, zoom: float | None) -> MapLayer:
+        """Show a layer only from ``zoom`` in, or at every zoom (None)."""
+        found = self.with_layers(map_id)
+        layer = self._layer(found, layer_id)
+        if zoom is not None and not math.isfinite(zoom):
+            raise MapError("atlas.error.view")
+        edited = layer.model_copy(
+            update={"from_zoom": None if zoom is None else round(min(max(zoom, -8), 24), 2)}
+        )
+        self._layers(map_id, [edited if x.id == layer_id else x for x in found.layers])
+        return edited
+
+    def move_layer(self, map_id: str, layer_id: str, step: int) -> None:
+        """Move a layer one up (drawn later, on top) or one down."""
+        found = self.with_layers(map_id)
+        layers = list(found.layers)
+        index = next(i for i, x in enumerate(layers) if x.id == self._layer(found, layer_id).id)
+        other = index + (1 if step > 0 else -1)
+        if 0 <= other < len(layers):
+            layers[index], layers[other] = layers[other], layers[index]
+            self._layers(map_id, layers)
+
+    def delete_layer(self, map_id: str, layer_id: str, move_to: str = "") -> None:
+        """Delete a layer; what is on it moves to ``move_to``, or goes with it. The last
+        layer stays."""
+        found = self.with_layers(map_id)
+        self._layer(found, layer_id)
+        if len(found.layers) < 2:
+            raise MapError("atlas.error.last_layer")
+        if move_to:
+            if move_to == layer_id:
+                raise MapError("atlas.error.layer")
+            self._layer(found, move_to)
+            pins = [
+                p.model_copy(update={"layer": move_to}) if p.layer == layer_id else p
+                for p in found.pins
+            ]
+            labels = [
+                x.model_copy(update={"layer": move_to}) if x.layer == layer_id else x
+                for x in found.labels
+            ]
+        else:
+            pins = [p for p in found.pins if p.layer != layer_id]
+            labels = [x for x in found.labels if x.layer != layer_id]
+        layers = [x for x in found.layers if x.id != layer_id]
+        self._store.maps.update(map_id, layers=layers, pins=pins, labels=labels)
+
+    def shown(self, user_id: str, found: WorldMap) -> dict[str, bool]:
+        """Whether the user sees each layer: as they chose, else the layer's default."""
+        place = self._store.places.find(user_id)
+        chosen = place.map_layers.get(found.id, {}) if place is not None else {}
+        return {layer.id: chosen.get(layer.id, layer.visible) for layer in found.layers}
+
+    def set_shown(self, user_id: str, map_id: str, layer_id: str, shown: bool) -> None:
+        """Remember that the user showed or hid a layer of the map."""
+        found = self.with_layers(map_id)
+        self._layer(found, layer_id)
+        place = self._store.places.find(user_id) or Place(id=user_id)
+        mine = {**place.map_layers.get(map_id, {}), layer_id: shown}
+        self._store.places.upsert(
+            place.model_copy(update={"map_layers": {**place.map_layers, map_id: mine}})
+        )
+
+    def _label(self, found: WorldMap, label_id: str) -> MapLabel:
+        found_label = next((x for x in found.labels if x.id == label_id), None)
+        if found_label is None:
+            raise MapError("atlas.error.label_gone")
+        return found_label
+
+    @staticmethod
+    def _label_fields(text: str, style: str, size: float, angle: float) -> dict[str, object]:
+        words = " ".join(text.split())[:80]
+        if not words:
+            raise MapError("atlas.error.label")
+        if style not in LABEL_STYLES:
+            raise MapError("atlas.error.label")
+        if not (math.isfinite(size) and size > 0 and math.isfinite(angle)):
+            raise MapError("atlas.error.label")
+        turned = ((angle + 180) % 360) - 180
+        return {"text": words, "style": style, "size": round(size, 1), "angle": round(turned, 1)}
+
+    def add_label(
+        self,
+        map_id: str,
+        *,
+        x: float,
+        y: float,
+        text: str,
+        style: str = "settlement",
+        size: float,
+        angle: float = 0,
+        layer: str = "",
+    ) -> MapLabel:
+        """Write a name on the map, on ``layer`` (else *Names*)."""
+        found = self.with_layers(map_id)
+        px, py = self._clamped(found, x, y)
+        on = self._open_layer(found, layer, "names")
+        fields = self._label_fields(
+            text, style, min(size, float(max(found.width, found.height))), angle
+        )
+        made = MapLabel.model_validate({"layer": on.id, "x": px, "y": py, **fields})
+        self._store.maps.update(map_id, labels=[*found.labels, made])
+        return made
+
+    def edit_label(
+        self,
+        map_id: str,
+        label_id: str,
+        *,
+        text: str,
+        style: str,
+        size: float,
+        angle: float,
+        layer: str = "",
+    ) -> MapLabel:
+        """Change a name's words, look, size, turn or layer."""
+        found = self.with_layers(map_id)
+        current = self._label(found, label_id)
+        fields = self._label_fields(
+            text, style, min(size, float(max(found.width, found.height))), angle
+        )
+        fields["layer"] = self._layer(found, layer).id if layer else current.layer
+        edited = current.model_copy(update=fields)
+        self._store.maps.update(
+            map_id, labels=[edited if x.id == label_id else x for x in found.labels]
+        )
+        return edited
+
+    def move_label(self, map_id: str, label_id: str, x: float, y: float) -> MapLabel:
+        """Move a name to another spot."""
+        found = self.with_layers(map_id)
+        current = self._label(found, label_id)
+        self._unlocked(found, current.layer)
+        px, py = self._clamped(found, x, y)
+        moved = current.model_copy(update={"x": px, "y": py})
+        self._store.maps.update(
+            map_id, labels=[moved if x.id == label_id else x for x in found.labels]
+        )
+        return moved
+
+    def remove_label(self, map_id: str, label_id: str) -> None:
+        """Take a name off the map."""
+        found = self.with_layers(map_id)
+        self._label(found, label_id)
+        self._store.maps.update(map_id, labels=[x for x in found.labels if x.id != label_id])
 
     # -- maps within maps -------------------------------------------------------------
 
@@ -459,8 +734,12 @@ __all__ = [
     "FEET_PER",
     "LONG_UNITS",
     "UNITS",
+    "LABEL_STYLES",
+    "LAYER_NAMES",
+    "LAYER_ROLES",
     "PIN_KINDS",
     "MapError",
     "MapService",
+    "default_layers",
     "feet_per_px",
 ]

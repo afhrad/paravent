@@ -1288,6 +1288,16 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       the map shows the path of maps it lies in and says when the frame and its own scale
       disagree by more than a tenth; never on itself or what lies in it, nor a world's map
       on an adventure's. A sharper picture stretches pins and frames along
+- [x] **Maps, step 3: layers and names** (2026-11-27, MAPS.md §7): every pin and name sits
+      on a layer (`WorldMap.layers`, `MapLayer`); a new map starts with *Places*, *Names*,
+      *Roads* and *Notes* in the gamemaster's language, and a map from before gets them on
+      first opening. The panel beside the map shows or hides each layer for the user alone
+      (`Place.map_layers`), locks one against moving what is on it, chooses the one the
+      tools add to, and under ⋯ renames, sets what a newcomer sees, shows it only from the
+      current zoom in, moves it up or down, deletes it (its contents moved or deleted).
+      *Name* writes words on the map (`MapLabel`) in four theme styles, sized in the
+      picture's pixels so they scale with the map, turned for a river or a range, hidden
+      below 5 px; dragged to move, a card to edit or remove
 - [x] Wizard state when going back a step — checked 2026-11-02 (CHARGEN-WIZARD.md §6): answers
       live in the draft's file, a step is a GET of them, and a changed answer marks later
       steps for review without dropping them. Typed text followed by a footer click now

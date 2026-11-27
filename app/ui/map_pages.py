@@ -281,6 +281,15 @@ def _words(page: Page) -> str:
             "gone": t("atlas.pin.gone"),
             "unframe": t("atlas.frame.remove"),
             "kinds": {k: t(f"atlas.pin.kind.{k}") for k in (*_PIN_ORDER, "note")},
+            "label_place": t("atlas.label.tap"),
+            "layer": t("atlas.layer.one"),
+            "text": t("atlas.label.text"),
+            "style": t("atlas.label.style"),
+            "styles": {k: t(f"atlas.label.style.{k}") for k in LABEL_STYLES},
+            "size": t("atlas.label.size"),
+            "angle": t("atlas.label.angle"),
+            "remove_label": t("atlas.label.remove"),
+            "locked": t("atlas.layer.locked_note"),
         },
         ensure_ascii=False,
     )
@@ -426,6 +435,7 @@ class PinView:
     token, a line of its target's notes, and whether its target is gone."""
 
     id: str
+    layer: str
     x: float
     y: float
     kind: str
@@ -453,6 +463,35 @@ class FrameView:
 
 
 @dataclass(frozen=True)
+class LayerView:
+    """A layer as the panel and the viewer show it: whether a newcomer sees it
+    (``visible``) and whether this user does (``shown``), and how much sits on it."""
+
+    id: str
+    name: str
+    role: str
+    visible: bool
+    shown: bool
+    locked: bool
+    from_zoom: float | None
+    count: int
+
+
+@dataclass(frozen=True)
+class LabelView:
+    """A name written on the map."""
+
+    id: str
+    layer: str
+    x: float
+    y: float
+    text: str
+    style: str
+    size: float
+    angle: float
+
+
+@dataclass(frozen=True)
 class Candidate:
     """Something a pin may point at, for the pin dialog."""
 
@@ -475,6 +514,8 @@ class MapContext:
     framable: Sequence[WorldMap] = ()
     disagree: tuple[float, float] | None = None
     focus: str = ""
+    layers: Sequence[LayerView] = ()
+    labels: Sequence[LabelView] = ()
 
 
 # The kinds in the pin dialog's list, in its order.
@@ -503,6 +544,7 @@ def _pin_dialog(page: Page, found: WorldMap, candidates: Sequence[Candidate]) ->
         form(method="post", action=f"{map_url(found.id)}/pins", class_="stack-form map-pin-form")[
             hidden("x", ""),
             hidden("y", ""),
+            hidden("layer", ""),
             p(class_="field-hint")[t("atlas.pin.lede")],
             label(class_="map-pin-choice map-pin-new")[
                 input_el(type="radio", name="choice", value="new", required=True),
@@ -586,6 +628,213 @@ def _frame_dialog(page: Page, found: WorldMap, framable: Sequence[WorldMap]) -> 
     )
 
 
+LABEL_STYLES = ("settlement", "region", "water", "feature")
+
+
+def _label_dialog(page: Page, found: WorldMap) -> Element:
+    """A name written where the map was tapped: its words, style, size and turn. The
+    size is in the picture's pixels; the script fills one that reads well at the zoom
+    it was tapped at."""
+    t = page.t
+    return tool_dialog(
+        page,
+        "label",
+        t("atlas.label.title"),
+        form(
+            method="post", action=f"{map_url(found.id)}/labels", class_="stack-form map-label-form"
+        )[
+            hidden("x", ""),
+            hidden("y", ""),
+            hidden("layer", ""),
+            text_field("text", t("atlas.label.text"), value="", autocomplete="off"),
+            div(class_="field")[
+                label(for_="f-label-style")[t("atlas.label.style")],
+                select(id="f-label-style", name="style")[
+                    [option(value=k)[t(f"atlas.label.style.{k}")] for k in LABEL_STYLES]
+                ],
+            ],
+            div(class_="inline-fields map-label-numbers")[
+                div(class_="field")[
+                    label(for_="f-label-size")[t("atlas.label.size")],
+                    input_el(id="f-label-size", name="size", type="number", min="1", step="any"),
+                ],
+                div(class_="field")[
+                    label(for_="f-label-angle")[t("atlas.label.angle")],
+                    input_el(
+                        id="f-label-angle",
+                        name="angle",
+                        type="number",
+                        min="-180",
+                        max="180",
+                        step="1",
+                        value="0",
+                    ),
+                ],
+            ],
+            p(class_="field-hint")[t("atlas.label.hint")],
+            div(class_="form-actions")[
+                button(type="submit", class_="btn btn-primary")[
+                    icon("check"), span[t("atlas.label.submit")]
+                ]
+            ],
+        ],
+        keep_open=True,
+    )
+
+
+def _layer_panel(page: Page, found: WorldMap, layers: Sequence[LayerView]) -> Element:
+    """The map's layers, the top one first: show or hide each (for this user), choose the
+    one the tools add to, lock it, and under its ⋯ rename it, say whether a newcomer
+    sees it, show it only from the current zoom in, move it, delete it."""
+    t = page.t
+    url = map_url(found.id)
+    rows = []
+    shown_order = list(reversed(layers))
+    for index, layer in enumerate(shown_order):
+        base = f"{url}/layers/{layer.id}"
+        others = [x for x in layers if x.id != layer.id]
+        rows.append(
+            li(
+                class_="map-layer" + (" is-hidden" if not layer.shown else ""),
+                data_layer=layer.id,
+            )[
+                div(class_="map-layer-row")[
+                    label(class_="map-layer-current", title=t("atlas.layer.current"))[
+                        input_el(
+                            type="radio",
+                            name="current-layer",
+                            value=layer.id,
+                            disabled=layer.locked,
+                            aria_label=t("atlas.layer.current_of", name=layer.name),
+                        ),
+                    ],
+                    button(
+                        type="button",
+                        class_="btn btn-sm btn-ghost map-layer-eye",
+                        data_layer_eye=layer.id,
+                        aria_pressed="true" if layer.shown else "false",
+                        aria_label=t("atlas.layer.shown_of", name=layer.name),
+                        title=t("atlas.layer.shown"),
+                    )[icon("eye", "sm")],
+                    span(class_="map-layer-name")[layer.name],
+                    span(class_="map-layer-count muted")[str(layer.count)],
+                    span(class_="muted map-layer-zoom", title=t("atlas.layer.from_zoom_hint"))[
+                        icon("scaling", "xs")
+                    ]
+                    if layer.from_zoom is not None
+                    else None,
+                    button(
+                        type="button",
+                        class_="btn btn-sm btn-ghost map-layer-lock",
+                        data_layer_lock=layer.id,
+                        aria_pressed="true" if layer.locked else "false",
+                        aria_label=t("atlas.layer.locked_of", name=layer.name),
+                        title=t("atlas.layer.locked"),
+                    )[icon("lock", "sm")],
+                ],
+                details(class_="map-layer-more")[
+                    summary(aria_label=t("menu.more", name=layer.name))[icon("ellipsis", "sm")],
+                    form(method="post", action=base, class_="stack-form map-layer-form")[
+                        text_field(
+                            "name", t("atlas.layer.name"), value=layer.name, autocomplete="off"
+                        ),
+                        label(class_="check-inline")[
+                            input_el(
+                                type="checkbox", name="visible", value="1", checked=layer.visible
+                            ),
+                            span[t("atlas.layer.visible")],
+                        ],
+                        label(class_="check-inline")[
+                            input_el(
+                                type="checkbox", name="locked", value="1", checked=layer.locked
+                            ),
+                            span[t("atlas.layer.locked")],
+                        ],
+                        button(type="submit", class_="btn btn-sm")[t("worlds.save")],
+                    ],
+                    div(class_="map-layer-actions")[
+                        form(method="post", action=f"{base}/zoom", class_="inline-form")[
+                            hidden("zoom", ""),
+                            button(type="submit", class_="btn btn-sm", data_layer_zoom_here="")[
+                                t("atlas.layer.from_here")
+                            ],
+                        ],
+                        form(method="post", action=f"{base}/zoom", class_="inline-form")[
+                            button(type="submit", class_="btn btn-sm btn-ghost")[
+                                t("atlas.layer.always")
+                            ]
+                        ]
+                        if layer.from_zoom is not None
+                        else None,
+                        form(method="post", action=f"{base}/move", class_="inline-form")[
+                            hidden("step", "1"),
+                            button(
+                                type="submit",
+                                class_="btn btn-sm btn-ghost",
+                                disabled=index == 0,
+                                aria_label=t("atlas.layer.up"),
+                            )[icon("arrow-up", "sm")],
+                        ],
+                        form(method="post", action=f"{base}/move", class_="inline-form")[
+                            hidden("step", "-1"),
+                            button(
+                                type="submit",
+                                class_="btn btn-sm btn-ghost",
+                                disabled=index == len(shown_order) - 1,
+                                aria_label=t("atlas.layer.down"),
+                            )[icon("arrow-down", "sm")],
+                        ],
+                    ],
+                    form(
+                        method="post", action=f"{base}/delete", class_="stack-form map-layer-delete"
+                    )[
+                        div(class_="field")[
+                            label(for_=f"f-del-{layer.id}")[t("atlas.layer.delete_contents")],
+                            select(id=f"f-del-{layer.id}", name="contents")[
+                                [
+                                    option(value=x.id)[t("atlas.layer.move_to", name=x.name)]
+                                    for x in others
+                                ],
+                                option(value="")[t("atlas.layer.delete_too")],
+                            ],
+                        ]
+                        if layer.count
+                        else None,
+                        button(type="submit", class_="btn btn-sm btn-ghost btn-danger")[
+                            icon("trash-2", "sm"), span[t("atlas.layer.delete")]
+                        ],
+                    ]
+                    if others
+                    else None,
+                ],
+            ]
+        )
+    return details(class_="map-layers panel", id="layers", open=True)[
+        summary(class_="map-layers-head")[icon("map", "sm"), span[t("atlas.layer.heading")]],
+        ul(class_="map-layer-list")[rows],
+        form(method="post", action=f"{url}/layers", class_="map-layer-new inline-form")[
+            input_el(
+                type="text",
+                name="name",
+                placeholder=t("atlas.layer.new"),
+                aria_label=t("atlas.layer.new"),
+                autocomplete="off",
+                maxlength="60",
+                required=True,
+            ),
+            button(type="submit", class_="btn btn-sm")[icon("plus", "sm")],
+        ],
+    ]
+
+
+def _layers_json(layers: Sequence[LayerView]) -> str:
+    return json.dumps([vars(x) for x in layers], ensure_ascii=False)
+
+
+def _labels_json(labels: Sequence[LabelView]) -> str:
+    return json.dumps([vars(x) for x in labels], ensure_ascii=False)
+
+
 def _pins_json(pins: Sequence[PinView]) -> str:
     return json.dumps([vars(p) for p in pins], ensure_ascii=False)
 
@@ -633,6 +882,8 @@ def map_page(
         data_words=_words(page),
         data_pins=_pins_json(around.pins),
         data_frames=_frames_json(around.frames),
+        data_layers=_layers_json(around.layers),
+        data_labels=_labels_json(around.labels),
         data_focus=around.focus or None,
         role="application",
         aria_label=t("atlas.viewer", name=found.name),
@@ -674,6 +925,9 @@ def map_page(
                 button(
                     type="button", class_="btn btn-sm", data_map_tool="pin", aria_pressed="false"
                 )[icon("map-pin", "sm"), span[t("atlas.pin.button")]],
+                button(
+                    type="button", class_="btn btn-sm", data_map_tool="label", aria_pressed="false"
+                )[icon("pen-line", "sm"), span[t("atlas.label.button")]],
                 button(type="button", class_="btn btn-sm btn-ghost", data_map_tool="frame")[
                     icon("map", "sm"), span[t("atlas.frame.button")]
                 ]
@@ -686,12 +940,16 @@ def map_page(
                     t("atlas.ruler.needs_scale") if scale is None else None
                 ],
             ],
-            stage if ready else tiling_panel(page, found, job),
+            div(class_="map-body")[
+                stage if ready else tiling_panel(page, found, job),
+                _layer_panel(page, found, around.layers) if ready and around.layers else None,
+            ],
             details(class_="map-notes")[summary[t("atlas.notes")], div(class_="md-body")[notes]]
             if notes is not None and notes.strip()
             else None,
             _scale_dialog(page, found),
             _pin_dialog(page, found, around.candidates),
+            _label_dialog(page, found),
             _frame_dialog(page, found, around.framable) if around.framable else None,
         ],
         world_id=world.id,
@@ -795,6 +1053,8 @@ def map_delete_page(page: Page, found: WorldMap) -> Element:
 
 
 __all__ = [
+    "LabelView",
+    "LayerView",
     "Candidate",
     "FrameView",
     "MapContext",

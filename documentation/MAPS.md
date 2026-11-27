@@ -5,8 +5,8 @@ and dragging through them however large they are, the scale every map carries, m
 on them, the pins that tie a map to the world's places, people and stories, the layers of
 names and notes laid over the picture, and the roads whose length becomes travel time.
 
-**Date:** 2026-11-27 · **Status:** step 1, the maps themselves, and step 2, pins and maps within maps, built
-2026-11-27; steps 3–4 specified. Steps in §10.
+**Date:** 2026-11-27 · **Status:** steps 1–3 built 2026-11-27 (the maps; pins and maps
+within maps; layers and names); step 4, roads and travel, specified. Steps in §10.
 
 > **One sentence:** a map is a picture with a scale; everything on it — pins, names, notes,
 > roads, the ruler — is stored in the picture's own pixels, so it holds at every zoom and survives
@@ -217,11 +217,18 @@ on *Places* unless another layer is chosen. Deleting a layer that holds somethin
 whether to move its contents to another layer or delete them with it.
 
 **The layer panel** (a folding panel beside the map, a sheet on the phone): each layer with
-an eye to show or hide it, a lock against moving things by accident, its count, and drag to
-reorder. **Shown and hidden is remembered per user** with the view (§4), so hiding the notes
+an eye to show or hide it, a lock against moving things by accident, its count, and under
+its ⋯ its name, whether a newcomer sees it, *Show only from this zoom in* (the zoom the map
+stands at) or *Show at every zoom*, up and down, and delete. **As built:** up and down
+buttons rather than dragging, which works the same with a finger, a mouse and a keyboard;
+the panel stands beside the map on a wide screen and folds beneath it on a narrow one. **Shown and hidden is remembered per user** with the view (§4), so hiding the notes
 on the iPad does not hide them on the laptop; the layer's `visible` is the start for a user
 who has not chosen. The toolbar's tools (pin, name, road) add to the *current* layer, chosen
-in the panel; a locked layer cannot be the current one.
+in the panel; a locked layer cannot be the current one. With none chosen, a pin goes on
+*Places* (a note on *Notes*) and a name on *Names*. The current layer is remembered by the
+browser, per map; a layer is a group and a pane of its own, so the order is the drawing
+order. A map from before layers gets the four on first opening, its pins put on *Places*
+and *Notes*.
 
 **Names written on the map** (`MapLabel`): `id`, `layer`, `x`, `y`, `text`, `style` and
 `size`, and `angle` in degrees for a river or a mountain range written along it. Styles are
@@ -229,8 +236,11 @@ a short fixed list read from the theme (THEMES.md), so labels match Paravent and
 picker: *settlement* (upright), *region* (spaced capitals), *water* (italic), *feature*
 (small). **The size is in the picture's pixels**, so a name grows and shrinks with the map
 as if printed on it; below a few screen pixels it is not drawn. A label is plain text, not
-a link: what a place is, its pin says. *Name* in the toolbar, a tap, the text; dragging
-moves it, a handle turns it, its card changes or removes it.
+a link: what a place is, its pin says. *Name* in the toolbar, a tap, the text, with a size
+filled in that reads at about 16 px at the zoom it was tapped at (a region larger, a feature
+smaller); dragging moves it, its card changes the words, style, size, layer and turn (a
+slider, turning it as it moves; no handle on the map) or removes it. A sharper picture
+stretches names with everything else.
 
 **Notes** are `note` pins (§6) on the *Notes* layer, or on any: a label and Markdown, shown
 in the card. They are what the gamemaster wants to remember at that spot ("the bridge is
@@ -240,7 +250,10 @@ out", "the bandits' lookout") without making a record of it.
 
 ## 8. Measuring and roads
 
-**The ruler** (the map's toolbar): tap, tap, tap; each stretch and the total shown beside the
+**The ruler** (the map's toolbar): tap, tap, tap, or drag (2026-11-27, after the user found
+a drag moved the map instead: while the ruler, the scale's line or a frame is drawn, the map
+does not pan, a drag draws from where it began, or from the ruler's last point, and the
+arrow keys and the zoom still move the map); each stretch and the total shown beside the
 line, with the time on foot at the three paces (2, 3, 4 mph; 8 travelling hours to the day),
 "212 miles · normal pace 9 days". Double tap or *Done* ends it; nothing is kept. Without a
 scale the ruler asks for one first.
@@ -299,7 +312,7 @@ Paravent ships none.
    page, context menus, trash, world copy and move.
 2. ~~**Pins (M).**~~ Built 2026-11-27. Every target kind, tokens, the card, *New place here*, grey pins of gone
    targets, *On the map* on a place's page, maps within maps with frames and the path.
-3. **Layers and names (M).** Layers with the panel, visibility per user, locks and
+3. ~~**Layers and names (M).**~~ Built 2026-11-27. Layers with the panel, visibility per user, locks and
    `from_zoom`; labels with styles, size and angle; notes on their layer. Pins made in
    step 2 move onto *Places* and *Notes*.
 4. **Roads and travel (M).** Routes with stretches and terrain, their lengths, *Travel*

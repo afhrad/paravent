@@ -462,6 +462,8 @@ class MapPin(GameStateModel):
     pin whose target is gone still says what it was."""
 
     id: str = Field(default_factory=_new_id)
+    # The layer it sits on; "" for a pin from before layers, put on one when next read.
+    layer: str = ""
     x: float
     y: float
     kind: PinKind
@@ -471,6 +473,40 @@ class MapPin(GameStateModel):
     label: str = Field(default="", max_length=120)
     # A note's text, Paravent Markdown.
     note: str = Field(default="", max_length=4000)
+
+
+# The layers a new map starts with (documentation/MAPS.md §7); a layer the gamemaster
+# adds has none of these roles.
+LayerRole = Literal["places", "names", "roads", "notes", ""]
+# How a name written on a map looks: its style comes from the theme.
+LabelStyle = Literal["settlement", "region", "water", "feature"]
+
+
+class MapLayer(GameStateModel):
+    """A layer of a map (documentation/MAPS.md §7): what is laid over the picture sits on
+    one. ``visible`` is how a user who has not chosen sees it, ``locked`` keeps what is
+    on it from being moved, and ``from_zoom`` shows it only from that zoom in."""
+
+    id: str = Field(default_factory=_new_id)
+    name: str = Field(max_length=60)
+    role: LayerRole = ""
+    visible: bool = True
+    locked: bool = False
+    from_zoom: float | None = None
+
+
+class MapLabel(GameStateModel):
+    """A name written on a map, a town's or a river's: where, how large in the picture's
+    pixels (so it grows and shrinks with the map), in which style, turned how far."""
+
+    id: str = Field(default_factory=_new_id)
+    layer: str = ""
+    x: float
+    y: float
+    text: str = Field(max_length=80)
+    style: LabelStyle = "settlement"
+    size: float = Field(gt=0)
+    angle: float = 0
 
 
 class MapFrame(GameStateModel):
@@ -499,6 +535,9 @@ class WorldMap(Record):
     scale: MapScale | None = None
     notes: str = ""
     pins: list[MapPin] = Field(default_factory=list)
+    # In drawing order, the last on top (documentation/MAPS.md §7).
+    layers: list[MapLayer] = Field(default_factory=list)
+    labels: list[MapLabel] = Field(default_factory=list)
     # The map this one lies on, and where (documentation/MAPS.md §6).
     parent: str | None = None
     frame: MapFrame | None = None
@@ -1351,6 +1390,8 @@ class Place(Record):
     sheets: dict[str, SheetView] = Field(default_factory=dict)
     # How each map was left, by the map's id (documentation/MAPS.md §4).
     maps: dict[str, MapView] = Field(default_factory=dict)
+    # The layers the user showed or hid, by map and layer (documentation/MAPS.md §7).
+    map_layers: dict[str, dict[str, bool]] = Field(default_factory=dict)
     # The newest "What's new" line the user has dismissed (its time, app/services/news.py).
     news_seen: str = ""
 
@@ -1962,7 +2003,11 @@ class Knowledge(Record):
 
 
 __all__ = [
+    "LabelStyle",
+    "LayerRole",
     "MapFrame",
+    "MapLabel",
+    "MapLayer",
     "MapPin",
     "MapScale",
     "PinKind",

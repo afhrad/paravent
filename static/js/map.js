@@ -2,7 +2,8 @@
 // map from its tiles, a small one as one picture; where it was left kept per user; the
 // ruler; and the line drawn for the scale. Everything is measured in the original's
 // pixels, by the scale's feet per pixel. Pins point at the world's places, people and
-// stories, and other maps lie on this one as frames.
+// stories, and other maps lie on this one as frames; each sits on a layer, shown or hidden
+// for this user, and names are written on the map at the picture's own scale.
 (function () {
   'use strict';
 
@@ -140,13 +141,20 @@
     line = trail = null;
   }
 
+  // The tools that draw: while one is in hand, a drag draws instead of moving the map,
+  // and a tap still sets a point. The arrow keys and the zoom still move the map.
+  var DRAWING = { ruler: true, line: true, frame: true };
+
   function setMode(next) {
     mode = next;
     el.classList.toggle('map-drawing', !!mode);
     if (mode) map.doubleClickZoom.disable(); else map.doubleClickZoom.enable();
+    if (DRAWING[mode]) map.dragging.disable(); else map.dragging.enable();
     if (rulerButton) rulerButton.setAttribute('aria-pressed', mode === 'ruler' ? 'true' : 'false');
-    var pinTool = document.querySelector('[data-map-tool="pin"]');
-    if (pinTool) pinTool.setAttribute('aria-pressed', mode === 'pin' ? 'true' : 'false');
+    ['pin', 'label'].forEach(function (tool) {
+      var b = document.querySelector('[data-map-tool="' + tool + '"]');
+      if (b) b.setAttribute('aria-pressed', mode === tool ? 'true' : 'false');
+    });
   }
 
   function showRuler(extra) {
@@ -215,8 +223,47 @@
 
   var pins = JSON.parse(el.dataset.pins || '[]');
   var frames = JSON.parse(el.dataset.frames || '[]');
-  var pinLayer = L.layerGroup().addTo(map);
+  var layers = JSON.parse(el.dataset.layers || '[]');
+  var labels = JSON.parse(el.dataset.labels || '[]');
   var markers = {};
+
+  // -- layers (documentation/MAPS.md §7): a group and a pane each, the last on top ----
+
+  var groups = {}, byId = {};
+  layers.forEach(function (layer, index) {
+    var pane = map.createPane('layer-' + layer.id);
+    pane.style.zIndex = String(601 + index);  // above the tiles, below tooltips and cards
+    groups[layer.id] = L.layerGroup();
+    byId[layer.id] = layer;
+  });
+  function groupOf(id) {
+    return groups[id] ? id : (layers[0] ? layers[0].id : '');
+  }
+  function paneOf(id) { return groups[groupOf(id)] ? 'layer-' + groupOf(id) : 'markerPane'; }
+  function isLocked(id) { var l = byId[groupOf(id)]; return !!(l && l.locked); }
+  var loose = L.layerGroup().addTo(map);  // a map without layers yet
+  function holder(id) { return groups[groupOf(id)] || loose; }
+
+  // A layer shows when the user shows it and the map is zoomed in far enough.
+  function showLayers() {
+    var zoom = map.getZoom();
+    layers.forEach(function (layer) {
+      var on = layer.shown && (layer.from_zoom === null || zoom >= layer.from_zoom - 1e-6);
+      var group = groups[layer.id];
+      if (on && !map.hasLayer(group)) group.addTo(map);
+      else if (!on && map.hasLayer(group)) map.removeLayer(group);
+    });
+  }
+
+  function layerSelect(current) {
+    var select = node('select', { name: 'layer', 'aria-label': words.layer });
+    layers.forEach(function (layer) {
+      var opt = node('option', { value: layer.id, text: layer.name });
+      if (layer.id === groupOf(current)) opt.selected = true;
+      select.appendChild(opt);
+    });
+    return select;
+  }
 
   function post(url, fields) {
     var data = new FormData();
@@ -264,23 +311,28 @@
     if (noteInput) noteInput.value = pin.note || '';
     var save = node('button', { type: 'submit', 'class': 'btn btn-sm btn-primary', text: words.save });
     var remove = node('button', { type: 'button', 'class': 'btn btn-sm btn-ghost btn-danger', text: words.remove });
+    var layerInput = layers.length > 1 ? layerSelect(pin.layer) : null;
     var form = node('form', { 'class': 'map-card-form' }, [
-      labelInput, noteInput, node('span', { 'class': 'map-card-actions' }, [save, remove])
+      labelInput, noteInput, layerInput,
+      node('span', { 'class': 'map-card-actions' }, [save, remove])
     ]);
     form.addEventListener('submit', function (e) {
       e.preventDefault();
-      post(base, { label: labelInput.value, note: noteInput ? noteInput.value : '' }).then(function (r) {
+      var fields = { label: labelInput.value, note: noteInput ? noteInput.value : '' };
+      if (layerInput) fields.layer = layerInput.value;
+      post(base, fields).then(function (r) {
         if (!r.ok) return;
         pin.label = labelInput.value.trim();
         if (noteInput) { pin.note = noteInput.value; pin.excerpt = noteInput.value.split('\n')[0]; }
-        marker.setIcon(pinIcon(pin));
-        marker.setPopupContent(pinCard(pin, marker));
         marker.closePopup();
+        holder(pin.layer).removeLayer(marker);
+        if (layerInput) pin.layer = layerInput.value;
+        addPin(pin);  // again, on its layer
       });
     });
     remove.addEventListener('click', function () {
       post(base + '/delete').then(function (r) {
-        if (r.ok) { pinLayer.removeLayer(marker); delete markers[pin.id]; }
+        if (r.ok) { holder(pin.layer).removeLayer(marker); delete markers[pin.id]; }
       });
     });
     return node('div', { 'class': 'map-card' }, [
@@ -294,20 +346,120 @@
     ]);
   }
 
+  // While a tool is in hand, a tap on a pin or a name is a tap on the map.
+  function passTaps(marker) {
+    marker.on('click', function (e) {
+      if (!mode) return;
+      marker.closePopup();
+      if (!DRAWING[mode]) tap(e.latlng);  // a drawing tool reads the pointer itself
+    });
+  }
+
   function addPin(pin) {
     var marker = L.marker(toLatLng(pin.x, pin.y), {
-      icon: pinIcon(pin), draggable: true, keyboard: true, title: shownName(pin), riseOnHover: true
+      icon: pinIcon(pin), draggable: !isLocked(pin.layer), keyboard: true, title: shownName(pin),
+      riseOnHover: true, pane: paneOf(pin.layer)
     });
+    marker.options.layerId = groupOf(pin.layer);
     marker.bindPopup(function () { return pinCard(pin, marker); }, { minWidth: 220, maxWidth: 300 });
+    passTaps(marker);
     marker.on('dragend', function () {
       var at = toPixels(marker.getLatLng());
       pin.x = at[0]; pin.y = at[1];
       post('/gm/maps/' + mapId + '/pins/' + pin.id + '/move', { x: at[0].toFixed(1), y: at[1].toFixed(1) });
     });
-    marker.addTo(pinLayer);
+    marker.addTo(holder(pin.layer));
     markers[pin.id] = marker;
   }
   pins.forEach(addPin);
+
+  // -- names written on the map: sized in the picture's pixels, turned, styled ----------
+
+  var STYLE_SCALE = { settlement: 1, region: 1.5, water: 1.1, feature: 0.8 };
+
+  function labelIcon(label) {
+    var text = node('span', { 'class': 'map-label map-label-' + label.style, text: label.text });
+    text.style.setProperty('--s', String(label.size));
+    text.style.setProperty('--a', label.angle + 'deg');
+    return L.divIcon({ className: 'map-label-anchor', html: text.outerHTML, iconSize: [0, 0] });
+  }
+
+  function labelCard(label, marker) {
+    var base = '/gm/maps/' + mapId + '/labels/' + label.id;
+    var text = node('input', { type: 'text', name: 'text', value: label.text, maxlength: '80',
+      'aria-label': words.text, required: '' });
+    var style = node('select', { name: 'style', 'aria-label': words.style });
+    Object.keys(words.styles || {}).forEach(function (k) {
+      var opt = node('option', { value: k, text: words.styles[k] });
+      if (k === label.style) opt.selected = true;
+      style.appendChild(opt);
+    });
+    var size = node('input', { type: 'number', name: 'size', min: '1', step: 'any',
+      value: String(label.size), 'aria-label': words.size, title: words.size });
+    var angle = node('input', { type: 'range', name: 'angle', min: '-180', max: '180', step: '1',
+      value: String(label.angle), 'aria-label': words.angle, title: words.angle });
+    angle.addEventListener('input', function () {
+      label.angle = +angle.value;
+      marker.setIcon(labelIcon(label));
+    });
+    var layerInput = layers.length > 1 ? layerSelect(label.layer) : null;
+    var save = node('button', { type: 'submit', 'class': 'btn btn-sm btn-primary', text: words.save });
+    var remove = node('button', { type: 'button', 'class': 'btn btn-sm btn-ghost btn-danger',
+      text: words.remove_label });
+    var form = node('form', { 'class': 'map-card-form' }, [
+      text, style, node('span', { 'class': 'map-card-row' }, [size, angle]), layerInput,
+      node('span', { 'class': 'map-card-actions' }, [save, remove])
+    ]);
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var fields = { text: text.value, style: style.value, size: size.value, angle: angle.value };
+      if (layerInput) fields.layer = layerInput.value;
+      post(base, fields).then(function (r) {
+        if (!r.ok) return;
+        marker.closePopup();
+        holder(label.layer).removeLayer(marker);
+        label.text = text.value.trim(); label.style = style.value;
+        label.size = +size.value; label.angle = +angle.value;
+        if (layerInput) label.layer = layerInput.value;
+        addLabel(label);
+        scaleLabels();
+      });
+    });
+    remove.addEventListener('click', function () {
+      post(base + '/delete').then(function (r) { if (r.ok) holder(label.layer).removeLayer(marker); });
+    });
+    return node('div', { 'class': 'map-card' }, [
+      node('span', { 'class': 'eyebrow', text: (words.styles || {})[label.style] || '' }), form
+    ]);
+  }
+
+  function addLabel(label) {
+    var marker = L.marker(toLatLng(label.x, label.y), {
+      icon: labelIcon(label), draggable: !isLocked(label.layer), keyboard: true,
+      title: label.text, pane: paneOf(label.layer)
+    });
+    marker.options.layerId = groupOf(label.layer);
+    marker.bindPopup(function () { return labelCard(label, marker); }, { minWidth: 240 });
+    passTaps(marker);
+    marker.on('dragend', function () {
+      var at = toPixels(marker.getLatLng());
+      label.x = at[0]; label.y = at[1];
+      post('/gm/maps/' + mapId + '/labels/' + label.id + '/move',
+        { x: at[0].toFixed(1), y: at[1].toFixed(1) });
+    });
+    marker.addTo(holder(label.layer));
+  }
+  labels.forEach(addLabel);
+
+  // How large a picture pixel is on screen now; a name smaller than a few pixels hides.
+  function scaleLabels() {
+    var k = Math.pow(2, map.getZoom() - Z);
+    el.style.setProperty('--k', String(k));
+    el.querySelectorAll('.map-label').forEach(function (n) {
+      var px = parseFloat(n.style.getPropertyValue('--s')) * k;
+      n.classList.toggle('is-tiny', px < 5);
+    });
+  }
 
   frames.forEach(function (f) {
     var rect = L.rectangle(
@@ -328,14 +480,66 @@
     // While a tool is in hand, a tap inside a frame is a tap on the map.
     rect.on('click', function (e) {
       L.DomEvent.stop(e);
-      if (mode) tap(e.latlng); else card.setLatLng(e.latlng).openOn(map);
+      if (mode && !DRAWING[mode]) tap(e.latlng);
+      else if (!mode) card.setLatLng(e.latlng).openOn(map);
     });
   });
 
   // The names beside the pins show once the map is zoomed in.
-  function labels() { el.classList.toggle('map-show-names', map.getZoom() >= Z - 3); }
-  map.on('zoomend', labels);
-  labels();
+  function pinNames() { el.classList.toggle('map-show-names', map.getZoom() >= Z - 3); }
+  map.on('zoomend', function () { pinNames(); showLayers(); scaleLabels(); });
+  pinNames();
+  showLayers();
+  scaleLabels();
+
+  // -- the layer panel ----------------------------------------------------------------
+
+  var currentKey = 'paravent-map-layer-' + mapId;
+  function currentLayer() {
+    var id = '';
+    try { id = localStorage.getItem(currentKey) || ''; } catch (err) { id = ''; }
+    return byId[id] && !byId[id].locked ? id : '';
+  }
+  var panel = document.getElementById('layers');
+  if (panel) {
+    var chosen = currentLayer();
+    if (chosen) {
+      var radio = panel.querySelector('input[name="current-layer"][value="' + chosen + '"]');
+      if (radio) radio.checked = true;
+    }
+    panel.addEventListener('change', function (e) {
+      if (e.target.name !== 'current-layer') return;
+      try { localStorage.setItem(currentKey, e.target.value); } catch (err) { /* private */ }
+    });
+    panel.addEventListener('click', function (e) {
+      var eye = e.target.closest ? e.target.closest('[data-layer-eye]') : null;
+      var lock = e.target.closest ? e.target.closest('[data-layer-lock]') : null;
+      var here = e.target.closest ? e.target.closest('[data-layer-zoom-here]') : null;
+      if (eye) {
+        var layer = byId[eye.dataset.layerEye];
+        layer.shown = !layer.shown;
+        eye.setAttribute('aria-pressed', layer.shown ? 'true' : 'false');
+        eye.closest('.map-layer').classList.toggle('is-hidden', !layer.shown);
+        post('/gm/maps/' + mapId + '/layers/' + layer.id + '/shown', { shown: layer.shown ? '1' : '0' });
+        showLayers();
+        scaleLabels();
+      } else if (lock) {
+        var locked = byId[lock.dataset.layerLock];
+        locked.locked = !locked.locked;
+        lock.setAttribute('aria-pressed', locked.locked ? 'true' : 'false');
+        var row = lock.closest('.map-layer');
+        var current = row.querySelector('input[name="current-layer"]');
+        if (current) { current.disabled = locked.locked; if (locked.locked) current.checked = false; }
+        post('/gm/maps/' + mapId + '/layers/' + locked.id + '/lock', { locked: locked.locked ? '1' : '' });
+        groups[locked.id].eachLayer(function (m) {
+          if (!m.dragging) return;
+          if (locked.locked) m.dragging.disable(); else m.dragging.enable();
+        });
+      } else if (here) {
+        here.form.elements.zoom.value = map.getZoom().toFixed(2);
+      }
+    });
+  }
 
   var focus = el.dataset.focus && markers[el.dataset.focus];
   if (focus) {
@@ -361,6 +565,7 @@
     var at = toPixels(latlng);
     form.elements.x.value = at[0].toFixed(1);
     form.elements.y.value = at[1].toFixed(1);
+    form.elements.layer.value = currentLayer();
     if (pinDialog.showModal) pinDialog.showModal(); else pinDialog.setAttribute('open', '');
     var filter = form.querySelector('[data-pin-filter]');
     if (filter) filter.focus();
@@ -383,6 +588,31 @@
         if (radio && newName.value.trim()) radio.checked = true;
       });
     }
+  }
+
+  // The name tool: a tap, then the dialog, a size filled in that reads well now.
+  var labelButton = document.querySelector('[data-map-tool="label"]');
+  var labelDialog = document.getElementById('tool-label');
+  if (labelButton) {
+    labelButton.addEventListener('click', function () {
+      if (mode === 'label') { setMode(''); say(''); return; }
+      clearDrawing();
+      setMode('label');
+      say(words.label_place || '');
+    });
+  }
+  function placeLabel(latlng) {
+    var form = labelDialog && labelDialog.querySelector('.map-label-form');
+    if (!form) return;
+    var at = toPixels(latlng);
+    form.elements.x.value = at[0].toFixed(1);
+    form.elements.y.value = at[1].toFixed(1);
+    form.elements.layer.value = currentLayer();
+    var k = Math.pow(2, map.getZoom() - Z);
+    var scale = STYLE_SCALE[form.elements.style.value] || 1;
+    form.elements.size.value = String(Math.max(1, Math.round(16 * scale / k)));
+    if (labelDialog.showModal) labelDialog.showModal(); else labelDialog.setAttribute('open', '');
+    form.elements.text.focus();
   }
 
   // The frame tool: choose the map, then its rectangle with two taps.
@@ -434,21 +664,56 @@
       setMode('');
       say('');
       placePin(latlng);
+    } else if (mode === 'label') {
+      setMode('');
+      say('');
+      placeLabel(latlng);
     }
   }
-  map.on('click', function (e) { tap(e.latlng); });
+  map.on('click', function (e) { if (!DRAWING[mode]) tap(e.latlng); });
 
-  map.on('mousemove', function (e) {
+  function follow(latlng) {
     if (!mode || !points.length) return;
     var last = points[points.length - 1];
     if (!trail) {
-      trail = L.polyline([last, e.latlng], { className: 'map-ruler-trail', interactive: false })
+      trail = L.polyline([last, latlng], { className: 'map-ruler-trail', interactive: false })
         .addTo(layer);
     } else {
-      trail.setLatLngs([last, e.latlng]);
+      trail.setLatLngs([last, latlng]);
     }
-    if (mode === 'ruler') showRuler(e.latlng);
+    if (mode === 'ruler') showRuler(latlng);
+  }
+  map.on('mousemove', function (e) { if (!pressed) follow(e.latlng); });
+
+  // Drawing with the pointer: a press and a release where it was is a tap; a drag
+  // draws from where it began (or from the last point of the ruler) to where it ends.
+  var pressed = null;
+  function at(e) { return map.mouseEventToLatLng(e); }
+  el.addEventListener('pointerdown', function (e) {
+    if (!DRAWING[mode] || e.button > 0 || !e.isPrimary) return;
+    if (e.target.closest && e.target.closest('.leaflet-control')) return;
+    pressed = { x: e.clientX, y: e.clientY, latlng: at(e), moved: false };
+    if (el.setPointerCapture) el.setPointerCapture(e.pointerId);
   });
+  el.addEventListener('pointermove', function (e) {
+    if (!pressed) return;
+    if (Math.hypot(e.clientX - pressed.x, e.clientY - pressed.y) > 6 && !pressed.moved) {
+      pressed.moved = true;
+      // The drag's start is the first point, unless the ruler already has one.
+      if (!points.length || mode !== 'ruler') { if (mode !== 'ruler') clearDrawing(); tap(pressed.latlng); }
+    }
+    if (pressed.moved) follow(at(e));
+  });
+  function release(e) {
+    if (!pressed) return;
+    var was = pressed;
+    pressed = null;
+    if (e.type === 'pointercancel') return;
+    if (was.moved && points.length) tap(at(e));
+    else if (!was.moved) tap(was.latlng);
+  }
+  el.addEventListener('pointerup', release);
+  el.addEventListener('pointercancel', release);
 
   map.on('dblclick', function () { if (mode === 'ruler') endRuler(); });
 
