@@ -1,5 +1,10 @@
 [
  {
+  "at": "2026-11-27T10:11:27+01:00",
+  "en": "Maps take pins: pin places, NPCs, encounters, adventures and notes where they belong, drag them about, and open them from the map. Lay a city's map on the world's, and its outline takes you there.",
+  "de": "Karten nehmen Pins: Heftet Orte, NSC, Begegnungen, Abenteuer und Notizen dorthin, wo sie hingehören, verschiebt sie und öffnet sie von der Karte aus. Legt die Karte einer Stadt auf die der Welt, und ihr Umriss bringt euch dorthin."
+ },
+ {
   "at": "2026-11-27T09:41:35+01:00",
   "en": "Maps: upload your own maps of the world and of each adventure, however large. Big maps are cut into tiles and zoom smoothly, each map opens where you left it, and after you give it a scale the ruler measures any path and says how many days the party travels at each pace.",
   "de": "Karten: Ladet eure eigenen Karten der Welt und jedes Abenteuers hoch, so groß sie auch sind. Große Karten werden in Kacheln geschnitten und zoomen flüssig, jede Karte öffnet sich dort, wo ihr sie verlassen habt, und mit einem Maßstab misst das Lineal jeden Weg und sagt, wie viele Tage die Gruppe in jedem Tempo reist."
@@ -293,10 +298,5 @@
   "at": "2026-11-20T11:04:58+01:00",
   "en": "After an import the new world says what came along, and the world menu counts the world's broken links.",
   "de": "Nach einem Import sagt die neue Welt, was mitkam, und das Weltmenü zählt die kaputten Links der Welt."
- },
- {
-  "at": "2026-11-20T11:04:55+01:00",
-  "en": "Importing or duplicating a world no longer fails now and then with \"That file holds no Paravent world\".",
-  "de": "Eine Welt zu importieren oder zu duplizieren scheitert nicht mehr gelegentlich mit „Diese Datei enthält keine Paravent-Welt“."
  }
 ]
