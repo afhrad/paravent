@@ -32,6 +32,11 @@ The **Session** button on the party view opens the session page.
 
 *Maps* in the top bar holds your maps of the world; an adventure's maps are on its page.
 
+- **Pin on a map** on the page of a place, an NPC, an encounter, a treasure, a character or
+  a handout (and under each quest and faction) opens the map ready: tap the spot, then
+  *Pin it*. *On the map* above it lists where it is pinned already. A world map takes the
+  places and people of every adventure; an adventure's map those of the world and its own.
+
 - **Show to players** beside a map's name lets the players of this world open it under
   *Maps*. They see only the layers marked *Players see it* (under a layer's ⋯): a new map
   shows them its names and roads, not its places and notes. Your notes, and where a pin

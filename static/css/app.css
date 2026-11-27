@@ -3674,3 +3674,7 @@ dialog.ctx-dialog .panel{ margin:0; }
 .map-party span{ display:block; width:22px; height:22px; border-radius:50%; background:var(--heal); border:3px solid var(--surface); box-shadow:0 0 0 2px var(--heal), var(--shadow-md); }
 .map-route-more > summary{ cursor:pointer; color:var(--text-2); font-size:13px; }
 .map-route-more[open] > summary{ margin-bottom:4px; }
+
+/* Where something lies on the maps, on its own page (documentation/MAPS.md §6). */
+.on-maps-pin, .on-maps-line{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--sp-2, 8px); margin:var(--sp-2, 8px) 0 0; }
+.on-maps-line .ref{ display:inline-flex; align-items:center; gap:4px; }

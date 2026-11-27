@@ -68,6 +68,7 @@ from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
 from app.ui.library_links import copy_snippet, delete_link, preset_place
+from app.ui.map_links import OnMaps, on_maps_section
 from app.ui.markdown import Rendered
 from app.ui.name_roller import name_roller
 from app.ui.names import name_text
@@ -697,6 +698,7 @@ def encounter_page(
     notes: Rendered | None = None,
     name_styles: Sequence[StyleEntry] = (),
     build: tuple[Sequence[str], Sequence[str], tuple[str, str, str]] = ((), (), ("", "", "")),
+    on_maps: OnMaps | None = None,
 ) -> Element:
     """The builder: plan, rating, picker and settings; ``notes`` the encounter's notes
     rendered as Paravent Markdown; ``name_styles`` what the "Shown as" dice may roll.
@@ -751,6 +753,7 @@ def encounter_page(
                     _build_fight(page, view, *build),
                     _roll_table(page, view, environments),
                     _fought(page, fought),
+                    on_maps_section(page, on_maps, panel=True),
                     _title_panel(page, enc),
                 ],
             ],

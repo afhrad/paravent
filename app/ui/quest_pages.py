@@ -39,6 +39,7 @@ from app.ui.forms import alert, hidden
 from app.ui.home_pages import page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
+from app.ui.map_links import OnMaps, on_maps_line
 from app.ui.names import name_text
 from app.ui.shop_pages import coin_text
 from app.ui.title_images import title_image, title_image_panel
@@ -83,11 +84,12 @@ def quests_page(
     milestone: bool = False,
     error: str | None = None,
     render: Callable[[str], Node] = str,
+    on_maps: Mapping[str, OnMaps] | None = None,
 ) -> Element:
     """Every quest of the world, open first, and the form for a new one. ``members``
     are the world's characters and ``factions`` its factions, each ``(id, name)``;
     ``parties`` names who is on each quest, by its id; ``render`` draws a quest's text
-    (Paravent Markdown)."""
+    (Paravent Markdown); ``on_maps`` where each lies on the maps, by its id."""
     t = page.t
     base = f"{QUESTS_URL}/{quote(world.id)}"
     names = dict(members)
@@ -116,6 +118,7 @@ def quests_page(
                         names,
                         milestone,
                         render,
+                        (on_maps or {}).get(q.id),
                     )
                     for q in quests
                 ]
@@ -149,6 +152,7 @@ def _quest(
     names: Mapping[str, str],
     milestone: bool,
     render: Callable[[str], Node] = str,
+    on_maps: OnMaps | None = None,
 ) -> Element:
     t = page.t
     faction = dict(factions).get(quest.faction_id or "")
@@ -175,6 +179,7 @@ def _quest(
             )
         ],
         div(class_="quest-text md-body")[render(quest.text)] if quest.text else None,
+        on_maps_line(page, on_maps),
         ul(class_="quest-steps")[
             [
                 li[

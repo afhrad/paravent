@@ -13,6 +13,7 @@ from fastapi.responses import HTMLResponse, Response
 from app.dependencies import GamemasterDep, PageDep, RegistryDep, WorldsDep
 from app.models.gamestate import Scope, World
 from app.routes.auth import html, redirect
+from app.routes.map_links import on_maps
 from app.routes.paravent_markdown import paravent_markdown
 from app.services.factions import FactionError
 from app.store.registry import StoreRegistry
@@ -38,6 +39,10 @@ def _page(
             registry.renown_tables(world.id),
             list(registry.faction_ranks(world.id)),
             error=error,
+            on_maps={
+                f.id: on_maps(registry, "faction", f.id, world.id)
+                for f in registry.factions.of(world.id)
+            },
             render=lambda text: (
                 paravent_markdown(page, registry, Scope(world_id=world.id), text).html
             ),

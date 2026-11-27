@@ -940,7 +940,25 @@
     form.elements.layer.value = currentLayer();
     if (pinDialog.showModal) pinDialog.showModal(); else pinDialog.setAttribute('open', '');
     var filter = form.querySelector('[data-pin-filter]');
-    if (filter) filter.focus();
+    var chosen = pinFor && form.querySelector('input[name="choice"][value="' + CSS.escape(pinFor) + '"]');
+    if (chosen) {
+      // Opened from its page: it is chosen, the list shows it alone, one press pins it.
+      chosen.checked = true;
+      if (filter) {
+        filter.value = el.dataset.pinForName || '';
+        filter.dispatchEvent(new Event('input'));
+      }
+      var submit = form.querySelector('button[type="submit"]');
+      if (submit) submit.focus();
+      pinFor = '';
+    } else if (filter) filter.focus();
+  }
+  // Opened to pin something (?pin_for=): the pin tool is on at once.
+  var pinFor = el.dataset.pinFor || '';
+  if (pinFor && pinButton) {
+    clearDrawing();
+    setMode('pin');
+    say(fill(words.pin_for, { name: el.dataset.pinForName || '' }));
   }
   if (pinDialog) {
     var filter = pinDialog.querySelector('[data-pin-filter]');

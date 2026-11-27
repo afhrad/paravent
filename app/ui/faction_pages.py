@@ -4,7 +4,7 @@ books."""
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from urllib.parse import quote, urlencode
 
 from htpy import (
@@ -39,6 +39,7 @@ from app.ui.forms import alert, hidden
 from app.ui.home_pages import page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
+from app.ui.map_links import OnMaps, on_maps_line
 from app.ui.title_images import title_image, title_image_panel
 from app.ui.tool_dialog import new_button, tool_dialog
 
@@ -60,11 +61,13 @@ def factions_page(
     *,
     error: str | None = None,
     render: Callable[[str], Node] = str,
+    on_maps: Mapping[str, OnMaps] | None = None,
 ) -> Element:
     """Every faction of the world with the characters' renown (``members`` are the
     world's characters, ``(id, name)``); the forms that make a new one, by hand, from a
     book's renown table (``tables``, ``(name, source)``) or the guide's examples.
-    ``render`` draws a faction's note (Paravent Markdown)."""
+    ``render`` draws a faction's note (Paravent Markdown); ``on_maps`` where each lies on
+    the maps, by its id."""
     t = page.t
     base = f"{FACTIONS_URL}/{quote(world.id)}"
     return app_shell(
@@ -79,7 +82,10 @@ def factions_page(
             ),
             alert(error),
             div(class_="faction-grid")[
-                [_faction(page, base, f, members, render) for f in factions]
+                [
+                    _faction(page, base, f, members, render, (on_maps or {}).get(f.id))
+                    for f in factions
+                ]
                 if factions
                 else p(class_="muted")[t("factions.empty")],
             ],
@@ -100,6 +106,7 @@ def _faction(
     faction: Faction,
     members: Sequence[tuple[str, str]],
     render: Callable[[str], Node] = str,
+    on_maps: OnMaps | None = None,
 ) -> Element:
     t = page.t
     source = faction.table.partition("|")
@@ -113,6 +120,7 @@ def _faction(
             else None,
         ],
         div(class_="faction-note md-body")[render(faction.note)] if faction.note else None,
+        on_maps_line(page, on_maps),
         ul(class_="faction-renown")[
             [
                 li(class_="faction-member")[

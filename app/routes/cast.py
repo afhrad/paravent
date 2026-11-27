@@ -24,6 +24,7 @@ from fastapi.responses import HTMLResponse, Response
 from app.dependencies import GamemasterDep, PageDep, RegistryDep
 from app.models.gamestate import Coins, Scope, SourceSet
 from app.routes.auth import back_with_undo, html, redirect
+from app.routes.map_links import on_maps
 from app.routes.paravent_markdown import paravent_markdown
 from app.services import scope
 from app.services.adventures import EditConflict, text_version
@@ -245,6 +246,7 @@ async def show_npc(
             ctx,
             notice_text=page.t("npcs.saved") if saved else None,
             now=registry.clock.of(world.id).minute,
+            on_maps=on_maps(registry, "npc", npc.id, world.id),
         )
     )
 
@@ -619,6 +621,7 @@ def _treasure(
                 for pc in registry.characters.in_world(world.id)
                 if not pc.in_wizard
             ],
+            on_maps=on_maps(registry, "treasure", treasure.id, world.id),
         ),
         status_code=status_code,
     )

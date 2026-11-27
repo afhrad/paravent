@@ -565,6 +565,13 @@ class MapService:
             out += [(found, p) for p in found.pins if p.kind == kind and p.target == target]
         return out
 
+    def pinnable(self, kind: str, target: str, world_id: str) -> list[WorldMap]:
+        """The maps of ``world_id`` that may point at that, the world's own first, then
+        each adventure's, for "Pin on a map"."""
+        found = self._store.maps.list(lambda m: m.scope.world_id == world_id)
+        found = [m for m in found if self.shows(m, kind, target)]
+        return sorted(found, key=lambda m: (m.scope.adventure_id is not None, m.name.casefold()))
+
     # -- layers and names (documentation/MAPS.md §7) -------------------------------
 
     def with_layers(self, map_id: str, names: Mapping[str, str] | None = None) -> WorldMap:

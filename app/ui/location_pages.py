@@ -51,6 +51,7 @@ from app.ui.library_links import (
     saved_version,
     world_url,
 )
+from app.ui.map_links import OnMaps, on_maps_section
 from app.ui.markdown import Rendered
 from app.ui.name_roller import name_roller
 from app.ui.pick import pick_box, pick_scope
@@ -225,7 +226,7 @@ def location_page(
     here: Sequence[Here],
     *,
     notice_text: str | None = None,
-    on_maps: Sequence[tuple[str, str]] = (),
+    on_maps: OnMaps | None = None,
 ) -> Element:
     """One place: picture, tags, where it is placed, its notes and what they name, and
     the maps it is pinned on (``(map name, address at the pin)``)."""
@@ -284,17 +285,7 @@ def location_page(
             ]
             if here
             else None,
-            section(class_="prose-section")[
-                h2(class_="section-title")[t("atlas.on_the_map")],
-                ul(class_="place-here")[
-                    [
-                        li[a(href=url, class_="ref")[icon("map-pinned", "xs"), name]]
-                        for name, url in on_maps
-                    ]
-                ],
-            ]
-            if on_maps
-            else None,
+            on_maps_section(page, on_maps),
         ],
         world_id=world.id,
     )

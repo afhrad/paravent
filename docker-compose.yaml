@@ -29,6 +29,10 @@ services:
       - "${PARAVENT_LIBRARY_DIR:-./data/library}:/data/library"
       # Derived from the corpus; safe to delete.
       - paravent-cache:/data/reference-cache
+      # Map tiles, cut from the originals in the library. A volume of its own so a
+      # rebuilt or recreated container (sync-server.sh) keeps them; safe to delete,
+      # they are cut again.
+      - paravent-maps:/data/map-cache
       # Backups of the library (zip files); never the corpus.
       - "${PARAVENT_BACKUP_DIR:-./data/backups}:/data/backups"
 
@@ -61,3 +65,4 @@ services:
 
 volumes:
   paravent-cache:
+  paravent-maps:

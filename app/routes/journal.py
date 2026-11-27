@@ -25,6 +25,7 @@ from app.dependencies import GamemasterDep, IdentityDep, PageDep, RegistryDep
 from app.models.gamestate import Handout, World
 from app.routes.adventures import _chapter_context as chapter_context
 from app.routes.auth import html, redirect, safe_next
+from app.routes.map_links import on_maps
 from app.routes.paravent_markdown import players_markdown
 from app.services import features, image_effects, media
 from app.services.adventures import EditConflict, text_version
@@ -340,6 +341,9 @@ async def read(
             else None,
             message=page.t("journal.shared", names=", ".join(handouts.names(handout)))
             if shared and identity.is_gamemaster
+            else None,
+            on_maps=on_maps(registry, "handout", handout.id, handout.world_id)
+            if identity.is_gamemaster
             else None,
         )
     )

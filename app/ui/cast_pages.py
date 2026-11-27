@@ -85,6 +85,7 @@ from app.ui.library_links import (
     treasure_url,
     world_url,
 )
+from app.ui.map_links import OnMaps, on_maps_section
 from app.ui.markdown import Rendered
 from app.ui.name_roller import name_roller
 from app.ui.names import name_text
@@ -725,9 +726,10 @@ def npc_page(
     *,
     notice_text: str | None = None,
     now: int | None = None,
+    on_maps: OnMaps | None = None,
 ) -> Element:
     """One NPC: portrait, roles, where they are, how they stand toward the party (``now``
-    the world's clock), notes and statblock."""
+    the world's clock), notes, statblock and where they are on the maps."""
     t = page.t
     return app_shell(
         page,
@@ -774,6 +776,7 @@ def npc_page(
             ],
             div(class_="md-body")[notes.html] if notes.html.strip() else None,
             statblock(page, creature, ctx) if creature is not None else None,
+            on_maps_section(page, on_maps),
             p(class_="ref-roll-result", aria_live="polite", hidden=True),
         ],
         extra_scripts=("/static/js/roll.js",),
@@ -1176,6 +1179,7 @@ def treasure_page(
     roll: RollForm | None = None,
     characters: Sequence[tuple[str, str]] = (),
     trade_goods: Sequence[tuple[str, str, str]] = (),
+    on_maps: OnMaps | None = None,
 ) -> Element:
     """A treasure, laid out for editing: what it holds (items, coins, the picker to add
     more) and its details (name, place, notes) in the wide column; sharing it out, rolling
@@ -1261,6 +1265,7 @@ def treasure_page(
                     _share_panel(page, treasure, lines, characters),
                     _roll_panel(page, url, roll) if roll is not None else None,
                     _trade_panel(page, url, trade_goods) if trade_goods else None,
+                    on_maps_section(page, on_maps, panel=True),
                     token_panel(page, tok, "treasure", treasure.id),
                 ],
             ],

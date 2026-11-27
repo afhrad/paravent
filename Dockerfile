@@ -7,6 +7,7 @@
 #   /data/reference        the 5eTools corpus — mount read-only, never written
 #   /data/library          everything made with Paravent — back this up
 #   /data/reference-cache  derived artefacts — disposable
+#   /data/map-cache        map tiles, cut from the library's originals — disposable
 #   /data/backups          zip backups of the library (PARAVENT_BACKUP_AT)
 #
 # See docker-compose.yaml for a ready configuration.
@@ -58,21 +59,22 @@ COPY data/rules/ data/rules/
 COPY data/library/tags/5etools_tags.json data/library/tags/5etools_tags.json
 COPY documentation/character.schema.json documentation/character.schema.json
 
-RUN mkdir -p /data/reference /data/library /data/reference-cache /data/backups \
-    && chmod 0777 /data/library /data/reference-cache /data/backups
+RUN mkdir -p /data/reference /data/library /data/reference-cache /data/map-cache /data/backups \
+    && chmod 0777 /data/library /data/reference-cache /data/map-cache /data/backups
 
 ENV PATH="/opt/venv/bin:${PATH}" \
     PARAVENT_REFERENCE_DIR=/data/reference \
     PARAVENT_IMAGE_DIR=/data/img \
     PARAVENT_LIBRARY_DIR=/data/library \
     PARAVENT_REFERENCE_CACHE_DIR=/data/reference-cache \
+    PARAVENT_MAP_CACHE_DIR=/data/map-cache \
     PARAVENT_PORT=8000
 
 # Runs as an unprivileged user unless compose sets another (PUID/PGID there).
 USER 1000:1000
 
 EXPOSE 8000
-VOLUME ["/data/library", "/data/reference-cache"]
+VOLUME ["/data/library", "/data/reference-cache", "/data/map-cache"]
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
     CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ[\"PARAVENT_PORT\"]}/health', timeout=4)"

@@ -5494,6 +5494,8 @@
   "atlas.on_the_map": "Auf der Karte",
   "atlas.pin.button": "Pin",
   "atlas.pin.tap": "Tippe, wohin der Pin soll.",
+  "atlas.pin.tap_for": "Tippe, wo {name} auf der Karte hin soll.",
+  "atlas.pin.on_a_map": "Auf einer Karte anheften:",
   "atlas.pin.title": "Ein neuer Pin",
   "atlas.pin.lede": "Heft etwas aus der Welt an die angetippte Stelle, leg dort einen neuen Ort an oder hinterlass eine Notiz.",
   "atlas.pin.new_place": "Neuer Ort hier",

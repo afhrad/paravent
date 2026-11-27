@@ -246,6 +246,7 @@ The image holds only the code. The corpus and your content come in as volumes:
 | `/data/img` | the 5eTools images (`PARAVENT_IMAGE_DIR`) | **read-only** |
 | `/data/library` | everything made with Paravent (`PARAVENT_LIBRARY_DIR`) | read-write — **back this up** |
 | `/data/reference-cache` | named volume `paravent-cache` | disposable |
+| `/data/map-cache` | named volume `paravent-maps`: map tiles | disposable, kept across rebuilds |
 | `/data/backups` | your backup folder (`PARAVENT_BACKUP_DIR`) | read-write — see [Backups](#backups) |
 
 Set the paths in a `.env` next to `docker-compose.yaml` (or in the NAS's compose UI):

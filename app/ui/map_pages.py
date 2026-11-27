@@ -326,6 +326,7 @@ def _words(page: Page) -> str:
             "line_drawn": t("atlas.scale.drawn"),
             "no_scale": t("atlas.no_scale"),
             "pin_place": t("atlas.pin.tap"),
+            "pin_for": t("atlas.pin.tap_for"),
             "frame_start": t("atlas.frame.corner_start"),
             "frame_end": t("atlas.frame.corner_end"),
             "frame_drawn": t("atlas.frame.drawn"),
@@ -685,6 +686,8 @@ class MapContext:
     frames: Sequence[FrameView] = ()
     path: Sequence[WorldMap] = ()
     candidates: Sequence[Candidate] = ()
+    # Opened to pin this, from its own page: the pin tool on, it chosen in the dialog.
+    pin_for: Candidate | None = None
     framable: Sequence[WorldMap] = ()
     disagree: tuple[float, float] | None = None
     focus: str = ""
@@ -1368,6 +1371,8 @@ def map_page(
         data_party=json.dumps(around.party) if around.party else None,
         data_travel="1" if around.travel and travel_choices is not None else None,
         data_focus=around.focus or None,
+        data_pin_for=f"{around.pin_for.kind}:{around.pin_for.id}" if around.pin_for else None,
+        data_pin_for_name=around.pin_for.name if around.pin_for else None,
         data_grid=json.dumps(around.grid) if around.grid else None,
         role="application",
         aria_label=t("atlas.viewer", name=found.name),

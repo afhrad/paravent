@@ -1312,3 +1312,56 @@ class TestEveryKind:
         store.quests.delete(quest.id)
         gone = html.unescape((await raw.get(f"/gm/maps/{realm.id}")).text)
         assert '"name": "Find the Bell", "label": "", "url": null' in gone
+
+
+class TestOnTheMap:
+    async def test_every_pinnable_page_shows_its_maps(self, table: Table) -> None:  # noqa: F811
+        from app.models.gamestate import Faction, Handout, Quest
+
+        raw, facts = table
+        registry = _registry(facts)
+        service = registry.world_maps
+        world_id = facts["world"].id
+        registry.table.select(world_id)
+        store = registry.gamestate
+        realm = _map(registry, world_id, "Realm")
+        adventure = registry.adventures.create(world_id, "Fog on the River")
+        own = _map(registry, world_id, "Ferry Map", adventure=adventure.id)
+        other = registry.adventures.create(world_id, "Ash and Ember")
+        theirs = _map(registry, world_id, "Ember Map", adventure=other.id)
+        npc = registry.npcs.create("Old Wen", f"a:{adventure.id}", world_id)
+        hoard = registry.treasure.create("Chest", f"w:{world_id}", world_id)
+        fight = registry.encounters.create("Ambush", world_id)
+        quest = store.quests.create(Quest(world_id=world_id, name="Find the Bell"))
+        faction = store.factions.create(Faction(world_id=world_id, name="Harpers"))
+        handout = store.handouts.create(Handout(world_id=world_id, kind="box", title="A Letter"))
+        lyra = facts["ids"][0]
+        pin = service.add_pin(realm.id, x=5, y=5, kind="npc", target=npc.id)
+
+        await _login(raw)
+        page = html.unescape((await raw.get(f"/gm/npcs/{npc.id}")).text)
+        assert f"/gm/maps/{realm.id}?pin={pin.id}" in page
+        # The world's map and the NPC's adventure's take it; another adventure's not.
+        assert f"/gm/maps/{own.id}?pin_for=npc%3A{npc.id}" in page
+        assert f"/gm/maps/{realm.id}?pin_for=npc%3A{npc.id}" in page
+        assert f"/gm/maps/{theirs.id}?pin_for" not in page
+        pages = {
+            f"/gm/treasure/{hoard.id}": f"treasure%3A{hoard.id}",
+            f"/gm/encounters/{fight.id}": f"encounter%3A{fight.id}",
+            f"/gm/quests?world={world_id}": f"quest%3A{quest.id}",
+            f"/gm/factions?world={world_id}": f"faction%3A{faction.id}",
+            f"/characters/{lyra}": f"character%3A{lyra}",
+            f"/journal/{handout.id}": f"handout%3A{handout.id}",
+        }
+        for url, wanted in pages.items():
+            shown = html.unescape((await raw.get(url)).text)
+            assert f"/gm/maps/{realm.id}?pin_for={wanted}" in shown, url
+
+        # The map opens ready to pin it; something it may not show is ignored.
+        opened = html.unescape(
+            (await raw.get(f"/gm/maps/{realm.id}?pin_for=quest:{quest.id}")).text
+        )
+        assert f'data-pin-for="quest:{quest.id}"' in opened
+        assert 'data-pin-for-name="Find the Bell"' in opened
+        refused = (await raw.get(f"/gm/maps/{theirs.id}?pin_for=npc:{npc.id}")).text
+        assert "data-pin-for" not in refused

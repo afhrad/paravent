@@ -397,9 +397,15 @@ def _party(registry: StoreRegistry, found: WorldMap) -> dict[str, Any] | None:
 
 
 def _context(
-    page: Page, registry: StoreRegistry, found: WorldMap, user_id: str, focus: str = ""
+    page: Page,
+    registry: StoreRegistry,
+    found: WorldMap,
+    user_id: str,
+    focus: str = "",
+    pin_for: str = "",
 ) -> MapContext:
     service = registry.world_maps
+    candidates = _candidates(page, registry, found)
     shown = service.shown(user_id, found)
     counts = service.counts(found)
     layers = [
@@ -451,7 +457,8 @@ def _context(
         pins=_pins(page, registry, found),
         frames=frames,
         path=service.path(found),
-        candidates=_candidates(page, registry, found),
+        candidates=candidates,
+        pin_for=next((c for c in candidates if f"{c.kind}:{c.id}" == pin_for), None),
         framable=service.frame_candidates(found),
         disagree=service.scales_disagree(found),
         focus=focus if any(p.id == focus for p in found.pins) else "",
@@ -487,12 +494,14 @@ async def show_map(
     saved: str = "",
     error: str = "",
     pin: str = "",
+    pin_for: str = "",
     travelled: str = "",
     shared: str = "",
     hidden: str = "",
 ) -> HTMLResponse:
     """The map in its viewer, where the user left it, or at ``pin``; after a journey
-    along one of its roads, how it went."""
+    along one of its roads, how it went. ``pin_for`` (``kind:id``) opens it ready to pin
+    that, from the page of the thing pinned."""
     found = registry.world_maps.with_layers(_map(registry, map_id).id, layer_names(page))
     world = registry.adventures.world(found.scope.world_id)
     ready = _start_tiles(registry, found)
@@ -526,7 +535,7 @@ async def show_map(
             ready=ready,
             job=registry.world_maps.tiles.job(found.id),
             view=registry.world_maps.view(gm.user.id, found.id),
-            around=_context(page, registry, found, gm.user.id, pin),
+            around=_context(page, registry, found, gm.user.id, pin, pin_for),
             notes=notes,
             notice_text=notice_text,
             travel_choices=travel_choices(registry, world.id)

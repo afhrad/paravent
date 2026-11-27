@@ -37,6 +37,11 @@ Der Knopf **Sitzung** in der Gruppenansicht öffnet die Sitzungsseite.
 *Karten* in der oberen Leiste hält deine Karten der Welt; die Karten eines Abenteuers
 stehen auf seiner Seite.
 
+- **Auf einer Karte anheften** auf der Seite eines Orts, eines NSC, einer Begegnung, eines
+  Schatzes, eines Charakters oder eines Handouts (und unter jeder Quest und Fraktion) öffnet
+  die Karte bereit: Tippe auf die Stelle, dann *Anheften*. *Auf der Karte* darüber nennt, wo
+  es schon angeheftet ist. Eine Weltkarte nimmt die Orte und Personen jedes Abenteuers, die
+  Karte eines Abenteuers die der Welt und ihre eigenen.
 - **Den Spielern zeigen** neben dem Namen einer Karte lässt die Spieler dieser Welt sie
   unter *Karten* öffnen. Sie sehen nur die Ebenen mit *Spieler sehen sie* (im ⋯ einer
   Ebene): Eine neue Karte zeigt ihnen ihre Namen und Wege, nicht ihre Orte und Notizen.

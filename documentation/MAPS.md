@@ -72,8 +72,14 @@ depends on the tiles, the zoom or the screen.
   maps, as cards with a thumbnail, a scale badge or "no scale".
 - **An adventure's page** lists the adventure's maps beside its places; they are not in
   the world's list.
-- **A place's page** shows *On the map*: every pin naming it, linked to its map centred
-  there (§6).
+- **Every page a pin can point at** shows *On the map* (2026-11-27, `app/ui/map_links.py`):
+  a place's, an NPC's, an encounter's, a treasure's, a character's (the gamemaster's
+  sheet) and a handout's, and a line under each quest and faction. Every pin naming it,
+  linked to its map centred there (§6), then *Pin on a map* with each map of the world that
+  may take it (`MapService.pinnable`: the world's own first). That opens the map with
+  `?pin_for=kind:id`: the pin tool on, the status saying "Tap where Old Wen goes", and after
+  the tap the dialog with it chosen and alone in the list, so *Pin it* is one press. A
+  `pin_for` the map may not show is ignored.
 - **⌘K** does not list maps, as it lists no NPCs or places either outside the editors'
   insert pop-up; a map is reached from *Maps* or its adventure.
 - Context menus as everywhere (CONTEXT-MENUS.md): open, rename, replace the image, delete.
@@ -121,7 +127,8 @@ before it is needed.
 
 **Tiles are disposable.** They are made from the original, so they live outside the library
 and outside the backups: `PARAVENT_MAP_CACHE_DIR` (default `map-cache/` beside the library
-folder, a write root the reference guard covers), `<map id>/<digest>/{z}/{x}/{y}.webp`, with
+folder, a write root the reference guard covers; under Docker the named volume
+`paravent-maps` at `/data/map-cache`, so a rebuilt container keeps it), `<map id>/<digest>/{z}/{x}/{y}.webp`, with
 `thumb.webp`, the whole map in 256 px, for the lists. A tile's address carries the digest, so
 browsers keep tiles for good. A new digest is a new folder and the old one goes. Thousands
 of small files would otherwise swell every backup.

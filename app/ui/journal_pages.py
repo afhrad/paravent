@@ -36,6 +36,7 @@ from app.ui.forms import alert, hidden, notice
 from app.ui.home_pages import empty_state, page_head
 from app.ui.icons import icon
 from app.ui.layout import app_shell
+from app.ui.map_links import OnMaps, on_maps_section
 from app.ui.tokens import token
 
 JOURNAL_URL = "/journal"
@@ -231,9 +232,10 @@ def handout_page(
     readers: Sequence[str],
     chapter_href: str | None,
     message: str | None = None,
+    on_maps: OnMaps | None = None,
 ) -> Element:
     """One handout as its players read it; the gamemaster also sees who has it and who
-    opened it, and can withdraw it."""
+    opened it, can withdraw it, and where it is pinned on the maps (``on_maps``)."""
     t = page.t
     gm = page.identity is not None and page.identity.is_gamemaster
     body: Node = (
@@ -276,6 +278,7 @@ def handout_page(
             ]
             if gm
             else None,
+            on_maps_section(page, on_maps) if gm else None,
         ],
     )
 

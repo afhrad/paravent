@@ -16,6 +16,7 @@ from starlette.datastructures import FormData
 from app.dependencies import GamemasterDep, PageDep, RegistryDep, WorldsDep
 from app.models.gamestate import QuestItem, QuestStep, Scope, World
 from app.routes.auth import html, redirect
+from app.routes.map_links import on_maps
 from app.routes.paravent_markdown import paravent_markdown
 from app.services.factions import FactionError
 from app.services.play import Actor
@@ -52,6 +53,7 @@ def _page(
             {q.id: registry.quests.party(q) for q in quests},
             milestone=world.milestone,
             error=error,
+            on_maps={q.id: on_maps(registry, "quest", q.id, world.id) for q in quests},
             render=lambda text: (
                 paravent_markdown(page, registry, Scope(world_id=world.id), text).html
             ),

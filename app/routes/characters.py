@@ -39,6 +39,7 @@ from app.dependencies import (
 from app.models.gamestate import BastionFacility, Combat, Shop
 from app.models.pc import ChosenOption, PlayerCharacter
 from app.routes.auth import html, redirect
+from app.routes.map_links import on_maps
 from app.routes.paravent_markdown import players_markdown
 from app.routes.play_combat import strip
 from app.routes.rolls import announce_roll, new_roll
@@ -212,6 +213,14 @@ async def character_page(
             resolver=characters.resolver(),
             source_set=characters.source_set(character),
             combat_strip=strip(page, registry, character_id),
+            on_maps=on_maps(
+                registry,
+                "character",
+                character.id,
+                character.world_id or registry.table.world_id(),
+            )
+            if identity.is_gamemaster
+            else None,
         )
     )
 

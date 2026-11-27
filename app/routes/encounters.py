@@ -27,6 +27,7 @@ from app.dependencies import GamemasterDep, PageDep, RegistryDep, WorldsDep
 from app.models.gamestate import PartySpec
 from app.models.pc import DraftStatus
 from app.routes.auth import back_with_undo, html, redirect
+from app.routes.map_links import on_maps
 from app.routes.paravent_markdown import paravent_markdown
 from app.services import scope, token_export
 from app.services.encounter_gen import EncounterGenerator, bands_of, pool_of
@@ -261,6 +262,7 @@ def _builder(
             notice_text=notice_text,
             error=error,
             notes=_notes(page, registry, view),
+            on_maps=on_maps(registry, "encounter", view.encounter.id, view.encounter.world_id),
         )
     )
 

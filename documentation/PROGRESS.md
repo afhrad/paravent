@@ -1316,6 +1316,11 @@ Status legend: **[x]** done · **[~]** partially done · **[ ]** not started
       (item groups, weapon masteries, table groups, recipes, crochet patterns) got names.
       A world map now takes the places, NPCs, encounters and treasure of every adventure,
       named with their adventure; an adventure's map keeps to the world's and its own
+- [x] **Maps: "On the map" everywhere** (2026-11-27, MAPS.md §3): the pages of places,
+      NPCs, encounters, treasure, characters and handouts, and each quest and faction, list
+      the pins to them and offer *Pin on a map*, which opens the map ready to pin it. Under
+      Docker the tiles have a volume of their own (`paravent-maps`), so a rebuilt container
+      (`sync-server.sh`) no longer loses them
 - [x] **Maps: a cache gone is cut again** (2026-11-27, MAPS.md §4): a missing thumbnail
       or tile starts the cutting as opening the map does (a failed one only by opening);
       `python -m app.cli maps tiles` cuts every large map's missing tiles at once. Found

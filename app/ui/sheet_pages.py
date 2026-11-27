@@ -109,6 +109,7 @@ from app.ui.gift_pages import sheet_gifts
 from app.ui.icons import icon
 from app.ui.intervention_pages import deity_field, intervention_block
 from app.ui.layout import app_shell
+from app.ui.map_links import OnMaps, on_maps_section
 from app.ui.names import ITEM, name_span, name_text, named, origin_text, training_text
 from app.ui.names import summary as summary_line
 from app.ui.protocol_pages import log_embed_slot
@@ -2448,8 +2449,10 @@ def sheet_page(
     resolver: object | None = None,
     source_set: SourceSet | None = None,
     combat_strip: Node = None,
+    on_maps: OnMaps | None = None,
 ) -> Element:
-    """The full page around the sheet; ``combat_strip`` shows the fights it is in."""
+    """The full page around the sheet; ``combat_strip`` shows the fights it is in,
+    ``on_maps`` (the gamemaster's) where the character is pinned on the maps."""
     return app_shell(
         page,
         sheet.character.name or page.t("play.unnamed"),
@@ -2466,6 +2469,7 @@ def sheet_page(
                 resolver=resolver,
                 source_set=source_set,
             ),
+            on_maps_section(page, on_maps),
         ],
         extra_scripts=(
             "/static/js/htmx.min.js",
